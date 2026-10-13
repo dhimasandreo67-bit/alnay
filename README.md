@@ -13,43 +13,43 @@ Sebelum mulai, pastikan komputer sudah punya:
 
 **Kalau ada yang belum terpasang**, install dulu. Laravel 13 butuh PHP minimal 8.2.
 
-2. Clone Repo
+2. Clone Repo<br>
 
-Buka terminal (PowerShell / CMD / Bash), pindah ke folder kerja, lalu:
-git clone https://github.com/dhimasandreo67-bit/alnay.git
-cd alnay
-
-3. Install Dependency
-composer install
-npm install
-
-4. Setup File .env
-APP_NAME=ALNAY.ID
-APP_URL=http://127.0.0.1:8001
-
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=alnay
-DB_USERNAME=root
-DB_PASSWORD=
-
-5.Buat Database di MySQL
-Nama database: alnay (atau terserah, catat namanya)
-Collation: utf8mb4_unicode_ciySQL
-
-6.Jalankan Project
-php artisan serve --port=8001
-
-7.Alur Kerja Git 
-git checkout develop
-git pull origin develop
-git checkout -b fitur/nama-tugas-anda
-(contoh)
-fitur/auth-login
-fitur/katalog-produk
-fitur/admin-dashboard
-kalau sudah
-git add .
-git commit -m "feat: deskripsi singkat"
-git push -u origin fitur/nama-tugas-anda
+Buka terminal (PowerShell / CMD / Bash), pindah ke folder kerja, lalu:<br>
+git clone https://github.com/dhimasandreo67-bit/alnay.git<br>
+cd alnay<br>
+<br>
+3. Install Dependency<br>
+composer install<br>
+npm install<br>
+<br>
+4. Setup File .env<br>
+APP_NAME=ALNAY.ID<br>
+APP_URL=http://127.0.0.1:8001<br>
+<br>
+DB_CONNECTION=mysql<br>
+DB_HOST=127.0.0.1<br>
+DB_PORT=3306<br>
+DB_DATABASE=alnay<br>
+DB_USERNAME=root<br>
+DB_PASSWORD=<br>
+<br>
+5.Buat Database di MySQL<br>
+Nama database: alnay (atau terserah, catat namanya)<br>
+Collation: utf8mb4_unicode_ciySQL<br>
+<br>
+6.Jalankan Project<br>
+php artisan serve --port=8001<br>
+<br>
+7.Alur Kerja Git <br>
+git checkout develop<br>
+git pull origin develop<br>
+git checkout -b fitur/nama-tugas-anda<br><br>
+(contoh)<br>
+fitur/auth-login<br>
+fitur/katalog-produk<br>
+fitur/admin-dashboard<br><br>
+kalau sudah<br>
+git add .<br>
+git commit -m "feat: deskripsi singkat"<br>
+git push -u origin fitur/nama-tugas-anda<br>
