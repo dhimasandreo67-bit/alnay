@@ -2,8 +2,31 @@
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
+@source '../views';
+
+/* ============================================================
+   TOKEN DESAIN AL-NAY.ID
+   Tema: ink, gold, cream.
+   Semua token otomatis jadi utility Tailwind v4:
+     --color-gold    → bg-gold, text-gold, border-gold
+     --font-display  → font-display
+   JANGAN tulis hex langsung di Blade atau CSS komponen.
+   ============================================================ */
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    /* Font */
+    --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Fraunces', ui-serif, Georgia, serif;
+
+    /* Warna inti */
+    --color-ink: #17140F;
+    --color-gold: #B8862B;
+    --color-gold-soft: #D9B876;
+    --color-cream: #F8F3E8;
+    --color-cream-dim: #EFE7D6;
+    --color-panel: #FFFFFF;
+
+    /* Garis & teks sekunder */
+    --color-line: rgba(23, 20, 15, 0.10);
+    --color-muted: rgba(23, 20, 15, 0.55);
 }
