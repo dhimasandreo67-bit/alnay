@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\Route;
 |
 | Menu mengikuti Figma dashboard admin. Item di luar ERD ditandai TODO.
 */
-
-Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+    // Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/', fn () => view('placeholder'))->name('dashboard');
 
     // Master data
