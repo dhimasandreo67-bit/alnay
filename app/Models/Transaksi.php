@@ -56,8 +56,8 @@ class Transaksi extends Model
         return $this->hasMany(Refund::class);
     }
 
-    public function return()
+    public function pengembalian()
     {
-        return $this->hasMany(Return::class);
+        return $this->hasMany(Pengembalian::class);
     }
 }
