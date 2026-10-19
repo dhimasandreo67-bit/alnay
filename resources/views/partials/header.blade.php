@@ -74,11 +74,27 @@
             @endguest
 
             @auth
-                <a href="{{ route('akun.dashboard') }}"
-                   class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-ink hover:text-gold transition-colors min-h-[44px]">
+                @php
+                    $dashboardRoute = match(auth()->user()->role) {
+                        'owner' => 'owner.dashboard',
+                        'admin' => 'admin.dashboard',
+                        default => 'akun.dashboard',
+                    };
+                @endphp
+                <a href="{{ route($dashboardRoute) }}"
+                class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-ink hover:text-gold transition-colors min-h-[44px]">
                     <x-icon name="user" :size="18" />
-                    Akun
+                    {{ auth()->user()->role === 'pelanggan' ? 'Akun' : ucfirst(auth()->user()->role) }}
                 </a>
+
+                {{-- Tombol Logout --}}
+                <form method="POST" action="{{ route('keluar') }}" class="inline">
+                    @csrf
+                    <button type="submit"
+                            class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-full border border-line text-sm font-medium text-ink hover:bg-cream hover:border-gold transition-colors min-h-[44px]">
+                        Keluar
+                    </button>
+                </form>
             @endauth
 
             {{-- Hamburger (mobile) --}}

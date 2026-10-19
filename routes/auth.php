@@ -1,21 +1,31 @@
 <?php
 
+use App\Http\Controllers\Auth\DaftarController;
+use App\Http\Controllers\Auth\MasukController;
+use App\Http\Controllers\Auth\OtpController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Auth — Login, Register, Logout
-|--------------------------------------------------------------------------
-| Satu pintu untuk semua role. Redirect setelah login ditentukan nanti.
-| Sekarang hanya placeholder — logika auth tidak termasuk lingkup tugas ini.
-*/
-
 Route::middleware('guest')->group(function () {
-    Route::get('/masuk', fn () => view('placeholder'))->name('masuk');
-    Route::post('/masuk', fn () => view('placeholder'))->name('masuk.attempt');
+    // Masuk
+    Route::get('/masuk', [MasukController::class, 'create'])->name('masuk');
+    Route::post('/masuk', [OtpController::class, 'sendLogin'])->name('masuk.attempt');
 
-    Route::get('/daftar', fn () => view('placeholder'))->name('daftar');
-    Route::post('/daftar', fn () => view('placeholder'))->name('daftar.store');
+    // OTP Login
+    Route::get('/masuk/otp', fn () => view('auth.masuk-otp', ['email' => request('email')]))->name('masuk.otp.form');
+    Route::post('/masuk/otp', [OtpController::class, 'verifyLogin'])->name('masuk.otp.verify');
+
+    // Daftar
+    Route::get('/daftar', [DaftarController::class, 'create'])->name('daftar');
+    Route::post('/daftar', [OtpController::class, 'sendDaftar'])->name('daftar.store');
+
+    // OTP Daftar
+    Route::get('/daftar/otp', fn () => view('auth.daftar-otp'))->name('daftar.otp.form');
+    Route::post('/daftar/otp', [OtpController::class, 'verifyDaftar'])->name('daftar.otp.verify');
 });
 
-Route::middleware('auth')->post('/keluar', fn () => view('placeholder'))->name('keluar');
+// Google OAuth
+Route::get('/auth/google', [\App\Http\Controllers\Auth\GoogleController::class, 'redirect'])->name('auth.google');
+Route::get('/auth/google/callback', [\App\Http\Controllers\Auth\GoogleController::class, 'callback'])->name('auth.google.callback');
+
+Route::middleware('auth')->post('/keluar', [MasukController::class, 'destroy'])->name('keluar');
+
