@@ -72,9 +72,9 @@
                     <span class="text-[10px] uppercase tracking-widest text-muted">Foto</span>
                 </div>
                 <span class="text-xs md:text-sm font-medium text-ink group-hover:text-gold transition-colors leading-tight">
-                    {{ $kat['nama_kategori'] }}
+                    {{ $kat->nama_kategori }}
                 </span>
-                <span class="text-[10px] text-muted mt-0.5">{{ $kat['kode_kategori'] }}</span>
+                <span class="text-[10px] text-muted mt-0.5">{{ $kat->kode_kategori }}</span>
             </a>
         @endforeach
     </div>
@@ -283,15 +283,15 @@
             <blockquote class="bg-panel border border-line rounded-2xl p-6 flex flex-col">
                 <div class="flex text-gold mb-3">
                     @for ($i = 1; $i <= 5; $i++)
-                        <x-icon name="{{ $i <= $t['bintang'] ? 'star' : 'star-outline' }}" :size="14" />
+                        <x-icon name="{{ $i <= $t->rating ? 'star' : 'star-outline' }}" :size="14" />
                     @endfor
                 </div>
                 <p class="text-sm text-ink/80 leading-relaxed mb-6 flex-1">
-                    "{{ $t['teks'] }}"
+                    "{{ $t->ulasan }}"
                 </p>
                 <footer class="pt-4 border-t border-line">
-                    <p class="text-sm font-semibold text-ink">{{ $t['nama'] }}</p>
-                    <p class="text-xs text-muted">{{ $t['konteks'] }}</p>
+                    <p class="text-sm font-semibold text-ink">{{ $t->user->name ?? 'Pelanggan' }}</p>
+                    <p class="text-xs text-muted">{{ $t->produk->nama ?? 'Produk ALNAY' }}</p>
                 </footer>
             </blockquote>
         @endforeach
