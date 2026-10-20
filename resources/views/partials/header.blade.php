@@ -75,16 +75,16 @@
 
             @auth
                 @php
-                    $dashboardRoute = match(auth()->user()->role) {
-                        'owner' => 'owner.dashboard',
-                        'admin' => 'admin.dashboard',
-                        default => 'akun.dashboard',
+                    $profileRoute = match(auth()->user()->role) {
+                        'owner' => route('owner.dashboard'),
+                        'admin' => route('admin.dashboard'),
+                        default => route('akun.profil.edit'), // Pelanggan diarahkan ke edit profil
                     };
                 @endphp
-                <a href="{{ route($dashboardRoute) }}"
+                <a href="{{ $profileRoute }}"
                 class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-ink hover:text-gold transition-colors min-h-[44px]">
                     <x-icon name="user" :size="18" />
-                    {{ auth()->user()->role === 'pelanggan' ? 'Akun' : ucfirst(auth()->user()->role) }}
+                    {{ auth()->user()->role === 'pelanggan' ? 'Profil' : ucfirst(auth()->user()->role) }}
                 </a>
 
                 {{-- Tombol Logout --}}
