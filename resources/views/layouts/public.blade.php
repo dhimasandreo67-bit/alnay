@@ -19,5 +19,7 @@
 
     @include('partials.footer')
 
+    {{-- layouts/public.blade.php --}}
+    @stack('scripts')
 </body>
 </html>

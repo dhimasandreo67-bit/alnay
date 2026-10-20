@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\KoleksiController;
+use App\Http\Controllers\ProdukController;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,11 +15,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [HomeController::class, 'index'])->name('beranda');
 
 // Koleksi
-Route::get('/koleksi', fn () => view('placeholder'))->name('koleksi.index');
+Route::get('/koleksi', [KoleksiController::class, 'index'])->name('koleksi.index');
 Route::get('/koleksi/{kode}', fn ($kode) => view('placeholder'))->name('koleksi.kategori');
 
 // Detail produk
-Route::get('/produk/{sku}', fn ($sku) => view('placeholder'))->name('produk.detail');
+Route::get('/produk/{sku}', [ProdukController::class, 'show'])->name('produk.detail');
 
 // Halaman statis
 Route::get('/cara-sewa', fn () => view('placeholder'))->name('cara-sewa');
