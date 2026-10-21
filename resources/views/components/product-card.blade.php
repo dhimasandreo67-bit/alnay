@@ -1,4 +1,4 @@
-@props(['produk'])
+@props(['produk', 'delay' => 0])
 
 @php
     $statusLabel = \App\Support\ProdukStatus::label($produk->status, $produk->dapat_dijual);
@@ -17,7 +17,7 @@
     Struktur: satu <article>; link utama berupa overlay transparan (absolute inset-0)
     dan tombol Sewa/Beli ada di atasnya (z-20). TIDAK BOLEH ada <a> di dalam <a>.
 --}}
-<article class="group relative flex flex-col h-full bg-panel border border-line rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-500">
+<article class="pd-up group relative flex flex-col h-full bg-panel border border-line rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-500"style="--d: {{ $delay }}s;">
 
     {{-- Link utama: seluruh kartu bisa diklik --}}
     <a href="{{ route('produk.detail', $produk->sku) }}"

@@ -11,6 +11,7 @@ export default defineConfig({
             fonts: [
                 bunny('Fraunces', { weights: [400, 600, 700] }),
                 bunny('Manrope', { weights: [400, 500, 600, 700] }),
+                bunny('Inter', { weights: [400, 500, 600, 700] }),
             ],
         }),
         tailwindcss(),
