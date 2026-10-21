@@ -4,6 +4,8 @@
 
 @section('content')
 
+<script src="https://cdn.lordicon.com/lordicon.js"></script>
+
 @php
     $statusLabel = \App\Support\ProdukStatus::label($produk->status, $produk->dapat_dijual);
 
@@ -304,9 +306,13 @@
                 </div>
                 <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya tertarik dengan produk ' . $produk->nama) }}"
                 target="_blank" rel="noopener"
-                class="relative z-20 mt-4 flex items-center justify-center gap-1.5 w-full py-2.5 px-2 rounded-lg border border-dashed border-emerald-600/40 text-[10px] font-medium leading-tight text-emerald-800 hover:bg-emerald-50 transition-all duration-300">
-                    <x-icon name="whatsapp" :size="14" class="shrink-0 overflow-visible" />
-                    <span class="text-center">Konsultasi via WhatsApp</span>
+                class="mt-4 flex items-center justify-center gap-2 w-full py-3 px-3 rounded-lg border border-dashed border-line/50 text-[10px] font-medium text-emerald-700/80 hover:bg-cream/50 hover:border-emerald-600/30 transition-all duration-300 whitespace-nowrap">
+
+                    <img src="{{ asset('images/wired-outline-2543-logo-whatsapp.svg') }}"
+                        alt="WhatsApp"
+                        class="w-4 h-4 shrink-0">
+
+                    Konsultasi Produk Ini via WhatsApp
                 </a>
             </div>
         </div>
