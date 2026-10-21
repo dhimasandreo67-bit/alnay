@@ -49,9 +49,14 @@ class AkunController extends Controller
 
     public function pesananDetail($id)
     {
-        $transaksi = \App\Models\Transaksi::with(['detail.produk', 'sewa', 'pembayaran', 'pengiriman'])
-            ->where('user_id', auth()->id())
-            ->findOrFail($id);
+        $transaksi = \App\Models\Transaksi::with([
+            'detail.produk',
+            'sewa.jaminan',
+            'pembayaran',
+            'pengiriman',
+        ])
+        ->where('user_id', auth()->id())
+        ->findOrFail($id);
 
         return view('customer.akun.pesanan-detail', compact('transaksi'));
     }

@@ -14,13 +14,7 @@
             <h1 class="font-display text-2xl font-semibold text-ink/90">Pesanan Saya</h1>
         </div>
 
-        @if (session('info'))
-            <div class="p-3 mb-4 rounded-md bg-blue-50 border border-blue-200 text-[11px] text-blue-700">
-                {{ session('info') }}
-            </div>
-        @endif
-
-        @if (count($pesananSession) === 0)
+        @if ($pesananList->isEmpty())
             <div class="bg-panel border border-line/40 rounded-xl p-12 text-center">
                 <div class="w-16 h-16 rounded-full bg-cream flex items-center justify-center mx-auto mb-4">
                     <x-icon name="cart" :size="28" class="text-gold/60" />
@@ -33,19 +27,39 @@
             </div>
         @else
             <div class="space-y-3">
-                @foreach ($pesananSession as $item)
-                    <div class="bg-panel border border-line/40 rounded-xl p-5">
+                @foreach ($pesananList as $trx)
+                    <a href="{{ route('akun.pesanan.detail', $trx->id) }}" class="block bg-panel border border-line/40 rounded-xl p-5 hover:border-gold/50 transition-all group">
                         <div class="flex items-start justify-between gap-3 mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded bg-gold/10 text-gold text-[9px] font-bold uppercase">{{ $item['jenis'] }}</span>
-                                <span class="text-[11px] text-ink/50">Dari session</span>
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="px-2 py-0.5 rounded bg-gold/10 text-gold text-[9px] font-bold uppercase">{{ $trx->jenis }}</span>
+                                    <span class="text-[10px] text-ink/40">{{ $trx->kode_transaksi }}</span>
+                                </div>
+                                <p class="text-[13px] font-semibold text-ink/80">{{ $trx->detail->first()->produk->nama ?? '-' }}</p>
+                                <p class="text-[10px] text-ink/50">{{ $trx->tanggal->format('d M Y') }}</p>
                             </div>
-                            <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-700 text-[9px] font-semibold">Sementara</span>
+                            @php
+                                $statusClass = match ($trx->status_pembayaran) {
+                                    'lunas' => 'bg-emerald-50 text-emerald-700',
+                                    'dp' => 'bg-amber-50 text-amber-700',
+                                    default => 'bg-cream text-ink/60',
+                                };
+                            @endphp
+                            <span class="px-2 py-1 rounded text-[9px] font-bold uppercase {{ $statusClass }}">
+                                {{ ucfirst($trx->status_pembayaran) }}
+                            </span>
                         </div>
-                        <p class="text-[11px] text-ink/60 leading-relaxed">
-                            Data pesanan akan tampil permanen setelah integrasi database. Untuk sekarang, data hanya tersimpan di session dan akan hilang saat browser ditutup.
-                        </p>
-                    </div>
+
+                        <div class="flex items-center justify-between pt-3 border-t border-line/30">
+                            <span class="text-[10px] text-ink/50">Total</span>
+                            <div class="flex items-center gap-2">
+                                <span class="font-display font-semibold text-[13px] text-ink/80">
+                                    Rp{{ number_format($trx->total, 0, ',', '.') }}
+                                </span>
+                                <x-icon name="chevron-right" :size="14" class="text-gold group-hover:translate-x-0.5 transition-transform" />
+                            </div>
+                        </div>
+                    </a>
                 @endforeach
             </div>
         @endif
