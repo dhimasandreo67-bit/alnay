@@ -5,6 +5,7 @@ use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\SewaController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\FittingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,7 +29,6 @@ Route::get('/sewa/checkout', [SewaController::class, 'checkout'])->name('sewa.ch
 Route::post('/sewa/checkout', [SewaController::class, 'store'])->name('sewa.store');
 Route::get('/sewa/konfirmasi', [SewaController::class, 'konfirmasi'])->name('sewa.konfirmasi');
 
-
 // Halaman statis
 Route::get('/cara-sewa', fn () => view('placeholder'))->name('cara-sewa');
 Route::get('/tentang', fn () => view('placeholder'))->name('tentang');
@@ -36,8 +36,10 @@ Route::get('/testimoni', fn () => view('placeholder'))->name('testimoni');
 Route::get('/kontak', fn () => view('placeholder'))->name('kontak');
 
 // Reservasi fitting (opsional, bukan syarat sewa)
-Route::get('/reservasi-fitting', fn () => view('placeholder'))->name('fitting.create');
-Route::post('/reservasi-fitting', fn () => view('placeholder'))->name('fitting.store');
+Route::get('/reservasi-fitting', [FittingController::class, 'create'])->name('fitting.create');
+Route::post('/reservasi-fitting', [FittingController::class, 'store'])->name('fitting.store');
+Route::get('/reservasi-fitting/{id}', [FittingController::class, 'show'])->name('fitting.show');
+Route::post('/reservasi-fitting/{id}/cancel', [FittingController::class, 'cancel'])->name('fitting.cancel');
 
 // Keranjang — tampilan saja (fitur keranjang belum ada di spesifikasi final)
 Route::get('/keranjang', fn () => view('placeholder'))->name('keranjang.index');
