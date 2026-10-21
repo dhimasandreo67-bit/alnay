@@ -1,32 +1,30 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Dashboard') — ALNAY.ID Backoffice</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>@yield('title', 'Admin') — {{ config('alnay.brand.nama') }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-cream font-sans text-ink antialiased">
+<body class="bg-cream text-ink font-sans antialiased min-h-screen flex">
 
-    <div class="flex min-h-screen">
+    @include('partials.admin-sidebar')
 
-        @include('admin.partials.admin-sidebar')
+    <div class="flex-1 flex flex-col min-w-0">
+        @include('partials.admin-topbar', [
+            'pageTitle' => $__env->yieldContent('pageTitle'),
+            'pageSubtitle' => $__env->yieldContent('pageSubtitle'),
+        ])
 
-        <div class="flex min-w-0 flex-1 flex-col">
-
-            @include('admin.partials.admin-topbar')
-
-            <main class="flex-1 overflow-y-auto px-8 py-8">
-                @yield('content')
-            </main>
-        </div>
+        <main class="flex-1 p-4 md:p-6 lg:p-8">
+            @yield('content')
+        </main>
     </div>
 
     @stack('scripts')
+
 </body>
 </html>

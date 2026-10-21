@@ -1,101 +1,113 @@
 @php
-    $menu = [
+    // Keep this list in sync with routes/admin.php.
+    // 'routes' accepts a single routeIs() pattern or an array of patterns.
+    $navGroups = [
         [
-            'group' => null,
             'items' => [
-                ['label' => 'Dashboard', 'route' => 'admin.dashboard', 'icon' => 'sparkle', 'active' => request()->routeIs('admin.dashboard')],
+                ['label' => 'Dashboard', 'route' => 'admin.dashboard', 'icon' => 'grid'],
             ],
         ],
         [
-            'group' => 'Master Data',
+            'heading' => 'Master Data',
             'items' => [
-                ['label' => 'Kategori',        'route' => 'admin.kategori.index', 'icon' => 'chevron-right', 'active' => request()->routeIs('admin.kategori.*')],
-                ['label' => 'Produk & Gaun',   'route' => 'admin.produk.index',   'icon' => 'chevron-right', 'active' => request()->routeIs('admin.produk.*')],
-                ['label' => 'Pengguna',        'route' => 'admin.pengguna.index', 'icon' => 'user',          'active' => request()->routeIs('admin.pengguna.*')],
+                ['label' => 'Kategori', 'route' => 'admin.kategori.*', 'icon' => 'box'],
+                ['label' => 'Produk & Gaun', 'route' => 'admin.produk.*', 'icon' => 'hanger'],
+                ['label' => 'Pengguna', 'route' => 'admin.pengguna.*', 'icon' => 'users'],
             ],
         ],
         [
-            'group' => 'Transaksi',
+            'heading' => 'Transaksi',
             'items' => [
-                ['label' => 'Semua Transaksi',      'route' => 'admin.transaksi.index',  'icon' => 'chevron-right', 'active' => request()->routeIs('admin.transaksi.index')],
-                ['label' => 'Buat Transaksi Baru',  'route' => 'admin.transaksi.create', 'icon' => 'chevron-right', 'active' => request()->routeIs('admin.transaksi.create')],
+                ['label' => 'Semua Transaksi', 'route' => 'admin.transaksi.index', 'icon' => 'wallet'],
+                ['label' => 'Buat Transaksi Baru', 'route' => 'admin.transaksi.create', 'icon' => 'plus-circle'],
             ],
         ],
         [
-            'group' => 'Sewa & Jaminan',
+            'heading' => 'Sewa & Jaminan',
             'items' => [
-                ['label' => 'Data Sewa',            'route' => 'admin.sewa.index',    'icon' => 'calendar', 'active' => request()->routeIs('admin.sewa.*')],
-                ['label' => 'Verifikasi Jaminan',   'route' => 'admin.jaminan.index', 'icon' => 'check',    'active' => request()->routeIs('admin.jaminan.*'), 'badge' => 4],
+                ['label' => 'Data Sewa', 'route' => 'admin.sewa.*', 'icon' => 'calendar', 'badge' => null],
+                ['label' => 'Verifikasi Jaminan', 'route' => 'admin.jaminan.*', 'icon' => 'shield', 'badge' => fn () => \App\Models\JaminanSewa::where('status_verifikasi', 'pending')->count()],
             ],
         ],
         [
-            'group' => 'Layanan Atelier',
+            'heading' => 'Layanan Atelier',
             'items' => [
-                ['label' => 'Refund & Return',    'route' => 'admin.refund.index',     'icon' => 'chevron-right', 'active' => request()->routeIs('admin.refund.*'),     'badge' => 2],
-                ['label' => 'Pengiriman',         'route' => 'admin.pengiriman.index', 'icon' => 'chevron-right', 'active' => request()->routeIs('admin.pengiriman.*')],
-                ['label' => 'Reservasi Fitting',  'route' => 'admin.fitting.index',    'icon' => 'calendar',      'active' => request()->routeIs('admin.fitting.*')],
-                ['label' => 'Rating & Ulasan',    'route' => 'admin.rating.index',     'icon' => 'star-outline',  'active' => request()->routeIs('admin.rating.*')],
+                ['label' => 'Refund & Return', 'route' => 'admin.refund.*', 'icon' => 'undo', 'badge' => fn () => \App\Models\Refund::where('status', 'pending')->count()],
+                ['label' => 'Pengiriman', 'route' => 'admin.pengiriman.*', 'icon' => 'truck'],
+                ['label' => 'Reservasi Fitting', 'route' => 'admin.fitting.*', 'icon' => 'clock'],
+                ['label' => 'Rating & Ulasan', 'route' => 'admin.rating.*', 'icon' => 'star'],
             ],
         ],
         [
-            'group' => 'Sistem',
+            'heading' => 'Sistem',
             'items' => [
-                ['label' => 'Audit Log', 'route' => 'admin.audit.index', 'icon' => 'clock', 'active' => request()->routeIs('admin.audit.*')],
+                ['label' => 'Audit Log', 'route' => 'admin.audit.*', 'icon' => 'file-text'],
             ],
         ],
     ];
 @endphp
 
-<aside class="bg-ink text-cream/80 w-64 shrink-0 min-h-screen hidden lg:flex flex-col">
+<aside class="flex w-64 shrink-0 flex-col justify-between bg-ink text-cream">
 
-    {{-- Logo --}}
-    <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 px-5 py-5 border-b border-cream/10">
-        <span class="w-9 h-9 rounded-md bg-gold text-ink flex items-center justify-center font-display font-bold text-lg">A</span>
-        <span class="leading-tight">
-            <span class="block font-display font-bold text-cream text-base tracking-tight">ALNAY.ID</span>
-            <span class="block text-[9px] uppercase tracking-[0.2em] text-cream/50">Atelier Backoffice</span>
-        </span>
-    </a>
-
-    {{-- Menu --}}
-    <nav class="flex-1 overflow-y-auto py-4">
-        @foreach ($menu as $section)
-            @if ($section['group'])
-                <p class="px-5 pt-4 pb-2 text-[10px] uppercase tracking-[0.2em] text-cream/40 font-semibold">
-                    {{ $section['group'] }}
+    <div>
+        <div class="flex items-center gap-3 px-6 py-6">
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gold font-display text-lg font-bold text-ink">A</span>
+            <div>
+                <p class="font-display text-base font-semibold leading-none text-cream">ALNAY.ID</p>
+                <p class="mt-1 flex items-center gap-1.5 text-[11px] text-cream/50">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                    Atelier Backoffice
                 </p>
-            @endif
-
-            <ul class="space-y-0.5">
-                @foreach ($section['items'] as $item)
-                    <li>
-                        <a href="{{ route($item['route']) }}"
-                           class="flex items-center gap-3 px-5 py-2.5 text-sm transition-colors
-                                  {{ $item['active'] ? 'bg-gold text-ink font-semibold' : 'hover:bg-cream/5 hover:text-cream' }}">
-                            <x-icon :name="$item['icon']" :size="16" class="shrink-0" />
-                            <span class="flex-1">{{ $item['label'] }}</span>
-                            @if (!empty($item['badge']))
-                                <span class="min-w-[20px] h-5 px-1.5 rounded-full bg-gold text-ink text-[10px] font-bold flex items-center justify-center">
-                                    {{ $item['badge'] }}
-                                </span>
-                            @endif
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-        @endforeach
-    </nav>
-
-    {{-- User --}}
-    <div class="border-t border-cream/10 p-4">
-        <div class="flex items-center gap-3">
-            <span class="w-9 h-9 rounded-full bg-gold text-ink flex items-center justify-center font-bold text-sm">SA</span>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm text-cream font-medium truncate">Siti Adminah</p>
-                <p class="text-[10px] uppercase tracking-wider text-cream/50">Admin Backoffice</p>
             </div>
         </div>
-        {{-- ⚠️ Data dummy. Nanti dari auth()->user() --}}
+
+        <nav class="mt-2 space-y-6 px-3 pb-6">
+            @foreach ($navGroups as $group)
+                <div>
+                    @isset($group['heading'])
+                        <p class="px-3 pb-2 text-[11px] font-semibold tracking-wider text-gold/70">
+                            {{ strtoupper($group['heading']) }}
+                        </p>
+                    @endisset
+
+                    <div class="space-y-1">
+                        @foreach ($group['items'] as $item)
+                            @php
+                                $patterns = (array) $item['route'];
+                                $active = request()->routeIs(...$patterns);
+                                $count = isset($item['badge']) ? value($item['badge']) : null;
+                            @endphp
+                            <a href="{{ Route::has(str_replace('*', 'index', $item['route'])) ? route(str_replace('*', 'index', $item['route'])) : '#' }}"
+                               class="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition
+                                      {{ $active ? 'bg-gold font-semibold text-ink' : 'text-cream/70 hover:bg-white/5 hover:text-cream' }}">
+                                <span class="flex items-center gap-3">
+                                    <x-admin.icon :name="$item['icon']" class="h-4 w-4 shrink-0" />
+                                    {{ $item['label'] }}
+                                </span>
+
+                                @if ($count)
+                                    <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-semibold text-white">
+                                        {{ $count }}
+                                    </span>
+                                @endif
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </nav>
     </div>
 
+    <div class="flex items-center gap-3 border-t border-white/10 px-6 py-5">
+        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gold/20 text-sm font-semibold text-gold">
+            {{ \Illuminate\Support\Str::of(auth()->user()->name ?? 'A')->substr(0, 2)->upper() }}
+        </span>
+        <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium text-cream">{{ auth()->user()->name ?? 'Admin' }}</p>
+            <p class="truncate text-xs text-cream/50">Admin Backoffice</p>
+        </div>
+        <a href="{{ Route::has('admin.settings') ? route('admin.settings') : '#' }}" class="text-cream/50 hover:text-cream">
+            <x-admin.icon name="settings" class="h-4 w-4" />
+        </a>
+    </div>
 </aside>

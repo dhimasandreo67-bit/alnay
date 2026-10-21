@@ -1,37 +1,39 @@
-@props(['pageTitle' => null, 'pageSubtitle' => null])
+@php
+    $notifCount = $notifCount ?? 0; // pass from controller/view-composer, e.g. pending actions count
+@endphp
 
-<header class="bg-panel border-b border-line sticky top-0 z-30">
-    <div class="px-4 md:px-6 py-3 flex items-center gap-4">
+<header class="flex items-center justify-between gap-6 border-b border-black/5 bg-cream px-8 py-6">
+    <div>
+        <h1 class="font-display text-3xl font-semibold text-ink">@yield('title', 'Dashboard')</h1>
+        <p class="mt-1 text-sm text-ink-muted">@yield('subtitle', \Illuminate\Support\Carbon::now()->translatedFormat('l, j F Y'))</p>
+    </div>
 
-        {{-- Judul halaman --}}
-        <div class="flex-1 min-w-0">
-            @if ($pageTitle)
-                <h1 class="font-display text-xl md:text-2xl text-ink leading-tight truncate">{{ $pageTitle }}</h1>
+    <div class="flex shrink-0 items-center gap-3">
+        <label class="relative hidden md:block">
+            <x-admin.icon name="search" class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+            <input type="search" placeholder="Cari pesanan, gaun, klien..."
+                   class="w-72 rounded-xl border border-black/10 bg-white py-2.5 pl-10 pr-12 text-sm placeholder:text-ink-muted focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/30">
+            <kbd class="absolute right-3 top-1/2 -translate-y-1/2 rounded-md bg-black/5 px-1.5 py-0.5 text-[11px] font-medium text-ink-muted">⌘K</kbd>
+        </label>
+
+        <a href="{{ Route::has('admin.notifications') ? route('admin.notifications') : '#' }}"
+           class="relative flex h-11 w-11 items-center justify-center rounded-xl border border-black/10 bg-white text-ink hover:bg-black/5">
+            <x-admin.icon name="bell" class="h-5 w-5" />
+            @if ($notifCount > 0)
+                <span class="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white"></span>
             @endif
-            @if ($pageSubtitle)
-                <p class="text-xs text-muted truncate hidden md:block">{{ $pageSubtitle }}</p>
-            @endif
-        </div>
+        </a>
 
-        {{-- Search --}}
-        <form action="#" class="hidden md:flex relative w-72">
-            <x-icon name="search" :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-            <input type="text" placeholder="Cari pesanan, gaun, klien..."
-                   class="w-full pl-9 pr-4 py-2 rounded-full border border-line bg-cream text-base placeholder:text-muted focus:outline-none focus:border-gold transition-colors">
+        <form action="{{ route('admin.logout') }}" method="POST"
+              onsubmit="return confirm('Yakin ingin keluar dari backoffice?')">
+            @csrf
+            <button type="submit"
+                    class="flex h-11 w-11 items-center justify-center rounded-xl border border-black/10 bg-white text-ink hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors"
+                    title="Keluar">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+            </button>
         </form>
-
-        {{-- Notifikasi --}}
-        <button type="button"
-                class="relative w-10 h-10 rounded-full flex items-center justify-center text-ink hover:bg-cream transition-colors"
-                aria-label="Notifikasi">
-            <x-icon name="clock" :size="18" />
-            <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-gold"></span>
-            {{-- TODO: komponen bell. Sementara pakai clock. --}}
-        </button>
-
-        {{-- Avatar --}}
-        <span class="w-10 h-10 rounded-full bg-ink text-gold flex items-center justify-center font-bold text-sm shrink-0">
-            SA
-        </span>
     </div>
 </header>
