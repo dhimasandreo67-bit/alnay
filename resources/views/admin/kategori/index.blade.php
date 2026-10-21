@@ -5,6 +5,20 @@
 @section('content')
 <div class="p-6 space-y-6 transition-all duration-500 animate-fade-in">
 
+    <style>
+        .group-shine { position: relative; overflow: hidden; }
+        .group-shine::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -60%;
+            width: 20%; height: 200%;
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(30deg);
+            transition: all 0.6s ease;
+        }
+        .group-shine:hover::after { left: 130%; }
+    </style>
+
     @if(session('success'))
         <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl shadow-sm" role="alert">
             <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
@@ -13,6 +27,17 @@
                 </svg>
             </div>
             <p class="text-sm font-bold">{{ session('success') }}</p>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl shadow-sm" role="alert">
+            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v3.75m0 3.75h.007M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <p class="text-sm font-bold">{{ session('error') }}</p>
         </div>
     @endif
 
@@ -29,7 +54,7 @@
     {{-- Header Utama & Tombol Tambah --}}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h1 class="text-2xl font-black tracking-tight text-gray-900">Kelola Kategori Busana</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Kelola Kategori Busana</h1>
             <p class="text-xs text-gray-500 mt-1">Struktur klasifikasi busana adat, gaun, beskap, serta aksesoris pelengkap adibusana ALNAY.ID</p>
         </div>
 
@@ -42,51 +67,70 @@
         </button>
     </div>
 
-    {{-- 4 Statistik Summary Cards (Sesuai Desain Figma) --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {{-- Card 1: Total Kategori --}}
-        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100/60">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+    {{-- 4 Statistik Summary Cards (Sesuai Desain Dashboard) --}}
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        
+        {{-- Card 1: Total Kategori (Tema Amber/Gold) --}}
+        <div class="group group-shine relative overflow-hidden rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-amber-800/80">Total Kategori</span>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-md shadow-amber-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                </div>
             </div>
-            <div>
-                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Kategori</p>
-                <h3 class="text-xl font-black text-gray-900 mt-0.5">{{ count($categories) }} Kategori</h3>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold tracking-tight text-amber-950">{{ $categories->total() }}</span>
+                <span class="text-sm font-bold text-amber-800/60">Kategori</span>
+            </div>
+            <p class="mt-2 text-xs font-medium text-amber-700/80">Tersedia di sistem</p>
+        </div>
+
+        {{-- Card 2: Total Produk Terkait (Tema Sky/Blue) --}}
+        <div class="group group-shine relative overflow-hidden rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50/80 via-white to-sky-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-500/10">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-sky-800/80">Total Produk Terkait</span>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-blue-500 text-white shadow-md shadow-sky-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold tracking-tight text-sky-950">{{ $totalProduk }}</span>
+                <span class="text-sm font-bold text-sky-800/60">Item</span>
+            </div>
+            <div class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-sky-700 bg-sky-100/70 px-2.5 py-1 rounded-lg">
+                <span class="h-2 w-2 rounded-full bg-sky-500 animate-pulse"></span>
+                <span>Terkait dengan kategori</span>
             </div>
         </div>
 
-        {{-- Card 2: Total Produk Terkait --}}
-        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 border border-sky-100/60">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        {{-- Card 3: Format Kode (Tema Emerald/Green) --}}
+        <div class="group group-shine relative overflow-hidden rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-emerald-800/80">Format Kode</span>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
             </div>
-            <div>
-                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Produk Terkait</p>
-                <h3 class="text-xl font-black text-gray-900 mt-0.5">67 Item</h3>
+            <div class="mt-3">
+                <span class="text-2xl font-extrabold tracking-tight text-emerald-950">3 Huruf Kapital</span>
             </div>
+            <p class="mt-2 text-xs text-emerald-800/60">Standar penamaan SKU</p>
         </div>
 
-        {{-- Card 3: Format Kode --}}
-        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100/60">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        {{-- Card 4: Integritas Relasi (Tema Rose/Pink) --}}
+        <div class="group group-shine relative overflow-hidden rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50/80 via-white to-rose-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-500/10">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-rose-800/80">Integritas Relasi</span>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-pink-500 text-white shadow-md shadow-rose-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
             </div>
-            <div>
-                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Format Kode</p>
-                <h3 class="text-xl font-black text-gray-900 mt-0.5">3 Huruf Kapital</h3>
+            <div class="mt-3">
+                <span class="text-2xl font-extrabold tracking-tight text-rose-950">Proteksi Hapus</span>
             </div>
+            <p class="mt-2 text-xs text-rose-600 font-medium">Data aman dari penghapusan paksa</p>
         </div>
 
-        {{-- Card 4: Integritas Relasi --}}
-        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 border border-rose-100/60">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-            </div>
-            <div>
-                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Integritas Relasi</p>
-                <h3 class="text-xl font-black text-gray-900 mt-0.5">Proteksi Hapus</h3>
-            </div>
-        </div>
     </div>
 
     {{-- Filter & Search Toolbar --}}
@@ -105,7 +149,7 @@
                 <option>Nonaktif</option>
             </select>
             <span class="text-xs text-gray-500 font-medium">
-                Menampilkan <strong class="text-gray-900">{{ count($categories) }}</strong> dari <strong class="text-gray-900">{{ count($categories) }}</strong> kategori aktif
+                Menampilkan <strong class="text-gray-900">{{ $categories->count() }}</strong> dari <strong class="text-gray-900">{{ $categories->total() }}</strong> kategori
             </span>
         </div>
     </div>
@@ -149,17 +193,19 @@
                                 </span>
                             </td>
 
-                            {{-- Jumlah Produk Terkait (Blue Pill Style) --}}
+                            {{-- Jumlah Produk Terkait (Blue Pill Style, data asli dari relasi) --}}
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-100">
-                                    <span class="h-1.5 w-1.5 rounded-full bg-sky-500"></span> 
-                                    {{ ($index + 1) * 3 }} Produk Terkait
-                                </span>
+                                <a href="{{ route('admin.produk.index', ['kategori_id' => $category->id]) }}"
+                                   class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-100 hover:bg-sky-100 transition-colors cursor-pointer">
+                                    <span class="h-1.5 w-1.5 rounded-full bg-sky-500"></span>
+                                    {{ $category->produk_count }} Produk Terkait
+                                </a>
                             </td>
 
                             {{-- Tombol Aksi (Edit & Hapus) --}}
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="inline-flex items-center justify-end gap-1.5">
+
                                     <button type="button"
                                         onclick="openEditModal(
                                             {{ $category->id }},
@@ -173,15 +219,25 @@
                                         Edit
                                     </button>
 
-                                    <form action="{{ route('admin.kategori.destroy', $category->id) }}" method="POST" class="inline"
-                                          onsubmit="return confirm('Yakin ingin menghapus kategori ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 bg-rose-50/50 border border-rose-100 hover:bg-rose-100 active:scale-95 transition-all cursor-pointer shadow-sm" title="Hapus Kategori">
+                                    @if($category->produk_count > 0)
+                                        <button type="button" disabled
+                                            onclick="alert('Kategori ini masih punya {{ $category->produk_count }} produk terkait. Pindahkan atau hapus produk tersebut dulu sebelum menghapus kategori.')"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-400 bg-gray-50 border border-gray-200 cursor-not-allowed shadow-sm"
+                                            title="Tidak bisa dihapus, masih ada {{ $category->produk_count }} produk terkait">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                             Hapus
                                         </button>
-                                    </form>
+                                    @else
+                                        <form action="{{ route('admin.kategori.destroy', $category->id) }}" method="POST" class="inline"
+                                              onsubmit="return confirm('Yakin ingin menghapus kategori ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 bg-rose-50/50 border border-rose-100 hover:bg-rose-100 active:scale-95 transition-all cursor-pointer shadow-sm" title="Hapus Kategori">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

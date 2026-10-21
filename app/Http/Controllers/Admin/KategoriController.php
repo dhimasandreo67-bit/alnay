@@ -4,16 +4,22 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Kategori;
+use App\Models\Produk;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class KategoriController extends Controller
 {
-    // 1. Tampilkan daftar kategori
+    // 1. Tampilkan daftar kategori (beserta jumlah produk tiap kategori)
     public function index()
     {
-        $categories = Kategori::orderBy('id', 'asc')->paginate(10);
-        return view('admin.kategori.index', compact('categories'));
+        $categories = Kategori::withCount('produk')
+            ->orderBy('id', 'asc')
+            ->paginate(10);
+
+        $totalProduk = Produk::count();
+
+        return view('admin.kategori.index', compact('categories', 'totalProduk'));
     }
 
     // 2. Tampilkan form tambah kategori
@@ -69,7 +75,15 @@ class KategoriController extends Controller
     // 6. Hapus kategori dari database
     public function destroy($id)
     {
-        $category = Kategori::findOrFail($id);
+        $category = Kategori::withCount('produk')->findOrFail($id);
+
+        // Proteksi relasi: jangan izinkan hapus kategori yang masih punya produk.
+        if ($category->produk_count > 0) {
+            return redirect()
+                ->route('admin.kategori.index')
+                ->with('error', "Kategori \"{$category->nama_kategori}\" tidak bisa dihapus karena masih memiliki {$category->produk_count} produk terkait. Pindahkan atau hapus produk tersebut terlebih dahulu.");
+        }
+
         $category->delete();
 
         return redirect()->route('admin.kategori.index')->with('success', 'Kategori berhasil dihapus.');
