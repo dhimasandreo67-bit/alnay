@@ -35,6 +35,14 @@
                         <span x-text="message"></span>
                     </div>
 
+                    {{-- Alert Error --}}
+                    @if (session('error'))
+                        <div class="p-3 rounded-md bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2 mb-4">
+                            <x-icon name="close" :size="16" />
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
                     {{-- Alert Success --}}
                     @if (session('success'))
                         <div class="p-3 rounded-md bg-green-50 border border-green-200 text-xs text-green-700 flex items-center gap-2">

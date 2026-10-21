@@ -1,9 +1,10 @@
 <?php
 
 use App\Http\Controllers\HomeController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\KoleksiController;
 use App\Http\Controllers\ProdukController;
+use App\Http\Controllers\SewaController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,6 +22,13 @@ Route::get('/koleksi/{kode}', fn ($kode) => view('placeholder'))->name('koleksi.
 // Detail produk
 Route::get('/produk/{sku}', [ProdukController::class, 'show'])->name('produk.detail');
 
+// Alur Sewa
+Route::post('/sewa/simpan', [SewaController::class, 'simpanSession'])->name('sewa.simpan');
+Route::get('/sewa/checkout', [SewaController::class, 'checkout'])->name('sewa.checkout');
+Route::post('/sewa/checkout', [SewaController::class, 'store'])->name('sewa.store');
+Route::get('/sewa/konfirmasi', [SewaController::class, 'konfirmasi'])->name('sewa.konfirmasi');
+
+
 // Halaman statis
 Route::get('/cara-sewa', fn () => view('placeholder'))->name('cara-sewa');
 Route::get('/tentang', fn () => view('placeholder'))->name('tentang');
@@ -35,7 +43,6 @@ Route::post('/reservasi-fitting', fn () => view('placeholder'))->name('fitting.s
 Route::get('/keranjang', fn () => view('placeholder'))->name('keranjang.index');
 
 // Event — TAUTAN KELUAR ke sistem terpisah (event.alnay.id)
-// JANGAN buat route, query, atau model event di project ini.
 Route::get('/event', function () {
     return redirect()->away(config('alnay.event.url'));
 })->name('event');

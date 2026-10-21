@@ -290,19 +290,37 @@
 
                 {{-- Tombol aksi --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {{-- Tombol Sewa --}}
                     <div x-show="mode === 'sewa'" x-transition>
-                        <button type="button"
-                                @click="if(!tanggalAmbil || !tanggalKembali) { alert('Pilih tanggal ambil dan kembali.'); return; }"
-                                class="w-full h-[42px] rounded-lg bg-gold/95 text-white text-[10px] font-medium tracking-wider hover:bg-gold transition-all duration-300">Sewa Sekarang</button>
+                        <form method="POST" action="{{ route('sewa.simpan') }}" x-ref="formSewa">
+                            @csrf
+                            <input type="hidden" name="produk_id" value="{{ $produk->id }}">
+                            <input type="hidden" name="tanggal_ambil" :value="tanggalAmbil">
+                            <input type="hidden" name="tanggal_kembali" :value="tanggalKembali">
+                            <input type="hidden" name="ukuran" :value="ukuran">
+                            <input type="hidden" name="durasi" :value="durasi">
+                            <input type="hidden" name="total_sewa" :value="totalSewa">
+                            <button type="submit"
+                                    @click.prevent="if(!tanggalAmbil || !tanggalKembali) { alert('Pilih tanggal ambil dan kembali.'); return; } $refs.formSewa.submit();"
+                                    class="w-full h-[42px] rounded-lg bg-gold/95 text-white text-[10px] font-medium tracking-wider hover:bg-gold transition-all duration-300">
+                                Sewa Sekarang
+                            </button>
+                        </form>
                     </div>
+
+                    {{-- Tombol Beli --}}
                     <div x-show="mode === 'beli'" x-transition>
                         <button type="button"
                                 class="w-full h-[42px] rounded-lg bg-gold/95 text-white text-[10px] font-medium tracking-wider hover:bg-gold transition-all duration-300">
                             Beli Sekarang (<span x-text="formatRupiah(totalBeli)"></span>)
                         </button>
                     </div>
+
+                    {{-- Tombol Keranjang --}}
                     <button type="button"
-                            class="w-full h-[42px] rounded-lg border border-ink/80 bg-white text-ink/80 text-[10px] font-medium tracking-wider hover:bg-ink/90 hover:text-cream transition-all duration-300">Tambah ke Keranjang</button>
+                            class="w-full h-[42px] rounded-lg border border-ink/80 bg-white text-ink/80 text-[10px] font-medium tracking-wider hover:bg-ink/90 hover:text-cream transition-all duration-300">
+                        Tambah ke Keranjang
+                    </button>
                 </div>
                 <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya tertarik dengan produk ' . $produk->nama) }}"
                 target="_blank" rel="noopener"
