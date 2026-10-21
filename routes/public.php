@@ -6,6 +6,7 @@ use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\SewaController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FittingController;
+use App\Http\Controllers\BeliController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,6 +41,12 @@ Route::get('/reservasi-fitting', [FittingController::class, 'create'])->name('fi
 Route::post('/reservasi-fitting', [FittingController::class, 'store'])->name('fitting.store');
 Route::get('/reservasi-fitting/{id}', [FittingController::class, 'show'])->name('fitting.show');
 Route::post('/reservasi-fitting/{id}/cancel', [FittingController::class, 'cancel'])->name('fitting.cancel');
+
+// Alur Beli
+Route::post('/beli/simpan', [BeliController::class, 'simpanSession'])->name('beli.simpan');
+Route::get('/beli/checkout', [BeliController::class, 'checkout'])->name('beli.checkout');
+Route::post('/beli/checkout', [BeliController::class, 'store'])->name('beli.store');
+Route::get('/beli/konfirmasi', [BeliController::class, 'konfirmasi'])->name('beli.konfirmasi');
 
 // Keranjang — tampilan saja (fitur keranjang belum ada di spesifikasi final)
 Route::get('/keranjang', fn () => view('placeholder'))->name('keranjang.index');
