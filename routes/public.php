@@ -28,7 +28,7 @@ Route::get('/produk/{sku}', [ProdukController::class, 'show'])->name('produk.det
 Route::post('/sewa/simpan', [SewaController::class, 'simpanSession'])->name('sewa.simpan');
 Route::get('/sewa/checkout', [SewaController::class, 'checkout'])->name('sewa.checkout');
 Route::post('/sewa/checkout', [SewaController::class, 'store'])->name('sewa.store');
-Route::get('/sewa/konfirmasi', [SewaController::class, 'konfirmasi'])->name('sewa.konfirmasi');
+Route::get('/sewa/konfirmasi/{id}', [SewaController::class, 'konfirmasi'])->name('sewa.konfirmasi');
 
 // Halaman statis
 Route::get('/cara-sewa', fn () => view('placeholder'))->name('cara-sewa');
@@ -46,7 +46,7 @@ Route::post('/reservasi-fitting/{id}/cancel', [FittingController::class, 'cancel
 Route::post('/beli/simpan', [BeliController::class, 'simpanSession'])->name('beli.simpan');
 Route::get('/beli/checkout', [BeliController::class, 'checkout'])->name('beli.checkout');
 Route::post('/beli/checkout', [BeliController::class, 'store'])->name('beli.store');
-Route::get('/beli/konfirmasi', [BeliController::class, 'konfirmasi'])->name('beli.konfirmasi');
+Route::get('/beli/konfirmasi/{id}', [BeliController::class, 'konfirmasi'])->name('beli.konfirmasi');
 
 // Keranjang — tampilan saja (fitur keranjang belum ada di spesifikasi final)
 Route::get('/keranjang', fn () => view('placeholder'))->name('keranjang.index');

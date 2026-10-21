@@ -231,7 +231,7 @@
                         <div class="border-t border-line/40 pt-3 mb-4 space-y-2 text-[11px]">
                             <div class="flex justify-between">
                                 <span class="font-semibold text-ink/80">Total Biaya Sewa</span>
-                                <span class="font-semibold text-ink/80">Rp{{ number_format($totalSewa, 0, ',', '.') }}</span>
+                                <span class="font-semibold text-ink/80">Rp{{ number_format($total, 0, ',', '.') }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-ink/50">DP dibayar sekarang</span>
