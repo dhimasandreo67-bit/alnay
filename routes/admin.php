@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\KategoriController;
 use App\Http\Controllers\Admin\ProdukController;
 use App\Http\Controllers\Admin\AdminLoginController;
+use App\Http\Controllers\Admin\AdminController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -49,6 +50,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // --- Pengguna (DITAMBAHKAN KEMBALI untuk memperbaiki error) ---
         Route::get('/pengguna', fn () => view('placeholder'))->name('pengguna.index');
+
+        // --- Kelola Admin (akun & hak akses panel admin) ---
+        Route::get('/kelola-admin', [AdminController::class, 'index'])->name('kelola-admin.index');
+        Route::post('/kelola-admin', [AdminController::class, 'store'])->name('kelola-admin.store');
+        Route::put('/kelola-admin/{id}', [AdminController::class, 'update'])->name('kelola-admin.update');
+        Route::delete('/kelola-admin/{id}', [AdminController::class, 'destroy'])->name('kelola-admin.destroy');
 
         // 4. Transaksi
         Route::get('/transaksi', fn () => view('placeholder'))->name('transaksi.index');

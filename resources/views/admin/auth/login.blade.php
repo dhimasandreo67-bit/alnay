@@ -94,7 +94,7 @@
                     <div class="flex items-center justify-between text-sm">
                         <label class="flex items-center gap-2 text-ink-muted">
                             <input type="checkbox" name="remember" checked
-                                   class="h-4 w-4 rounded border-black/20 text-gold focus:ring-gold/40">
+                                class="h-4 w-4 rounded border-black/20 text-gold focus:ring-gold/40">
                             Ingat saya
                         </label>
                         {{-- Tautan lupa password dihilangkan karena rutenya belum ada --}}

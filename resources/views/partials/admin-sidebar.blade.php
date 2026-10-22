@@ -42,9 +42,30 @@
             'heading' => 'Sistem',
             'items' => [
                 ['label' => 'Audit Log', 'route' => 'admin.audit.*', 'icon' => 'file-text'],
+                ['label' => 'Kelola Admin', 'route' => 'admin.kelola-admin.*', 'icon' => 'shield-check'],
             ],
         ],
     ];
+
+    // Saring menu sesuai hak akses admin yang login: owner selalu lihat semua,
+    // admin biasa cuma lihat menu yang ada di admin_permissions-nya (lihat
+    // App\Models\User::canAccessAdminMenu()). Dashboard selalu tampil untuk semua.
+    $currentUser = auth()->user();
+
+    $visibleNavGroups = collect($navGroups)->map(function ($group) use ($currentUser) {
+        $group['items'] = array_values(array_filter($group['items'], function ($item) use ($currentUser) {
+            $pattern = is_array($item['route']) ? $item['route'][0] : $item['route'];
+            $key = explode('.', \Illuminate\Support\Str::after($pattern, 'admin.'))[0] ?? null;
+
+            if (!$key || $key === 'dashboard') {
+                return true;
+            }
+
+            return $currentUser?->canAccessAdminMenu($key) ?? false;
+        }));
+
+        return $group;
+    })->filter(fn ($group) => count($group['items']) > 0)->values();
 @endphp
 
 <aside class="flex w-64 shrink-0 flex-col justify-between bg-ink text-cream">
@@ -62,7 +83,7 @@
         </div>
 
         <nav class="mt-2 space-y-6 px-3 pb-6">
-            @foreach ($navGroups as $group)
+            @foreach ($visibleNavGroups as $group)
                 <div>
                     @isset($group['heading'])
                         <p class="px-3 pb-2 text-[11px] font-semibold tracking-wider text-gold/70">

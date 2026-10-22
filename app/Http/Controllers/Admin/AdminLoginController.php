@@ -46,6 +46,14 @@ class AdminLoginController extends Controller
             ]);
         }
 
+        if (! $request->user()->status_aktif) {
+            Auth::logout();
+
+            return back()->withErrors([
+                'email' => 'Akun ini sedang dinonaktifkan. Hubungi owner untuk mengaktifkannya kembali.',
+            ]);
+        }
+
         // Jangan pakai redirect()->intended() di sini. Kalau admin sempat
         // membuka halaman user/customer sebelum login, Laravel akan menyimpan
         // URL tersebut sebagai "intended" dan admin akan diarahkan ke sana
@@ -77,13 +85,34 @@ class AdminLoginController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
-            return redirect()->intended(route('admin.dashboard'));
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+            return back()->withErrors([
+                'email' => 'Email atau password salah.',
+            ])->onlyInput('email');
         }
 
-        return back()->withErrors([
-            'email' => 'Email atau password salah.',
-        ])->onlyInput('email');
+        $request->session()->regenerate();
+
+        if (! $request->user()->isAdminPanelUser()) {
+            Auth::logout();
+
+            return back()->withErrors([
+                'email' => 'Akun ini tidak memiliki akses ke backoffice.',
+            ])->onlyInput('email');
+        }
+
+        if (! $request->user()->status_aktif) {
+            Auth::logout();
+
+            return back()->withErrors([
+                'email' => 'Akun ini sedang dinonaktifkan. Hubungi owner untuk mengaktifkannya kembali.',
+            ])->onlyInput('email');
+        }
+
+        // Paksa ke dashboard admin, jangan pakai intended() agar tidak
+        // kepeleset ke halaman customer yang sempat dibuka sebelum login.
+        $request->session()->forget('url.intended');
+
+        return redirect()->route('admin.dashboard');
     }
 }
