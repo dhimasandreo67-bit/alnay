@@ -9,7 +9,7 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-cream text-ink font-sans antialiased min-h-screen flex">
+<body style="font-family: 'Inter', sans-serif !important;" class="bg-cream text-ink font-sans antialiased min-h-screen flex">
 
     @include('partials.admin-sidebar')
 

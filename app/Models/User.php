@@ -15,6 +15,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'admin_permissions',
         'no_hp',
         'jenis_kelamin',
         'tanggal_lahir',
@@ -25,7 +26,7 @@ class User extends Authenticatable
         'alamat',
         'foto_profil',
         'status_aktif',
-    ];
+    ];  
 
     protected $hidden = [
         'password',
@@ -39,7 +40,33 @@ class User extends Authenticatable
             'tanggal_lahir' => 'date',
             'password' => 'hashed',
             'status_aktif' => 'boolean',
+            'admin_permissions' => 'array',
         ];
+    }
+
+    // Hak akses panel admin
+
+    public function isOwner(): bool
+    {
+        return $this->role === 'owner';
+    }
+
+    public function isAdminPanelUser(): bool
+    {
+        return in_array($this->role, ['admin', 'owner'], true);
+    }
+
+    /**
+     * Apakah user ini boleh membuka menu/halaman panel admin tertentu.
+     * Owner selalu diizinkan; admin hanya kalau $key ada di admin_permissions-nya.
+     */
+    public function canAccessAdminMenu(string $key): bool
+    {
+        if ($this->isOwner()) {
+            return true;
+        }
+
+        return in_array($key, $this->admin_permissions ?? [], true);
     }
 
     // Relasi

@@ -47,9 +47,15 @@ git pull origin develop<br>
 git checkout -b fitur/nama-tugas-anda<br><br>
 (contoh)<br>
 fitur/auth-login<br>
+
 fitur/katalog-produk<br>
 fitur/admin-dashboard<br><br>
 kalau sudah<br>
 git add .<br>
 git commit -m "feat: deskripsi singkat"<br>
-git push -u origin fitur/nama-tugas-anda<br>
+git push -u origin fitur/nama-tugas-anda<br><br>
+
+client ID : 576630417596-13k8tknkcuov9ff28es07pcc63vgap2i.apps.googleusercontent.com<br>
+client secret : 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<br>
+
+

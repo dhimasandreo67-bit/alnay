@@ -710,10 +710,13 @@
     // =====================================================
     let currentIndex = 0;
     let isAnimating = false;
+    
+    // PERBAIKAN: Menggunakan tanda kutip ganda (") untuk string JavaScript
+    // agar tidak bentrok dengan tanda kutip tunggal (') di dalam fungsi asset()
     const photos = [
-        { src: '{{ asset('images/home/hero-pasangan.jpg') }}', title: 'Busana Adat Berpasangan', subtitle: 'Pesona budaya dalam balutan busana istimewa' },
-        { src: '{{ asset('images/home/hero-gown.jpg') }}', title: 'Gown Pengantin', subtitle: 'Elegan dan anggun untuk momen spesial' },
-        { src: '{{ asset('images/home/hero-jas.jpg') }}', title: 'Jas Beskap Modern', subtitle: 'Sentuhan modern pada busana adat' }
+        { src: "{{ asset('images/home/hero-pasangan.jpg') }}", title: 'Busana Adat Berpasangan', subtitle: 'Pesona budaya dalam balutan busana istimewa' },
+        { src: "{{ asset('images/home/hero-gown.jpg') }}", title: 'Gown Pengantin', subtitle: 'Elegan dan anggun untuk momen spesial' },
+        { src: "{{ asset('images/home/hero-jas.jpg') }}", title: 'Jas Beskap Modern', subtitle: 'Sentuhan modern pada busana adat' }
     ];
 
     function renderCarousel() {

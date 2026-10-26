@@ -17,6 +17,6 @@ class ReservasiProduk extends Model
 
     public function produk()
     {
-        return $this->belongsTo(Produk::class);
+        return $this->belongsToMany(Produk::class, 'reservasi_produk', 'reservasi_id', 'produk_id');
     }
 }

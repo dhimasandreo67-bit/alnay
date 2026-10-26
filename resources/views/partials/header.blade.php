@@ -84,11 +84,27 @@
             @endguest
 
             @auth
-                <a href="{{ route('akun.dashboard') }}"
-                   class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-ink hover:text-gold transition-colors min-h-[44px]">
+                @php
+                    $profileRoute = match(auth()->user()->role) {
+                        'owner' => route('owner.dashboard'),
+                        'admin' => route('admin.dashboard'),
+                        default => route('akun.profil.edit'), // Pelanggan diarahkan ke edit profil
+                    };
+                @endphp
+                <a href="{{ $profileRoute }}"
+                class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-ink hover:text-gold transition-colors min-h-[44px]">
                     <x-icon name="user" :size="18" />
-                    Akun
+                    {{ auth()->user()->role === 'pelanggan' ? 'Profil' : ucfirst(auth()->user()->role) }}
                 </a>
+
+                {{-- Tombol Logout --}}
+                <form method="POST" action="{{ route('keluar') }}" class="inline">
+                    @csrf
+                    <button type="submit"
+                            class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-full border border-line text-sm font-medium text-ink hover:bg-cream hover:border-gold transition-colors min-h-[44px]">
+                        Keluar
+                    </button>
+                </form>
             @endauth
 
             {{-- Hamburger (mobile) --}}

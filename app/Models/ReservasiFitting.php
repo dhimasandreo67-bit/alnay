@@ -8,7 +8,14 @@ class ReservasiFitting extends Model
 {
     protected $table = 'reservasi_fitting';
 
-    protected $fillable = ['user_id', 'slot_id', 'tanggal_daftar', 'status'];
+    protected $fillable = [
+        'kode_booking',
+        'user_id',
+        'slot_id',
+        'tanggal_daftar',
+        'status',
+        'catatan',
+    ];
 
     protected function casts(): array
     {

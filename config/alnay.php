@@ -41,4 +41,7 @@ return [
         // JANGAN buat query/model/migrasi ke tabel event di project ini.
     ],
 
+    'dp_sewa' => env('ALNAY_DP_SEWA', 1000000),
+    'deposit_ktp' => env('ALNAY_DEPOSIT_KTP', 200000),
+
 ];
