@@ -34,7 +34,12 @@
         <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl shadow-sm" role="alert">
             <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v3.75m0 3.75h.007M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <p class="text-sm font-bold">{{ session('error') }}</p>
+        </div>
+    @endif
                 </svg>
             </div>
             <p class="text-sm font-bold">{{ session('error') }}</p>
@@ -111,8 +116,10 @@
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
             </div>
-            <div class="mt-3">
-                <span class="text-2xl font-extrabold tracking-tight text-emerald-950">3 Huruf Kapital</span>
+            <div>
+                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Produk Terkait</p>
+                <h3 class="text-xl font-black text-gray-900 mt-0.5">{{ $totalProduk }} Item</h3>
+            </div>
             </div>
             <p class="mt-2 text-xs text-emerald-800/60">Standar penamaan SKU</p>
         </div>
@@ -133,14 +140,31 @@
 
     </div>
 
-    {{-- Filter & Search Toolbar --}}
-    <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        {{-- Filter & Search Toolbar --}}
+    <form method="GET" action="{{ route('admin.kategori.index') }}" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div class="relative w-full sm:w-80">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </span>
-            <input type="text" placeholder="Cari nama atau kode kategori..." class="w-full pl-10 pr-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama kategori..." 
+                   class="w-full pl-10 pr-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
         </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <select name="status" onchange="this.form.submit()" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
+                <option value="">Semua Kategori</option>
+                <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Aktif Saja</option>
+                <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Nonaktif</option>
+            </select>
+            
+            {{-- Tombol Cari --}}
+            <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-800 transition-all cursor-pointer">Cari</button>
+
+            <span class="text-xs text-gray-500 font-medium hidden lg:block">
+                Menampilkan <strong class="text-gray-900">{{ count($categories) }}</strong> kategori
+            </span>
+        </div>
+    </form> 
 
         <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
             <select class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all">
@@ -180,8 +204,17 @@
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
                                     </div>
                                     <div>
+                                        <div class="flex items-center gap-2">
                                         <div class="text-sm font-bold text-gray-900 group-hover:text-amber-900 transition-colors">{{ $category->nama_kategori }}</div>
-                                        <div class="text-xs text-gray-400 mt-0.5">Klasifikasi busana adat &amp; kelengkapan atelier</div>
+                                        
+                                        {{-- Badge Status --}}
+                                        @if($category->is_active)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">Aktif</span>
+                                        @else
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-gray-100 text-gray-500 border border-gray-200">Nonaktif</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-xs text-gray-400 mt-0.5">Klasifikasi busana adat &amp; kelengkapan atelier</div>
                                     </div>
                                 </div>
                             </td>
@@ -198,7 +231,7 @@
                                 <a href="{{ route('admin.produk.index', ['kategori_id' => $category->id]) }}"
                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-100 hover:bg-sky-100 transition-colors cursor-pointer">
                                     <span class="h-1.5 w-1.5 rounded-full bg-sky-500"></span>
-                                    {{ $category->produk_count }} Produk Terkait
+                                    {{ $category->produks_count }} Produk Terkait
                                 </a>
                             </td>
 
@@ -416,6 +449,26 @@
             closeCreateModal();
             closeEditModal();
         }
+    });
+
+    
+        document.addEventListener("DOMContentLoaded", function() {
+        // 1. Cek apakah ada posisi scroll yang tersimpan
+        let scrollpos = sessionStorage.getItem('kategori_scroll_pos');
+        if (scrollpos) {
+            // Kembalikan ke posisi semula
+            window.scrollTo(0, parseInt(scrollpos));
+            // Hapus memori setelah dipakai agar tidak nyangkut
+            sessionStorage.removeItem('kategori_scroll_pos');
+        }
+
+        // 2. Simpan posisi scroll sebelum form disubmit (Tambah/Edit/Hapus)
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', function() {
+                sessionStorage.setItem('kategori_scroll_pos', window.scrollY);
+            });
+        });
     });
 </script>
 @endsection

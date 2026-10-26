@@ -63,16 +63,16 @@
                         <p class="font-display font-bold text-sm tracking-[0.1em] text-gold">ALNAY.ID</p>
                     </div>
 
-                    <div class="mb-6">
+                    <div class="mb-6 text-center">
                         <p class="text-[9px] uppercase tracking-[0.25em] text-gold mb-2">Verifikasi</p>
                         <h1 class="font-display text-2xl md:text-3xl text-ink leading-tight mb-1">Kode OTP</h1>
                         <p class="text-xs text-muted">
-                            Masukkan kode 6 digit yang dikirim ke email Anda untuk menyelesaikan pendaftaran.
+                            Masukkan kode 6 digit yang dikirim ke email Anda.
                         </p>
                     </div>
 
                     @if ($errors->any())
-                        <div class="mb-4 p-2.5 rounded-md bg-red-50 border border-red-200 text-[11px] text-red-700">
+                        <div class="mb-4 p-2.5 rounded-md bg-red-50 border border-red-200 text-[11px] text-red-700 pd-swap">
                             @foreach ($errors->all() as $error)
                                 <p>{{ $error }}</p>
                             @endforeach
@@ -80,8 +80,10 @@
                     @endif
 
                     @if (session('success'))
-                        <div class="mb-4 p-2.5 rounded-md bg-green-50 border border-green-200 text-[11px] text-green-700">
-                            {{ session('success') }}
+                        {{-- Alert Sukses Diubah Jadi Krem/Emas agar Elegan --}}
+                        <div class="mb-4 p-3 rounded-md bg-[#faf8f2] border border-[#eee5d2] flex items-start gap-2.5 pd-swap">
+                            <svg class="w-4 h-4 text-gold shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            <p class="text-[11px] text-[#7F766C] leading-relaxed">{{ session('success') }}</p>
                         </div>
                     @endif
 
@@ -89,21 +91,26 @@
                         @csrf
 
                         <div>
-                            <label for="code" class="block text-[10px] font-semibold uppercase tracking-wider text-ink mb-1.5 text-center">Kode OTP</label>
+                            <label for="code" class="block text-[10px] font-bold uppercase tracking-widest text-ink mb-2 text-center">Kode OTP</label>
+                            
+                            <!-- Input OTP: Lebih Clean, Ramping, dan Titiknya Rapat -->
                             <input type="text" name="code" id="code" required autofocus maxlength="6" inputmode="numeric"
-                                   placeholder="000000" pattern="[0-9]{6}"
-                                   class="input-elegant w-full px-3.5 py-3 rounded-md border border-line bg-cream text-center text-xl tracking-[0.5em] font-mono text-ink placeholder:text-muted/40 focus:outline-none">
+                                placeholder="••••••" pattern="[0-9]{6}"
+                                class="w-full h-12 px-4 rounded-md border border-line bg-panel text-center text-xl tracking-[0.3em] font-sans font-bold text-ink placeholder:text-muted/30 placeholder:tracking-[0.2em] focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all duration-300">
                         </div>
 
                         <button type="submit"
-                                class="btn-gold w-full h-10 rounded-md bg-gold text-white text-xs font-bold uppercase tracking-wider">
+                                class="btn-gold pd-shine w-full h-11 rounded-md bg-gold text-white text-xs font-bold uppercase tracking-wider mt-2">
                             Verifikasi & Daftar
                         </button>
                     </form>
 
-                    <div class="mt-4 flex items-center justify-between text-[11px] text-muted">
-                        <a href="{{ route('daftar') }}" class="hover:text-gold transition-colors">Kembali</a>
-                        <span>Kode berlaku 5 menit</span>
+                    <div class="mt-6 flex items-center justify-between text-[11px] text-muted">
+                        <a href="{{ route('daftar') }}" class="hover:text-gold transition-colors flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                            Kembali
+                        </a>
+                        <span>Berlaku <strong class="text-ink">5 menit</strong></span>
                     </div>
 
                     <p class="text-center text-[9px] uppercase tracking-[0.2em] text-muted/50 mt-6">

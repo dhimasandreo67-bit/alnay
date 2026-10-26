@@ -22,6 +22,16 @@ class FittingController extends Controller
         return view('customer.fitting', compact('tanggalPenuh', 'slotJam', 'slotTerisi'));
     }
 
+    public function index()
+    {
+        $reservasis = ReservasiFitting::with('slot')
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->get();
+
+        return view('customer.fitting-riwayat', compact('reservasis'));
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -52,11 +62,12 @@ class FittingController extends Controller
             'slot_id' => $slot->id,
             'tanggal_daftar' => now()->toDateString(),
             'status' => 'pending',
-            'catatan' => $validated['catatan'] ?? null,
+            // Gabungkan produk & catatan ke dalam kolom catatan
+            'catatan' => trim(($validated['produk'] ? 'Produk: ' . $validated['produk'] . '. ' : '') . ($validated['catatan'] ?? '')),
         ]);
 
         return redirect()->route('fitting.show', $reservasi->id)
-            ->with('success', 'Booking fitting berhasil!');
+            ->with('success', 'Booking fitting berhasil dibuat!');
     }
 
     public function show($id)

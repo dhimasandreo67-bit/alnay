@@ -6,7 +6,9 @@ use App\Http\Controllers\Admin\ProdukController;
 use App\Http\Controllers\Admin\AdminLoginController;
 use App\Http\Controllers\Admin\AdminController;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Admin\TransaksiController;
+use App\Http\Controllers\Admin\ReservasiFittingController;
+use App\Http\Controllers\Admin\RatingController;
 /*
 |--------------------------------------------------------------------------
 | Area Admin
@@ -39,16 +41,21 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/kategori/{id}/edit', [KategoriController::class, 'edit'])->name('kategori.edit');
         Route::put('/kategori/{id}', [KategoriController::class, 'update'])->name('kategori.update');
         Route::delete('/kategori/{id}', [KategoriController::class, 'destroy'])->name('kategori.destroy');
-
-        // --- Produk ---
+        // --- Kategori (Menggunakan rute editan Anda) ---
+        Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index');
+        Route::post('/kategori', [KategoriController::class, 'store'])->name('kategori.store');
+        Route::put('/kategori/{id}', [KategoriController::class, 'update'])->name('kategori.update');
+        Route::delete('/kategori/{id}', [KategoriController::class, 'destroy'])->name('kategori.destroy');
+        Route::get('/kategori/tambah', fn () => redirect()->route('admin.kategori.index'));
+        Route::get('/kategori/{id}/edit', fn ($id) => redirect()->route('admin.kategori.index'));
+        
+        // --- Produk (Menggunakan rute baru dari GitHub) ---
         Route::get('/produk', [ProdukController::class, 'index'])->name('produk.index');
         Route::get('/produk/tambah', [ProdukController::class, 'create'])->name('produk.create');
         Route::post('/produk', [ProdukController::class, 'store'])->name('produk.store');
         Route::get('/produk/{id}/edit', [ProdukController::class, 'edit'])->name('produk.edit');
         Route::put('/produk/{id}', [ProdukController::class, 'update'])->name('produk.update');
         Route::delete('/produk/{id}', [ProdukController::class, 'destroy'])->name('produk.destroy');
-
-        // --- Pengguna (DITAMBAHKAN KEMBALI untuk memperbaiki error) ---
         Route::get('/pengguna', fn () => view('placeholder'))->name('pengguna.index');
 
         // --- Kelola Admin (akun & hak akses panel admin) ---
@@ -73,5 +80,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // 7. Sistem
         Route::get('/audit-log', fn () => view('placeholder'))->name('audit.index');
+
+        Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
+        Route::get('/transaksi/{id}', [TransaksiController::class, 'show'])->name('transaksi.show');
+
+        // Route untuk aksi ubah status
+        Route::patch('/transaksi/{id}/lunasi', [App\Http\Controllers\Admin\TransaksiController::class, 'lunasi'])->name('transaksi.lunasi');
+        Route::patch('/transaksi/{id}/selesaikan-sewa', [App\Http\Controllers\Admin\TransaksiController::class, 'selesaikanSewa'])->name('transaksi.selesai-sewa');
+
+        Route::get('/fitting', [ReservasiFittingController::class, 'index'])->name('fitting.index');
+        Route::patch('/fitting/{id}/status', [ReservasiFittingController::class, 'updateStatus'])->name('fitting.update-status');
+
+        Route::get('/rating', [RatingController::class, 'index'])->name('rating.index');
     });
 });

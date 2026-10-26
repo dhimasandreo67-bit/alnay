@@ -145,10 +145,17 @@
                 {{-- ==================== KOLOM KANAN ==================== --}}
                 <div>
 
-                    <span class="pd-up inline-block px-2.5 py-1 rounded-md bg-ink/90 text-gold text-[11px] font-medium tracking-wider"
-                        style="--d: .05s;">
-                        {{ $produk->dapat_dijual ? 'Sewa & Beli' : 'Khusus Sewa' }}
-                    </span>
+                                        <div class="pd-up flex items-center gap-2" style="--d: .05s;">
+                        <span class="inline-block px-2.5 py-1 rounded-md bg-ink/90 text-gold text-[11px] font-medium tracking-wider">
+                            {{ $produk->dapat_dijual ? 'Sewa & Beli' : 'Khusus Sewa' }}
+                        </span>
+                        
+                        {{-- BADGE KATEGORI BARU --}}
+                        <a href="{{ route('koleksi.index', ['kategori' => [$produk->kategori->slug]]) }}" 
+                        class="inline-block px-2.5 py-1 rounded-md bg-gold/10 text-gold border border-gold/30 hover:bg-gold hover:text-white transition-colors text-[11px] font-bold tracking-wider">
+                            {{ $produk->kategori->nama_kategori }}
+                        </a>
+                    </div>
 
                     <h1 class="pd-up font-display text-2xl lg:text-[32px] font-semibold text-ink/90 leading-tight mt-3"
                         style="--d: .1s;">{{ $produk->nama }}</h1>
@@ -663,6 +670,7 @@
                 jalankan();
             }
         })();
+
     </script>
 
 @endsection

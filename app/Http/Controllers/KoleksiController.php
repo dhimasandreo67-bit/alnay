@@ -11,7 +11,7 @@ class KoleksiController extends Controller
     public function index(Request $request)
     {
         // 1. Ambil semua kategori untuk sidebar (dengan jumlah produk)
-        $kategoriList = Kategori::withCount('produk')->orderBy('nama_kategori')->get();
+        $kategoriList = Kategori::withCount('produks')->orderBy('nama_kategori')->get();
 
         // 2. Query dasar produk
         $query = Produk::query()->with('kategori');
@@ -20,7 +20,7 @@ class KoleksiController extends Controller
         if ($request->filled('kategori')) {
             $kategoris = (array) $request->kategori;
             $query->whereHas('kategori', function ($q) use ($kategoris) {
-                $q->whereIn('kode_kategori', $kategoris);
+                $q->whereIn('slug', $kategoris);
             });
         }
 

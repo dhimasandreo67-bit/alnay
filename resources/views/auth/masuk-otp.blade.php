@@ -13,6 +13,12 @@
         .anim-left { animation: slideInLeft 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
         .anim-right { animation: slideInRight 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both; }
         .anim-float { animation: floatPattern 8s ease-in-out infinite; }
+        
+        /* Menghilangkan spinner panah pada input number (jaga-jaga) */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+
         @media (prefers-reduced-motion: reduce) { .anim-left, .anim-right, .anim-float { animation: none !important; } }
     </style>
 </head>
@@ -56,24 +62,24 @@
 
             {{-- PANEL KANAN — FORM OTP --}}
             <div class="p-6 md:p-8 flex flex-col justify-center bg-panel overflow-y-auto anim-right">
-                <div class="w-full max-w-[320px] mx-auto">
+                <div class="w-full max-w-[340px] mx-auto">
 
                     <div class="md:hidden flex items-center gap-2 mb-5">
                         <img src="{{ asset('images/alnaylogo.png') }}" alt="ALNAY.ID" class="w-8 h-8 object-contain">
                         <p class="font-display font-bold text-sm tracking-[0.1em] text-gold">ALNAY.ID</p>
                     </div>
 
-                    <div class="mb-6">
+                    <div class="mb-6 text-center md:text-left">
                         <p class="text-[9px] uppercase tracking-[0.25em] text-gold mb-2">Verifikasi</p>
-                        <h1 class="font-display text-2xl md:text-3xl text-ink leading-tight mb-1">Kode OTP</h1>
+                        <h1 class="font-display text-2xl md:text-3xl text-ink leading-tight mb-2">Kode OTP</h1>
                         <p class="text-xs text-muted">
-                            Masukkan kode 6 digit yang dikirim ke
+                            Masukkan kode 6 digit yang dikirim ke<br>
                             <strong class="text-ink">{{ $email }}</strong>
                         </p>
                     </div>
 
                     @if ($errors->any())
-                        <div class="mb-4 p-2.5 rounded-md bg-red-50 border border-red-200 text-[11px] text-red-700">
+                        <div class="mb-4 p-2.5 rounded-md bg-red-50 border border-red-200 text-[11px] text-red-700 pd-swap">
                             @foreach ($errors->all() as $error)
                                 <p>{{ $error }}</p>
                             @endforeach
@@ -81,36 +87,46 @@
                     @endif
 
                     @if (session('success'))
-                        <div class="mb-4 p-2.5 rounded-md bg-green-50 border border-green-200 text-[11px] text-green-700">
-                            {{ session('success') }}
+                        {{-- Alert Sukses Diubah Jadi Krem/Emas agar Elegan --}}
+                        <div class="mb-4 p-3 rounded-md bg-[#faf8f2] border border-[#eee5d2] flex items-start gap-2.5 pd-swap">
+                            <svg class="w-4 h-4 text-gold shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            <p class="text-[11px] text-[#7F766C] leading-relaxed">{{ session('success') }}</p>
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('masuk.otp.verify') }}" class="space-y-4">
+                    <form method="POST" action="{{ route('masuk.otp.verify') }}" id="otp-form" class="space-y-5">
                         @csrf
                         <input type="hidden" name="email" value="{{ $email }}">
 
                         <div>
-                            <label for="code" class="block text-[10px] font-semibold uppercase tracking-wider text-ink mb-1.5 text-center">Kode OTP</label>
-                            <input type="text" name="code" id="code" required autofocus maxlength="6" inputmode="numeric"
-                                   placeholder="000000" pattern="[0-9]{6}"
-                                   class="input-elegant w-full px-3.5 py-3 rounded-md border border-line bg-cream text-center text-xl tracking-[0.5em] font-mono text-ink placeholder:text-muted/40 focus:outline-none">
+                            <label class="block text-[10px] font-semibold uppercase tracking-widest text-muted mb-2 text-center">Kode OTP</label>
+                            
+                            {{-- 6 Kotak Input --}}
+                            <div class="flex justify-between gap-1 sm:gap-2" id="otp-container">
+                                @for ($i = 0; $i < 6; $i++)
+                                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" 
+                                           class="input-elegant w-full h-12 sm:h-14 text-center text-xl font-bold text-ink bg-panel border border-line rounded-md focus:outline-none" 
+                                           autocomplete="one-time-code" {{ $i == 0 ? 'autofocus' : '' }}>
+                                @endfor
+                            </div>
+                            <input type="hidden" name="code" id="otp-hidden">
                         </div>
 
                         <button type="submit"
-                                class="btn-gold w-full h-10 rounded-md bg-gold text-white text-xs font-bold uppercase tracking-wider">
+                                class="btn-gold pd-shine w-full h-11 rounded-md bg-gold text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center">
                             Verifikasi
                         </button>
                     </form>
 
-                    <div class="mt-4 flex items-center justify-between text-[11px] text-muted">
-                        <a href="{{ route('masuk') }}" class="hover:text-gold transition-colors">
+                    <div class="mt-6 flex items-center justify-between text-[11px] text-muted">
+                        <a href="{{ route('masuk') }}" class="hover:text-gold transition-colors flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                             Kembali
                         </a>
-                        <span>Kode berlaku 5 menit</span>
+                        <span>Berlaku <strong class="text-ink">5 menit</strong></span>
                     </div>
 
-                    <p class="text-center text-[9px] uppercase tracking-[0.2em] text-muted/50 mt-6">
+                    <p class="text-center text-[9px] uppercase tracking-[0.2em] text-muted/50 mt-8">
                         &copy; {{ date('Y') }} <span class="font-semibold text-gold">ALNAY.ID</span>
                     </p>
                 </div>
@@ -119,5 +135,45 @@
         </div>
     </div>
 
+    {{-- SCRIPT AUTO-FOCUS OTP --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const inputs = document.querySelectorAll('#otp-container input');
+            const hiddenInput = document.getElementById('otp-hidden');
+            const form = document.getElementById('otp-form');
+
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', (e) => {
+                    if (e.target.value.length === 1 && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                    let otpValue = '';
+                    inputs.forEach(inp => otpValue += inp.value);
+                    hiddenInput.value = otpValue;
+                });
+
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
+
+                // Fitur Copy-Paste (jika user copy kode dari email)
+                input.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    const pasteData = e.clipboardData.getData('text').slice(0, 6).replace(/\D/g, '');
+                    if (pasteData) {
+                        pasteData.split('').forEach((char, i) => {
+                            if (inputs[i]) {
+                                inputs[i].value = char;
+                                inputs[i].dispatchEvent(new Event('input'));
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+
 </body>
-</html>
+</html> 

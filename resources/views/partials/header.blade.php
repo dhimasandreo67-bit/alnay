@@ -55,22 +55,23 @@
         <div class="flex items-center gap-2 ml-auto">
 
             {{-- Keranjang — dinamis dari session --}}
-<a href="{{ route('keranjang.index') }}"
-   class="relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-ink hover:bg-cream transition-colors"
-   aria-label="Keranjang">
-    <x-icon name="cart" :size="20" />
-    <span class="text-sm font-medium">Keranjang</span>
-    @if(isset($cartCount) && $cartCount > 0)
-        <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
-            {{ $cartCount }}
-        </span>
-    @endif
-</a>
+            <a href="{{ route('keranjang.index') }}"
+               class="relative inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-ink hover:bg-cream transition-colors"
+               aria-label="Keranjang">
+                <x-icon name="cart" :size="20" />
+                <span class="text-sm font-medium">Keranjang</span>
+                @if(isset($cartCount) && $cartCount > 0)
+                    <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
+                        {{ $cartCount }}
+                    </span>
+                @endif
+            </a>
 
-<a href="#" class="relative w-11 h-11 rounded-full flex items-center justify-center text-ink hover:bg-cream transition-colors" aria-label="Notifikasi">
-    <x-icon name="bell" :size="20" />
-    <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-panel"></span>
-</a>
+            {{-- Tombol Notifikasi --}}
+            <a href="#" class="relative w-11 h-11 rounded-full flex items-center justify-center text-ink hover:bg-cream transition-colors" aria-label="Notifikasi">
+                <x-icon name="bell" :size="20" />
+                <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-panel"></span>
+            </a>
 
             @guest
                 <a href="{{ route('masuk') }}"
@@ -85,16 +86,25 @@
 
             @auth
                 @php
-                    $profileRoute = match(auth()->user()->role) {
-                        'owner' => route('owner.dashboard'),
-                        'admin' => route('admin.dashboard'),
-                        default => route('akun.profil.edit'), // Pelanggan diarahkan ke edit profil
-                    };
+                    $role = auth()->user()->role;
+
+                    // Tentukan route profil berdasarkan role
+                    if ($role === 'owner') {
+                        $profileRoute = route('owner.dashboard');
+                        $profileText = 'Owner';
+                    } elseif ($role === 'admin') {
+                        $profileRoute = route('admin.dashboard');
+                        $profileText = 'Admin';
+                    } else {
+                        $profileRoute = route('akun.profil.edit');
+                        $profileText = 'Profil';
+                    }
                 @endphp
+
                 <a href="{{ $profileRoute }}"
-                class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-ink hover:text-gold transition-colors min-h-[44px]">
+                   class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-ink hover:text-gold transition-colors min-h-[44px]">
                     <x-icon name="user" :size="18" />
-                    {{ auth()->user()->role === 'pelanggan' ? 'Profil' : ucfirst(auth()->user()->role) }}
+                    {{ $profileText }}
                 </a>
 
                 {{-- Tombol Logout --}}
