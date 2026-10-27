@@ -105,12 +105,14 @@ class Produk extends Model
     }
 
     protected function fotoUrlDariPath(?string $path): ?string
-    {
-        if (!$path) return null;
-        // Data legacy: sudah berupa URL penuh di database
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
-        }
-        return asset('storage/' . $path);
+{
+    if (!$path) return null;
+    if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+        return $path;
     }
+    if (str_starts_with($path, 'images/')) {      // ← tambahkan ini
+        return asset($path);
+    }
+    return asset('storage/' . $path);
+}
 }

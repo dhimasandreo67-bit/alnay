@@ -43,15 +43,15 @@
             </span>
         </a>
 
-        {{-- Search (desktop) --}}
-        <form action="{{ route('koleksi.index') }}" method="GET" class="mt-3 relative">
+        {{-- Search (full panjang sampai area keranjang) --}}
+        <form action="{{ route('koleksi.index') }}" method="GET" class="relative flex-1 min-w-0">
             <x-icon name="search" :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari produk..."
                 class="w-full pl-10 pr-4 py-2.5 rounded-full border border-line bg-cream text-base placeholder:text-muted focus:outline-none focus:border-gold">
         </form>
 
         {{-- Aksi kanan --}}
-        <div class="flex items-center gap-2 ml-auto">
+        <div class="flex items-center gap-2 shrink-0 ml-auto">
 
             {{-- Keranjang — dinamis dari session --}}
             <a href="{{ route('keranjang.index') }}"
@@ -132,8 +132,8 @@
         @foreach ($navItems as $item)
             @if($item['label'] === 'Koleksi')
                 {{-- KOLEKSI DENGAN DROPDOWN --}}
-                <div class="relative" 
-                     @mouseenter="koleksiOpen = true" 
+                <div class="relative"
+                     @mouseenter="koleksiOpen = true"
                      @mouseleave="koleksiOpen = false">
                     <a href="{{ route($item['route']) }}"
                        class="px-4 py-3 text-xs font-semibold uppercase tracking-wide transition-colors min-h-[50px] inline-flex items-center gap-1.5
@@ -142,9 +142,9 @@
                         {{ $item['label'] }}
                         <x-icon name="chevron-down" :size="14" />
                     </a>
-                    
+
                     {{-- DROPDOWN MENU --}}
-                    <div x-show="koleksiOpen" 
+                    <div x-show="koleksiOpen"
                          x-transition:enter="transition ease-out duration-200"
                          x-transition:enter-start="opacity-0 -translate-y-2"
                          x-transition:enter-end="opacity-100 translate-y-0"
@@ -155,24 +155,24 @@
                          style="display: none;"
                          x-cloak>
                         <div class="py-2">
-                            <a href="{{ route('koleksi.index', ['kategori' => 'jas-adat']) }}" 
+                            <a href="{{ route('koleksi.index', ['kategori' => 'jas-adat']) }}"
                                class="block px-4 py-2.5 text-sm text-ink hover:bg-cream hover:text-gold transition-colors">
                                 Jas Adat
                             </a>
-                            <a href="{{ route('koleksi.index', ['kategori' => 'gown-pengantin']) }}" 
+                            <a href="{{ route('koleksi.index', ['kategori' => 'gown-pengantin']) }}"
                                class="block px-4 py-2.5 text-sm text-ink hover:bg-cream hover:text-gold transition-colors">
                                 Gown Pengantin
                             </a>
-                            <a href="{{ route('koleksi.index', ['kategori' => 'siger']) }}" 
+                            <a href="{{ route('koleksi.index', ['kategori' => 'siger']) }}"
                                class="block px-4 py-2.5 text-sm text-ink hover:bg-cream hover:text-gold transition-colors">
                                 Siger
                             </a>
-                            <a href="{{ route('koleksi.index', ['kategori' => 'beskap']) }}" 
+                            <a href="{{ route('koleksi.index', ['kategori' => 'beskap']) }}"
                                class="block px-4 py-2.5 text-sm text-ink hover:bg-cream hover:text-gold transition-colors">
                                 Beskap
                             </a>
                             <div class="border-t border-line my-2"></div>
-                            <a href="{{ route('koleksi.index') }}" 
+                            <a href="{{ route('koleksi.index') }}"
                                class="block px-4 py-2.5 text-sm font-semibold text-gold hover:bg-cream transition-colors">
                                 Lihat Semua Koleksi →
                             </a>
@@ -222,7 +222,7 @@
     </div>
 </nav>
 
-    
+
 {{-- NAV MOBILE --}}
 <div x-show="mobileOpen" x-collapse x-cloak
      class="md:hidden border-t border-line bg-panel">
@@ -273,7 +273,7 @@
             <x-icon name="search" :size="18"
                     class="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
 
-            <input type="text" name="q"
+            <input type="text" name="search" value="{{ request('search') }}"
                    placeholder="Cari produk..."
                    class="w-full pl-10 pr-4 py-2.5 rounded-full border border-line bg-cream text-base placeholder:text-muted focus:outline-none focus:border-gold">
         </form>

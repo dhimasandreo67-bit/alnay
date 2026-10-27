@@ -33,7 +33,25 @@ class HomeController extends Controller
     public function index()
     {
         // Mengambil data asli dari database
-        $kategori = \App\Models\Kategori::where('is_active', true)->orderBy('id')->get();
+        // Foto kategori dicocokkan lewat kode (tabel kategori belum punya kolom foto)
+$fotoKategori = [
+    'JSB' => 'images/kategori/jas-beskap.jpg',
+    'GWN' => 'images/kategori/gown-kebaya.jpg',
+    'KBY' => 'images/kategori/gown-kebaya.jpg',
+    'AKS' => 'images/kategori/aksesoris.jpg',
+    'SNG' => 'images/kategori/tenun-songket.jpg',
+    'BTK' => 'images/kategori/kemeja-batik.jpg',
+];
+
+$kategori = Kategori::where('is_active', true)
+    ->orderBy('id')
+    ->get()
+    ->map(fn ($k) => [
+        'nama_kategori' => $k->nama_kategori,
+        'kode_kategori' => $k->kode_kategori,
+        'subjudul'      => null,
+        'foto'          => $fotoKategori[$k->kode_kategori] ?? null,
+    ]);
         
         $produkTerbaru = \App\Models\Produk::where('stok', '>', 0)
                             ->latest()
