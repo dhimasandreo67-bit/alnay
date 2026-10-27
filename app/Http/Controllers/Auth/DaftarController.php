@@ -44,7 +44,12 @@ class DaftarController extends Controller
             'status_aktif' => true,
         ]);
 
-        Auth::login($user);
+        // Jika user-nya admin/owner, login ke guard admin
+        if (in_array($user->role, ['admin', 'owner'])) {
+            Auth::guard('admin')->login($user);
+        } else {
+            Auth::guard('web')->login($user);
+        }
 
         return redirect()->route('beranda')->with('success', 'Selamat datang di ALNAY.ID!');
     }

@@ -266,4 +266,37 @@ class SewaController extends Controller
 
         return view('customer.sewa-konfirmasi', compact('transaksi', 'produk', 'total', 'dp', 'deposit'));
     }
+
+        public function charge($id)
+    {
+        $transaksi = Transaksi::with('pembayaran')->findOrFail($id);
+
+        \Midtrans\Config::$serverKey = config('services.midtrans.server_key');
+        \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
+        \Midtrans\Config::$isSanitized = true;
+        \Midtrans\Config::$is3ds = true;
+
+        $tagihan = $transaksi->pembayaran->where('jenis_bayar', 'lunas')->first() 
+                   ?? $transaksi->pembayaran->where('jenis_bayar', 'dp')->first();
+        $nominal = $tagihan ? $tagihan->jumlah : $transaksi->total;
+
+        $params = [
+            'transaction_details' => [
+                'order_id' => $transaksi->kode_transaksi . '-' . time(),
+                'gross_amount' => (int) $nominal,
+            ],
+            'customer_details' => [
+                'first_name' => auth()->user()->name,
+                'email' => auth()->user()->email,
+                'phone' => auth()->user()->no_hp ?? '-',
+            ],
+        ];
+
+        try {
+            $snapToken = \Midtrans\Snap::getSnapToken($params);
+            return response()->json(['snap_token' => $snapToken]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }

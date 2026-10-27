@@ -23,27 +23,36 @@ class MasukController extends Controller
 
         $remember = $request->boolean('remember');
 
-        if (! Auth::attempt($credentials, $remember)) {
-            throw ValidationException::withMessages([
-                'email' => 'Email atau kata sandi salah.',
-            ]);
+        // 1. Coba login sebagai Admin/Owner dulu
+        if (Auth::guard('admin')->attempt($credentials, $remember)) {
+            $request->session()->regenerate();
+            
+            $role = Auth::guard('admin')->user()->role;
+            
+            if ($role === 'owner') {
+                return redirect()->intended(route('owner.dashboard'));
+            }
+            return redirect()->intended(route('admin.dashboard'));
         }
 
-        $request->session()->regenerate();
+        // 2. Jika gagal, coba login sebagai User biasa
+        if (Auth::guard('web')->attempt($credentials, $remember)) {
+            $request->session()->regenerate();
+            return redirect()->intended(route('beranda'));
+        }
 
-        // Redirect berdasarkan role
-        $role = Auth::user()->role;
-
-        return match ($role) {
-            'owner' => redirect()->intended(route('owner.dashboard')),
-            'admin' => redirect()->intended(route('admin.dashboard')),
-            default => redirect()->intended(route('beranda')),
-        };
+        // 3. Jika keduanya gagal
+        throw ValidationException::withMessages([
+            'email' => 'Email atau kata sandi salah.',
+        ]);
     }
 
     public function destroy(Request $request)
     {
-        Auth::logout();
+        // Logout dari kedua guard
+        Auth::guard('web')->logout();
+        Auth::guard('admin')->logout();
+        
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

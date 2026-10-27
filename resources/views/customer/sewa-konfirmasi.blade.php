@@ -22,12 +22,14 @@
     </style>
 
     @php
-        $totalBayar = $dp + $deposit;
-        $cfg = [
-            'kode' => $transaksi->kode_transaksi,
-            'total' => (float) $totalBayar,
-            'menit' => 15,
-        ];
+    $dp = $dp ?? 0;
+    $deposit = $deposit ?? 0;
+    $totalBayar = $transaksi->total;
+    $cfg = [
+        'kode'    => $transaksi->kode_transaksi,
+        'total'   => (float) $totalBayar,
+        'menit'   => 15,
+    ];
     @endphp
 
     <div class="bg-[#FBFAF7] min-h-screen py-8 md:py-12 font-sans" x-data="konfirmasiSewa(@js($cfg))">

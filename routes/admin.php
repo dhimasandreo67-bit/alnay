@@ -21,11 +21,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/login', [AdminLoginController::class, 'login'])->name('login.store');
 
     // --- ROUTE YANG BUTUH LOGIN ---
-    Route::middleware('auth')->group(function () {
+    Route::middleware('auth:admin')->group(function () {
         
         Route::post('/logout', [AdminLoginController::class, 'logout'])
             ->name('logout')
-            ->middleware('auth');
+            ->middleware('auth:admin');
 
         // 1. Redirect halaman utama /admin langsung ke dashboard
         Route::get('/', fn () => redirect()->route('admin.dashboard'));

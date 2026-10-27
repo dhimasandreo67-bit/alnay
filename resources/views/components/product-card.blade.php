@@ -1,4 +1,4 @@
-@props(['produk', 'delay' => 0])
+@props(['produk', 'delay' => 0, 'peringkat' => null])
 
 @php
     $statusLabel = \App\Support\ProdukStatus::label($produk->status, $produk->dapat_dijual);
@@ -11,17 +11,10 @@
         'ink'     => 'bg-ink/90 text-cream border border-ink backdrop-blur-sm',
         default   => 'bg-cream text-muted border border-line',
     };
-
-    // foto_produk = path relatif ke public/ (dummy: 'image/produk/x.jpg',
-    // database: 'storage/produk/x.jpg'). Kosong → placeholder.
-    $foto = $produk['foto_produk'] ?? null;
 @endphp
 
-{{--
-    Struktur: satu <article>; link utama berupa overlay transparan (absolute inset-0)
-    dan tombol Sewa/Beli ada di atasnya (z-20). TIDAK BOLEH ada <a> di dalam <a>.
---}}
-<article class="pd-up group relative flex flex-col h-full bg-panel border border-line rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-500"style="--d: {{ $delay }}s;">
+{{-- Struktur: satu <article>; link utama berupa overlay transparan (absolute inset-0) --}}
+<article class="pd-up group relative flex flex-col h-full bg-panel border border-line rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-500" style="--d: {{ $delay }}s;">
 
     {{-- Link utama: seluruh kartu bisa diklik --}}
     <a href="{{ route('produk.detail', $produk->sku) }}"
@@ -49,7 +42,7 @@
                 Top #{{ $peringkat }}
             </span>
         @endif
-    </a>
+    </div>
 
     {{-- Isi kartu --}}
     <div class="p-3 flex flex-col flex-1">
@@ -59,8 +52,8 @@
             {{ $produk->nama }}
         </h3>
 
-        @if (! empty($produk['deskripsi']))
-            <p class="text-xs text-muted line-clamp-1 mt-0.5 mb-2">{{ $produk['deskripsi'] }}</p>
+        @if (! empty($produk->deskripsi))
+            <p class="text-xs text-muted line-clamp-1 mt-0.5 mb-2">{{ $produk->deskripsi }}</p>
         @endif
 
         {{-- Rating --}}
@@ -74,7 +67,7 @@
             <span>({{ $produk->jumlah_rating }})</span>
         </div>
 
-        {{-- Harga & tombol (didorong ke bawah supaya sejajar antar kartu) --}}
+        {{-- Harga & tombol --}}
         <div class="mt-auto">
             <div class="space-y-1 mb-3 border-t border-line/50 pt-2">
                 @if ($produk->dapat_dijual && $produk->harga_jual)
@@ -96,20 +89,15 @@
                 @endif
             </div>
 
-        {{-- Tombol --}}
-        <div class="grid {{ $produk['dapat_dijual'] ? 'grid-cols-2' : 'grid-cols-1' }} gap-2 mt-4">
-            <a href="{{ route('produk.detail', ['sku' => $produk['sku']]) }}"
-               class="inline-flex items-center justify-center px-3 py-2.5 rounded-full border border-ink/20 text-ink text-xs font-semibold uppercase tracking-wider hover:bg-ink hover:text-cream transition-colors min-h-[44px]">
-                Sewa
-            </a>
-            @if ($produk['dapat_dijual'])
-                <a href="{{ route('produk.detail', ['sku' => $produk['sku']]) }}"
-                   class="inline-flex items-center justify-center px-3 py-2.5 rounded-full bg-gold text-white text-xs font-semibold uppercase tracking-wider hover:bg-gold/90 transition-colors min-h-[44px]">
-                    Beli
+            {{-- Tombol --}}
+            <div class="grid {{ $produk->dapat_dijual ? 'grid-cols-2' : 'grid-cols-1' }} gap-2">
+                <a href="{{ route('produk.detail', ['sku' => $produk->sku]) }}"
+                   class="relative z-20 inline-flex items-center justify-center px-3 py-2.5 rounded-full border border-ink/20 text-ink text-xs font-semibold uppercase tracking-wider hover:bg-ink hover:text-cream transition-colors min-h-[44px]">
+                    Sewa
                 </a>
                 @if ($produk->dapat_dijual)
                     <a href="{{ route('produk.detail', ['sku' => $produk->sku, 'mode' => 'beli']) }}"
-                       class="inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-gold text-white text-[10px] font-bold uppercase tracking-wider font-sans hover:bg-gold/90 transition-all duration-300 min-h-[34px]">
+                       class="relative z-20 inline-flex items-center justify-center px-3 py-2.5 rounded-full bg-gold text-white text-xs font-semibold uppercase tracking-wider hover:bg-gold/90 transition-colors min-h-[44px]">
                         Beli
                     </a>
                 @endif

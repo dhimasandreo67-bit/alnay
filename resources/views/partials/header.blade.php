@@ -44,11 +44,10 @@
         </a>
 
         {{-- Search (desktop) --}}
-        <form action="{{ route('koleksi.index') }}" method="GET" class="hidden md:flex flex-1 relative">
-            {{-- TODO: route asli → koleksi.index --}}
+        <form action="{{ route('koleksi.index') }}" method="GET" class="mt-3 relative">
             <x-icon name="search" :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-            <input type="text" placeholder="Cari jas adat, gown pengantin, siger, beskap..."
-                   class="w-full pl-10 pr-4 py-2.5 rounded-full border border-line bg-cream text-base placeholder:text-muted focus:outline-none focus:border-gold transition-colors">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari produk..."
+                class="w-full pl-10 pr-4 py-2.5 rounded-full border border-line bg-cream text-base placeholder:text-muted focus:outline-none focus:border-gold">
         </form>
 
         {{-- Aksi kanan --}}
@@ -96,7 +95,7 @@
                         $profileRoute = route('admin.dashboard');
                         $profileText = 'Admin';
                     } else {
-                        $profileRoute = route('akun.profil.edit');
+                        $profileRoute = route('akun.dashboard');
                         $profileText = 'Profil';
                     }
                 @endphp
