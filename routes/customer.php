@@ -45,7 +45,7 @@ Route::middleware('auth:web')->group(function () {
     Route::get('/fitting/{id}', [FittingController::class, 'show'])->name('fitting.show');
     Route::patch('/fitting/{id}/cancel', [FittingController::class, 'cancel'])->name('fitting.cancel');
 
-        // --- MIDTRANS CHARGE (Untuk Pembayaran) ---
+    // --- MIDTRANS CHARGE (Untuk Pembayaran) ---
     Route::post('/sewa/{id}/charge', [SewaController::class, 'charge'])->name('sewa.charge');
 });
 
