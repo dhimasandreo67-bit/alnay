@@ -263,9 +263,6 @@
 </section>
 
 
-{{-- ============================================================
-     2. KATEGORI (Styling Sesuai Desain Lama)
-     ============================================================ --}}
 <section class="max-w-7xl mx-auto px-4 mt-10">
     <div class="flex flex-wrap justify-center gap-8 sm:gap-12">
         @foreach ($kategori as $k)
@@ -326,8 +323,8 @@
                      style="border-color: #f3f4f6; background-color: white;">
                     
                     <div class="relative h-[200px]">
-                       @if ($p->sampulUrl())
-                            <img src="{{ $p->sampulUrl() }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover">
+                        @if ($p['foto_produk'])
+                            <img src="{{ asset($p['foto_produk']) }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover">
                         @else
                             <div class="flex h-full w-full items-center justify-center" style="background-color: #f5f0e6;">
                                 <span style="color: #15233d;">{{ $p['nama'] }}</span>
@@ -414,8 +411,8 @@
                      style="border-color: #f3f4f6; background-color: white;">
                     
                     <div class="relative h-[200px]">
-                        @if ($p->sampulUrl())
-                            <img src="{{ $p->sampulUrl() }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover">
+                        @if ($p['foto_produk'])
+                            <img src="{{ asset($p['foto_produk']) }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover">
                         @else
                             <div class="flex h-full w-full items-center justify-center" style="background-color: #f5f0e6;">
                                 <span style="color: #15233d;">{{ $p['nama'] }}</span>
@@ -612,38 +609,95 @@
 
 
 {{-- ============================================================
-     6. OFFLINE ATELIER & PETA
+     8. OFFLINE ATELIER & STUDIO (Section Baru)
      ============================================================ --}}
-    <section class="max-w-7xl mx-auto px-4 py-6 md:py-8">
-        <div class="bg-panel border border-line rounded-2xl p-6 md:p-7 grid md:grid-cols-2 gap-6 items-center">
+<section class="max-w-7xl mx-auto px-4 py-14">
+    <div class="rounded-xl border p-6 md:p-10" style="border-color: #f3f4f6; background-color: white;">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            {{-- Left: Text Content --}}
             <div>
-                <p class="text-[10px] uppercase tracking-[0.25em] text-gold mb-2">Galeri & Ruang Fitting</p>
-                <h2 class="font-display text-xl md:text-2xl text-ink mb-3">Offline Atelier & Studio ALNAY.ID</h2>
-                <p class="text-sm text-muted leading-relaxed mb-4">
-                    Temui tim kami secara langsung untuk fitting personal, konsultasi desain, dan pengalaman memilih bahan secara tatap muka. Booking terlebih dahulu untuk memastikan slot tersedia.
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em]" style="color: #c99a32;">Galeri & Ruang Fitting</p>
+                <h2 class="font-display text-2xl font-bold mt-2" style="color: #15233d;">Offline Atelier & Studio ALNAY.ID</h2>
+                <p class="text-sm text-gray-600 mt-3">
+                    Kunjungi studio kami untuk konsultasi langsung, fitting presisi, dan melihat koleksi secara nyata. 
+                    Dilengkapi ruang fitting privat ber-AC dan penjahit profesional siap membantu.
                 </p>
-                <div class="flex flex-wrap gap-2.5">
-                    <a href="{{ route('fitting.create') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink text-cream text-sm font-semibold hover:bg-ink/90 transition-colors min-h-[44px]">
-                        <x-icon name="location" :size="16" /> Info Lokasi & Booking
-                    </a>
-                    <a href="{{ route('cara-sewa') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-ink/20 text-ink text-sm font-semibold hover:bg-cream transition-colors min-h-[44px]">Panduan Sewa Online</a>
+                
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="inline-block px-5 py-3 rounded-md border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-gray-50" style="border-color: #15233d; color: #15233d;">
+    Info Lokasi & Booking Jadwal
+</a>
+                   <a href="#" class="inline-block px-5 py-3 rounded-md border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-gray-50 cursor-pointer" style="border-color: #d1d5db; color: #374151;">
+    Panduan Sewa Online
+</a>
                 </div>
             </div>
 
-            {{-- Peta --}}
-            <div class="relative rounded-xl overflow-hidden group cursor-pointer border border-line" style="z-index: 1;">
-                <div id="peta-alnay" class="w-full h-[250px] md:h-[270px] transition-transform duration-500 group-hover:scale-105"></div>
-                <div class="absolute top-3 left-3 right-3 p-3 rounded-lg shadow-lg transition-all duration-300 group-hover:-translate-y-1" style="background-color: rgba(23, 20, 15, 0.92); backdrop-filter: blur(4px); z-index: 10;">
-                    <p class="text-white text-xs font-bold flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" style="color: #c99a32;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>
-                        Atelier & Fashion Etnik
-                    </p>
-                    <p class="text-gray-300 text-[10px] mt-1 leading-relaxed">Jl. Terusan Rajabasa No.11, Perum Bumi Permata Cirmai, Kel. Kedung, Kec. Kemiling, Bandar Lampung</p>
-                    <p class="text-gray-400 text-[9px] mt-1">Buka: 09.00 - 20.00 WIB</p>
-                </div>
-            </div>
+                        {{-- Right: Map Container --}}
+<div class="relative rounded-lg overflow-hidden group cursor-pointer border" style="border-color: #f3f4f6; z-index: 1;">
+    <div id="peta-alnay" class="w-full h-[250px] md:h-[270px] rounded-lg transition-transform duration-500 group-hover:scale-105"></div>
+
+    <div class="absolute top-3 left-3 right-3 p-3 rounded-lg shadow-lg transition-all duration-300 group-hover:-translate-y-1"
+         style="background-color: rgba(23, 20, 15, 0.92); backdrop-filter: blur(4px); z-index: 10;">
+        <p class="text-white text-xs font-bold flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" style="color: #c99a32;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+            Atelier & Fashion Etnik
+        </p>
+        <p class="text-gray-300 text-[10px] mt-1 leading-relaxed">Jl. Terusan Rajabasa No.11, Perum Bumi Permata Cirmai, Kel. Kedung, Kec. Kemiling, Bandar Lampung</p>
+        <p class="text-gray-400 text-[9px] mt-1">Buka: 09.00 - 20.00 WIB</p>
+    </div>
+</div>
         </div>
-    </section>
+    </div>
+</section>
+
+
+{{-- ============================================================
+     5. TESTIMONI (Styling Sesuai Desain Lama)
+     ============================================================ --}}
+<section class="max-w-7xl mx-auto px-4 py-10 md:py-14">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+            <p class="text-[11px] font-semibold uppercase tracking-widest" style="color: #c99a32;">Kisah Bahagia Bersama ALNAY.ID</p>
+            <h2 class="font-display mt-1 text-2xl font-bold" style="color: #15233d;">Testimoni Pengantin &amp; Klien</h2>
+        </div>
+
+        <p class="text-xs" style="color: #6b7280;">
+            Kepuasan ★ 4.97 dari 1.800+ Acara
+        </p>
+    </div>
+
+    @if (count($testimoni) > 0)
+        <div class="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
+            @foreach ($testimoni as $t)
+                @php
+                    $inisial = strtoupper(substr($t['nama'], 0, 2));
+                @endphp
+
+                <div class="card-shadow rounded-xl border p-5" style="border-color: #f3f4f6; background-color: white;">
+                    <p style="color: #c99a32;">
+                        @for($i = 1; $i <= 5; $i++)
+                            {{ $i <= $t['bintang'] ? '★' : '☆' }}
+                        @endfor
+                    </p>
+
+                    <p class="mt-3 text-xs leading-relaxed" style="color: #4b5563;">"{{ $t['teks'] }}"</p>
+
+                    <div class="mt-4 flex items-center gap-3">
+                        <div class="flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-bold"
+                             style="background-color: #fbf6e9; color: #c99a32;">
+                            {{ $inisial }}
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold" style="color: #15233d;">{{ $t['nama'] }}</p>
+                            <p class="text-[10px]" style="color: #9ca3af;">{{ $t['konteks'] }}</p>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+</section>
 
 {{-- === JAVASCRIPT CAROUSEL === --}}
 <script>
