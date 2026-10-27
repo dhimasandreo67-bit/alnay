@@ -145,10 +145,17 @@
                 {{-- ==================== KOLOM KANAN ==================== --}}
                 <div>
 
-                    <span class="pd-up inline-block px-2.5 py-1 rounded-md bg-ink/90 text-gold text-[11px] font-medium tracking-wider"
-                        style="--d: .05s;">
-                        {{ $produk->dapat_dijual ? 'Sewa & Beli' : 'Khusus Sewa' }}
-                    </span>
+                                        <div class="pd-up flex items-center gap-2" style="--d: .05s;">
+                        <span class="inline-block px-2.5 py-1 rounded-md bg-ink/90 text-gold text-[11px] font-medium tracking-wider">
+                            {{ $produk->dapat_dijual ? 'Sewa & Beli' : 'Khusus Sewa' }}
+                        </span>
+                        
+                        {{-- BADGE KATEGORI BARU --}}
+                        <a href="{{ route('koleksi.index', ['kategori' => [$produk->kategori->slug]]) }}" 
+                        class="inline-block px-2.5 py-1 rounded-md bg-gold/10 text-gold border border-gold/30 hover:bg-gold hover:text-white transition-colors text-[11px] font-bold tracking-wider">
+                            {{ $produk->kategori->nama_kategori }}
+                        </a>
+                    </div>
 
                     <h1 class="pd-up font-display text-2xl lg:text-[32px] font-semibold text-ink/90 leading-tight mt-3"
                         style="--d: .1s;">{{ $produk->nama }}</h1>
@@ -377,9 +384,9 @@
                     </div>
 
                     {{-- Tombol aksi --}}
-                    <div class="pd-up grid grid-cols-1 sm:grid-cols-2 gap-2.5" style="--d: .4s;">
+                    <div class="pd-up grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-stretch" style="--d: .4s;">
                         {{-- Tombol Sewa --}}
-                        <div x-show="mode === 'sewa'" x-cloak>
+                        <div x-show="mode === 'sewa'" x-cloak class="h-full">
                             <form method="POST" action="{{ route('sewa.simpan') }}" x-ref="formSewa">
                                 @csrf
                                 <input type="hidden" name="produk_id" value="{{ $produk->id }}">
@@ -411,10 +418,23 @@
                         </div>
 
                         {{-- Tombol Keranjang --}}
-                        <button type="button"
-                            class="w-full h-[46px] rounded-lg border border-ink/80 bg-white text-ink/85 text-[13px] font-semibold tracking-wide hover:bg-ink/90 hover:text-cream hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] transition-all duration-300">
-                            Tambah ke Keranjang
-                        </button>
+                        <form action="{{ route('keranjang.add') }}" method="POST" class="w-full h-full">
+                            @csrf
+                            <input type="hidden" name="produk_id" value="{{ $produk->id }}">
+                            <input type="hidden" name="mode" :value="mode">
+                            <input type="hidden" name="ukuran" :value="ukuran">
+                            <input type="hidden" name="qty" :value="jumlah">
+                            <template x-if="mode === 'sewa'">
+                                <div>
+                                    <input type="hidden" name="tanggal_ambil" :value="tanggalAmbil">
+                                    <input type="hidden" name="tanggal_kembali" :value="tanggalKembali">
+                                </div>
+                            </template>
+                            <button type="submit"
+                                    class="w-full h-[46px] rounded-lg border border-ink/80 bg-white text-ink/85 text-[13px] font-semibold tracking-wide hover:bg-ink/90 hover:text-cream hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] transition-all duration-300">
+                                + Tambah ke Keranjang
+                            </button>
+                        </form>
                     </div>
 
                     <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya tertarik dengan produk ' . $produk->nama) }}"
@@ -663,6 +683,7 @@
                 jalankan();
             }
         })();
+
     </script>
 
 @endsection

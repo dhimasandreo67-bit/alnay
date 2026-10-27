@@ -65,11 +65,10 @@
                                 @foreach ($kategoriList as $k)
                                     <label class="flex items-center justify-between gap-2 cursor-pointer group">
                                         <span class="flex items-center gap-2">
-                                            <input type="checkbox" name="kategori[]" value="{{ $k->kode_kategori }}"
-                                                {{ in_array($k->kode_kategori, (array) request('kategori', [])) ? 'checked' : '' }}
+                                            <input type="checkbox" name="kategori[]" value="{{ $k->slug }}"
+                                                {{ in_array($k->slug, (array) request('kategori', [])) ? 'checked' : '' }}
                                                 class="w-4 h-4 rounded border-line/60 text-gold focus:ring-gold focus:ring-offset-0 transition-all">
-                                            <span
-                                                class="text-[13px] text-ink/70 group-hover:text-gold transition-colors">{{ $k->nama_kategori }}</span>
+                                            <span class="text-[13px] text-ink/70 group-hover:text-gold transition-colors">{{ $k->nama_kategori }}</span>
                                         </span>
                                         <span class="text-[11px] text-ink/40">{{ $k->produk_count ?? '' }}</span>
                                     </label>

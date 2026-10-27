@@ -37,26 +37,21 @@ class AkunController extends Controller
         ));
     }
 
-    public function pesanan()
+        public function pesanan()
     {
-        $pesananList = \App\Models\Transaksi::with(['detail.produk', 'sewa', 'pembayaran'])
-            ->where('user_id', auth()->id())
-            ->latest()
-            ->get();
+        $pesananList = \App\Models\Transaksi::where('user_id', auth()->id())
+                        ->with(['detail.produk', 'sewa'])
+                        ->latest()
+                        ->get(); // Gunakan get() dulu, bukan paginate, sesuai desain Anda
 
         return view('customer.akun.pesanan', compact('pesananList'));
     }
 
     public function pesananDetail($id)
     {
-        $transaksi = \App\Models\Transaksi::with([
-            'detail.produk',
-            'sewa.jaminan',
-            'pembayaran',
-            'pengiriman',
-        ])
-        ->where('user_id', auth()->id())
-        ->findOrFail($id);
+        $transaksi = \App\Models\Transaksi::with(['detail.produk', 'sewa', 'pembayaran', 'pengiriman'])
+                        ->where('user_id', auth()->id())
+                        ->findOrFail($id);
 
         return view('customer.akun.pesanan-detail', compact('transaksi'));
     }

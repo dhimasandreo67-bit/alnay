@@ -74,7 +74,7 @@
             <span>({{ $produk->jumlah_rating }})</span>
         </div>
 
-        {{-- Harga & tombol (didorong ke bawah supaya sejajar antar kartu) --}}
+        {{-- Harga & tombol --}}
         <div class="mt-auto">
             <div class="space-y-1 mb-3 border-t border-line/50 pt-2">
                 @if ($produk->dapat_dijual && $produk->harga_jual)

@@ -17,8 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/admin.php'));
         },
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        // Ubah redirectGuestsTo agar mengecek URL
+    ->withMiddleware(function (Middleware $middleware): void { // <-- Rata kiri-kanan
+        $middleware->validateCsrfTokens(except: [
+            'midtrans/webhook',
+        ]);
+
         $middleware->redirectGuestsTo(function (Request $request) {
             if ($request->is('admin/*')) {
                 return route('admin.login');

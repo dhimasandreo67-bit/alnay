@@ -10,13 +10,30 @@ use Illuminate\Support\Str;
 
 class KategoriController extends Controller
 {
-    // 1. Tampilkan daftar kategori (beserta jumlah produk tiap kategori)
-    public function index()
+    // 1. Tampilkan daftar kategori (DENGAN FILTER)
+    public function index(Request $request)
     {
-        $categories = Kategori::withCount('produk')
-            ->orderBy('id', 'asc')
-            ->paginate(10);
+        // Siapkan query dasar (menggunakan relasi 'produks' sesuai model Anda)
+        $query = Kategori::withCount('produks');
 
+        // Filter Pencarian (Nama atau Slug)
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('nama_kategori', 'like', '%' . $search . '%')
+                  ->orWhere('slug', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Filter Status (Aktif / Nonaktif)
+        if ($request->filled('status') && $request->input('status') !== '') {
+            $query->where('is_active', $request->input('status'));
+        }
+
+        // Eksekusi query
+        $categories = $query->get();
+        
+        // Hitung total produk untuk Card Statistik
         $totalProduk = Produk::count();
 
         return view('admin.kategori.index', compact('categories', 'totalProduk'));
@@ -75,16 +92,14 @@ class KategoriController extends Controller
     // 6. Hapus kategori dari database
     public function destroy($id)
     {
-        $category = Kategori::withCount('produk')->findOrFail($id);
-
+        $kategori = Kategori::withCount('produks')->findOrFail($id);
+        
         // Proteksi relasi: jangan izinkan hapus kategori yang masih punya produk.
-        if ($category->produk_count > 0) {
-            return redirect()
-                ->route('admin.kategori.index')
-                ->with('error', "Kategori \"{$category->nama_kategori}\" tidak bisa dihapus karena masih memiliki {$category->produk_count} produk terkait. Pindahkan atau hapus produk tersebut terlebih dahulu.");
+        if ($kategori->produks_count > 0) {
+            return redirect()->back()->with('error', "Kategori \"{$kategori->nama_kategori}\" tidak bisa dihapus karena masih memiliki {$kategori->produks_count} produk terkait.");
         }
 
-        $category->delete();
+        $kategori->delete();
 
         return redirect()->route('admin.kategori.index')->with('success', 'Kategori berhasil dihapus.');
     }

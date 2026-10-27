@@ -37,8 +37,15 @@ return [
     |
     */
 
-    'guards' => [
+        'guards' => [
+        // Guard untuk User biasa
         'web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
+
+        // Guard khusus untuk Admin & Owner
+        'admin' => [
             'driver' => 'session',
             'provider' => 'users',
         ],

@@ -8,17 +8,19 @@ class Transaksi extends Model
 {
     protected $table = 'transaksi';
 
-    protected $fillable = [
+        protected $fillable = [
         'kode_transaksi',
         'user_id',
         'jenis',
+        'kanal',
         'tanggal',
         'total',
+        'status_pembayaran',
         'catatan',
         'reservasi_fitting_id',
     ];
 
-    protected function casts(): array
+    protected function casts(): array   
     {
         return [
             'tanggal' => 'date',
