@@ -267,27 +267,27 @@
      2. KATEGORI (Styling Sesuai Desain Lama)
      ============================================================ --}}
 <section class="max-w-7xl mx-auto px-4 mt-10">
-    <div class="flex flex-wrap justify-center gap-6 sm:gap-10">
+    <div class="flex flex-wrap justify-center gap-8 sm:gap-12">
         @foreach ($kategori as $k)
             <a href="{{ route('koleksi.kategori', ['kode' => $k['kode_kategori']]) }}"
-               class="group flex w-20 flex-col items-center gap-2 text-center">
+               class="group flex w-28 md:w-32 flex-col items-center gap-3 text-center">
 
-                <div class="h-16 w-16 overflow-hidden rounded-full border" style="border-color: #e5e7eb; background-color: white;">
+                <div class="h-24 w-24 md:h-28 md:w-28 overflow-hidden rounded-full border" style="border-color: #e5e7eb; background-color: white;">
                     @if (! empty($k['foto']))
                         <img src="{{ asset($k['foto']) }}" alt="{{ $k['nama_kategori'] }}" loading="lazy" class="h-full w-full object-cover">
                     @else
-                        <div class="flex h-full w-full items-center justify-center font-display text-lg" style="color: #c99a32;">
+                        <div class="flex h-full w-full items-center justify-center font-display text-2xl" style="color: #c99a32;">
                             {{ mb_substr($k['nama_kategori'], 0, 1) }}
                         </div>
                     @endif
                 </div>
 
                 <div>
-                    <p class="text-[11px] font-semibold group-hover:text-[#c99a32] transition-colors" style="color: #15233d;">
+                    <p class="text-sm font-semibold group-hover:text-[#c99a32] transition-colors" style="color: #15233d;">
                         {{ $k['nama_kategori'] }}
                     </p>
                     @if (! empty($k['subjudul']))
-                        <p class="text-[9px]" style="color: #9ca3af;">{{ $k['subjudul'] }}</p>
+                        <p class="text-xs" style="color: #9ca3af;">{{ $k['subjudul'] }}</p>
                     @endif
                 </div>
             </a>

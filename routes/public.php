@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\FittingController;
 use App\Http\Controllers\BeliController;
+use App\Http\Controllers\TestimoniController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,7 +35,7 @@ Route::get('/sewa/konfirmasi/{id}', [SewaController::class, 'konfirmasi'])->name
 // Halaman statis
 Route::get('/cara-sewa', fn () => view('customer.cara-sewa'))->name('cara-sewa');
 Route::get('/tentang', fn () => view('customer.tentang'))->name('tentang');
-Route::get('/testimoni', fn () => view('placeholder'))->name('testimoni');
+Route::get('/testimoni', [TestimoniController::class, 'index'])->name('testimoni');
 Route::get('/kontak', fn () => view('placeholder'))->name('kontak');
 
 // Reservasi fitting (opsional, bukan syarat sewa)
