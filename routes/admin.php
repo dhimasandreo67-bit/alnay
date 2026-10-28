@@ -69,7 +69,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/transaksi/baru', fn () => view('placeholder'))->name('transaksi.create');
 
         // 5. Sewa & jaminan
-        Route::get('/sewa', fn () => view('placeholder'))->name('sewa.index');
+        Route::get('/sewa', [App\Http\Controllers\Admin\SewaController::class, 'index'])->name('sewa.index');
+        Route::get('/sewa/{id}', [App\Http\Controllers\Admin\SewaController::class, 'show'])->name('sewa.show');
         Route::get('/jaminan', fn () => view('placeholder'))->name('jaminan.index');
 
         // 6. Layanan atelier
@@ -92,5 +93,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/fitting/{id}/status', [ReservasiFittingController::class, 'updateStatus'])->name('fitting.update-status');
 
         Route::get('/rating', [RatingController::class, 'index'])->name('rating.index');
+
+        // Aksi Verifikasi Jaminan Fisik
+        Route::post('/sewa/{id}/verifikasi-jaminan', [App\Http\Controllers\Admin\SewaController::class, 'verifikasiJaminan'])->name('sewa.verifikasi-jaminan');
+
+        // Aksi Pengembalian Deposit
+        Route::post('/sewa/{id}/kembalikan-deposit', [App\Http\Controllers\Admin\SewaController::class, 'kembalikanDeposit'])->name('sewa.kembalikan-deposit');
+
+        // QC & Denda
+        Route::match(['get', 'post'], '/sewa/{id}/simpan-qc', [App\Http\Controllers\Admin\SewaController::class, 'simpanQC'])->name('sewa.simpan-qc');
+        Route::post('/sewa/{id}/tambah-denda', [App\Http\Controllers\Admin\SewaController::class, 'tambahDenda'])->name('sewa.tambah-denda');
+        Route::patch('/denda/{id}/lunasi', [App\Http\Controllers\Admin\SewaController::class, 'lunasiDenda'])->name('sewa.lunasi-denda');
     });
 });

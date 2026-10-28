@@ -12,6 +12,7 @@ class ReservasiFitting extends Model
         'kode_booking',
         'user_id',
         'slot_id',
+        'produk_id',
         'tanggal_daftar',
         'status',
         'catatan',
@@ -31,9 +32,8 @@ class ReservasiFitting extends Model
     {
         return $this->belongsTo(SlotFitting::class, 'slot_id');
     }
-
     public function produk()
     {
-        return $this->belongsToMany(Produk::class, 'reservasi_produk', 'reservasi_id', 'produk_id');
+        return $this->belongsTo(Produk::class, 'produk_id');
     }
 }

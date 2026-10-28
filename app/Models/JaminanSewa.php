@@ -8,12 +8,12 @@ class JaminanSewa extends Model
 {
     protected $table = 'jaminan_sewa';
 
-    protected $fillable = [
+        protected $fillable = [
         'sewa_id',
         'metode_jaminan',
-        'no_ktp',
-        'nama_sesuai_ktp',
         'foto_ktp',
+        'nomor_ktp',       // <--- Gunakan ini
+        'nama_ktp',        // <--- Gunakan ini
         'jumlah_deposit',
         'status_pengembalian_deposit',
         'status_verifikasi',

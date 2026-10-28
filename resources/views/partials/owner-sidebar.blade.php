@@ -10,7 +10,7 @@
             'group' => 'Master Data',
             'items' => [
                 ['label' => 'Kategori',        'route' => 'admin.kategori.index', 'icon' => 'chevron-right', 'active' => false],
-                ['label' => 'Produk & Gaun',   'route' => 'admin.produk.index',   'icon' => 'chevron-right', 'active' => false],
+                ['label' => 'Produk',   'route' => 'admin.produk.index',   'icon' => 'chevron-right', 'active' => false],
                 ['label' => 'Pengguna',        'route' => 'admin.pengguna.index', 'icon' => 'user',          'active' => false],
             ],
         ],

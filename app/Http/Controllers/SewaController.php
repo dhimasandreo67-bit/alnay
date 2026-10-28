@@ -122,7 +122,9 @@ class SewaController extends Controller
         $totalSewa = $hargaSewa + (max(0, $durasi - 1) * $dendaPerHari);
         
         $deposit = $validated['metode_ktp'] === 'digital' ? config('alnay.deposit_ktp', 200000) : 0;
-        $dp = config('alnay.dp_sewa', 1000000);
+        $dp = $produk->dp ?? 0; 
+
+         $totalDibayarSekarang = $dp + $deposit;
 
         // 3. Proses Upload Foto KTP (Jika Digital)
         $fotoKtpPath = null;
@@ -172,7 +174,7 @@ class SewaController extends Controller
         Pembayaran::create([
             'transaksi_id' => $transaksi->id,
             'jenis_bayar' => 'dp',
-            'jumlah' => $dp,
+            'jumlah' => $totalDibayarSekarang,
             'metode' => $validated['metode_bayar'],
             'status_midtrans' => 'pending',
             'tanggal_bayar' => now(),
@@ -317,5 +319,13 @@ class SewaController extends Controller
 
         // 5. Redirect ke halaman Keranjang Sewa
         return redirect()->route('sewa.keranjang.index')->with('success', 'Produk berhasil ditambahkan ke Keranjang Sewa!');
+    }
+
+        public function show($id)
+    {
+        $sewa = Sewa::with(['transaksi.user', 'transaksi.detail.produk', 'jaminan'])
+            ->findOrFail($id);
+
+        return view('admin.sewa.show', compact('sewa'));
     }
 }

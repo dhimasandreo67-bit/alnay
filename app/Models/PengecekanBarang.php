@@ -11,19 +11,9 @@ class PengecekanBarang extends Model
     protected $fillable = [
         'sewa_id',
         'tahap',
-        'kondisi',
-        'tanggal_cek',
-        'tingkat_kerusakan',
-        'keterangan',
-        'foto_bukti',
+        'catatan',
+        'petugas',
     ];
-
-    protected function casts(): array
-    {
-        return [
-            'tanggal_cek' => 'date',
-        ];
-    }
 
     public function sewa()
     {

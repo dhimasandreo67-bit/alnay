@@ -48,12 +48,14 @@ class MidtransQris
             ->first();
     }
 
-    public function nominal(Transaksi $t): int
-    {
-        $tagihan = $this->tagihan($t);
+        public function nominal(Transaksi $t): int
+        {
+            $tagihan = $this->tagihan($t);
+            $produk = $t->detail->first()->produk ?? null;
+            $dpProduk = $produk->dp ?? 0;
 
-        return (int) ($tagihan->jumlah ?? $t->total);
-    }
+            return (int) ($tagihan->jumlah ?? $dpProduk ?? $t->total);
+        }
 
     private function key(Transaksi $t): string
     {

@@ -75,48 +75,47 @@
             {{-- Lokasi --}}
             <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .25s;">
                 <h2 class="font-display text-base font-medium text-ink/80 mb-3">Lokasi Fitting</h2>
-                <div class="flex items-start gap-2 mb-2">
-                    <x-icon name="location" :size="16" class="text-rose-500 shrink-0 mt-0.5" />
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
+                        <x-icon name="location" :size="16" class="text-rose-500" />
+                    </div>
                     <div>
-                        <p class="text-[13px] font-medium text-ink/85">AL-NAY.ID Studio Bandung</p>
-                        <p class="text-[11px] text-ink/50 mt-0.5">
-                            {{ config('alnay.studio.alamat') }}
-                            <a href="#" class="text-gold hover:underline ml-1">Buka di Peta ›</a>
-                        </p>
+                        <p class="text-[13px] font-medium text-ink/85">ALNAY.ID Studio</p>
+                        <p class="text-[11px] text-ink/50 mt-0.5">{{ config('alnay.studio.alamat') ?? 'Alamat studio belum diatur' }}</p>
+                        <p class="text-[10px] text-ink/40 mt-1">Jam Buka: {{ config('alnay.studio.jam_buka') ?? 'Belum diatur' }}</p>
                     </div>
                 </div>
-                <span class="inline-block mt-2 px-3 py-1 rounded-md bg-cream/60 border border-line/30 text-[10px] text-ink/60">
-                    {{ config('alnay.studio.jam_buka') }}
-                </span>
             </div>
 
             {{-- Produk Fitting --}}
-            <div class="pd-up bg-panel border border-line/40 rounded-xl overflow-hidden" style="--d: .3s;">
-                <div class="px-5 py-3 border-b border-line/30 flex justify-between items-center">
-                    <span class="inline-flex items-center gap-2">
-                        <span class="px-2 py-0.5 rounded bg-gold/10 text-gold text-[9px] font-bold uppercase">Official</span>
-                        <span class="text-[12px] font-medium text-ink/70">AL-NAY.ID Studio Bandung</span>
-                    </span>
-                    <x-icon name="chevron-right" :size="14" class="text-ink/30" />
+            <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .3s;">
+                <h2 class="font-display text-base font-medium text-ink/80 mb-4">Detail Sesi Fitting</h2>
+                <div class="flex items-center gap-4">
+                    {{-- FOTO PRODUK ASLI --}}
+                    <div class="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden border border-line/50">
+                        @if($fotoProduk)
+                            <img src="{{ asset('storage/' . $fotoProduk) }}" alt="{{ $namaProduk }}" class="w-full h-full object-cover">
+                        @else
+                            <div class="w-full h-full flex items-center justify-center bg-gold/10 text-gold font-bold text-lg">
+                                {{ substr($namaProduk ?? 'F', 0, 1) }}
+                            </div>
+                        @endif
+                    </div>
+                    
+                    <div class="flex-1">
+                        {{-- NAMA PRODUK ASLI --}}
+                        <p class="text-[13px] font-medium text-ink/85">{{ $namaProduk ?? 'Sesi Fitting' }}</p>
+                        <p class="text-[10px] text-ink/50 mt-0.5">Kode Booking: #{{ $reservasi->kode_booking }}</p>
+                    </div>
+                    <span class="text-[11px] font-medium text-emerald-600">Gratis</span>
                 </div>
-                <div class="p-5">
-                    <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 rounded-lg bg-rose-900/80 flex items-center justify-center shrink-0">
-                            <x-icon name="sparkle" :size="20" class="text-white/40" />
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-[13px] font-medium text-ink/85">Set Pasangan Sunda Siger Emas</p>
-                            <p class="text-[10px] text-ink/50 mt-0.5">Untuk pesanan sewa #ALN-SW-10234</p>
-                        </div>
-                        <span class="text-[11px] font-medium text-emerald-600">Gratis</span>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-line/30 text-right">
-                        <span class="text-[11px] text-ink/50">Jadwal: </span>
-                        <span class="text-[12px] font-medium text-ink/85">
-                            {{ $reservasi->slot ? \Carbon\Carbon::parse($reservasi->slot->tanggal)->translatedFormat('l, d F Y') : '—' }}
-                            · {{ $reservasi->slot->jam_mulai ?? '—' }} WIB
-                        </span>
-                    </div>
+                
+                <div class="mt-4 pt-3 border-t border-line/30 flex justify-between items-center">
+                    <span class="text-[11px] text-ink/50">Jadwal:</span>
+                    <span class="text-[12px] font-medium text-ink/85">
+                        {{ $reservasi->slot ? \Carbon\Carbon::parse($reservasi->slot->tanggal)->translatedFormat('l, d F Y') : '—' }}
+                        · {{ $reservasi->slot->jam_mulai ?? '—' }} WIB
+                    </span>
                 </div>
             </div>
 
@@ -124,17 +123,22 @@
             <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .35s;">
                 <h2 class="font-display text-base font-medium text-ink/80 mb-3">Butuh Bantuan?</h2>
                 <div class="divide-y divide-line/30">
-                    <a href="#" class="flex items-center justify-between py-3 text-[12px] text-ink/70 hover:text-gold transition-colors group">
+                    {{-- Link Ubah Jadwal --}}
+                    <a href="{{ route('fitting.edit', $reservasi->id) }}" class="flex items-center justify-between py-3 text-[12px] text-ink/70 hover:text-gold transition-colors group">
                         <span class="flex items-center gap-2"><x-icon name="calendar" :size="14" /> Ubah Tanggal / Jam Fitting</span>
                         <x-icon name="chevron-right" :size="14" class="text-ink/30 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
                     </a>
+                    
+                    {{-- Form Batalkan Jadwal --}}
                     <form method="POST" action="{{ route('fitting.cancel', $reservasi->id) }}" onsubmit="return confirm('Yakin ingin membatalkan booking fitting ini?')">
                         @csrf
+                        @method('PATCH')
                         <button type="submit" class="w-full flex items-center justify-between py-3 text-[12px] text-ink/70 hover:text-red-500 transition-colors group">
                             <span class="flex items-center gap-2"><x-icon name="close" :size="14" /> Batalkan Booking Fitting</span>
                             <x-icon name="chevron-right" :size="14" class="text-ink/30 group-hover:text-red-500 group-hover:translate-x-0.5 transition-all" />
                         </button>
                     </form>
+                    
                     <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="flex items-center justify-between py-3 text-[12px] text-ink/70 hover:text-gold transition-colors group">
                         <span class="flex items-center gap-2"><x-icon name="whatsapp" :size="14" /> Hubungi Customer Service</span>
                         <x-icon name="chevron-right" :size="14" class="text-ink/30 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
@@ -158,18 +162,20 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-ink/50">Waktu Booking Dibuat</span>
-                        <span class="font-medium text-ink/80">{{ $reservasi->created_at->format('d-m-Y H:i') }}</span>
+                        <span class="font-medium text-ink/80 px-2 py-1 rounded-md bg-gray-50 border border-gray-200 text-[11px]">
+                            {{ $reservasi->created_at->translatedFormat('d F Y, H:i') }}
+                        </span>
                     </div>
                 </div>
             </div>
 
             {{-- Tombol Aksi --}}
             <div class="pd-up grid grid-cols-1 sm:grid-cols-2 gap-3" style="--d: .45s;">
-                <a href="#" class="w-full h-[44px] rounded-lg border border-gold/60 bg-white text-gold text-[11px] font-semibold hover:bg-gold/5 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center">
+                <a href="{{ route('fitting.edit', $reservasi->id) }}" class="w-full h-[44px] rounded-lg border border-gold/60 bg-white text-gold text-[11px] font-semibold hover:bg-gold/5 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center">
                     Ubah Jadwal
                 </a>
-                <a href="#" class="pd-shine w-full h-[44px] rounded-lg bg-gold text-white text-[11px] font-semibold hover:bg-gold/90 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 flex items-center justify-center">
-                    Lihat Pesanan Sewa Terkait
+                <a href="{{ route('akun.pesanan.index') }}" class="pd-shine w-full h-[44px] rounded-lg bg-gold text-white text-[11px] font-semibold hover:bg-gold/90 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 flex items-center justify-center">
+                    Lihat Pesanan Sewa
                 </a>
             </div>
         </div>

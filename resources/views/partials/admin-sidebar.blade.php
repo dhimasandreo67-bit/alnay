@@ -11,7 +11,7 @@
             'heading' => 'Master Data',
             'items' => [
                 ['label' => 'Kategori', 'route' => 'admin.kategori.*', 'icon' => 'box'],
-                ['label' => 'Produk & Gaun', 'route' => 'admin.produk.*', 'icon' => 'hanger'],
+                ['label' => 'Produk', 'route' => 'admin.produk.*', 'icon' => 'hanger'],
                 ['label' => 'Pengguna', 'route' => 'admin.pengguna.*', 'icon' => 'users'],
             ],
         ],

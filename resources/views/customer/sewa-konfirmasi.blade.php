@@ -5,15 +5,33 @@
 @section('content')
 
     <style>
-        [x-cloak] { display: none !important; }
-        @keyframes pd-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-        .pd-up { animation: pd-up .7s cubic-bezier(.22, .8, .3, 1) both; animation-delay: var(--d, 0s); }
+        [x-cloak] {
+            display: none !important;
+        }
+
+        @keyframes pd-up {
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .pd-up {
+            animation: pd-up .7s cubic-bezier(.22, .8, .3, 1) both;
+            animation-delay: var(--d, 0s);
+        }
     </style>
 
     @php
         $dp = $dp ?? 0;
         $deposit = $deposit ?? 0;
-        $dibayarSekarang = $dp ?: $transaksi->total;
+        $produk = $transaksi->detail->first()->produk ?? null;
+        $dibayarSekarang = ($produk->dp ?? 0) + ($deposit ?? 0);
         $lunasDp = in_array($transaksi->status_pembayaran, ['dp_dibayar', 'lunas'], true);
     @endphp
 
@@ -28,7 +46,8 @@
             </nav>
 
             @if (session('success'))
-                <div class="pd-up p-3 mb-4 rounded-md bg-emerald-50 border border-emerald-200 text-xs text-emerald-700" style="--d: .1s;">
+                <div class="pd-up p-3 mb-4 rounded-md bg-emerald-50 border border-emerald-200 text-xs text-emerald-700"
+                    style="--d: .1s;">
                     {{ session('success') }}
                 </div>
             @endif
@@ -46,16 +65,22 @@
                             : 'Pindai kode di bawah menggunakan aplikasi m-banking, dompet digital, atau QRIS scanner favorit Anda.' }}
                     </p>
 
-                    @include('customer.partials.qris-panel', ['transaksi' => $transaksi, 'nominal' => (int) $dibayarSekarang])
+                    @include('customer.partials.qris-panel', [
+                        'transaksi' => $transaksi,
+                        'nominal' => (int) $dibayarSekarang,
+                    ])
                 </div>
 
                 {{-- KANAN — Ringkasan --}}
                 <div class="lg:sticky lg:top-24 h-fit">
                     <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .2s;">
-                        <h2 class="text-[10px] font-medium uppercase tracking-wider text-ink/50 mb-4">Ringkasan Pembayaran</h2>
+                        <h2 class="text-[10px] font-medium uppercase tracking-wider text-ink/50 mb-4">Ringkasan Pembayaran
+                        </h2>
 
                         <div class="flex gap-3 items-center border-b border-line/30 pb-4 mb-4">
-                            <div class="w-12 h-12 rounded-lg bg-cream-dim border border-line/40 flex items-center justify-center text-muted text-[8px] uppercase shrink-0">Foto</div>
+                            <div
+                                class="w-12 h-12 rounded-lg bg-cream-dim border border-line/40 flex items-center justify-center text-muted text-[8px] uppercase shrink-0">
+                                Foto</div>
                             <div>
                                 <p class="text-[12px] font-medium text-ink/80">{{ $produk->nama }}</p>
                                 <p class="text-[10px] text-ink/50">
@@ -70,19 +95,30 @@
                         <div class="space-y-2 text-[11px] mb-4">
                             <div class="flex justify-between">
                                 <span class="text-ink/50">Total Biaya Sewa</span>
-                                <span class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($total, 0, ',', '.') }}</span>
+                                <span
+                                    class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($total, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-ink/50">DP (Uang Muka)</span>
+                                <span
+                                    class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($produk->dp ?? 0, 0, ',', '.') }}</span>
                             </div>
                             @if ($deposit > 0)
                                 <div class="flex justify-between">
                                     <span class="text-ink/50">Deposit jaminan KTP</span>
-                                    <span class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($deposit, 0, ',', '.') }}</span>
+                                    <span
+                                        class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($deposit, 0, ',', '.') }}</span>
                                 </div>
                             @endif
                         </div>
 
                         <div class="flex justify-between items-center border-t border-line/40 pt-4 mb-4">
-                            <span class="text-[11px] font-medium text-ink/80">DP Dibayar Sekarang</span>
-                            <span class="font-sans text-xl font-semibold text-gold tabular-nums">Rp{{ number_format($dibayarSekarang, 0, ',', '.') }}</span>
+                            <div>
+                                <span class="text-[11px] font-medium text-ink/80 block">Total Dibayar Sekarang</span>
+                                <span class="text-[9px] text-ink/40">(DP + Deposit Jaminan)</span>
+                            </div>
+                            <span
+                                class="font-sans text-xl font-semibold text-gold tabular-nums">Rp{{ number_format($dibayarSekarang, 0, ',', '.') }}</span>
                         </div>
 
                         <div class="bg-cream/60 rounded-md px-3 py-2 flex justify-between items-center">
