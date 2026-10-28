@@ -47,6 +47,14 @@ Route::middleware('auth:web')->group(function () {
 
         // --- MIDTRANS CHARGE (Untuk Pembayaran) ---
     Route::post('/sewa/{id}/charge', [SewaController::class, 'charge'])->name('sewa.charge');
+        // --- MIDTRANS CHARGE (QRIS untuk Beli) ---
+    Route::post('/qris/{id}/charge', [SewaController::class, 'charge'])->name('qris.charge');
+        // Route untuk cek status pembayaran QRIS
+    Route::get('/qris/{id}/status', [SewaController::class, 'cekStatus'])->name('qris.status');
+
+        // --- KERANJANG SEWA ---
+    Route::get('/sewa/keranjang', [SewaController::class, 'keranjangIndex'])->name('sewa.keranjang.index');
+    Route::post('/sewa/keranjang/tambah', [SewaController::class, 'tambahKeKeranjang'])->name('sewa.keranjang.tambah');
 });
 
 // Webhook Midtrans
