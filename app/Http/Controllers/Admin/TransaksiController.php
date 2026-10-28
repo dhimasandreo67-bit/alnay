@@ -16,6 +16,17 @@ use Illuminate\Validation\Rule;
 
 class TransaksiController extends Controller
 {
+    /**
+     * CATATAN: kolom tabel `produk` sudah dicek dan dipastikan benar
+     * (harga_jual, harga_sewa, dp, stok, bisa_disewa, dapat_dijual, diskon_persen).
+     * Kolom DetailTransaksi (transaksi_id, produk_id, qty, harga, subtotal),
+     * Sewa (transaksi_id, tanggal_pinjam, tanggal_kembali_rencana, status),
+     * dan Pembayaran (transaksi_id, jenis_bayar, metode, jumlah, status_midtrans)
+     * MASIH ASUMSI. Kalau nanti muncul error "Unknown column" lagi saat submit
+     * form kasir, jalankan `php artisan db:table detail_transaksi` (atau nama
+     * tabel aslinya) lalu kirim hasilnya biar disesuaikan lagi.
+     */
+
     public function index(Request $request)
     {
         // 1. Ambil data dengan relasi
@@ -58,13 +69,16 @@ class TransaksiController extends Controller
 
     /**
      * Halaman kasir: form untuk membuat transaksi offline.
-     *
-     * ASUMSI kolom Produk: id, nama, harga, stok.
-     * Sesuaikan select() di bawah kalau nama kolom produkmu berbeda.
      */
     public function create()
     {
-        $produks = Produk::select('id', 'nama', 'harga', 'stok')
+        $produks = Produk::select(
+                'id', 'nama', 'harga_jual', 'harga_sewa', 'dp',
+                'stok', 'bisa_disewa', 'dapat_dijual', 'diskon_persen'
+            )
+            ->where(function ($q) {
+                $q->where('bisa_disewa', 1)->orWhere('dapat_dijual', 1);
+            })
             ->orderBy('nama')
             ->get();
 
@@ -104,14 +118,33 @@ class TransaksiController extends Controller
             'catatan' => 'nullable|string|max:255',
         ]);
 
-        $transaksi = DB::transaction(function () use ($validated) {
+        // Helper: hitung harga final 1 unit produk sesuai jenis transaksi (beli/sewa) + diskon
+        $hargaUnit = function (Produk $produk, string $jenis): float {
+            $hargaDasar = $jenis === 'sewa' ? $produk->harga_sewa : $produk->harga_jual;
+            $hargaDasar = (float) ($hargaDasar ?? 0);
+            $diskon = (float) ($produk->diskon_persen ?? 0);
+
+            return $hargaDasar - ($hargaDasar * $diskon / 100);
+        };
+
+        $transaksi = DB::transaction(function () use ($validated, $hargaUnit) {
             $produkIds = collect($validated['items'])->pluck('produk_id');
             $produkMap = Produk::whereIn('id', $produkIds)->get()->keyBy('id');
 
+            // Pastikan setiap produk memang boleh dijual/disewa sesuai jenis yang dipilih
+            foreach ($produkMap as $produk) {
+                if ($validated['jenis'] === 'sewa' && ! $produk->bisa_disewa) {
+                    abort(422, "Produk \"{$produk->nama}\" tidak tersedia untuk disewa.");
+                }
+                if ($validated['jenis'] === 'beli' && ! $produk->dapat_dijual) {
+                    abort(422, "Produk \"{$produk->nama}\" tidak tersedia untuk dijual.");
+                }
+            }
+
             $total = 0;
             foreach ($validated['items'] as $item) {
-                $harga = $produkMap[$item['produk_id']]->harga ?? 0;
-                $total += $harga * $item['qty'];
+                $produk = $produkMap[$item['produk_id']];
+                $total += $hargaUnit($produk, $validated['jenis']) * $item['qty'];
             }
 
             $transaksi = Transaksi::create([
@@ -129,7 +162,9 @@ class TransaksiController extends Controller
             ]);
 
             foreach ($validated['items'] as $item) {
-                $harga = $produkMap[$item['produk_id']]->harga ?? 0;
+                $produk = $produkMap[$item['produk_id']];
+                $harga = $hargaUnit($produk, $validated['jenis']);
+
                 DetailTransaksi::create([
                     'transaksi_id' => $transaksi->id,
                     'produk_id' => $item['produk_id'],
@@ -137,6 +172,9 @@ class TransaksiController extends Controller
                     'harga' => $harga,
                     'subtotal' => $harga * $item['qty'],
                 ]);
+
+                // Kurangi stok karena transaksi kasir langsung terjadi di tempat
+                $produk->decrement('stok', $item['qty']);
             }
 
             if ($validated['jenis'] === 'sewa') {
