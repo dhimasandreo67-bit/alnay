@@ -30,21 +30,8 @@
 
         {{-- Gambar --}}
     <div class="relative aspect-[4/3] bg-cream-dim overflow-hidden shrink-0">
-<<<<<<< HEAD
-        @php
-            // Ambil foto pertama jika bentuknya Array, atau langsung jika String
-            $foto = $produk->foto_produk;
-            if (is_array($foto)) {
-                $foto = $foto[0] ?? null;
-            }
-        @endphp
-
-        @if ($foto)
-            <img src="{{ asset('storage/' . $foto) }}" alt="{{ $produk->nama }}"
-=======
         @if ($fotoUrl)
             <img src="{{ $fotoUrl }}" alt="{{ $produk->nama }}"
->>>>>>> d163d4d4ca279886ad219b6928a8c1746fbca5f9
                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
         @else
             <div class="w-full h-full flex items-center justify-center bg-cream-dim text-muted text-[10px] uppercase tracking-widest">
