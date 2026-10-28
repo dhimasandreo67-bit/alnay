@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\TransaksiController;
 use App\Http\Controllers\Admin\ReservasiFittingController;
 use App\Http\Controllers\Admin\RatingController;
+use App\Http\Controllers\Admin\PenggunaController;
 /*
 |--------------------------------------------------------------------------
 | Area Admin
@@ -94,6 +95,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Route untuk aksi ubah status
         Route::patch('/transaksi/{id}/lunasi', [App\Http\Controllers\Admin\TransaksiController::class, 'lunasi'])->name('transaksi.lunasi');
         Route::patch('/transaksi/{id}/selesaikan-sewa', [App\Http\Controllers\Admin\TransaksiController::class, 'selesaikanSewa'])->name('transaksi.selesai-sewa');
+
+        Route::prefix('pengguna')->name('pengguna.')->group(function () {
+            Route::get('/', [PenggunaController::class, 'index'])->name('index');
+            Route::post('/', [PenggunaController::class, 'store'])->name('store');
+            Route::post('/massal', [PenggunaController::class, 'massal'])->name('massal');
+            Route::patch('/{id}/status', [PenggunaController::class, 'status'])->name('status');
+            Route::delete('/{id}', [PenggunaController::class, 'destroy'])->name('destroy');
+        });
 
         Route::get('/fitting', [ReservasiFittingController::class, 'index'])->name('fitting.index');
         Route::patch('/fitting/{id}/status', [ReservasiFittingController::class, 'updateStatus'])->name('fitting.update-status');
