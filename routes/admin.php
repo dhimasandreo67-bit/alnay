@@ -69,6 +69,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/transaksi/baru', [TransaksiController::class, 'create'])->name('transaksi.create');
         Route::post('/transaksi', [TransaksiController::class, 'store'])->name('transaksi.store');
         Route::get('/transaksi/{id}', [TransaksiController::class, 'show'])->name('transaksi.show');
+        Route::delete('/transaksi/{id}', [TransaksiController::class, 'destroy'])->name('transaksi.destroy');
     
         Route::patch('/transaksi/{id}/lunasi', [TransaksiController::class, 'lunasi'])->name('transaksi.lunasi');
         Route::patch('/transaksi/{id}/selesaikan-sewa', [TransaksiController::class, 'selesaikanSewa'])->name('transaksi.selesai-sewa');

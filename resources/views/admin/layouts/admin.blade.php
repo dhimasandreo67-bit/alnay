@@ -9,11 +9,11 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-cream text-ink font-sans antialiased h-screen flex overflow-hidden">
+<body style="font-family: 'Inter', sans-serif !important;" class="bg-cream text-ink font-sans antialiased min-h-screen flex">
 
     @include('partials.admin-sidebar')
 
-    <div class="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
+    <div class="flex-1 flex flex-col min-w-0">
         @include('partials.admin-topbar', [
             'pageTitle' => $__env->yieldContent('pageTitle'),
             'pageSubtitle' => $__env->yieldContent('pageSubtitle'),
@@ -24,7 +24,9 @@
         </main>
     </div>
 
-    @stack('scripts')
+    <x-toast />
+    @stack('modals')
+
 
 </body>
 </html>

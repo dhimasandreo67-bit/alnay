@@ -181,6 +181,22 @@
                                     <a href="{{ route('admin.transaksi.show', $t->id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all shadow-sm">
                                         Detail
                                     </a>
+                                    @php
+                                        $bisaRestock = ($t->channel ?? null) === 'kasir' && strtolower((string) ($t->sewa->status ?? '')) !== 'selesai';
+                                    @endphp
+                                    <button type="button"
+                                            data-modal-open="modal-hapus-transaksi"
+                                            data-hapus-url="{{ route('admin.transaksi.destroy', $t->id) }}"
+                                            data-kode="{{ $t->kode_transaksi }}"
+                                            data-pelanggan="{{ $namaPelanggan }}"
+                                            data-total="Rp {{ number_format($t->total, 0, ',', '.') }}"
+                                            data-status="{{ str_replace('_', ' ', $t->status_pembayaran) }}"
+                                            data-restock="{{ $bisaRestock ? '1' : '0' }}"
+                                            aria-label="Hapus transaksi {{ $t->kode_transaksi }}"
+                                            title="Hapus transaksi"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 shadow-sm transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -252,7 +268,66 @@
     </div>
 </div>
 
+{{-- Modal konfirmasi hapus (satu modal dipakai semua baris) --}}
+<x-modal id="modal-hapus-transaksi" title="Hapus transaksi ini?" size="sm">
+    <form id="form-hapus-transaksi" method="POST" action="#" class="space-y-4">
+        @csrf
+        @method('DELETE')
+
+        <p class="text-sm text-gray-600">Transaksi berikut akan dihapus permanen beserta item dan riwayat pembayarannya.</p>
+
+        <dl class="space-y-1.5 rounded-2xl bg-gray-50 px-4 py-3 text-xs ring-1 ring-gray-100">
+            <div class="flex justify-between gap-4"><dt class="text-gray-400">Kode</dt><dd id="hapus-kode" class="font-bold text-gray-900"></dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-gray-400">Pelanggan</dt><dd id="hapus-pelanggan" class="font-semibold text-gray-800"></dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-gray-400">Total</dt><dd id="hapus-total" class="font-bold tabular-nums text-gray-900"></dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-gray-400">Status</dt><dd id="hapus-status" class="font-semibold uppercase text-gray-800"></dd></div>
+        </dl>
+
+        <input type="hidden" name="restock" value="0">
+        <label class="flex cursor-pointer items-start gap-3 text-xs text-gray-700">
+            <input type="checkbox" name="restock" value="1" id="hapus-restock" class="mt-0.5 h-4 w-4 rounded border-gray-300 accent-amber-600">
+            <span>
+                <strong class="block text-gray-900">Kembalikan stok produk</strong>
+                <span class="text-gray-400">Centang jika stok barang sudah terpotong oleh transaksi ini.</span>
+            </span>
+        </label>
+
+        <p class="text-[11px] font-semibold text-rose-600">Total pendapatan ikut berkurang. Tindakan ini tidak bisa dibatalkan.</p>
+    </form>
+
+    <x-slot:footer>
+        <button type="button" class="ui-btn ui-btn--ghost" data-modal-close>Batal</button>
+        <button type="submit" form="form-hapus-transaksi" id="btn-hapus-konfirmasi" class="ui-btn ui-btn--danger">Ya, hapus</button>
+    </x-slot:footer>
+</x-modal>
+
 <script>
+    // Isi modal hapus sesuai baris yang diklik
+    (function () {
+        var modal = document.getElementById('modal-hapus-transaksi');
+        var form = document.getElementById('form-hapus-transaksi');
+        var tombol = document.getElementById('btn-hapus-konfirmasi');
+
+        modal.addEventListener('modal:open', function (e) {
+            var b = e.detail.trigger;
+            if (!b) return;
+            form.action = b.dataset.hapusUrl;
+            document.getElementById('hapus-kode').textContent = b.dataset.kode;
+            document.getElementById('hapus-pelanggan').textContent = b.dataset.pelanggan;
+            document.getElementById('hapus-total').textContent = b.dataset.total;
+            document.getElementById('hapus-status').textContent = b.dataset.status;
+            document.getElementById('hapus-restock').checked = b.dataset.restock === '1';
+            tombol.disabled = false;
+            tombol.textContent = 'Ya, hapus';
+        });
+
+        // Cegah klik ganda
+        form.addEventListener('submit', function () {
+            tombol.disabled = true;
+            tombol.textContent = 'Menghapus...';
+        });
+    })();
+
     // Buka/tutup rincian item per transaksi
     document.querySelectorAll('[data-toggle-rincian]').forEach(function (btn) {
         btn.addEventListener('click', function () {

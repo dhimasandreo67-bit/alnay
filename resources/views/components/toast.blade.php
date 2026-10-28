@@ -1,13 +1,16 @@
-{{-- Toast Container --}}
-<div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+{{-- Taruh SATU kali di layout (sebelum </body>). Container dibuat otomatis oleh toast-modal.js.
+     Pesan flash session('success'|'error'|'warning'|'info') ditampilkan sebagai toast. --}}
+@php
+    $pesanToast = [];
+    foreach (['success', 'error', 'warning', 'info'] as $tipe) {
+        if (session($tipe)) {
+            $pesanToast[] = ['message' => session($tipe), 'type' => $tipe];
+        }
+    }
+@endphp
 
-@if (session('success') || session('error') || session('warning') || session('info'))
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        @if (session('success')) showToast(@json(session('success')), 'success'); @endif
-        @if (session('error'))   showToast(@json(session('error')), 'error'); @endif
-        @if (session('warning')) showToast(@json(session('warning')), 'warning'); @endif
-        @if (session('info'))    showToast(@json(session('info')), 'info'); @endif
-    });
-</script>
+@if (count($pesanToast))
+    <script>
+        (window.__toastQueue = window.__toastQueue || []).push(...@json($pesanToast));
+    </script>
 @endif

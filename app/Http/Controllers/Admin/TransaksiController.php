@@ -10,6 +10,7 @@ use App\Models\Pembayaran;
 use App\Models\Produk;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -319,6 +320,78 @@ class TransaksiController extends Controller
         return redirect()
             ->route('admin.transaksi.show', $transaksi->id)
             ->with('success', 'Transaksi kasir berhasil dibuat: ' . $transaksi->kode_transaksi);
+    }
+
+    /**
+     * Hapus transaksi beserta item, pembayaran, pengiriman, dan data sewanya.
+     * Opsional: kembalikan stok produk (checkbox "restock" di modal konfirmasi).
+     */
+    public function destroy(Request $request, $id)
+    {
+        $transaksi = Transaksi::with(['detail', 'sewa'])->findOrFail($id);
+        $kode = $transaksi->kode_transaksi;
+        $kembalikanStok = $request->boolean('restock');
+
+        try {
+            DB::transaction(function () use ($transaksi, $kembalikanStok) {
+                if ($kembalikanStok) {
+                    $this->kembalikanStok($transaksi);
+                }
+
+                $transaksi->pembayaran()->delete();
+                $transaksi->pengiriman()->delete();
+                $transaksi->sewa()->delete();
+                $transaksi->detail()->delete();
+                $transaksi->delete();
+            });
+        } catch (QueryException $e) {
+            // Biasanya karena masih ada data lain yang menunjuk ke transaksi ini
+            // (refund, jaminan sewa, pengembalian, denda, dll) dan tidak di-cascade.
+            report($e);
+
+            return back()->with('error', "Transaksi {$kode} tidak bisa dihapus karena masih terhubung dengan data lain (mis. refund, jaminan, atau pengembalian).");
+        }
+
+        return back()->with('success', "Transaksi {$kode} berhasil dihapus." . ($kembalikanStok ? ' Stok produk sudah dikembalikan.' : ''));
+    }
+
+    /**
+     * Tambahkan lagi jumlah item transaksi ke stok produk (total + per variasi ukuran).
+     */
+    protected function kembalikanStok(Transaksi $transaksi): void
+    {
+        $produkMap = Produk::whereIn('id', $transaksi->detail->pluck('produk_id')->filter()->unique())
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+
+        foreach ($transaksi->detail as $d) {
+            $produk = $produkMap[$d->produk_id] ?? null;
+            if (! $produk) {
+                continue; // produk sudah dihapus
+            }
+
+            $varian = collect($produk->ukuran ?? [])->values();
+            $punyaVarian = $d->ukuran && $varian->contains(fn ($v) => ($v['ukuran'] ?? null) === $d->ukuran);
+
+            if ($punyaVarian) {
+                $varian = $varian->map(function ($v) use ($d) {
+                    if (($v['ukuran'] ?? null) === $d->ukuran) {
+                        $v['stok'] = (int) $v['stok'] + (int) $d->jumlah;
+                    }
+                    return $v;
+                })->values();
+
+                $produk->ukuran = $varian->all();
+                $produk->stok = (int) $varian->sum('stok');
+            } else {
+                $produk->stok = (int) $produk->stok + (int) $d->jumlah;
+            }
+        }
+
+        foreach ($produkMap as $produk) {
+            $produk->save();
+        }
     }
 
     // Fungsi untuk melunasi transaksi secara manual (oleh Admin)
