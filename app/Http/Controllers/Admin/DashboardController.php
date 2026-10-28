@@ -49,17 +49,24 @@ class DashboardController extends Controller
             ->latest()
             ->take(6)
             ->get()
-            ->map(fn (Transaksi $trx) => [
-                'kode'       => $trx->kode_transaksi,
-                'pelanggan'  => $trx->user->name,
-                'inisial'    => collect(explode(' ', $trx->user->name))->map(fn ($w) => $w[0])->take(2)->implode(''),
-                'detail'     => $trx->catatan ?? $trx->jenis,
-                'jenis'      => $trx->jenis === 'sewa' ? 'Sewa' : 'Beli',
-                'kanal'      => $trx->kanal === 'online' ? 'Online' : 'Walk In',
-                'status'     => $trx->status_pembayaran === 'lunas' ? 'Lunas' : 'DP 50%',
-                'statusTone' => $trx->status_pembayaran === 'lunas' ? 'green' : 'rose',
-                'total'      => $trx->total,
-            ])->toArray();
+            ->map(function (Transaksi $trx) {
+                // Transaksi kasir dengan customer_type "tamu" tidak punya user_id
+                // (lihat TransaksiController::store()), jadi $trx->user bisa null.
+                // Fallback ke nama_tamu, baru ke 'Tamu' kalau dua-duanya kosong.
+                $nama = $trx->user->name ?? $trx->nama_tamu ?? 'Tamu';
+
+                return [
+                    'kode'       => $trx->kode_transaksi,
+                    'pelanggan'  => $nama,
+                    'inisial'    => collect(explode(' ', $nama))->filter()->map(fn ($w) => $w[0])->take(2)->implode(''),
+                    'detail'     => $trx->catatan ?? $trx->jenis,
+                    'jenis'      => $trx->jenis === 'sewa' ? 'Sewa' : 'Beli',
+                    'kanal'      => $trx->kanal === 'online' ? 'Online' : 'Walk In',
+                    'status'     => $trx->status_pembayaran === 'lunas' ? 'Lunas' : 'DP 50%',
+                    'statusTone' => $trx->status_pembayaran === 'lunas' ? 'green' : 'rose',
+                    'total'      => $trx->total,
+                ];
+            })->toArray();
 
         $notifCount = JaminanSewa::where('status_verifikasi', 'pending')->count()
             + Refund::where('status', 'pending')->count();

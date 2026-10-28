@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\TransaksiController;
 use App\Http\Controllers\Admin\ReservasiFittingController;
 use App\Http\Controllers\Admin\RatingController;
+use App\Http\Controllers\Admin\PenggunaController;
+use App\Http\Controllers\Admin\AuditLogController;
 /*
 |--------------------------------------------------------------------------
 | Area Admin
@@ -86,7 +88,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/rating', fn () => view('placeholder'))->name('rating.index');
 
         // 7. Sistem
-        Route::get('/audit-log', fn () => view('placeholder'))->name('audit.index');
+        Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit.index');
+        Route::get('/audit-log/feed', [AuditLogController::class, 'feed'])->name('audit.feed');
 
         Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
         Route::get('/transaksi/{id}', [TransaksiController::class, 'show'])->name('transaksi.show');
@@ -94,6 +97,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Route untuk aksi ubah status
         Route::patch('/transaksi/{id}/lunasi', [App\Http\Controllers\Admin\TransaksiController::class, 'lunasi'])->name('transaksi.lunasi');
         Route::patch('/transaksi/{id}/selesaikan-sewa', [App\Http\Controllers\Admin\TransaksiController::class, 'selesaikanSewa'])->name('transaksi.selesai-sewa');
+
+        Route::prefix('pengguna')->name('pengguna.')->group(function () {
+            Route::get('/', [PenggunaController::class, 'index'])->name('index');
+            Route::post('/', [PenggunaController::class, 'store'])->name('store');
+            Route::put('/{id}', [PenggunaController::class, 'update'])->name('update');
+            // Kalau URL ini terbuka lewat GET (mis. refresh setelah submit), kembalikan ke daftar pengguna
+            Route::get('/{id}', fn () => redirect()->route('admin.pengguna.index'))->whereNumber('id');
+            Route::post('/massal', [PenggunaController::class, 'massal'])->name('massal');
+            Route::patch('/{id}/status', [PenggunaController::class, 'status'])->name('status');
+            Route::delete('/{id}', [PenggunaController::class, 'destroy'])->name('destroy');
+        });
 
         Route::get('/fitting', [ReservasiFittingController::class, 'index'])->name('fitting.index');
         Route::patch('/fitting/{id}/status', [ReservasiFittingController::class, 'updateStatus'])->name('fitting.update-status');

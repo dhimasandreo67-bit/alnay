@@ -125,7 +125,11 @@ class TransaksiController extends Controller
             ->orderBy('nama_kategori')
             ->get(['id', 'nama_kategori']);
 
-        $users = User::select('id', 'name', 'no_hp')
+        // Hanya akun pelanggan yang boleh dipilih di kasir; staf (owner/admin)
+        // dikecualikan lewat scope User::pelanggan() (sama seperti yang dipakai
+        // halaman Kelola Pengguna).
+        $users = User::pelanggan()
+            ->select('id', 'name', 'no_hp')
             ->orderBy('name')
             ->get();
 

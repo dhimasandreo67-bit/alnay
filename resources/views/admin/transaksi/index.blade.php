@@ -4,46 +4,116 @@
 @section('content')
 <div class="p-6 space-y-6 transition-all duration-500 animate-fade-in">
 
+    <style>
+        .group-shine {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .group-shine::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 20%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(30deg);
+            transition: all 0.6s ease;
+        }
+
+        .group-shine:hover::after {
+            left: 130%;
+        }
+    </style>
+
+    {{-- Flash messages --}}
+    @if (session('success'))
+        <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl shadow-sm" role="alert">
+            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <p class="text-sm font-bold">{{ session('success') }}</p>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl shadow-sm" role="alert">
+            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <p class="text-sm font-bold">{{ session('error') }}</p>
+        </div>
+    @endif
+
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h1 class="text-2xl font-black tracking-tight text-gray-900">Kelola Transaksi</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Kelola Transaksi</h1>
             <p class="text-xs text-gray-500 mt-1">Pantau pesanan masuk, status pembayaran, dan jadwal penyewaan.</p>
         </div>
         <a href="{{ route('admin.transaksi.create') }}"
-           class="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 active:scale-95 transition-all shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+           class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold py-2.5 px-5 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all duration-200 text-sm cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
             Buat Transaksi Baru (Kasir)
         </a>
     </div>
 
     {{-- Statistik Cards --}}
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+
+        {{-- Card 1: Total Pendapatan (Emerald/Green) --}}
+        <div class="group group-shine relative overflow-hidden rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-emerald-800/80">Total Pendapatan</span>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
             </div>
-            <div>
-                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Pendapatan</p>
-                <h3 class="text-xl font-black text-gray-900 mt-0.5">Rp {{ number_format($totalPendapatan, 0, ',', '.') }}</h3>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-2xl font-extrabold tracking-tight text-emerald-950 tabular-nums">Rp {{ number_format($totalPendapatan, 0, ',', '.') }}</span>
+            </div>
+            <div class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-lg">
+                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Akumulasi pendapatan</span>
             </div>
         </div>
-        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-100">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+
+        {{-- Card 2: Menunggu Pembayaran (Amber/Gold) --}}
+        <div class="group group-shine relative overflow-hidden rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-amber-800/80">Menunggu Pembayaran</span>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-md shadow-amber-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
             </div>
-            <div>
-                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Menunggu Pembayaran</p>
-                <h3 class="text-xl font-black text-gray-900 mt-0.5">{{ $pesananBaru }} Pesanan</h3>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold tracking-tight text-amber-950 tabular-nums">{{ $pesananBaru }}</span>
+                <span class="text-sm font-bold text-amber-800/60">Pesanan</span>
             </div>
+            <p class="mt-2 text-xs font-medium text-amber-700/80">Perlu ditindaklanjuti</p>
         </div>
-        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 border border-sky-100">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+
+        {{-- Card 3: Sedang Diproses (Sky/Blue) --}}
+        <div class="group group-shine relative overflow-hidden rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50/80 via-white to-sky-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-500/10">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-sky-800/80">Sedang Diproses</span>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-blue-500 text-white shadow-md shadow-sky-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
             </div>
-            <div>
-                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sedang Diproses</p>
-                <h3 class="text-xl font-black text-gray-900 mt-0.5">{{ $pesananDiproses }} Pesanan</h3>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold tracking-tight text-sky-950 tabular-nums">{{ $pesananDiproses }}</span>
+                <span class="text-sm font-bold text-sky-800/60">Pesanan</span>
+            </div>
+            <div class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-sky-700 bg-sky-100/70 px-2.5 py-1 rounded-lg">
+                <span class="h-2 w-2 rounded-full bg-sky-500 animate-pulse"></span>
+                <span>Sedang berjalan</span>
             </div>
         </div>
     </div>
@@ -59,9 +129,9 @@
             <a href="{{ request()->fullUrlWithQuery(['tab' => $key, 'page' => null]) }}"
                role="tab" aria-selected="{{ $aktif ? 'true' : 'false' }}"
                class="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400
-                      {{ $aktif ? 'border-gray-900 bg-gray-900 text-white shadow-sm' : 'border-gray-200 bg-white text-gray-600 hover:border-amber-400 hover:text-amber-700' }}">
+                      {{ $aktif ? 'border-amber-600 bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-lg shadow-amber-500/20' : 'border-gray-200 bg-white text-gray-600 hover:border-amber-400 hover:text-amber-700' }}">
                 {{ $nama }}
-                <span class="rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums {{ $aktif ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-500' }}">
+                <span class="rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums {{ $aktif ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-500' }}">
                     {{ $tabCounts[$key] }}
                 </span>
             </a>
@@ -132,14 +202,19 @@
                                 <div class="text-xs text-gray-500">{{ $t->tanggal->format('d M Y') }}</div>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-sm font-semibold text-gray-800">{{ $namaPelanggan }}</div>
-                                <div class="mt-1 flex items-center gap-1.5">
-                                    <span class="text-[11px] text-gray-500">{{ $t->jenis === 'sewa' ? 'Penyewaan' : 'Pembelian' }}</span>
-                                    @if(($t->channel ?? 'online') === 'kasir')
-                                        <span class="inline-flex items-center rounded-full bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-600 ring-1 ring-indigo-200">Kasir</span>
-                                    @else
-                                        <span class="inline-flex items-center rounded-full bg-gray-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-500 ring-1 ring-gray-200">Online</span>
-                                    @endif
+                                <div class="flex items-center gap-3">
+                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ strtoupper(mb_substr(trim($namaPelanggan) ?: '?', 0, 1)) }}</span>
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-bold text-gray-900 truncate">{{ $namaPelanggan }}</div>
+                                        <div class="mt-1 flex items-center gap-1.5">
+                                            <span class="text-[11px] text-gray-500">{{ $t->jenis === 'sewa' ? 'Penyewaan' : 'Pembelian' }}</span>
+                                            @if(($t->channel ?? 'online') === 'kasir')
+                                                <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-600 border border-indigo-200">Kasir</span>
+                                            @else
+                                                <span class="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-500 border border-gray-200">Online</span>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4">
@@ -156,29 +231,33 @@
                                     </div>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-sm font-bold text-gray-900">
+                            <td class="px-6 py-4 text-sm font-bold text-gray-900 tabular-nums">
                                 Rp {{ number_format($t->total, 0, ',', '.') }}
                             </td>
                             <td class="px-6 py-4">
                                 @php
                                     $statusColor = match($t->status_pembayaran) {
-                                        'lunas', 'dp_dibayar' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                                        'pending' => 'bg-amber-50 text-amber-700 border-amber-200',
-                                        default => 'bg-gray-100 text-gray-600 border-gray-200',
+                                        'lunas', 'dp_dibayar' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                        'pending' => 'bg-amber-100 text-amber-700 border-amber-200',
+                                        default => 'bg-gray-100 text-gray-500 border-gray-200',
                                     };
                                 @endphp
-                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold border uppercase tracking-wider {{ $statusColor }}">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider {{ $statusColor }}">
                                     {{ str_replace('_', ' ', $t->status_pembayaran) }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <div class="inline-flex items-center gap-2">
+                                <div class="inline-flex items-center gap-1.5">
                                     <button type="button" data-toggle-rincian="{{ $t->id }}" aria-expanded="false" aria-controls="rincian-{{ $t->id }}"
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
                                         Item
-                                        <svg class="w-3.5 h-3.5 transition-transform duration-200" data-chevron fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                                        <svg class="w-3.5 h-3.5 text-amber-600 transition-transform duration-200" data-chevron fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
                                     </button>
                                     <a href="{{ route('admin.transaksi.show', $t->id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all shadow-sm">
+                                        <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
                                         Detail
                                     </a>
                                     @php
@@ -215,7 +294,7 @@
                                             $foto = is_array($foto) ? collect($foto)->filter()->first() : null;
                                             $fotoSrc = $foto ? (preg_match('#^https?://#', $foto) ? $foto : asset('storage/' . ltrim($foto, '/'))) : null;
                                         @endphp
-                                        <div class="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3">
+                                        <div class="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3 hover:border-amber-200 hover:shadow-sm transition-all">
                                             <div class="flex h-14 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
                                                 @if($fotoSrc)
                                                     <img src="{{ $fotoSrc }}" alt="{{ $d->produk->nama ?? '' }}" loading="lazy" class="h-full w-full object-cover">
@@ -276,7 +355,7 @@
 
         <p class="text-sm text-gray-600">Transaksi berikut akan dihapus permanen beserta item dan riwayat pembayarannya.</p>
 
-        <dl class="space-y-1.5 rounded-2xl bg-gray-50 px-4 py-3 text-xs ring-1 ring-gray-100">
+        <dl class="space-y-1.5 rounded-2xl bg-amber-50/40 border border-amber-100/60 px-4 py-3 text-xs">
             <div class="flex justify-between gap-4"><dt class="text-gray-400">Kode</dt><dd id="hapus-kode" class="font-bold text-gray-900"></dd></div>
             <div class="flex justify-between gap-4"><dt class="text-gray-400">Pelanggan</dt><dd id="hapus-pelanggan" class="font-semibold text-gray-800"></dd></div>
             <div class="flex justify-between gap-4"><dt class="text-gray-400">Total</dt><dd id="hapus-total" class="font-bold tabular-nums text-gray-900"></dd></div>
