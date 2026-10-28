@@ -38,11 +38,13 @@
     ];
 
     $user = $transaksi->user;
-    $namaUser = $user?->name ?? '-';
+    $namaUser = $user?->name ?? $transaksi->nama_tamu ?? '-';
+    $noHp = $user?->no_hp ?? $transaksi->no_hp_tamu;
+    $isKasir = ($transaksi->channel ?? null) === 'kasir';
     $inisial = strtoupper(mb_substr(trim($namaUser) ?: '?', 0, 1));
 
     // Link WhatsApp (08xxx -> 628xxx)
-    $hp = preg_replace('/\D+/', '', (string) ($user?->no_hp ?? ''));
+    $hp = preg_replace('/\D+/', '', (string) ($noHp ?? ''));
     if ($hp !== '' && str_starts_with($hp, '0')) {
         $hp = '62' . substr($hp, 1);
     }
@@ -101,6 +103,10 @@
                 <p class="mt-1.5 text-xs text-gray-400">
                     Dibuat pada {{ $transaksi->created_at?->locale('id')->translatedFormat('d F Y, H:i') ?? '-' }}
                 </p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <span class="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-200">{{ $transaksi->jenis === 'sewa' ? 'Penyewaan' : 'Pembelian' }}</span>
+                    <span class="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide {{ $isKasir ? 'bg-amber-400/20 text-amber-300' : 'bg-sky-400/15 text-sky-300' }}">{{ $isKasir ? 'Kasir' : 'Online' }}</span>
+                </div>
             </div>
 
             <div class="flex items-end justify-between gap-4 sm:flex-col sm:items-end">
@@ -190,6 +196,17 @@
                                 <p class="mt-0.5 text-xs text-gray-500">
                                     {{ $d->jumlah }} × {{ $rp($d->harga_satuan) }}
                                 </p>
+                                <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                    @if($d->ukuran)
+                                        <span class="rounded-md bg-white px-2 py-0.5 text-[10px] font-bold text-gray-700 ring-1 ring-gray-200">Ukuran {{ $d->ukuran }}</span>
+                                    @endif
+                                    @if($d->warna)
+                                        <span class="rounded-md bg-white px-2 py-0.5 text-[10px] font-bold text-gray-700 ring-1 ring-gray-200">Warna {{ $d->warna }}</span>
+                                    @endif
+                                    @if($d->produk?->sku)
+                                        <span class="text-[10px] text-gray-400">{{ $d->produk->sku }}</span>
+                                    @endif
+                                </div>
                             </div>
 
                             <div class="shrink-0 text-right">
@@ -207,7 +224,7 @@
 
             {{-- Informasi Penyewa --}}
             <section class="dt-rise rounded-3xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm" style="--d:.16s">
-                <p class="mb-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Informasi Penyewa</p>
+                <p class="mb-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Informasi Pelanggan</p>
 
                 <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex min-w-0 items-center gap-4">
@@ -216,7 +233,7 @@
                         </div>
                         <div class="min-w-0">
                             <p class="truncate text-sm font-bold text-gray-900">{{ $namaUser }}</p>
-                            <p class="mt-0.5 text-xs text-gray-400">Penyewa</p>
+                            <p class="mt-0.5 text-xs text-gray-400">{{ $user ? ($transaksi->jenis === 'sewa' ? 'Penyewa' : 'Pembeli') : 'Tamu (Walk-in)' }}</p>
                         </div>
                     </div>
 
@@ -238,10 +255,17 @@
                     </div>
                     <div class="rounded-xl bg-gray-50 px-4 py-3">
                         <dt class="text-[10px] font-bold uppercase tracking-wider text-gray-400">No. WhatsApp</dt>
-                        <dd class="mt-1 text-sm font-medium text-gray-800">{{ $user?->no_hp ?? '-' }}</dd>
+                        <dd class="mt-1 text-sm font-medium text-gray-800">{{ $noHp ?: '-' }}</dd>
                     </div>
                 </dl>
             </section>
+            {{-- Catatan --}}
+            @if($transaksi->catatan)
+                <section class="dt-rise rounded-3xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm" style="--d:.2s">
+                    <p class="mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">Catatan</p>
+                    <p class="text-sm text-gray-700">{{ $transaksi->catatan }}</p>
+                </section>
+            @endif
         </div>
 
         {{-- ================= KOLOM KANAN ================= --}}

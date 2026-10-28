@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use App\Models\Kategori;
 
 class TransaksiController extends Controller
 {
@@ -20,8 +22,9 @@ class TransaksiController extends Controller
      * CATATAN: semua skema tabel di bawah ini sudah dikonfirmasi lewat
      * `php artisan db:table ...`, bukan tebakan lagi:
      * - transaksi: kode_transaksi, tanggal, user_id, jenis, total,
-     *   status_pembayaran, channel, nama_tamu, no_hp_tamu
-     * - detail_transaksi: transaksi_id, produk_id, jumlah, harga_satuan
+     *   status_pembayaran, channel, nama_tamu, no_hp_tamu, catatan
+     * - detail_transaksi: transaksi_id, produk_id, jumlah, harga_satuan,
+     *   ukuran, warna (dua terakhir dari migration add_detail_kasir_columns)
      *   (TIDAK ADA kolom subtotal)
      * - sewa: transaksi_id, tanggal_pinjam, tanggal_kembali_rencana, status
      * - pembayaran: transaksi_id, jenis_bayar, jumlah, metode,
@@ -77,9 +80,12 @@ class TransaksiController extends Controller
      */
     public function create()
     {
-        $produks = Produk::select(
-                'id', 'nama', 'harga_jual', 'harga_sewa', 'dp',
-                'stok', 'bisa_disewa', 'dapat_dijual', 'diskon_persen'
+        $produks = Produk::with('kategori:id,nama_kategori')
+            ->select(
+                'id', 'kategori_id', 'sku', 'nama', 'foto_produk', 'bahan', 'motif',
+                'warna', 'ukuran', 'berat', 'harga_jual', 'harga_sewa', 'dp',
+                'stok', 'status', 'bisa_disewa', 'dapat_dijual', 'diskon_persen',
+                'denda_per_hari_telat'
             )
             ->where(function ($q) {
                 $q->where('bisa_disewa', 1)->orWhere('dapat_dijual', 1);
@@ -87,11 +93,15 @@ class TransaksiController extends Controller
             ->orderBy('nama')
             ->get();
 
+        $kategoris = Kategori::where('is_active', true)
+            ->orderBy('nama_kategori')
+            ->get(['id', 'nama_kategori']);
+
         $users = User::select('id', 'name', 'no_hp')
             ->orderBy('name')
             ->get();
 
-        return view('admin.transaksi.create', compact('produks', 'users'));
+        return view('admin.transaksi.create', compact('produks', 'kategoris', 'users'));
     }
 
     /**
@@ -112,6 +122,8 @@ class TransaksiController extends Controller
 
             'items' => 'required|array|min:1',
             'items.*.produk_id' => ['required', Rule::exists($produkTable, 'id')],
+            'items.*.ukuran' => 'nullable|string|max:20',
+            'items.*.warna' => 'nullable|string|max:100',
             'items.*.qty' => 'required|integer|min:1',
 
             'tanggal_pinjam' => 'required_if:jenis,sewa|nullable|date',
@@ -132,17 +144,63 @@ class TransaksiController extends Controller
             return $hargaDasar - ($hargaDasar * $diskon / 100);
         };
 
-        $transaksi = DB::transaction(function () use ($validated, $hargaUnit) {
-            $produkIds = collect($validated['items'])->pluck('produk_id');
-            $produkMap = Produk::whereIn('id', $produkIds)->get()->keyBy('id');
+        $gagal = fn (string $pesan) => throw ValidationException::withMessages(['items' => $pesan]);
+
+        $transaksi = DB::transaction(function () use ($validated, $hargaUnit, $gagal) {
+            $produkIds = collect($validated['items'])->pluck('produk_id')->unique();
+
+            // lockForUpdate: dua kasir tidak bisa menjual stok yang sama bersamaan
+            $produkMap = Produk::whereIn('id', $produkIds)->lockForUpdate()->get()->keyBy('id');
 
             // Pastikan setiap produk memang boleh dijual/disewa sesuai jenis yang dipilih
             foreach ($produkMap as $produk) {
                 if ($validated['jenis'] === 'sewa' && ! $produk->bisa_disewa) {
-                    abort(422, "Produk \"{$produk->nama}\" tidak tersedia untuk disewa.");
+                    $gagal("Produk \"{$produk->nama}\" tidak tersedia untuk disewa.");
                 }
                 if ($validated['jenis'] === 'beli' && ! $produk->dapat_dijual) {
-                    abort(422, "Produk \"{$produk->nama}\" tidak tersedia untuk dijual.");
+                    $gagal("Produk \"{$produk->nama}\" tidak tersedia untuk dijual.");
+                }
+            }
+
+            // Validasi ukuran/warna per item + kumpulkan kebutuhan stok per produk & ukuran
+            $kebutuhan = []; // [produk_id => ['total' => n, 'ukuran' => ['M' => n]]]
+            foreach ($validated['items'] as $item) {
+                $produk = $produkMap[$item['produk_id']];
+                $varian = collect($produk->ukuran ?? [])->values();
+                $ukuran = $item['ukuran'] ?? null;
+                $warna = $item['warna'] ?? null;
+
+                if ($varian->isNotEmpty()) {
+                    if (! $ukuran) {
+                        $gagal("Pilih ukuran untuk produk \"{$produk->nama}\".");
+                    }
+                    if (! $varian->contains(fn ($v) => ($v['ukuran'] ?? null) === $ukuran)) {
+                        $gagal("Ukuran {$ukuran} tidak ada pada produk \"{$produk->nama}\".");
+                    }
+                    $kebutuhan[$produk->id]['ukuran'][$ukuran] = ($kebutuhan[$produk->id]['ukuran'][$ukuran] ?? 0) + $item['qty'];
+                }
+
+                $daftarWarna = (array) ($produk->warna ?? []);
+                if ($warna && ! empty($daftarWarna) && ! in_array($warna, $daftarWarna, true)) {
+                    $gagal("Warna {$warna} tidak tersedia pada produk \"{$produk->nama}\".");
+                }
+
+                $kebutuhan[$produk->id]['total'] = ($kebutuhan[$produk->id]['total'] ?? 0) + $item['qty'];
+            }
+
+            // Cek stok (total, dan per ukuran bila produk punya variasi)
+            foreach ($kebutuhan as $produkId => $k) {
+                $produk = $produkMap[$produkId];
+                $varian = collect($produk->ukuran ?? [])->keyBy('ukuran');
+
+                foreach ($k['ukuran'] ?? [] as $uk => $qty) {
+                    $stokUkuran = (int) ($varian[$uk]['stok'] ?? 0);
+                    if ($qty > $stokUkuran) {
+                        $gagal("Stok \"{$produk->nama}\" ukuran {$uk} tinggal {$stokUkuran}, diminta {$qty}.");
+                    }
+                }
+                if ($k['total'] > (int) $produk->stok) {
+                    $gagal("Stok \"{$produk->nama}\" tinggal {$produk->stok}, diminta {$k['total']}.");
                 }
             }
 
@@ -152,7 +210,13 @@ class TransaksiController extends Controller
                 $total += $hargaUnit($produk, $validated['jenis']) * $item['qty'];
             }
 
-            // Pakai forceFill() (bukan create()) supaya kolom channel/nama_tamu/no_hp_tamu
+            if ($validated['status_pembayaran'] === 'dp' && (float) $validated['jumlah_dp'] >= $total) {
+                throw ValidationException::withMessages([
+                    'jumlah_dp' => 'Jumlah DP harus lebih kecil dari total. Pilih status Lunas jika dibayar penuh.',
+                ]);
+            }
+
+            // Pakai forceFill() (bukan create()) supaya kolom channel/nama_tamu/no_hp_tamu/catatan
             // tetap tersimpan walaupun belum ditambahkan ke $fillable di model Transaksi.
             $transaksi = new Transaksi();
             $transaksi->forceFill([
@@ -167,23 +231,41 @@ class TransaksiController extends Controller
                 // 'lunas' atau 'dp_dibayar' (bukan 'pending' seperti pesanan online).
                 'status_pembayaran' => $validated['status_pembayaran'] === 'lunas' ? 'lunas' : 'dp_dibayar',
                 'channel' => 'kasir',
+                'catatan' => $validated['catatan'] ?? null,
             ])->save();
 
             foreach ($validated['items'] as $item) {
                 $produk = $produkMap[$item['produk_id']];
-                $harga = $hargaUnit($produk, $validated['jenis']);
 
-                // Kolom asli tabel detail_transaksi: transaksi_id, produk_id,
-                // jumlah, harga_satuan (tidak ada kolom subtotal).
+                // Kolom tabel detail_transaksi: transaksi_id, produk_id, jumlah,
+                // harga_satuan, ukuran, warna (tidak ada kolom subtotal).
                 (new DetailTransaksi())->forceFill([
                     'transaksi_id' => $transaksi->id,
                     'produk_id' => $item['produk_id'],
                     'jumlah' => $item['qty'],
-                    'harga_satuan' => $harga,
+                    'harga_satuan' => $hargaUnit($produk, $validated['jenis']),
+                    'ukuran' => $item['ukuran'] ?: null,
+                    'warna' => $item['warna'] ?: null,
                 ])->save();
+            }
 
-                // Kurangi stok karena transaksi kasir langsung terjadi di tempat
-                $produk->decrement('stok', $item['qty']);
+            // Kurangi stok sekali per produk (total + stok per variasi ukuran)
+            foreach ($kebutuhan as $produkId => $k) {
+                $produk = $produkMap[$produkId];
+
+                if (! empty($k['ukuran'])) {
+                    $varian = collect($produk->ukuran)->map(function ($v) use ($k) {
+                        $v['stok'] = (int) $v['stok'] - (int) ($k['ukuran'][$v['ukuran']] ?? 0);
+                        return $v;
+                    })->values()->all();
+
+                    $produk->ukuran = $varian;
+                    $produk->stok = collect($varian)->sum('stok');
+                } else {
+                    $produk->stok = (int) $produk->stok - $k['total'];
+                }
+
+                $produk->save();
             }
 
             if ($validated['jenis'] === 'sewa') {
