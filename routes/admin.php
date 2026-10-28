@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\TransaksiController;
 use App\Http\Controllers\Admin\ReservasiFittingController;
 use App\Http\Controllers\Admin\RatingController;
 use App\Http\Controllers\Admin\PenggunaController;
+use App\Http\Controllers\Admin\AuditLogController;
 /*
 |--------------------------------------------------------------------------
 | Area Admin
@@ -87,7 +88,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/rating', fn () => view('placeholder'))->name('rating.index');
 
         // 7. Sistem
-        Route::get('/audit-log', fn () => view('placeholder'))->name('audit.index');
+        Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit.index');
+        Route::get('/audit-log/feed', [AuditLogController::class, 'feed'])->name('audit.feed');
 
         Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
         Route::get('/transaksi/{id}', [TransaksiController::class, 'show'])->name('transaksi.show');

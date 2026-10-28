@@ -73,22 +73,78 @@
     $oldStatus   = old('status_pembayaran', 'lunas');
 @endphp
 
-<div class="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
+<div class="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto transition-all duration-500 animate-fade-in">
+
+    <style>
+        .group-shine {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .group-shine::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 20%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(30deg);
+            transition: all 0.6s ease;
+        }
+
+        .group-shine:hover::after {
+            left: 130%;
+        }
+    </style>
+
+    {{-- Flash messages --}}
+    @if (session('success'))
+        <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl shadow-sm" role="alert">
+            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <p class="text-sm font-bold">{{ session('success') }}</p>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl shadow-sm" role="alert">
+            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <p class="text-sm font-bold">{{ session('error') }}</p>
+        </div>
+    @endif
 
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-black tracking-tight text-gray-900">Kasir - Transaksi Baru</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Kasir - Transaksi Baru</h1>
             <p class="text-xs text-gray-500 mt-1">Catat transaksi offline. Setelah disimpan, data langsung muncul di Semua Transaksi dengan label <strong>Kasir</strong>.</p>
         </div>
-        <a href="{{ route('admin.transaksi.index') }}" class="text-xs font-bold text-gray-500 hover:text-amber-600">
-            &larr; Kembali ke Semua Transaksi
+        <a href="{{ route('admin.transaksi.index') }}"
+           class="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-amber-600 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Kembali ke Semua Transaksi
         </a>
     </div>
 
     @if ($errors->any())
         <div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            <p class="font-bold mb-1">Periksa lagi isian form:</p>
+            <p class="font-bold mb-1 flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                Periksa lagi isian form:
+            </p>
             <ul class="list-disc list-inside space-y-0.5">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -105,17 +161,24 @@
 
             {{-- 1. Jenis transaksi --}}
             <section class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3">Jenis Transaksi</p>
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-sm shadow-amber-500/20">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                        </svg>
+                    </div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Jenis Transaksi</p>
+                </div>
                 <div class="flex gap-3">
                     <label class="flex-1">
                         <input type="radio" name="jenis" value="beli" class="peer sr-only" id="radio-beli" @checked($oldJenis === 'beli')>
-                        <div class="cursor-pointer rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-600 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400">
+                        <div class="cursor-pointer rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-600 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400 transition-all">
                             Pembelian
                         </div>
                     </label>
                     <label class="flex-1">
                         <input type="radio" name="jenis" value="sewa" class="peer sr-only" id="radio-sewa" @checked($oldJenis === 'sewa')>
-                        <div class="cursor-pointer rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-600 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400">
+                        <div class="cursor-pointer rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-600 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400 transition-all">
                             Penyewaan
                         </div>
                     </label>
@@ -125,11 +188,11 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="tanggal_pinjam" class="text-xs font-bold text-gray-500">Tanggal Ambil</label>
-                            <input type="date" id="tanggal_pinjam" name="tanggal_pinjam" value="{{ old('tanggal_pinjam') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                            <input type="date" id="tanggal_pinjam" name="tanggal_pinjam" value="{{ old('tanggal_pinjam') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
                         </div>
                         <div>
                             <label for="tanggal_kembali_rencana" class="text-xs font-bold text-gray-500">Tanggal Kembali (Rencana)</label>
-                            <input type="date" id="tanggal_kembali_rencana" name="tanggal_kembali_rencana" value="{{ old('tanggal_kembali_rencana') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                            <input type="date" id="tanggal_kembali_rencana" name="tanggal_kembali_rencana" value="{{ old('tanggal_kembali_rencana') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
                         </div>
                     </div>
                     <p id="info-durasi" class="mt-2 text-xs font-semibold text-amber-700"></p>
@@ -138,17 +201,24 @@
 
             {{-- 2. Data pelanggan --}}
             <section class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3">Data Pelanggan</p>
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-sm shadow-amber-500/20">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Data Pelanggan</p>
+                </div>
                 <div class="flex gap-3 mb-4">
                     <label class="flex-1">
                         <input type="radio" name="customer_type" value="terdaftar" class="peer sr-only" @checked($oldCustomer === 'terdaftar')>
-                        <div class="cursor-pointer rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm font-semibold text-gray-600 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400">
+                        <div class="cursor-pointer rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm font-semibold text-gray-600 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400 transition-all">
                             Pelanggan Terdaftar
                         </div>
                     </label>
                     <label class="flex-1">
                         <input type="radio" name="customer_type" value="tamu" class="peer sr-only" @checked($oldCustomer === 'tamu')>
-                        <div class="cursor-pointer rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm font-semibold text-gray-600 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400">
+                        <div class="cursor-pointer rounded-xl border border-gray-200 px-4 py-2.5 text-center text-sm font-semibold text-gray-600 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-400 transition-all">
                             Tamu (Walk-in)
                         </div>
                     </label>
@@ -156,10 +226,10 @@
 
                 <div id="box-user-terdaftar" class="space-y-2">
                     <label for="cari-user" class="text-xs font-bold text-gray-500">Cari Pelanggan</label>
-                    <input type="search" id="cari-user" placeholder="Ketik nama atau nomor HP" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" autocomplete="off">
-                    <select name="user_id" id="select-user" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"></select>
+                    <input type="search" id="cari-user" placeholder="Ketik nama atau nomor HP" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all" autocomplete="off">
+                    <select name="user_id" id="select-user" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all"></select>
                     <div id="kartu-user" class="hidden items-center gap-3 rounded-xl bg-amber-50/60 ring-1 ring-amber-100 px-4 py-3">
-                        <div id="user-inisial" class="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500 text-sm font-black text-white"></div>
+                        <div id="user-inisial" class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-sm font-black text-white shadow-sm shadow-amber-500/20"></div>
                         <div class="min-w-0">
                             <p id="user-nama" class="truncate text-sm font-bold text-gray-900"></p>
                             <p id="user-hp" class="text-xs text-gray-500"></p>
@@ -170,11 +240,11 @@
                 <div id="box-user-tamu" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label for="nama_tamu" class="text-xs font-bold text-gray-500">Nama Tamu</label>
-                        <input type="text" id="nama_tamu" name="nama_tamu" value="{{ old('nama_tamu') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="Nama pembeli">
+                        <input type="text" id="nama_tamu" name="nama_tamu" value="{{ old('nama_tamu') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all" placeholder="Nama pembeli">
                     </div>
                     <div>
                         <label for="no_hp_tamu" class="text-xs font-bold text-gray-500">No. WhatsApp</label>
-                        <input type="text" id="no_hp_tamu" name="no_hp_tamu" value="{{ old('no_hp_tamu') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="08xxxxxxxxxx">
+                        <input type="text" id="no_hp_tamu" name="no_hp_tamu" value="{{ old('no_hp_tamu') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all" placeholder="08xxxxxxxxxx">
                     </div>
                 </div>
             </section>
@@ -182,11 +252,18 @@
             {{-- 3. Katalog produk --}}
             <section class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                    <div>
-                        <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Pilih Produk</p>
-                        <p id="katalog-info" class="text-xs text-gray-500 mt-0.5"></p>
+                    <div class="flex items-start gap-2">
+                        <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-sm shadow-amber-500/20 shrink-0">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Pilih Produk</p>
+                            <p id="katalog-info" class="text-xs text-gray-500 mt-0.5"></p>
+                        </div>
                     </div>
-                    <input type="search" id="cari-produk" placeholder="Cari nama, SKU, motif, bahan" class="w-full sm:w-72 border border-gray-200 rounded-xl px-3 py-2 text-sm" autocomplete="off">
+                    <input type="search" id="cari-produk" placeholder="Cari nama, SKU, motif, bahan" class="w-full sm:w-72 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all" autocomplete="off">
                 </div>
 
                 <div id="chip-kategori" class="flex flex-wrap gap-2 mb-4"></div>
@@ -196,22 +273,29 @@
 
             {{-- 4. Pembayaran --}}
             <section class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3">Pembayaran</p>
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-sm shadow-amber-500/20">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                    </div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Pembayaran</p>
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <label for="status_pembayaran" class="text-xs font-bold text-gray-500">Status</label>
-                        <select name="status_pembayaran" id="status_pembayaran" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                        <select name="status_pembayaran" id="status_pembayaran" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
                             <option value="lunas" @selected($oldStatus === 'lunas')>Lunas (Bayar Penuh)</option>
                             <option value="dp" @selected($oldStatus === 'dp')>DP (Bayar Sebagian)</option>
                         </select>
                     </div>
                     <div id="box-jumlah-dp" class="hidden">
                         <label for="jumlah_dp" class="text-xs font-bold text-gray-500">Jumlah DP (Rp)</label>
-                        <input type="number" id="jumlah_dp" name="jumlah_dp" min="1" value="{{ old('jumlah_dp') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                        <input type="number" id="jumlah_dp" name="jumlah_dp" min="1" value="{{ old('jumlah_dp') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
                     </div>
                     <div>
                         <label for="metode_bayar" class="text-xs font-bold text-gray-500">Metode Bayar</label>
-                        <select name="metode_bayar" id="metode_bayar" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                        <select name="metode_bayar" id="metode_bayar" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
                             <option value="tunai" @selected(old('metode_bayar', 'tunai') === 'tunai')>Tunai</option>
                             <option value="qris" @selected(old('metode_bayar') === 'qris')>QRIS</option>
                             <option value="debit" @selected(old('metode_bayar') === 'debit')>Kartu Debit</option>
@@ -221,7 +305,7 @@
                 </div>
                 <div class="mt-4">
                     <label for="catatan" class="text-xs font-bold text-gray-500">Catatan (opsional)</label>
-                    <textarea name="catatan" id="catatan" rows="2" maxlength="255" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="Contoh: pelanggan minta penyesuaian ukuran, ambil jam 3 sore">{{ old('catatan') }}</textarea>
+                    <textarea name="catatan" id="catatan" rows="2" maxlength="255" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all" placeholder="Contoh: pelanggan minta penyesuaian ukuran, ambil jam 3 sore">{{ old('catatan') }}</textarea>
                 </div>
             </section>
         </div>
@@ -229,26 +313,38 @@
         {{-- ================= KOLOM KANAN: KERANJANG ================= --}}
         <aside class="xl:sticky xl:top-6 space-y-4">
             <section class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                <div class="flex items-center justify-between px-5 pt-5 pb-3">
-                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Keranjang Kasir</p>
-                    <span id="badge-item" class="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-bold text-gray-500">0 item</span>
+                <div class="flex items-center justify-between gap-2 px-5 pt-5 pb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-sm shadow-amber-500/20">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                            </svg>
+                        </div>
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Keranjang Kasir</p>
+                    </div>
+                    <span id="badge-item" class="rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-700">0 item</span>
                 </div>
 
                 <div id="cart" class="px-5 pb-2 space-y-3 max-h-[52vh] overflow-y-auto"></div>
 
                 <div id="cart-kosong" class="mx-5 mb-5 rounded-2xl border border-dashed border-gray-200 py-8 text-center">
+                    <div class="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-500 border border-amber-100">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                        </svg>
+                    </div>
                     <p class="text-sm font-semibold text-gray-500">Keranjang masih kosong</p>
                     <p class="mt-1 text-xs text-gray-400">Pilih produk dari katalog untuk menambahkannya.</p>
                 </div>
 
-                <div class="border-t border-gray-100 bg-gray-50/60 px-5 py-4 space-y-2">
+                <div class="border-t border-gray-100 bg-amber-50/40 px-5 py-4 space-y-2">
                     <div class="flex items-center justify-between text-xs text-gray-500">
                         <span>Jenis</span><span id="sum-jenis" class="font-bold text-gray-800">-</span>
                     </div>
                     <div class="flex items-center justify-between text-xs text-gray-500">
                         <span>Jumlah barang</span><span id="sum-qty" class="font-bold text-gray-800">0</span>
                     </div>
-                    <div class="flex items-end justify-between pt-2 border-t border-gray-200">
+                    <div class="flex items-end justify-between pt-2 border-t border-amber-200/60">
                         <span class="text-[10px] uppercase tracking-wider text-gray-400">Total</span>
                         <span id="total-display" class="text-2xl font-black tabular-nums text-gray-900">Rp 0</span>
                     </div>
@@ -265,7 +361,8 @@
 
             <div id="pesan-error" role="alert" class="hidden rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700"></div>
 
-            <button type="submit" class="w-full bg-gray-900 text-white px-6 py-3.5 rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2">
+            <button type="submit"
+                    class="group-shine relative w-full overflow-hidden bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white px-6 py-3.5 rounded-xl text-sm font-bold shadow-lg shadow-amber-500/20 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2">
                 Simpan Transaksi
             </button>
         </aside>
@@ -334,8 +431,10 @@
         const semua = [{ id: '', nama: 'Semua' }].concat(KATEGORI);
         el('chip-kategori').innerHTML = semua.map((k) => {
             const aktif = String(state.kategori) === String(k.id);
-            const cls = aktif ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-amber-400';
-            return '<button type="button" data-kat="' + k.id + '" class="rounded-full border px-3 py-1 text-xs font-semibold transition-colors ' + cls + '">' + esc(k.nama) + '</button>';
+            const cls = aktif
+                ? 'border-amber-600 bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-lg shadow-amber-500/20'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-amber-400 hover:text-amber-700';
+            return '<button type="button" data-kat="' + k.id + '" class="rounded-full border px-3 py-1 text-xs font-semibold transition-all ' + cls + '">' + esc(k.nama) + '</button>';
         }).join('');
     }
 
@@ -363,7 +462,7 @@
             ? '<span class="absolute left-2 top-2 rounded-full bg-gray-900/80 px-2 py-0.5 text-[10px] font-bold text-white">' + (p.stok <= 0 ? 'Stok habis' : esc(p.status)) + '</span>'
             : (diskon ? '<span class="absolute left-2 top-2 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white">-' + p.diskon_persen + '%</span>' : '');
 
-        return '<article class="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition hover:border-amber-300 hover:shadow-sm ' + (ok ? '' : 'opacity-60') + '">'
+        return '<article class="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-500/10 ' + (ok ? '' : 'opacity-60') + '">'
             + '<div class="relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-gray-50">' + foto + badgeStatus
             + '<span class="absolute bottom-2 right-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-gray-700 shadow-sm">Stok ' + p.stok + '</span></div>'
             + '<div class="flex flex-1 flex-col gap-1.5 p-3">'
@@ -374,7 +473,7 @@
             + '<div class="mt-auto pt-1"><p class="text-sm font-black tabular-nums text-gray-900">' + rupiah(final) + '</p>'
             + (diskon ? '<p class="text-[10px] tabular-nums text-gray-400 line-through">' + rupiah(dasar) + '</p>' : '')
             + '</div>'
-            + '<button type="button" data-tambah="' + p.id + '" ' + (ok ? '' : 'disabled') + ' class="mt-1 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:ring-gray-200">+ Tambah</button>'
+            + '<button type="button" data-tambah="' + p.id + '" ' + (ok ? '' : 'disabled') + ' class="mt-1 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 ring-1 ring-amber-200 transition-all hover:bg-amber-100 active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:ring-gray-200">+ Tambah</button>'
             + '</div></article>';
     }
 
@@ -422,7 +521,7 @@
 
         const selUkuran = punyaUkuran(p)
             ? '<div><label class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Ukuran</label>'
-              + '<select name="items[' + idx + '][ukuran]" data-f="ukuran" class="mt-0.5 w-full rounded-lg border px-2 py-1.5 text-xs ' + (perluUkuran ? 'border-rose-300 bg-rose-50' : 'border-gray-200') + '">'
+              + '<select name="items[' + idx + '][ukuran]" data-f="ukuran" class="mt-0.5 w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all ' + (perluUkuran ? 'border-rose-300 bg-rose-50' : 'border-gray-200') + '">'
               + '<option value="">Pilih ukuran</option>'
               + p.ukuran.map((v) => '<option value="' + esc(v.ukuran) + '" ' + (v.stok <= 0 ? 'disabled' : '') + ' ' + (v.ukuran === r.ukuran ? 'selected' : '') + '>' + esc(v.ukuran) + ' (stok ' + v.stok + ')</option>').join('')
               + '</select></div>'
@@ -430,7 +529,7 @@
 
         const selWarna = p.warna.length
             ? '<div><label class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Warna</label>'
-              + '<select name="items[' + idx + '][warna]" data-f="warna" class="mt-0.5 w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs">'
+              + '<select name="items[' + idx + '][warna]" data-f="warna" class="mt-0.5 w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all">'
               + '<option value="">Sesuai produk</option>'
               + p.warna.map((w) => '<option value="' + esc(w) + '" ' + (w === r.warna ? 'selected' : '') + '>' + esc(w) + '</option>').join('')
               + '</select></div>'
@@ -459,9 +558,9 @@
             + (info.length ? '<p class="mt-2 text-[10px] leading-relaxed text-gray-400">' + info.join(' &middot; ') + '</p>' : '')
             + '<div class="mt-3 flex items-center justify-between">'
             + '<div class="inline-flex items-center rounded-lg border border-gray-200 bg-white">'
-            + '<button type="button" data-act="kurang" aria-label="Kurangi" class="h-8 w-8 text-sm font-bold text-gray-500 hover:text-amber-600">&minus;</button>'
-            + '<input type="number" name="items[' + idx + '][qty]" data-f="qty" value="' + r.qty + '" min="1" max="' + stokMaks + '" class="h-8 w-12 border-x border-gray-200 text-center text-xs font-bold tabular-nums">'
-            + '<button type="button" data-act="tambah" aria-label="Tambah" class="h-8 w-8 text-sm font-bold text-gray-500 hover:text-amber-600">+</button>'
+            + '<button type="button" data-act="kurang" aria-label="Kurangi" class="h-8 w-8 text-sm font-bold text-gray-500 hover:text-amber-600 transition-colors">&minus;</button>'
+            + '<input type="number" name="items[' + idx + '][qty]" data-f="qty" value="' + r.qty + '" min="1" max="' + stokMaks + '" class="h-8 w-12 border-x border-gray-200 text-center text-xs font-bold tabular-nums focus:outline-none">'
+            + '<button type="button" data-act="tambah" aria-label="Tambah" class="h-8 w-8 text-sm font-bold text-gray-500 hover:text-amber-600 transition-colors">+</button>'
             + '</div>'
             + '<div class="text-right"><p class="text-[10px] uppercase tracking-wider text-gray-400">Subtotal</p><p class="text-sm font-black tabular-nums text-gray-900">' + rupiah(final * r.qty) + '</p></div>'
             + '</div></div>';

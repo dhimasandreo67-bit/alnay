@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Transaksi;
 use App\Models\User;
+use App\Support\Audit;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -387,6 +388,13 @@ class PenggunaController extends Controller
         }
 
         DB::table('users')->whereIn('id', $ids)->update($data);
+
+        // DB::table() tidak memicu event Eloquent, jadi perubahan status dicatat ke audit log secara manual.
+        foreach (User::whereIn('id', $ids)->get() as $u) {
+            Audit::catat('status', ($aktif ? 'mengaktifkan' : 'menonaktifkan') . " akun \"{$u->name}\"", $u, [
+                ['field' => 'Status akun', 'lama' => $aktif ? 'Nonaktif' : 'Aktif', 'baru' => $aktif ? 'Aktif' : 'Nonaktif'],
+            ]);
+        }
 
         if (! $aktif) {
             $this->akhiriSesi($ids);
