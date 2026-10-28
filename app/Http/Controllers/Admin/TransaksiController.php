@@ -4,7 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Transaksi;
+use App\Models\DetailTransaksi;
+use App\Models\Sewa;
+use App\Models\Pembayaran;
+use App\Models\Produk;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class TransaksiController extends Controller
 {
@@ -20,7 +28,8 @@ class TransaksiController extends Controller
                 $q->where('kode_transaksi', 'like', '%' . $search . '%')
                   ->orWhereHas('user', function($u) use ($search) {
                       $u->where('name', 'like', '%' . $search . '%');
-                  });
+                  })
+                  ->orWhere('nama_tamu', 'like', '%' . $search . '%');
             });
         }
 
@@ -43,15 +52,123 @@ class TransaksiController extends Controller
     {
         $transaksi = Transaksi::with(['user', 'detail.produk', 'sewa', 'pembayaran', 'pengiriman'])
             ->findOrFail($id);
-            
+
         return view('admin.transaksi.show', compact('transaksi'));
     }
 
-        // Fungsi untuk melunasi transaksi secara manual (oleh Admin)
+    /**
+     * Halaman kasir: form untuk membuat transaksi offline.
+     *
+     * ASUMSI kolom Produk: id, nama, harga, stok.
+     * Sesuaikan select() di bawah kalau nama kolom produkmu berbeda.
+     */
+    public function create()
+    {
+        $produks = Produk::select('id', 'nama', 'harga', 'stok')
+            ->orderBy('nama')
+            ->get();
+
+        $users = User::select('id', 'name', 'no_hp')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.transaksi.create', compact('produks', 'users'));
+    }
+
+    /**
+     * Simpan transaksi yang dibuat lewat kasir.
+     * Transaksi kasir otomatis ditandai channel = 'kasir' dan muncul
+     * di halaman Semua Transaksi seperti transaksi online lainnya.
+     */
+    public function store(Request $request)
+    {
+        $produkTable = (new Produk())->getTable();
+
+        $validated = $request->validate([
+            'jenis' => 'required|in:beli,sewa',
+            'customer_type' => 'required|in:terdaftar,tamu',
+            'user_id' => 'required_if:customer_type,terdaftar|nullable|exists:users,id',
+            'nama_tamu' => 'required_if:customer_type,tamu|nullable|string|max:255',
+            'no_hp_tamu' => 'required_if:customer_type,tamu|nullable|string|max:30',
+
+            'items' => 'required|array|min:1',
+            'items.*.produk_id' => ['required', Rule::exists($produkTable, 'id')],
+            'items.*.qty' => 'required|integer|min:1',
+
+            'tanggal_pinjam' => 'required_if:jenis,sewa|nullable|date',
+            'tanggal_kembali_rencana' => 'required_if:jenis,sewa|nullable|date|after_or_equal:tanggal_pinjam',
+
+            'status_pembayaran' => 'required|in:lunas,dp',
+            'jumlah_dp' => 'required_if:status_pembayaran,dp|nullable|numeric|min:1',
+            'metode_bayar' => 'required|in:tunai,qris,debit,transfer',
+            'catatan' => 'nullable|string|max:255',
+        ]);
+
+        $transaksi = DB::transaction(function () use ($validated) {
+            $produkIds = collect($validated['items'])->pluck('produk_id');
+            $produkMap = Produk::whereIn('id', $produkIds)->get()->keyBy('id');
+
+            $total = 0;
+            foreach ($validated['items'] as $item) {
+                $harga = $produkMap[$item['produk_id']]->harga ?? 0;
+                $total += $harga * $item['qty'];
+            }
+
+            $transaksi = Transaksi::create([
+                'kode_transaksi' => 'KSR-' . now()->format('ymd') . '-' . strtoupper(Str::random(4)),
+                'tanggal' => now()->toDateString(),
+                'user_id' => $validated['customer_type'] === 'terdaftar' ? $validated['user_id'] : null,
+                'nama_tamu' => $validated['customer_type'] === 'tamu' ? $validated['nama_tamu'] : null,
+                'no_hp_tamu' => $validated['customer_type'] === 'tamu' ? $validated['no_hp_tamu'] : null,
+                'jenis' => $validated['jenis'],
+                'total' => $total,
+                // Transaksi kasir langsung dibayar di tempat, jadi status dasarnya
+                // 'lunas' atau 'dp_dibayar' (bukan 'pending' seperti pesanan online).
+                'status_pembayaran' => $validated['status_pembayaran'] === 'lunas' ? 'lunas' : 'dp_dibayar',
+                'channel' => 'kasir',
+            ]);
+
+            foreach ($validated['items'] as $item) {
+                $harga = $produkMap[$item['produk_id']]->harga ?? 0;
+                DetailTransaksi::create([
+                    'transaksi_id' => $transaksi->id,
+                    'produk_id' => $item['produk_id'],
+                    'qty' => $item['qty'],
+                    'harga' => $harga,
+                    'subtotal' => $harga * $item['qty'],
+                ]);
+            }
+
+            if ($validated['jenis'] === 'sewa') {
+                Sewa::create([
+                    'transaksi_id' => $transaksi->id,
+                    'tanggal_pinjam' => $validated['tanggal_pinjam'],
+                    'tanggal_kembali_rencana' => $validated['tanggal_kembali_rencana'],
+                    'status' => 'aktif',
+                ]);
+            }
+
+            Pembayaran::create([
+                'transaksi_id' => $transaksi->id,
+                'jenis_bayar' => $validated['status_pembayaran'],
+                'metode' => $validated['metode_bayar'],
+                'jumlah' => $validated['status_pembayaran'] === 'lunas' ? $total : $validated['jumlah_dp'],
+                'status_midtrans' => 'success',
+            ]);
+
+            return $transaksi;
+        });
+
+        return redirect()
+            ->route('admin.transaksi.show', $transaksi->id)
+            ->with('success', 'Transaksi kasir berhasil dibuat: ' . $transaksi->kode_transaksi);
+    }
+
+    // Fungsi untuk melunasi transaksi secara manual (oleh Admin)
     public function lunasi($id)
     {
         $transaksi = Transaksi::findOrFail($id);
-        
+
         // Ubah status transaksi
         $transaksi->update(['status_pembayaran' => 'lunas']);
 
@@ -69,7 +186,7 @@ class TransaksiController extends Controller
         if ($transaksi->sewa) {
             $transaksi->sewa->update([
                 'status' => 'selesai',
-                'tanggal_kembali_aktual' => now()->toDateString(), // Otomatis catat tanggal hari ini
+                'tanggal_kembali_aktual' => now()->toDateString(),
             ]);
         }
 

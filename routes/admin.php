@@ -65,8 +65,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/kelola-admin/{id}', [AdminController::class, 'destroy'])->name('kelola-admin.destroy');
 
         // 4. Transaksi
-        Route::get('/transaksi', fn () => view('placeholder'))->name('transaksi.index');
-        Route::get('/transaksi/baru', fn () => view('placeholder'))->name('transaksi.create');
+        Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
+        Route::get('/transaksi/baru', [TransaksiController::class, 'create'])->name('transaksi.create');
+        Route::post('/transaksi', [TransaksiController::class, 'store'])->name('transaksi.store');
+        Route::get('/transaksi/{id}', [TransaksiController::class, 'show'])->name('transaksi.show');
+    
+        Route::patch('/transaksi/{id}/lunasi', [TransaksiController::class, 'lunasi'])->name('transaksi.lunasi');
+        Route::patch('/transaksi/{id}/selesaikan-sewa', [TransaksiController::class, 'selesaikanSewa'])->name('transaksi.selesai-sewa');
 
         // 5. Sewa & jaminan
         Route::get('/sewa', fn () => view('placeholder'))->name('sewa.index');

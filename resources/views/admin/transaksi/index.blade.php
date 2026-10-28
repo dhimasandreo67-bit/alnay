@@ -10,6 +10,11 @@
             <h1 class="text-2xl font-black tracking-tight text-gray-900">Kelola Transaksi</h1>
             <p class="text-xs text-gray-500 mt-1">Pantau pesanan masuk, status pembayaran, dan jadwal penyewaan.</p>
         </div>
+        <a href="{{ route('admin.transaksi.create') }}"
+           class="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 active:scale-95 transition-all shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Buat Transaksi Baru (Kasir)
+        </a>
     </div>
 
     {{-- Statistik Cards --}}
@@ -88,8 +93,19 @@
                                 <div class="text-xs text-gray-500">{{ $t->tanggal->format('d M Y') }}</div>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-sm font-semibold text-gray-800">{{ $t->user->name ?? '-' }}</div>
-                                <div class="text-[11px] text-gray-500">{{ $t->jenis === 'sewa' ? 'Penyewaan' : 'Pembelian' }}</div>
+                                <div class="text-sm font-semibold text-gray-800">{{ $t->user->name ?? $t->nama_tamu ?? '-' }}</div>
+                                <div class="mt-1 flex items-center gap-1.5">
+                                    <span class="text-[11px] text-gray-500">{{ $t->jenis === 'sewa' ? 'Penyewaan' : 'Pembelian' }}</span>
+                                    @if(($t->channel ?? 'online') === 'kasir')
+                                        <span class="inline-flex items-center rounded-full bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-600 ring-1 ring-indigo-200">
+                                            Kasir
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-full bg-gray-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-500 ring-1 ring-gray-200">
+                                            Online
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-xs text-gray-700 font-medium">{{ $t->detail->first()->produk->nama ?? '-' }}</div>

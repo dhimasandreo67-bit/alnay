@@ -36,6 +36,8 @@
     <main>
         @yield('content')
     </main>
+    <x-toast />
+    @stack('modals')
 
 </body>
 </html>
