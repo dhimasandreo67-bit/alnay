@@ -99,6 +99,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('pengguna')->name('pengguna.')->group(function () {
             Route::get('/', [PenggunaController::class, 'index'])->name('index');
             Route::post('/', [PenggunaController::class, 'store'])->name('store');
+            Route::put('/{id}', [PenggunaController::class, 'update'])->name('update');
+            // Kalau URL ini terbuka lewat GET (mis. refresh setelah submit), kembalikan ke daftar pengguna
+            Route::get('/{id}', fn () => redirect()->route('admin.pengguna.index'))->whereNumber('id');
             Route::post('/massal', [PenggunaController::class, 'massal'])->name('massal');
             Route::patch('/{id}/status', [PenggunaController::class, 'status'])->name('status');
             Route::delete('/{id}', [PenggunaController::class, 'destroy'])->name('destroy');
