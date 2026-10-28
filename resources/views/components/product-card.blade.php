@@ -11,9 +11,16 @@
         'ink'     => 'bg-ink/90 text-cream border border-ink backdrop-blur-sm',
         default   => 'bg-cream text-muted border border-line',
     };
+
+    // foto_produk di model = array path. sampulUrl() mengambil foto pertama
+    // yang valid (sudah berupa URL penuh), atau null kalau tidak ada.
+    $fotoUrl = $produk->sampulUrl();
 @endphp
 
-{{-- Struktur: satu <article>; link utama berupa overlay transparan (absolute inset-0) --}}
+{{--
+    Struktur: satu <article>; link utama berupa overlay transparan (absolute inset-0)
+    dan tombol Sewa/Beli ada di atasnya (z-20). TIDAK BOLEH ada <a> di dalam <a>.
+--}}
 <article class="pd-up group relative flex flex-col h-full bg-panel border border-line rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-500" style="--d: {{ $delay }}s;">
 
     {{-- Link utama: seluruh kartu bisa diklik --}}
@@ -23,6 +30,7 @@
 
         {{-- Gambar --}}
     <div class="relative aspect-[4/3] bg-cream-dim overflow-hidden shrink-0">
+<<<<<<< HEAD
         @php
             // Ambil foto pertama jika bentuknya Array, atau langsung jika String
             $foto = $produk->foto_produk;
@@ -33,6 +41,10 @@
 
         @if ($foto)
             <img src="{{ asset('storage/' . $foto) }}" alt="{{ $produk->nama }}"
+=======
+        @if ($fotoUrl)
+            <img src="{{ $fotoUrl }}" alt="{{ $produk->nama }}"
+>>>>>>> d163d4d4ca279886ad219b6928a8c1746fbca5f9
                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
         @else
             <div class="w-full h-full flex items-center justify-center bg-cream-dim text-muted text-[10px] uppercase tracking-widest">
@@ -97,15 +109,15 @@
                 @endif
             </div>
 
-            {{-- Tombol --}}
-            <div class="grid {{ $produk->dapat_dijual ? 'grid-cols-2' : 'grid-cols-1' }} gap-2">
+            {{-- Tombol (z-20 supaya di atas link overlay) --}}
+            <div class="relative z-20 grid {{ $produk->dapat_dijual ? 'grid-cols-2' : 'grid-cols-1' }} gap-2">
                 <a href="{{ route('produk.detail', ['sku' => $produk->sku]) }}"
-                   class="relative z-20 inline-flex items-center justify-center px-3 py-2.5 rounded-full border border-ink/20 text-ink text-xs font-semibold uppercase tracking-wider hover:bg-ink hover:text-cream transition-colors min-h-[44px]">
+                   class="inline-flex items-center justify-center px-3 py-2.5 rounded-full border border-ink/20 text-ink text-xs font-semibold uppercase tracking-wider hover:bg-ink hover:text-cream transition-colors min-h-[44px]">
                     Sewa
                 </a>
                 @if ($produk->dapat_dijual)
                     <a href="{{ route('produk.detail', ['sku' => $produk->sku, 'mode' => 'beli']) }}"
-                       class="relative z-20 inline-flex items-center justify-center px-3 py-2.5 rounded-full bg-gold text-white text-xs font-semibold uppercase tracking-wider hover:bg-gold/90 transition-colors min-h-[44px]">
+                       class="inline-flex items-center justify-center px-3 py-2.5 rounded-full bg-gold text-white text-xs font-semibold uppercase tracking-wider hover:bg-gold/90 transition-colors min-h-[44px]">
                         Beli
                     </a>
                 @endif

@@ -13,10 +13,7 @@
     /* === PAKSA LAYOUT AGAR TIDAK MEPET === */
     * { box-sizing: border-box !important; }
     
-    html, body {
-        overflow-x: hidden !important;
-        max-width: 100vw !important;
-    }
+    body { overflow-x: clip; }
 
     .max-w-6xl, .max-w-4xl {
         margin-left: auto !important;
