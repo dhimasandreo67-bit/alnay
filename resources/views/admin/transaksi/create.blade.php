@@ -34,13 +34,13 @@
             <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3">Jenis Transaksi</p>
             <div class="flex gap-3">
                 <label class="flex-1">
-                    <input type="radio" name="jenis" value="beli" class="peer sr-only" checked>
+                    <input type="radio" name="jenis" value="beli" class="peer sr-only" checked onchange="ubahJenis()" id="radio-beli">
                     <div class="cursor-pointer rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-600 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700">
                         Pembelian
                     </div>
                 </label>
                 <label class="flex-1">
-                    <input type="radio" name="jenis" value="sewa" class="peer sr-only" onchange="toggleSewa()" id="radio-sewa">
+                    <input type="radio" name="jenis" value="sewa" class="peer sr-only" onchange="ubahJenis()" id="radio-sewa">
                     <div class="cursor-pointer rounded-xl border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-600 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700">
                         Penyewaan
                     </div>
@@ -155,29 +155,65 @@
     </form>
 </div>
 
-{{-- Data produk untuk JS (ASUMSI kolom: id, nama, harga, stok) --}}
+@php
+    // Siapkan dulu array sederhananya di sini, supaya @json() di bawah
+    // tidak perlu memuat ekspresi PHP multi-baris (rawan bikin Blade
+    // salah hitung tanda kurung dan memicu ParseError).
+    $produkJs = $produks->map(function ($p) {
+        return [
+            'id' => $p->id,
+            'nama' => $p->nama,
+            'harga_jual' => (float) $p->harga_jual,
+            'harga_sewa' => (float) $p->harga_sewa,
+            'dp' => (float) $p->dp,
+            'stok' => (int) $p->stok,
+            'bisa_disewa' => (bool) $p->bisa_disewa,
+            'dapat_dijual' => (bool) $p->dapat_dijual,
+            'diskon_persen' => (float) $p->diskon_persen,
+        ];
+    })->values();
+@endphp
+
+{{-- Data produk untuk JS: kolom sudah dicocokkan dengan tabel produk asli --}}
 <script>
-    const PRODUK_LIST = @json($produks->map(fn ($p) => ['id' => $p->id, 'nama' => $p->nama, 'harga' => (float) $p->harga, 'stok' => $p->stok]));
+    const PRODUK_LIST = @json($produkJs);
 
     function rupiah(angka) {
         return 'Rp ' + Math.round(angka).toLocaleString('id-ID');
     }
 
-    function buatOptionProduk(selectedId) {
-        return PRODUK_LIST.map(p =>
-            `<option value="${p.id}" data-harga="${p.harga}" ${p.id == selectedId ? 'selected' : ''}>${p.nama} - ${rupiah(p.harga)} (stok ${p.stok})</option>`
-        ).join('');
+    function jenisAktif() {
+        return document.getElementById('radio-sewa').checked ? 'sewa' : 'beli';
+    }
+
+    // Harga final 1 unit produk sesuai jenis transaksi + diskon
+    function hargaFinal(produk, jenis) {
+        const dasar = jenis === 'sewa' ? produk.harga_sewa : produk.harga_jual;
+        return dasar - (dasar * produk.diskon_persen / 100);
+    }
+
+    // Produk yang boleh dipilih untuk jenis transaksi saat ini
+    function produkTersedia(jenis) {
+        return PRODUK_LIST.filter(p => jenis === 'sewa' ? p.bisa_disewa : p.dapat_dijual);
+    }
+
+    function buatOptionProduk(jenis, selectedId) {
+        return produkTersedia(jenis).map(p => {
+            const harga = hargaFinal(p, jenis);
+            return `<option value="${p.id}" data-harga="${harga}" data-dp="${p.dp}" ${p.id == selectedId ? 'selected' : ''}>${p.nama} - ${rupiah(harga)} (stok ${p.stok})</option>`;
+        }).join('');
     }
 
     function tambahBaris() {
         const wrap = document.getElementById('daftar-item');
         const idx = wrap.children.length;
+        const jenis = jenisAktif();
         const row = document.createElement('div');
         row.className = 'flex items-center gap-3 baris-item';
         row.innerHTML = `
             <select name="items[${idx}][produk_id]" class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm select-produk" onchange="hitungTotal()">
                 <option value="">-- Pilih Produk --</option>
-                ${buatOptionProduk(null)}
+                ${buatOptionProduk(jenis, null)}
             </select>
             <input type="number" name="items[${idx}][qty]" value="1" min="1" class="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm input-qty" onchange="hitungTotal()">
             <span class="w-32 text-right text-sm font-bold text-gray-700 subtotal-display">Rp 0</span>
@@ -193,15 +229,42 @@
 
     function hitungTotal() {
         let total = 0;
+        let totalDpSaran = 0;
+
         document.querySelectorAll('.baris-item').forEach(row => {
             const select = row.querySelector('.select-produk');
             const qty = parseInt(row.querySelector('.input-qty').value) || 0;
-            const harga = parseFloat(select.selectedOptions[0]?.dataset.harga || 0);
+            const opt = select.selectedOptions[0];
+            const harga = parseFloat(opt?.dataset.harga || 0);
+            const dp = parseFloat(opt?.dataset.dp || 0);
             const subtotal = harga * qty;
+
             row.querySelector('.subtotal-display').textContent = rupiah(subtotal);
             total += subtotal;
+            totalDpSaran += dp * qty;
         });
+
         document.getElementById('total-display').textContent = rupiah(total);
+
+        // Isi saran jumlah DP otomatis kalau field-nya masih kosong
+        const inputDp = document.querySelector('input[name="jumlah_dp"]');
+        if (inputDp && !inputDp.value && totalDpSaran > 0) {
+            inputDp.value = Math.round(totalDpSaran);
+        }
+    }
+
+    // Saat jenis transaksi (beli/sewa) diganti: tampilkan/sembunyikan tanggal sewa
+    // dan render ulang semua baris item karena harga & produk yang tersedia beda
+    function ubahJenis() {
+        toggleSewa();
+
+        const jenis = jenisAktif();
+        document.querySelectorAll('.baris-item').forEach(row => {
+            const select = row.querySelector('.select-produk');
+            const selectedId = select.value;
+            select.innerHTML = `<option value="">-- Pilih Produk --</option>${buatOptionProduk(jenis, selectedId)}`;
+        });
+        hitungTotal();
     }
 
     function toggleSewa() {
@@ -218,6 +281,7 @@
     function toggleDp() {
         const isDp = document.getElementById('status_pembayaran').value === 'dp';
         document.getElementById('box-jumlah-dp').classList.toggle('hidden', !isDp);
+        if (isDp) hitungTotal(); // isi saran DP saat baru pindah ke mode DP
     }
 
     // Mulai dengan 1 baris item kosong
