@@ -24,5 +24,9 @@
         </main>
     </div>
 
+    <x-toast />
+    @stack('modals')
+
+
 </body>
 </html>

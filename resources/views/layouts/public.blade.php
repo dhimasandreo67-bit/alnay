@@ -19,6 +19,9 @@
 
     @include('partials.footer')
 
+    <x-toast />
+    @stack('modals')
+
     {{-- layouts/public.blade.php --}}
     @stack('scripts')
 </body>
