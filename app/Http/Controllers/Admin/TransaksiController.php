@@ -17,14 +17,19 @@ use Illuminate\Validation\Rule;
 class TransaksiController extends Controller
 {
     /**
-     * CATATAN: kolom tabel `produk` sudah dicek dan dipastikan benar
-     * (harga_jual, harga_sewa, dp, stok, bisa_disewa, dapat_dijual, diskon_persen).
-     * Kolom DetailTransaksi (transaksi_id, produk_id, qty, harga, subtotal),
-     * Sewa (transaksi_id, tanggal_pinjam, tanggal_kembali_rencana, status),
-     * dan Pembayaran (transaksi_id, jenis_bayar, metode, jumlah, status_midtrans)
-     * MASIH ASUMSI. Kalau nanti muncul error "Unknown column" lagi saat submit
-     * form kasir, jalankan `php artisan db:table detail_transaksi` (atau nama
-     * tabel aslinya) lalu kirim hasilnya biar disesuaikan lagi.
+     * CATATAN: semua skema tabel di bawah ini sudah dikonfirmasi lewat
+     * `php artisan db:table ...`, bukan tebakan lagi:
+     * - transaksi: kode_transaksi, tanggal, user_id, jenis, total,
+     *   status_pembayaran, channel, nama_tamu, no_hp_tamu
+     * - detail_transaksi: transaksi_id, produk_id, jumlah, harga_satuan
+     *   (TIDAK ADA kolom subtotal)
+     * - sewa: transaksi_id, tanggal_pinjam, tanggal_kembali_rencana, status
+     * - pembayaran: transaksi_id, jenis_bayar, jumlah, metode,
+     *   status_midtrans, tanggal_bayar
+     *
+     * Dipakai forceFill() (bukan create()) di semua insert supaya kolom
+     * channel/nama_tamu/no_hp_tamu tetap tersimpan meskipun belum ada di
+     * $fillable model Transaksi.
      */
 
     public function index(Request $request)
@@ -147,7 +152,10 @@ class TransaksiController extends Controller
                 $total += $hargaUnit($produk, $validated['jenis']) * $item['qty'];
             }
 
-            $transaksi = Transaksi::create([
+            // Pakai forceFill() (bukan create()) supaya kolom channel/nama_tamu/no_hp_tamu
+            // tetap tersimpan walaupun belum ditambahkan ke $fillable di model Transaksi.
+            $transaksi = new Transaksi();
+            $transaksi->forceFill([
                 'kode_transaksi' => 'KSR-' . now()->format('ymd') . '-' . strtoupper(Str::random(4)),
                 'tanggal' => now()->toDateString(),
                 'user_id' => $validated['customer_type'] === 'terdaftar' ? $validated['user_id'] : null,
@@ -159,40 +167,42 @@ class TransaksiController extends Controller
                 // 'lunas' atau 'dp_dibayar' (bukan 'pending' seperti pesanan online).
                 'status_pembayaran' => $validated['status_pembayaran'] === 'lunas' ? 'lunas' : 'dp_dibayar',
                 'channel' => 'kasir',
-            ]);
+            ])->save();
 
             foreach ($validated['items'] as $item) {
                 $produk = $produkMap[$item['produk_id']];
                 $harga = $hargaUnit($produk, $validated['jenis']);
 
-                DetailTransaksi::create([
+                // Kolom asli tabel detail_transaksi: transaksi_id, produk_id,
+                // jumlah, harga_satuan (tidak ada kolom subtotal).
+                (new DetailTransaksi())->forceFill([
                     'transaksi_id' => $transaksi->id,
                     'produk_id' => $item['produk_id'],
-                    'qty' => $item['qty'],
-                    'harga' => $harga,
-                    'subtotal' => $harga * $item['qty'],
-                ]);
+                    'jumlah' => $item['qty'],
+                    'harga_satuan' => $harga,
+                ])->save();
 
                 // Kurangi stok karena transaksi kasir langsung terjadi di tempat
                 $produk->decrement('stok', $item['qty']);
             }
 
             if ($validated['jenis'] === 'sewa') {
-                Sewa::create([
+                (new Sewa())->forceFill([
                     'transaksi_id' => $transaksi->id,
                     'tanggal_pinjam' => $validated['tanggal_pinjam'],
                     'tanggal_kembali_rencana' => $validated['tanggal_kembali_rencana'],
                     'status' => 'aktif',
-                ]);
+                ])->save();
             }
 
-            Pembayaran::create([
+            (new Pembayaran())->forceFill([
                 'transaksi_id' => $transaksi->id,
                 'jenis_bayar' => $validated['status_pembayaran'],
                 'metode' => $validated['metode_bayar'],
                 'jumlah' => $validated['status_pembayaran'] === 'lunas' ? $total : $validated['jumlah_dp'],
                 'status_midtrans' => 'success',
-            ]);
+                'tanggal_bayar' => now(),
+            ])->save();
 
             return $transaksi;
         });
