@@ -61,7 +61,7 @@ class SewaController extends Controller
         
         // Ambil config dari config/alnay.php
         $deposit = config('alnay.deposit_ktp', 200000);
-        $dp = config('alnay.dp_sewa', 1000000);
+        $dp = $produk->dp ?? 0;
 
         $total = $totalSewa; // Total sebelum deposit/DP
 
@@ -198,54 +198,12 @@ class SewaController extends Controller
             ->with('success', 'Transaksi sewa berhasil dibuat. Silakan lanjutkan pembayaran.');
     }
 
-        public function webhook(Request $request)
+    /**
+     * Webhook Midtrans (Sewa & Beli) — logikanya ada di MidtransQris.
+     */
+    public function webhook(Request $request)
     {
-        // 1. Pastikan data yang dikirim lengkap
-        if (!$request->has('order_id') || !$request->has('status_code') || !$request->has('gross_amount')) {
-            return response('OK', 200)->header('Content-Type', 'text/plain');
-        }
-
-        $serverKey = config('services.midtrans.server_key');
-        $hashed = hash("sha512", $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
-
-        // 2. Validasi Keaslian Request
-        if ($hashed == $request->signature_key) {
-            
-            // 3. Ambil kode transaksi dengan aman
-            $orderIdParts = explode('-', $request->order_id);
-            
-            // Jika format order_id tidak sesuai (misal saat test dari Midtrans), abaikan saja
-            if (count($orderIdParts) < 3) {
-                return response('OK', 200)->header('Content-Type', 'text/plain');
-            }
-
-            $kodeTransaksi = $orderIdParts[0] . '-' . $orderIdParts[1] . '-' . $orderIdParts[2];
-
-            $transaksi = Transaksi::where('kode_transaksi', $kodeTransaksi)->first();
-
-            if ($transaksi) {
-                $status = $request->transaction_status;
-                $type = $request->payment_type;
-
-                if ($status == 'capture' || $status == 'settlement') {
-                    $transaksi->update(['status_pembayaran' => 'dp_dibayar']);
-                    $transaksi->pembayaran()->where('jenis_bayar', 'dp')->update([
-                        'status_midtrans' => 'success',
-                        'metode' => $type,
-                    ]);
-                } elseif ($status == 'pending') {
-                    $transaksi->update(['status_pembayaran' => 'pending']);
-                } elseif ($status == 'deny' || $status == 'expire' || $status == 'cancel') {
-                    $transaksi->update(['status_pembayaran' => 'gagal']);
-                    $transaksi->pembayaran()->where('jenis_bayar', 'dp')->update([
-                        'status_midtrans' => 'failed',
-                    ]);
-                }
-            }
-        }
-
-        // 4. WAJIB: Balas dengan teks "OK" agar Midtrans hijau
-        return response('OK', 200)->header('Content-Type', 'text/plain');
+        return app(\App\Services\MidtransQris::class)->tanganiWebhook($request);
     }
 
     /**
@@ -269,34 +227,95 @@ class SewaController extends Controller
 
         public function charge($id)
     {
-        $transaksi = Transaksi::with('pembayaran')->findOrFail($id);
-
-        \Midtrans\Config::$serverKey = config('services.midtrans.server_key');
-        \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
-        \Midtrans\Config::$isSanitized = true;
-        \Midtrans\Config::$is3ds = true;
-
-        $tagihan = $transaksi->pembayaran->where('jenis_bayar', 'lunas')->first() 
-                   ?? $transaksi->pembayaran->where('jenis_bayar', 'dp')->first();
-        $nominal = $tagihan ? $tagihan->jumlah : $transaksi->total;
-
-        $params = [
-            'transaction_details' => [
-                'order_id' => $transaksi->kode_transaksi . '-' . time(),
-                'gross_amount' => (int) $nominal,
-            ],
-            'customer_details' => [
-                'first_name' => auth()->user()->name,
-                'email' => auth()->user()->email,
-                'phone' => auth()->user()->no_hp ?? '-',
-            ],
-        ];
-
         try {
-            $snapToken = \Midtrans\Snap::getSnapToken($params);
-            return response()->json(['snap_token' => $snapToken]);
+            $transaksi = Transaksi::findOrFail($id);
+            
+            // Panggil Service MidtransQris yang baru
+            $qrData = app(\App\Services\MidtransQris::class)->qr($transaksi);
+
+            if (isset($qrData['paid']) && $qrData['paid']) {
+                return response()->json(['paid' => true]);
+            }
+
+            return response()->json([
+                'qr_url' => $qrData['qr_url'] ?? null,
+                'expires_in' => $qrData['expires_in'] ?? 0,
+            ]);
+
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+        public function cekStatus($id)
+    {
+        try {
+            $transaksi = Transaksi::findOrFail($id);
+            $midtrans = app(\App\Services\MidtransQris::class);
+            
+            // Sinkronisasi status dari Midtrans ke database
+            $status = $midtrans->sync($transaksi);
+            
+            return response()->json(['status' => $status]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+        /**
+     * Tampilkan halaman Keranjang Sewa.
+     */
+    public function keranjangIndex()
+    {
+        $keranjangSewa = session()->get('keranjang_sewa', []);
+        
+        // Hitung total keseluruhan
+        $totalKeseluruhan = collect($keranjangSewa)->sum('total_sewa');
+
+        // Arahkan ke view yang sesuai (buat file ini nanti)
+        return view('customer.sewa-keranjang', compact('keranjangSewa', 'totalKeseluruhan'));
+    }
+
+    /**
+     * Tambah produk ke Keranjang Sewa dari halaman detail produk.
+     */
+    public function tambahKeKeranjang(Request $request)
+    {
+        // 1. Validasi Input
+        $request->validate([
+            'produk_id' => 'required|exists:produk,id',
+            'tanggal_ambil' => 'required|date',
+            'tanggal_kembali' => 'required|date|after:tanggal_ambil',
+            'ukuran' => 'required|string',
+            'durasi' => 'required|integer|min:1',
+            'total_sewa' => 'required|numeric|min:0',
+        ]);
+
+        $produk = Produk::findOrFail($request->produk_id);
+
+        // 2. Ambil data keranjang sewa dari session
+        $keranjangSewa = session()->get('keranjang_sewa', []);
+
+        // 3. Buat ID unik untuk item (kombinasi produk + tanggal + ukuran)
+        $itemId = $produk->id . '_' . $request->tanggal_ambil . '_' . $request->ukuran;
+
+        // 4. Simpan ke session
+        $keranjangSewa[$itemId] = [
+            'produk_id' => $produk->id,
+            'nama' => $produk->nama,
+            'foto_produk' => $produk->foto_produk, 
+            'ukuran' => $request->ukuran,
+            'tanggal_ambil' => $request->tanggal_ambil,
+            'tanggal_kembali' => $request->tanggal_kembali,
+            'durasi' => $request->durasi,
+            'harga_sewa' => $produk->harga_sewa,
+            'total_sewa' => $request->total_sewa,
+            'dp' => $produk->dp ?? 0, // Ambil DP dinamis dari produk!
+        ];
+
+        session()->put('keranjang_sewa', $keranjangSewa);
+
+        // 5. Redirect ke halaman Keranjang Sewa
+        return redirect()->route('sewa.keranjang.index')->with('success', 'Produk berhasil ditambahkan ke Keranjang Sewa!');
     }
 }

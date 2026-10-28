@@ -168,9 +168,16 @@
                     @forelse($transaksi->detail as $d)
                         <div class="group flex items-center gap-4 rounded-2xl border border-gray-100 bg-gray-50/50 p-3 transition hover:border-amber-200 hover:bg-white hover:shadow-sm">
                             <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
-                                @if($d->produk && $d->produk->foto_produk)
-                                    <img src="{{ asset('storage/' . $d->produk->foto_produk) }}" alt="{{ $d->produk->nama }}"
-                                         class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
+                                @php
+                                    $fotoItem = $d->produk->foto_produk ?? null;
+                                    if (is_array($fotoItem)) {
+                                        $fotoItem = $fotoItem[0] ?? null;
+                                    }
+                                @endphp
+
+                                @if($fotoItem)
+                                    <img src="{{ asset('storage/' . $fotoItem) }}" alt="{{ $d->produk->nama }}"
+                                        class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
                                 @else
                                     <svg class="h-6 w-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>

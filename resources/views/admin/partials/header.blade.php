@@ -7,7 +7,6 @@
         ['label' => 'Cara Sewa',   'route' => 'cara-sewa',    'active' => request()->routeIs('cara-sewa')],
         ['label' => 'Tentang Kami','route' => 'tentang',      'active' => request()->routeIs('tentang')],
         ['label' => 'Testimoni',   'route' => 'testimoni',    'active' => request()->routeIs('testimoni')],
-        ['label' => 'Event',       'route' => 'event',        'active' => false],
     ];
 @endphp
 
@@ -74,7 +73,7 @@
             @endguest
 
             @auth
-                <a href="{{ route('admin.partials.dashboard') }}"
+                <a href="{{ route('admin.dashboard') }}"
                    class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-ink hover:text-gold transition-colors min-h-[44px]">
                     <x-icon name="user" :size="18" />
                     Akun

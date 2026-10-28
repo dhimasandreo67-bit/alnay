@@ -192,8 +192,33 @@
 
                     {{-- Pagination --}}
                     <div class="pd-reveal mt-10">
-                        {{ $produkList->links() }}
-                    </div>
+                @if ($produkList->hasPages())
+                    <nav class="flex items-center justify-center gap-1">
+                        {{-- Previous --}}
+                        @if ($produkList->onFirstPage())
+                            <span class="px-3 py-1.5 rounded-md border border-line/50 text-xs text-ink/30">«</span>
+                        @else
+                            <a href="{{ $produkList->previousPageUrl() }}" class="px-3 py-1.5 rounded-md border border-line/50 text-xs text-ink/70 hover:bg-cream hover:border-gold transition-all">«</a>
+                        @endif
+
+                        {{-- Page Numbers --}}
+                        @foreach ($produkList->getUrlRange(max(1, $produkList->currentPage() - 2), min($produkList->lastPage(), $produkList->currentPage() + 2)) as $page => $url)
+                            @if ($page == $produkList->currentPage())
+                                <span class="px-3 py-1.5 rounded-md bg-ink text-gold text-xs font-bold">{{ $page }}</span>
+                            @else
+                                <a href="{{ $url }}" class="px-3 py-1.5 rounded-md border border-line/50 text-xs text-ink/70 hover:bg-cream hover:border-gold transition-all">{{ $page }}</a>
+                            @endif
+                        @endforeach
+
+                        {{-- Next --}}
+                        @if ($produkList->hasMorePages())
+                            <a href="{{ $produkList->nextPageUrl() }}" class="px-3 py-1.5 rounded-md border border-line/50 text-xs text-ink/70 hover:bg-cream hover:border-gold transition-all">»</a>
+                        @else
+                            <span class="px-3 py-1.5 rounded-md border border-line/50 text-xs text-ink/30">»</span>
+                        @endif
+                    </nav>
+                @endif
+            </div>
                 @else
                     {{-- Empty State --}}
                         <div class="pd-up text-center py-20 border-2 border-dashed border-line/50 rounded-2xl">

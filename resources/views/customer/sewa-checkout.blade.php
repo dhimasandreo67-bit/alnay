@@ -103,8 +103,15 @@
 
                         <div class="flex gap-3 items-center border-b border-line/40 pb-4 mb-4">
                             <div class="w-16 h-16 rounded-lg bg-cream-dim border border-line/50 overflow-hidden flex items-center justify-center text-muted text-[10px] uppercase tracking-wider shrink-0">
-                                @if ($produk->foto_produk)
-                                    <img src="{{ asset('storage/' . $produk->foto_produk) }}" alt="{{ $produk->nama }}" class="w-full h-full object-cover">
+                                @php
+                                    $fotoSewa = $produk->foto_produk;
+                                    if (is_array($fotoSewa)) {
+                                        $fotoSewa = $fotoSewa[0] ?? null;
+                                    }
+                                @endphp
+
+                                @if($fotoSewa)
+                                    <img src="{{ asset('storage/' . $fotoSewa) }}" alt="{{ $produk->nama }}" class="w-full h-full object-cover">
                                 @else
                                     Foto
                                 @endif

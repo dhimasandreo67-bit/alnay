@@ -4,25 +4,34 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\Produk;
 
 class CartController extends Controller
 {
-    /**
-     * Tampilkan halaman keranjang
-     */
-        public function index()
+    public function index()
     {
-        // Ambil data dari session (tanpa dummy)
         $cartItems = session('cart', []);
 
-        // Hitung subtotal & total
+        // Bersihkan session dari data yang tidak valid (Array kosong, bukan string, dll)
+        $validItems = [];
+        foreach ($cartItems as $key => $item) {
+            if (is_string($key) && is_array($item) && isset($item['id'], $item['harga'], $item['qty'])) {
+                $validItems[$key] = $item;
+            }
+        }
+        
+        // Jika ada data rusak yang dibersihkan, simpan kembali session yang sudah bersih
+        if (count($validItems) !== count($cartItems)) {
+            session(['cart' => $validItems]);
+        }
+        $cartItems = $validItems;
+
         $subtotal = collect($cartItems)->sum(fn($item) => $item['harga'] * $item['qty']);
-        $ongkir = $subtotal > 0 ? 15000 : 0; // Ongkir hanya jika ada barang
+        $ongkir = $subtotal > 0 ? 15000 : 0;
         $total = $subtotal + $ongkir;
 
         return view('customer.cart', compact('cartItems', 'subtotal', 'ongkir', 'total'));
     }
-
 
     public function add(Request $request)
     {
@@ -35,76 +44,56 @@ class CartController extends Controller
             'tanggal_kembali' => 'required_if:mode,sewa|nullable|date|after:tanggal_ambil',
         ]);
 
-        $produk = \App\Models\Produk::findOrFail($request->produk_id);
-        
-        // Tentukan harga berdasarkan mode (sewa/beli)
+        $produk = Produk::findOrFail($request->produk_id);
         $harga = $request->mode === 'sewa' ? $produk->harga_sewa : $produk->harga_jual;
         
-        // Buat ID unik untuk item keranjang (karena 1 produk bisa disewa & dibeli sekaligus)
+        // Kunci unik: ID produk - Mode - Ukuran
         $cartKey = $produk->id . '-' . $request->mode . '-' . ($request->ukuran ?? 'all');
-
         $cart = session('cart', []);
 
-        // Jika item sudah ada di keranjang, tambahkan qty-nya
-        if (isset($cart[$cartKey])) {
+        if (isset($cart[$cartKey]) && is_array($cart[$cartKey])) {
             $cart[$cartKey]['qty'] += $request->qty;
         } else {
-            // Jika belum ada, buat item baru
             $cart[$cartKey] = [
                 'id' => $produk->id,
                 'nama' => $produk->nama,
-                'harga' => $harga,
+                'harga' => (int) $harga,
                 'foto' => $produk->foto_produk,
-                'qty' => $request->qty,
+                'qty' => (int) $request->qty,
                 'mode' => $request->mode,
-                'ukuran' => $request->ukuran,
+                'ukuran' => $request->ukuran ?? '',
                 'tanggal_ambil' => $request->tanggal_ambil,
                 'tanggal_kembali' => $request->tanggal_kembali,
             ];
         }
 
         session(['cart' => $cart]);
-
-        return redirect()->route('keranjang.index')->with('success', 'Produk berhasil ditambahkan ke keranjang!');
+        return redirect()->route('keranjang.index')->with('success', 'Produk berhasil ditambahkan!');
     }
 
-    /**
-     * Update quantity item
-     */
     public function updateQuantity(Request $request, $id)
     {
-        $request->validate([
-            'qty' => 'required|integer|min:1|max:10',
-        ]);
-
+        $request->validate(['qty' => 'required|integer|min:1|max:10']);
         $cart = session('cart', []);
         
-        if (isset($cart[$id])) {
-            $cart[$id]['qty'] = $request->qty;
+        if (isset($cart[$id]) && is_array($cart[$id])) {
+            $cart[$id]['qty'] = (int) $request->qty;
             session(['cart' => $cart]);
         }
 
         return redirect()->route('keranjang.index')->with('success', 'Quantity berhasil diupdate');
     }
 
-    /**
-     * Hapus satu item dari keranjang
-     */
     public function remove($id)
     {
         $cart = session('cart', []);
-        
         if (isset($cart[$id])) {
             unset($cart[$id]);
             session(['cart' => $cart]);
         }
-
-        return redirect()->route('keranjang.index')->with('success', 'Item berhasil dihapus dari keranjang');
+        return redirect()->route('keranjang.index')->with('success', 'Item berhasil dihapus');
     }
 
-    /**
-     * Hapus multiple items yang dipilih
-     */
     public function removeSelected(Request $request)
     {
         $ids = $request->input('ids', []);
@@ -117,7 +106,6 @@ class CartController extends Controller
         }
 
         session(['cart' => $cart]);
-
-        return redirect()->route('keranjang.index')->with('success', count($ids) . ' item berhasil dihapus');
+        return redirect()->route('keranjang.index')->with('success', count($ids) . ' item dihapus');
     }
 }

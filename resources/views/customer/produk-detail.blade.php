@@ -51,7 +51,15 @@
     @php
         $statusLabel = \App\Support\ProdukStatus::label($produk->status, $produk->dapat_dijual);
 
-        $ukuranList = array_values(array_filter(array_map('trim', explode(',', (string) $produk->ukuran))));
+        $ukuranRaw = $produk->ukuran;
+        if (is_array($ukuranRaw)) {
+            $ukuranList = array_filter($ukuranRaw);
+        } else {
+            $ukuranList = array_values(array_filter(array_map('trim', explode(',', (string) $ukuranRaw))));
+        }
+        if (empty($ukuranList)) {
+            $ukuranList = ['S', 'M', 'L', 'XL', 'Custom'];
+        }
         if (empty($ukuranList)) {
             $ukuranList = ['S', 'M', 'L', 'XL', 'Custom'];
         }
@@ -88,8 +96,15 @@
                     {{-- Gambar utama --}}
                     <div class="pd-up group relative aspect-[4/5] rounded-2xl overflow-hidden border border-line/40 shadow-sm hover:shadow-xl transition-shadow duration-500"
                         style="background:#1b130a;">
-                        @if ($produk->foto_produk)
-                            <img src="{{ asset('storage/' . $produk->foto_produk) }}" alt="{{ $produk->nama }}"
+                        @php
+                            $fotoUtama = $produk->foto_produk;
+                            if (is_array($fotoUtama)) {
+                                $fotoUtama = $fotoUtama[0] ?? null;
+                            }
+                        @endphp
+
+                        @if ($fotoUtama)
+                            <img src="{{ asset('storage/' . $fotoUtama) }}" alt="{{ $produk->nama }}"
                                 class="absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105">
                         @else
                             @foreach ($thumbGradien as $i => $gradien)
@@ -131,7 +146,11 @@
                         </div>
 
                         <div class="mt-5">
-                            @foreach ([['Kategori', $produk->kategori->nama_kategori], ['Material', $produk->bahan], ['Ukuran Tersedia', $produk->ukuran]] as $i => $baris)
+                            @foreach ([
+                                ['Kategori', $produk->kategori->nama_kategori ?? '-'], 
+                                ['Material', $produk->bahan ?? '-'], 
+                                ['Ukuran Tersedia', is_array($produk->ukuran) ? implode(', ', $produk->ukuran) : $produk->ukuran]
+                            ] as $i => $baris)
                                 <div class="pd-reveal flex justify-between gap-4 py-3 px-2 -mx-2 rounded-md text-[13px] border-b border-line/40 hover:bg-cream/60 transition-colors duration-300"
                                     style="--d: {{ $i * 0.1 }}s;">
                                     <span class="text-ink/55">{{ $baris[0] }}</span>
@@ -417,20 +436,25 @@
                             </form>
                         </div>
 
-                        {{-- Tombol Keranjang --}}
-                        <form action="{{ route('keranjang.add') }}" method="POST" class="w-full h-full">
+                        {{-- Tombol Keranjang (Cerdas: Sewa / Beli) --}}
+                        <form :action="mode === 'sewa' ? '{{ route('sewa.keranjang.tambah') }}' : '{{ route('keranjang.add') }}'" method="POST" class="w-full h-full">
                             @csrf
                             <input type="hidden" name="produk_id" value="{{ $produk->id }}">
                             <input type="hidden" name="mode" :value="mode">
                             <input type="hidden" name="ukuran" :value="ukuran">
                             <input type="hidden" name="qty" :value="jumlah">
+                            
+                            {{-- Jika mode sewa, kirim data tanggal --}}
                             <template x-if="mode === 'sewa'">
                                 <div>
                                     <input type="hidden" name="tanggal_ambil" :value="tanggalAmbil">
                                     <input type="hidden" name="tanggal_kembali" :value="tanggalKembali">
+                                    <input type="hidden" name="durasi" :value="durasi">
+                                    <input type="hidden" name="total_sewa" :value="totalSewa">
                                 </div>
                             </template>
-                            <button type="submit"
+
+                            <button type="submit" @click.prevent="tambahKeKeranjang($event)"
                                     class="w-full h-[46px] rounded-lg border border-ink/80 bg-white text-ink/85 text-[13px] font-semibold tracking-wide hover:bg-ink/90 hover:text-cream hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] transition-all duration-300">
                                 + Tambah ke Keranjang
                             </button>
@@ -655,6 +679,25 @@
                         year: 'numeric',
                         timeZone: 'UTC'
                     });
+                },
+
+                                // Tambahkan fungsi ini di dalam return { ... }
+                tambahKeKeranjang(event) {
+                    // Jika mode sewa tapi tanggal belum dipilih, cegah submit
+                    if (this.mode === 'sewa' && (!this.tanggalAmbil || !this.tanggalKembali)) {
+                        this.pesanTanggal = 'Pilih tanggal ambil dan tanggal kembali dulu ya.';
+                        this.getar = false;
+                        this.$nextTick(() => {
+                            this.getar = true;
+                            setTimeout(() => { this.getar = false; }, 500);
+                        });
+                        const el = document.getElementById('kalender-sewa');
+                        if (el) el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+                        return;
+                    }
+                    
+                    // Jika validasi lolos, submit form
+                    event.target.form.submit();
                 },
             };
         }

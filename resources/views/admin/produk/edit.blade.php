@@ -77,6 +77,7 @@
             
             // TAMBAHKAN (int) DI BAWAH INI:
             'hargaSewa'       => (int) old('harga_sewa', $produk->harga_sewa),
+            'dp'              => (int) old('dp', $produk->dp),
             'hargaJual'       => (int) old('harga_jual', $produk->harga_jual),
             'stok'            => old('stok', $produk->stok),
             'dendaPerHari'    => (int) old('denda_per_hari_telat', $produk->denda_per_hari_telat),

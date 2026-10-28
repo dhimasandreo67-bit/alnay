@@ -57,6 +57,7 @@
             'warna'           => old('warna', []),
             'ukuranVariasi'   => old('ukuran', []),
             'hargaSewa'       => old('harga_sewa'),
+            'dp'              => old('dp'),
             'hargaJual'       => old('harga_jual'),
             'stok'            => old('stok', 1),
             'dendaPerHari'    => old('denda_per_hari_telat', 50000),

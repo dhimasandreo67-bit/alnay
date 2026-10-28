@@ -89,7 +89,7 @@ class BeliController extends Controller
             'kanal' => 'online',
             'tanggal' => now()->toDateString(),
             'total' => $total,
-            'status_pembayaran' => 'lunas',
+            'status_pembayaran' => 'pending', // menunggu bayar; jadi 'lunas' hanya lewat Midtrans
             'catatan' => $validated['catatan'] ?? null,
         ]);
 
@@ -107,7 +107,7 @@ class BeliController extends Controller
             'jenis_bayar' => 'lunas',
             'jumlah' => $total,
             'metode' => $validated['metode_bayar'],
-            'status_midtrans' => 'settlement',
+            'status_midtrans' => 'pending',
             'tanggal_bayar' => now(),
         ]);
 
@@ -125,7 +125,7 @@ class BeliController extends Controller
         session()->forget('beli_data');
 
         return redirect()->route('beli.konfirmasi', $transaksi->id)
-            ->with('success', 'Pembelian berhasil.');
+            ->with('success', 'Pesanan dibuat. Silakan selesaikan pembayaran QRIS.');
     }
 
     public function konfirmasi($id)

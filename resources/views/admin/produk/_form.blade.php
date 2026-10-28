@@ -262,15 +262,39 @@ Partial form produk, dipakai oleh create.blade.php dan edit.blade.php.
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div class="space-y-2" x-show="bisaDisewa" x-transition>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-ink/70">Harga Sewa <span class="text-rose-500">*</span></label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-bold text-ink/50 pointer-events-none">Rp</span>
-                        <input type="text" inputmode="numeric" :value="formatNumber(hargaSewa)" @input="hargaSewa = parseNumber($event.target.value)" :required="bisaDisewa" placeholder="350.000"
-                               class="input-elegant w-full pl-12 pr-4 py-3 bg-cream/40 border border-line rounded-xl text-sm focus:bg-white focus:outline-none font-semibold text-ink">
-                        <input type="hidden" name="harga_sewa" :value="hargaSewa">
+                {{-- Kolom Harga Sewa & DP --}}
+                <div class="space-y-5" x-show="bisaDisewa" x-transition>
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-ink/70">Harga Sewa <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-bold text-ink/50 pointer-events-none">Rp</span>
+                            <input type="text" inputmode="numeric" :value="formatNumber(hargaSewa)" @input="hargaSewa = parseNumber($event.target.value)" :required="bisaDisewa" placeholder="350.000"
+                                   class="input-elegant w-full pl-12 pr-4 py-3 bg-cream/40 border border-line rounded-xl text-sm focus:bg-white focus:outline-none font-semibold text-ink">
+                            <input type="hidden" name="harga_sewa" :value="hargaSewa">
+                        </div>
+                    </div>
+
+                    {{-- Input DP (Uang Muka) --}}
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-ink/70">
+                            DP / Uang Muka <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-bold text-ink/50 pointer-events-none">Rp</span>
+                            
+                            <input type="text" inputmode="numeric" 
+                                   :value="formatNumber(dp)" 
+                                   @input="dp = parseNumber($event.target.value)" 
+                                   :required="bisaDisewa" 
+                                   placeholder="150.000"
+                                   class="input-elegant w-full pl-12 pr-4 py-3 bg-cream/40 border border-line rounded-xl text-sm focus:bg-white focus:outline-none font-semibold text-ink">
+                            
+                            <input type="hidden" name="dp" :value="dp">
+                        </div>
                     </div>
                 </div>
+
+                {{-- Kolom Harga Jual --}}
                 <div class="space-y-2" x-show="dapatDijual" x-transition>
                     <label class="block text-xs font-bold uppercase tracking-wider text-ink/70">Harga Jual <span class="text-rose-500">*</span></label>
                     <div class="relative">
@@ -385,6 +409,7 @@ document.addEventListener('alpine:init', () => {
         customColorName: initial.customColorName || '',
         ukuranVariasi: initial.ukuranVariasi || [],
         hargaSewa: initial.hargaSewa ?? null,
+        dp: initial.dp ?? null,
         hargaJual: initial.hargaJual ?? null,
         stok: initial.stok ?? null,
         dendaPerHari: initial.dendaPerHari ?? null,

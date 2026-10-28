@@ -6,41 +6,38 @@
 
 <style>
     [x-cloak] { display: none !important; }
-
     @keyframes pd-up   { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
     @keyframes pd-swap { from { opacity: 0; transform: translateY(8px); }  to { opacity: 1; transform: none; } }
     @keyframes pd-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
     @keyframes pd-spin { to { transform: rotate(360deg); } }
-
     .pd-up    { animation: pd-up .7s cubic-bezier(.22, .8, .3, 1) both; animation-delay: var(--d, 0s); }
     .pd-swap  { animation: pd-swap .45s ease-out both; }
     .pd-shake { animation: pd-shake .45s ease; }
     .pd-spin  { animation: pd-spin .8s linear infinite; }
-
     .pd-shine { position: relative; overflow: hidden; }
-    .pd-shine::after {
-        content: ''; position: absolute; inset: 0;
-        background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .38) 50%, transparent 70%);
-        transform: translateX(-120%); transition: transform .8s ease; pointer-events: none;
-    }
+    .pd-shine::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .38) 50%, transparent 70%); transform: translateX(-120%); transition: transform .8s ease; pointer-events: none; }
     .pd-shine:hover::after { transform: translateX(120%); }
-
-    .opsi-radio:checked + .opsi-card .radio-dot {
-        background: var(--color-gold, #ba8320);
-        border-color: var(--color-gold, #ba8320);
-        box-shadow: inset 0 0 0 2px #fff;
-    }
+    .opsi-radio:checked + .opsi-card .radio-dot { background: var(--color-gold, #ba8320); border-color: var(--color-gold, #ba8320); box-shadow: inset 0 0 0 2px #fff; }
     .opsi-radio:focus-visible + .opsi-card { outline: 2px solid var(--color-gold, #ba8320); outline-offset: 2px; }
     .opsi-radio:disabled + .opsi-card { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
-
-    @media (prefers-reduced-motion: reduce) {
-        .pd-up, .pd-swap, .pd-shake { animation: none !important; }
-        .pd-shine::after { transition: none !important; }
-    }
+    @media (prefers-reduced-motion: reduce) { .pd-up, .pd-swap, .pd-shake { animation: none !important; } .pd-shine::after { transition: none !important; } }
 </style>
 
 @php
     $user = auth()->user();
+    
+    // Ambil foto pertama jika array
+    $fotoCheckout = $produk->foto_produk;
+    if (is_array($fotoCheckout)) {
+        $fotoCheckout = $fotoCheckout[0] ?? null;
+    }
+
+    // Ambil ukuran dengan aman
+    $ukuranCheckout = $beliData['ukuran'] ?? 'M';
+    if (is_array($ukuranCheckout)) {
+        $ukuranCheckout = implode(', ', $ukuranCheckout);
+    }
+
     $cfg = [
         'bayar'    => old('metode_bayar', 'qris'),
         'nama'     => old('nama_penerima', $user->name ?? ''),
@@ -88,15 +85,15 @@
 
                         <div class="flex gap-3 items-center border-b border-line/40 pb-4 mb-4">
                             <div class="w-16 h-16 rounded-lg bg-gold/15 border border-gold/25 overflow-hidden flex items-center justify-center shrink-0">
-                                @if ($produk->foto_produk)
-                                    <img src="{{ asset('storage/' . $produk->foto_produk) }}" alt="{{ $produk->nama }}" class="w-full h-full object-cover">
+                                @if ($fotoCheckout)
+                                    <img src="{{ asset('storage/' . $fotoCheckout) }}" alt="{{ $produk->nama }}" class="w-full h-full object-cover">
                                 @else
                                     <x-icon name="sparkle" :size="20" class="text-gold/60" />
                                 @endif
                             </div>
                             <div class="flex-1">
                                 <p class="text-[15px] font-medium text-ink/85">{{ $produk->nama }}</p>
-                                <p class="text-xs text-ink/55 mt-0.5">Varian {{ $varian }} · Ukuran {{ $beliData['ukuran'] ?? 'M' }}</p>
+                                <p class="text-xs text-ink/55 mt-0.5">Varian {{ $varian }} · Ukuran {{ $ukuranCheckout }}</p>
                             </div>
                             <span class="px-2.5 py-1 rounded-md bg-cream/70 text-[11px] font-semibold text-ink/65">Qty: {{ $qty }}</span>
                         </div>
