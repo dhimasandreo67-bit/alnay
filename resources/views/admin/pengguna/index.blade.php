@@ -9,38 +9,139 @@
 
 <div class="p-6 space-y-6 transition-all duration-500 animate-fade-in">
 
+    <style>
+        .group-shine {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .group-shine::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 20%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(30deg);
+            transition: all 0.6s ease;
+        }
+
+        .group-shine:hover::after {
+            left: 130%;
+        }
+    </style>
+
+    {{-- Flash messages --}}
+    @if (session('success'))
+        <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl shadow-sm" role="alert">
+            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <p class="text-sm font-bold">{{ session('success') }}</p>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl shadow-sm" role="alert">
+            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <p class="text-sm font-bold">{{ session('error') }}</p>
+        </div>
+    @endif
+
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h1 class="text-2xl font-black tracking-tight text-gray-900">Kelola Pengguna</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Kelola Pengguna</h1>
             <p class="text-xs text-gray-500 mt-1">Pantau akun pelanggan, tinjau yang lama tidak aktif, lalu nonaktifkan atau hapus bila perlu.</p>
         </div>
         <button type="button" data-modal-open="modal-tambah-pengguna"
-                class="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-800 active:scale-95 transition-all shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold py-2.5 px-5 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all duration-200 text-sm cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
             Tambah Akun Manual
         </button>
     </div>
 
     {{-- Ringkasan --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Total Pengguna</p>
-            <h3 class="text-2xl font-black text-gray-900 mt-1 tabular-nums">{{ $ringkasan['total'] }}</h3>
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+
+        {{-- Card 1: Total Pengguna --}}
+        <div class="group group-shine relative overflow-hidden rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-amber-800/80">Total Pengguna</span>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-md shadow-amber-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold tracking-tight text-amber-950 tabular-nums">{{ $ringkasan['total'] }}</span>
+                <span class="text-sm font-bold text-amber-800/60">Akun</span>
+            </div>
+            <p class="mt-2 text-xs font-medium text-amber-700/80">Terdaftar di sistem</p>
         </div>
-        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Akun Aktif</p>
-            <h3 class="text-2xl font-black text-emerald-600 mt-1 tabular-nums">{{ $ringkasan['aktif'] }}</h3>
+
+        {{-- Card 2: Akun Aktif --}}
+        <div class="group group-shine relative overflow-hidden rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-emerald-800/80">Akun Aktif</span>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold tracking-tight text-emerald-950 tabular-nums">{{ $ringkasan['aktif'] }}</span>
+                <span class="text-sm font-bold text-emerald-800/60">Akun</span>
+            </div>
+            <div class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-lg">
+                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Bisa masuk &amp; berbelanja</span>
+            </div>
         </div>
-        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Dinonaktifkan</p>
-            <h3 class="text-2xl font-black text-gray-700 mt-1 tabular-nums">{{ $ringkasan['nonaktif'] }}</h3>
+
+        {{-- Card 3: Dinonaktifkan --}}
+        <div class="group group-shine relative overflow-hidden rounded-2xl border border-slate-200/60 bg-gradient-to-br from-slate-50/80 via-white to-slate-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-500/10">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-700/80">Dinonaktifkan</span>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-slate-500 to-slate-400 text-white shadow-md shadow-slate-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold tracking-tight text-slate-900 tabular-nums">{{ $ringkasan['nonaktif'] }}</span>
+                <span class="text-sm font-bold text-slate-600">Akun</span>
+            </div>
+            <p class="mt-2 text-xs font-medium text-slate-500">Akses dibatasi sementara</p>
         </div>
+
+        {{-- Card 4: Tidak Aktif >= X Hari (link) --}}
         <a href="{{ route('admin.pengguna.index', ['inaktif' => $batasLama, 'status' => 'aktif']) }}"
-           class="bg-white p-5 rounded-3xl border border-amber-100 shadow-sm transition hover:border-amber-300 hover:shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
-            <p class="text-[11px] font-bold text-amber-700/80 uppercase tracking-wider">Tidak Aktif &ge; {{ $batasLama }} Hari</p>
-            <h3 class="text-2xl font-black text-amber-600 mt-1 tabular-nums">{{ $ringkasan['lama'] }}</h3>
-            <p class="text-[10px] text-gray-400 mt-0.5">Klik untuk meninjau</p>
+           class="group group-shine relative overflow-hidden rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50/80 via-white to-rose-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold uppercase tracking-wider text-rose-800/80">Tidak Aktif &ge; {{ $batasLama }} Hari</span>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-pink-500 text-white shadow-md shadow-rose-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold tracking-tight text-rose-950 tabular-nums">{{ $ringkasan['lama'] }}</span>
+                <span class="text-sm font-bold text-rose-800/60">Akun</span>
+            </div>
+            <p class="mt-2 text-xs font-medium text-rose-600">Klik untuk meninjau</p>
         </a>
     </div>
 
@@ -116,7 +217,7 @@
                             </td>
                             <td class="px-4 py-4">
                                 <div class="flex items-center gap-3">
-                                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black {{ $aktif ? 'bg-amber-100 text-amber-700' : 'bg-gray-200 text-gray-500' }}">{{ $inisial }}</span>
+                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border {{ $aktif ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-gray-100 text-gray-500 border-gray-200' }}">{{ $inisial }}</span>
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-bold {{ $aktif ? 'text-gray-900' : 'text-gray-500' }}">{{ $u->name }}</p>
                                         <p class="truncate text-xs text-gray-500">{{ $u->email }}</p>
@@ -138,18 +239,34 @@
                             </td>
                             <td class="px-4 py-4">
                                 @if ($aktif)
-                                    <span class="inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">Aktif</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">Aktif</span>
                                 @else
-                                    <span class="inline-flex items-center rounded-lg border border-gray-200 bg-gray-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Nonaktif</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200">Nonaktif</span>
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <div class="inline-flex items-center gap-2">
+                                <div class="inline-flex items-center gap-1.5">
+
+                                    {{-- Detail --}}
                                     <button type="button" data-modal-open="modal-detail-pengguna" data-id="{{ $u->id }}"
-                                            class="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+                                        <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
                                         Detail
                                     </button>
 
+                                    {{-- Edit --}}
+                                    <button type="button" data-modal-open="modal-edit-pengguna"
+                                            data-id="{{ $u->id }}"
+                                            data-user="{{ json_encode($u->only(['name','email','no_hp','alamat','provinsi','kota_kabupaten','kecamatan','kode_pos'])) }}"
+                                            title="Edit akun" aria-label="Edit akun {{ $u->name }}"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 shadow-sm transition-all hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    </button>
+
+                                    {{-- Toggle status --}}
                                     <button type="button" data-modal-open="modal-konfirmasi-pengguna"
                                             data-aksi="{{ $aktif ? 'nonaktifkan' : 'aktifkan' }}"
                                             data-nama="{{ $u->name }}"
@@ -165,6 +282,7 @@
                                         @endif
                                     </button>
 
+                                    {{-- Hapus --}}
                                     <button type="button" data-modal-open="modal-konfirmasi-pengguna"
                                             data-aksi="hapus"
                                             data-nama="{{ $u->name }}"
@@ -196,7 +314,7 @@
 <x-modal id="modal-detail-pengguna" title="Detail Akun" size="lg">
     <div class="space-y-5">
         <div class="flex items-center gap-4">
-            <span id="dt-inisial" class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-600 to-amber-400 text-lg font-black text-white"></span>
+            <span id="dt-inisial" class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-600 to-amber-400 text-lg font-black text-white shadow-md shadow-amber-500/20"></span>
             <div class="min-w-0 flex-1">
                 <p id="dt-nama" class="truncate text-base font-bold text-gray-900"></p>
                 <p id="dt-email" class="truncate text-xs text-gray-500"></p>
@@ -206,10 +324,10 @@
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div class="rounded-2xl bg-gray-50 px-3 py-3"><p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Transaksi</p><p id="dt-transaksi" class="mt-1 text-sm font-black text-gray-900"></p></div>
-            <div class="rounded-2xl bg-gray-50 px-3 py-3"><p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Total Belanja</p><p id="dt-belanja" class="mt-1 text-sm font-black tabular-nums text-gray-900"></p></div>
-            <div class="rounded-2xl bg-gray-50 px-3 py-3"><p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Bergabung</p><p id="dt-bergabung" class="mt-1 text-xs font-bold text-gray-900"></p></div>
-            <div class="rounded-2xl bg-gray-50 px-3 py-3"><p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Terakhir Aktif</p><p id="dt-terakhir" class="mt-1 text-xs font-bold text-gray-900"></p><p id="dt-terakhir-rel" class="text-[10px] text-gray-400"></p></div>
+            <div class="rounded-2xl bg-amber-50/50 border border-amber-100/50 px-3 py-3"><p class="text-[10px] font-bold uppercase tracking-wider text-amber-700/70">Transaksi</p><p id="dt-transaksi" class="mt-1 text-sm font-black text-gray-900"></p></div>
+            <div class="rounded-2xl bg-emerald-50/50 border border-emerald-100/50 px-3 py-3"><p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700/70">Total Belanja</p><p id="dt-belanja" class="mt-1 text-sm font-black tabular-nums text-gray-900"></p></div>
+            <div class="rounded-2xl bg-sky-50/50 border border-sky-100/50 px-3 py-3"><p class="text-[10px] font-bold uppercase tracking-wider text-sky-700/70">Bergabung</p><p id="dt-bergabung" class="mt-1 text-xs font-bold text-gray-900"></p></div>
+            <div class="rounded-2xl bg-rose-50/50 border border-rose-100/50 px-3 py-3"><p class="text-[10px] font-bold uppercase tracking-wider text-rose-700/70">Terakhir Aktif</p><p id="dt-terakhir" class="mt-1 text-xs font-bold text-gray-900"></p><p id="dt-terakhir-rel" class="text-[10px] text-gray-400"></p></div>
         </div>
 
         <div>
@@ -309,6 +427,79 @@
     </x-slot:footer>
 </x-modal>
 
+{{-- ================= MODAL: EDIT AKUN ================= --}}
+<x-modal id="modal-edit-pengguna" title="Edit Data Pengguna" size="md">
+    <form id="form-edit-pengguna" method="POST" action="#" class="space-y-4">
+        @csrf
+        @method('PUT')
+        <input type="hidden" name="_form" value="edit">
+        <input type="hidden" name="_id" id="ep-id" value="{{ old('_id') }}">
+
+        @if ($errors->any() && old('_form') === 'edit')
+            <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">
+                <ul class="list-disc list-inside space-y-0.5 font-semibold">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <div>
+            <label for="ep-name" class="text-xs font-bold text-gray-500">Nama lengkap</label>
+            <input type="text" id="ep-name" name="name" required maxlength="255" data-autofocus class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label for="ep-email" class="text-xs font-bold text-gray-500">Email</label>
+                <input type="email" id="ep-email" name="email" required maxlength="255" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label for="ep-hp" class="text-xs font-bold text-gray-500">No. HP / WhatsApp</label>
+                <input type="text" id="ep-hp" name="no_hp" maxlength="30" placeholder="08xxxxxxxxxx" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+            </div>
+        </div>
+        <div>
+            <label for="ep-pass" class="text-xs font-bold text-gray-500">Kata sandi baru (opsional)</label>
+            <input type="password" id="ep-pass" name="password" minlength="8" autocomplete="new-password" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+            <p class="mt-1 text-[11px] text-gray-400">Kosongkan jika tidak ingin mengubah kata sandi.</p>
+        </div>
+        <div>
+            <label for="ep-alamat" class="text-xs font-bold text-gray-500">Alamat lengkap</label>
+            <textarea id="ep-alamat" name="alamat" rows="2" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none"></textarea>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <label for="ep-provinsi" class="text-xs font-bold text-gray-500">Provinsi</label>
+                <select id="ep-provinsi" name="provinsi" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+                    <option value="">Pilih Provinsi</option>
+                </select>
+            </div>
+            <div>
+                <label for="ep-kota" class="text-xs font-bold text-gray-500">Kota/Kabupaten</label>
+                <select id="ep-kota" name="kota_kabupaten" disabled class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <option value="">Pilih Kota/Kabupaten</option>
+                </select>
+            </div>
+            <div>
+                <label for="ep-kecamatan" class="text-xs font-bold text-gray-500">Kecamatan</label>
+                <select id="ep-kecamatan" name="kecamatan" disabled class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <option value="">Pilih Kecamatan</option>
+                </select>
+            </div>
+        </div>
+        <div>
+            <label for="ep-kodepos" class="text-xs font-bold text-gray-500">Kode pos</label>
+            <input type="text" id="ep-kodepos" name="kode_pos" maxlength="10" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
+        </div>
+    </form>
+
+    <x-slot:footer>
+        <button type="button" class="ui-btn ui-btn--ghost" data-modal-close>Batal</button>
+        <button type="submit" form="form-edit-pengguna" id="btn-simpan-edit" class="ui-btn ui-btn--primary">Simpan Perubahan</button>
+    </x-slot:footer>
+</x-modal>
+
 {{-- ================= MODAL: KONFIRMASI (satu modal untuk semua aksi) ================= --}}
 <x-modal id="modal-konfirmasi-pengguna" title="Konfirmasi" size="sm">
     <form id="form-konfirmasi-pengguna" method="POST" action="#" class="space-y-3">
@@ -369,6 +560,124 @@
                 dl.appendChild(wrap);
             });
         });
+
+        // ---------- Edit pengguna ----------
+        var URL_UPDATE = @json(route('admin.pengguna.update', '__ID__'));
+        var OLD_EDIT = @json(old('_form') === 'edit' ? old() : null);
+
+        // Wilayah berjenjang untuk modal edit (diisi ulang setiap modal dibuka)
+        var isiWilayahEdit = (function () {
+            var selProv = $('ep-provinsi'), selKota = $('ep-kota'), selKec = $('ep-kecamatan');
+            var provinces = [], cities = [], promiseProv = null;
+
+            function toList(json) {
+                if (Array.isArray(json)) return json;
+                if (json && Array.isArray(json.data)) return json.data;
+                return [];
+            }
+            function idOf(item) { return item.id ?? item.code ?? item.kode; }
+            function sama(a, b) { return (a || '').toString().toLowerCase() === (b || '').toString().toLowerCase(); }
+            function ambilDaftar(url) {
+                return fetch(url, { headers: { 'Accept': 'application/json' } }).then(function (res) {
+                    if (!res.ok) throw new Error(url + ' -> HTTP ' + res.status);
+                    return res.json();
+                }).then(toList);
+            }
+            function isiSelect(select, items, placeholder, terpilih) {
+                select.innerHTML = '';
+                var kosong = document.createElement('option');
+                kosong.value = '';
+                kosong.textContent = placeholder;
+                select.appendChild(kosong);
+                items.forEach(function (item) {
+                    var opt = document.createElement('option');
+                    opt.value = item.name;
+                    opt.textContent = item.name;
+                    if (terpilih && sama(item.name, terpilih)) opt.selected = true;
+                    select.appendChild(opt);
+                });
+                select.disabled = items.length === 0;
+            }
+            function muatProvinsi() {
+                if (!promiseProv) {
+                    promiseProv = ambilDaftar('/api/wilayah/provinces').then(function (list) {
+                        provinces = list;
+                    }).catch(function (err) { promiseProv = null; console.error('Gagal memuat provinsi:', err); });
+                }
+                return promiseProv;
+            }
+            function muatKota(namaProv, kotaTerpilih) {
+                cities = [];
+                isiSelect(selKota, [], 'Pilih Kota/Kabupaten');
+                isiSelect(selKec, [], 'Pilih Kecamatan');
+                var prov = provinces.filter(function (p) { return sama(p.name, namaProv); })[0];
+                if (!prov) return Promise.resolve();
+                return ambilDaftar('/api/wilayah/cities/' + idOf(prov)).then(function (list) {
+                    cities = list;
+                    isiSelect(selKota, cities, 'Pilih Kota/Kabupaten', kotaTerpilih);
+                }).catch(function (err) { console.error('Gagal memuat kota:', err); });
+            }
+            function muatKecamatan(namaKota, kecTerpilih) {
+                isiSelect(selKec, [], 'Pilih Kecamatan');
+                var kota = cities.filter(function (c) { return sama(c.name, namaKota); })[0];
+                if (!kota) return Promise.resolve();
+                return ambilDaftar('/api/wilayah/districts/' + idOf(kota)).then(function (list) {
+                    isiSelect(selKec, list, 'Pilih Kecamatan', kecTerpilih);
+                }).catch(function (err) { console.error('Gagal memuat kecamatan:', err); });
+            }
+
+            selProv.addEventListener('change', function (e) { muatKota(e.target.value); });
+            selKota.addEventListener('change', function (e) { muatKecamatan(e.target.value); });
+
+            return function (prov, kota, kec) {
+                return muatProvinsi().then(function () {
+                    isiSelect(selProv, provinces, 'Pilih Provinsi', prov);
+                    if (!prov) {
+                        isiSelect(selKota, [], 'Pilih Kota/Kabupaten');
+                        isiSelect(selKec, [], 'Pilih Kecamatan');
+                        return;
+                    }
+                    return muatKota(prov, kota).then(function () {
+                        if (kota) return muatKecamatan(kota, kec);
+                    });
+                });
+            };
+        })();
+
+        function isiFormEdit(id, d) {
+            $('form-edit-pengguna').action = URL_UPDATE.replace('__ID__', id);
+            $('ep-id').value = id;
+            $('ep-name').value = d.name || '';
+            $('ep-email').value = d.email || '';
+            $('ep-hp').value = d.no_hp || '';
+            $('ep-pass').value = '';
+            $('ep-alamat').value = d.alamat || '';
+            $('ep-kodepos').value = d.kode_pos || '';
+            isiWilayahEdit(d.provinsi, d.kota_kabupaten, d.kecamatan);
+        }
+
+        $('modal-edit-pengguna').addEventListener('modal:open', function (e) {
+            var b = e.detail && e.detail.trigger;
+            var tombolSimpan = $('btn-simpan-edit');
+            tombolSimpan.disabled = false;
+            tombolSimpan.textContent = 'Simpan Perubahan';
+
+            if (b && b.dataset.user) {
+                isiFormEdit(b.dataset.id, JSON.parse(b.dataset.user));
+            } else if (OLD_EDIT) {
+                isiFormEdit(OLD_EDIT._id, OLD_EDIT); // dibuka ulang setelah validasi gagal
+            }
+        });
+
+        $('form-edit-pengguna').addEventListener('submit', function () {
+            var t = $('btn-simpan-edit');
+            t.disabled = true;
+            t.textContent = 'Menyimpan...';
+        });
+
+        if (OLD_EDIT) {
+            document.addEventListener('DOMContentLoaded', function () { window.openModal('modal-edit-pengguna'); });
+        }
 
         // ---------- Konfirmasi (aksi tunggal & massal) ----------
         var form = $('form-konfirmasi-pengguna');

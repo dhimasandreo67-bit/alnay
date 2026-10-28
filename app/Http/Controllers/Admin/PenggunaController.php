@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /**
  * Kelola Pengguna (akun pelanggan).
@@ -171,6 +172,71 @@ class PenggunaController extends Controller
         return redirect()
             ->route('admin.pengguna.index')
             ->with('success', "Akun {$user->name} berhasil ditambahkan.");
+    }
+
+    /**
+     * Ubah data akun pelanggan dari modal Edit. Status aktif/nonaktif TIDAK diubah di sini
+     * (tetap lewat status()), dan kata sandi hanya berubah kalau kolomnya diisi.
+     */
+    public function update(Request $request, $id)
+    {
+        $user = $this->pelanggan()->findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'no_hp' => ['nullable', 'string', 'max:30', Rule::unique('users', 'no_hp')->ignore($user->id)],
+            'password' => 'nullable|string|min:8|max:100',
+            'alamat' => 'nullable|string',
+            'provinsi' => 'nullable|string|max:100',
+            'kota_kabupaten' => 'nullable|string|max:100',
+            'kecamatan' => 'nullable|string|max:100',
+            'kode_pos' => 'nullable|string|max:10',
+        ], [
+            'email.unique' => 'Email ini sudah dipakai akun lain.',
+            'no_hp.unique' => 'Nomor HP ini sudah dipakai akun lain.',
+        ], [
+            'name' => 'nama',
+            'email' => 'email',
+            'no_hp' => 'nomor HP',
+            'password' => 'kata sandi',
+        ]);
+
+        $emailBaru = strtolower(trim($validated['email']));
+
+        $data = [
+            'name' => trim($validated['name']),
+            'email' => $emailBaru,
+            'no_hp' => isset($validated['no_hp']) ? preg_replace('/\s+/', '', $validated['no_hp']) : null,
+            'alamat' => $validated['alamat'] ?? null,
+            'provinsi' => $validated['provinsi'] ?? null,
+            'kota_kabupaten' => $validated['kota_kabupaten'] ?? null,
+            'kecamatan' => $validated['kecamatan'] ?? null,
+            'kode_pos' => $validated['kode_pos'] ?? null,
+        ];
+
+        // Email diganti = alamat baru belum terbukti milik pelanggan, jadi status verifikasinya direset.
+        // Hapus blok ini kalau admin ingin email baru tetap dianggap terverifikasi.
+        if ($emailBaru !== strtolower((string) $user->email) && Schema::hasColumn('users', 'email_verified_at')) {
+            $data['email_verified_at'] = null;
+        }
+
+        // Kata sandi hanya diganti kalau diisi (cast `hashed` di model yang melakukan hash).
+        if (! empty($validated['password'])) {
+            $data['password'] = $validated['password'];
+        }
+
+        $user->forceFill($data)->save();
+
+        // Kembali ke halaman daftar (filter & halaman pagination tetap kalau asalnya dari daftar).
+        // Kalau request tidak datang dari halaman daftar, jatuh ke daftar pengguna biasa.
+        $daftar = route('admin.pengguna.index');
+        $asal = url()->previous();
+        $kembali = rtrim((string) parse_url($asal, PHP_URL_PATH), '/') === rtrim((string) parse_url($daftar, PHP_URL_PATH), '/')
+            ? $asal
+            : $daftar;
+
+        return redirect($kembali)->with('success', "Data akun {$user->name} berhasil diperbarui.");
     }
 
     /**

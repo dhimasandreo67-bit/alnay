@@ -147,7 +147,7 @@
                         </div>
                         <p class="mt-0.5 text-xs sm:text-sm text-gray-500">Tren volume penyewaan &amp; pembelian atelier</p>
                     </div>
-                    <a href="{{ route('admin.transaksi.index') ?? '#' }}" class="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-700 hover:text-amber-900 transition-colors">
+                    <a href="{{ \Illuminate\Support\Facades\Route::has('admin.transaksi.index') ? route('admin.transaksi.index') : '#' }}" class="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-700 hover:text-amber-900 transition-colors">
                         <span>Lihat detail</span>
                         <div class="flex h-6 w-6 items-center justify-center rounded-full bg-amber-50 group-hover:bg-amber-100 transition-colors">
                             <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
@@ -201,7 +201,7 @@
                         <h2 class="font-display text-lg sm:text-xl font-bold text-gray-900">Transaksi Terbaru</h2>
                         <p class="mt-0.5 text-xs sm:text-sm text-gray-500">Aktivitas penyewaan dan pembelian busana atelier terkini</p>
                     </div>
-                    <a href="{{ route('admin.transaksi.index') ?? '#' }}" class="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-700 hover:text-amber-900 transition-colors">
+                    <a href="{{ \Illuminate\Support\Facades\Route::has('admin.transaksi.index') ? route('admin.transaksi.index') : '#' }}" class="group inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-700 hover:text-amber-900 transition-colors">
                         <span>Lihat semua</span>
                         <div class="flex h-6 w-6 items-center justify-center rounded-full bg-amber-50 group-hover:bg-amber-100 transition-colors">
                             <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
@@ -302,7 +302,7 @@
                 <div class="mt-5 space-y-3">
                     
                     {{-- Item 1 --}}
-                    <a href="{{ route('admin.jaminan.index') ?? '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-rose-200 hover:bg-rose-50/40 hover:shadow-sm hover:-translate-x-0.5">
+                    <a href="{{ \Illuminate\Support\Facades\Route::has('admin.jaminan.index') ? route('admin.jaminan.index') : '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-rose-200 hover:bg-rose-50/40 hover:shadow-sm hover:-translate-x-0.5">
                         <div class="flex items-center gap-3">
                             <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 transition-transform group-hover:scale-110">
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
@@ -316,7 +316,7 @@
                     </a>
 
                     {{-- Item 2 --}}
-                    <a href="{{ route('admin.refund.index') ?? '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-amber-200 hover:bg-amber-50/40 hover:shadow-sm hover:-translate-x-0.5">
+                    <a href="{{ \Illuminate\Support\Facades\Route::has('admin.refund.index') ? route('admin.refund.index') : '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-amber-200 hover:bg-amber-50/40 hover:shadow-sm hover:-translate-x-0.5">
                         <div class="flex items-center gap-3">
                             <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 transition-transform group-hover:scale-110">
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
@@ -330,7 +330,7 @@
                     </a>
 
                     {{-- Item 3 --}}
-                    <a href="{{ route('admin.refund.index') ?? '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-amber-200 hover:bg-amber-50/40 hover:shadow-sm hover:-translate-x-0.5">
+                    <a href="{{ \Illuminate\Support\Facades\Route::has('admin.refund.index') ? route('admin.refund.index') : '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-amber-200 hover:bg-amber-50/40 hover:shadow-sm hover:-translate-x-0.5">
                         <div class="flex items-center gap-3">
                             <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 transition-transform group-hover:scale-110">
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -344,7 +344,7 @@
                     </a>
 
                     {{-- Item 4 --}}
-                    <a href="{{ route('admin.fitting.index') ?? '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-sky-200 hover:bg-sky-50/40 hover:shadow-sm hover:-translate-x-0.5">
+                    <a href="{{ \Illuminate\Support\Facades\Route::has('admin.fitting.index') ? route('admin.fitting.index') : '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-sky-200 hover:bg-sky-50/40 hover:shadow-sm hover:-translate-x-0.5">
                         <div class="flex items-center gap-3">
                             <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700 transition-transform group-hover:scale-110">
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
