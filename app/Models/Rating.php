@@ -19,7 +19,9 @@ class Rating extends Model
 
     protected function casts(): array
     {
-        return ['tanggal' => 'date'];
+        return [
+            'tanggal' => 'date',
+        ];
     }
 
     public function detailTransaksi()

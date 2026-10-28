@@ -49,10 +49,19 @@
             @foreach($transaksi->detail as $d)
                 <div class="flex gap-3 items-center bg-cream/40 p-3 rounded-lg border border-line/30 mb-2">
                     <div class="w-14 h-14 rounded-md bg-white border border-line/50 overflow-hidden shrink-0">
-                        @if($d->produk && $d->produk->foto_produk)
-                            <img src="{{ asset('storage/' . $d->produk->foto_produk) }}" class="w-full h-full object-cover">
+                        @php
+                            $foto = $d->produk->foto_produk ?? null;
+                            if (is_array($foto)) {
+                                $foto = $foto[0] ?? null;
+                            }
+                        @endphp
+
+                        @if($foto)
+                            <img src="{{ asset('storage/' . $foto) }}" class="w-full h-full object-cover">
                         @else
-                            <div class="w-full h-full flex items-center justify-center text-ink/20"><x-icon name="sparkle" :size="18" /></div>
+                            <div class="w-full h-full flex items-center justify-center text-ink/20">
+                                <x-icon name="sparkle" :size="18" />
+                            </div>
                         @endif
                     </div>
                     <div class="flex-1">
@@ -66,7 +75,7 @@
             @endforeach
         </div>
 
-        {{-- JADWAL SEWA (VERSI SIMPEL) --}}
+        {{-- JADWAL SEWA --}}
         @if($transaksi->sewa)
             <div class="pd-up bg-panel border border-line/40 rounded-xl p-5 mb-4" style="--d: .2s;">
                 <h2 class="text-[11px] font-semibold text-ink/80 mb-3 uppercase tracking-wider">Jadwal Penyewaan</h2>
@@ -85,6 +94,33 @@
                             {{ $transaksi->sewa->status }}
                         </span>
                     </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- RIWAYAT KONDISI BARANG (QC) --}}
+        @if($transaksi->sewa && $transaksi->sewa->pengecekan->count() > 0)
+            <div class="pd-up bg-panel border border-line/40 rounded-xl p-5 mb-4" style="--d: .22s;">
+                <h2 class="text-[11px] font-semibold text-ink/80 mb-3 uppercase tracking-wider">Riwayat Kondisi Barang</h2>
+                
+                <div class="relative border-l-2 border-gold/30 ml-2 space-y-6">
+                    @foreach($transaksi->sewa->pengecekan->sortByDesc('created_at') as $qc)
+                        <div class="relative pl-4">
+                            <div class="absolute -left-[5px] top-1 w-2 h-2 rounded-full {{ $qc->tahap === 'sebelum_cuci' ? 'bg-rose-500' : 'bg-emerald-500' }} ring-2 ring-white"></div>
+                            <p class="text-xs font-bold text-ink">
+                                {{ $qc->tahap === 'sebelum_cuci' ? 'Pengecekan Saat Dikembalikan' : 'Pengecekan Sebelum Diserahkan' }}
+                            </p>
+                            <p class="text-[10px] text-gray-500">{{ $qc->created_at->translatedFormat('d M Y, H:i') }} WIB</p>
+                            <p class="text-[11px] text-gray-600 mt-1 italic">"{{ $qc->catatan }}"</p>
+                            @if($qc->foto_bukti)
+                                <a href="{{ asset('storage/' . $qc->foto_bukti) }}" target="_blank" class="inline-flex items-center gap-1 mt-2 text-[10px] font-bold text-gold hover:underline">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    Lihat Foto Bukti
+                                </a>
+                            @endif
+                            <p class="text-[9px] text-gray-400 mt-1">Petugas: {{ $qc->petugas }}</p>
+                        </div>
+                    @endforeach
                 </div>
             </div>
         @endif
@@ -116,28 +152,36 @@
             </div>
         </div>
 
-                {{-- FORM RATING (Hanya muncul jika lunas dan belum dirating) --}}
+        {{-- FORM RATING --}}
         @if(in_array($transaksi->status_pembayaran, ['lunas', 'settlement', 'success']))
-            @if(!$transaksi->rating)
+            @php
+                $detailPertama = $transaksi->detail->first();
+                $sudahRating = $detailPertama ? \App\Models\Rating::where('detail_transaksi_id', $detailPertama->id)->exists() : true;
+            @endphp
+
+            @if(!$sudahRating && $detailPertama)
                 <div class="pd-up bg-panel border border-line/40 rounded-xl p-5 mb-4" style="--d: .35s;">
                     <h2 class="text-[11px] font-semibold text-ink/80 mb-3 uppercase tracking-wider">Beri Ulasan</h2>
-                    <form action="{{ route('rating.store') }}" method="POST">
+                    <form action="{{ route('rating.store', $detailPertama->id) }}" method="POST" x-data="{ rating: 5 }">
                         @csrf
-                        <input type="hidden" name="transaksi_id" value="{{ $transaksi->id }}">
                         
                         <div class="flex gap-2 mb-3">
-                            @for($i=1; $i<=5; $i++)
-                                <label class="cursor-pointer text-2xl text-gray-300 hover:text-amber-400 transition-colors">
-                                    <input type="radio" name="rating" value="{{ $i }}" class="peer sr-only" required>
-                                    <span class="peer-checked:text-amber-400">★</span>
-                                </label>
-                            @endfor
+                            <template x-for="i in 5" :key="i">
+                                <button type="button" @click="rating = i" 
+                                        :class="i <= rating ? 'text-amber-400' : 'text-gray-300'"
+                                        class="text-3xl transition-transform hover:scale-110">
+                                    ★
+                                </button>
+                            </template>
+                            <input type="hidden" name="rating" x-model="rating">
                         </div>
+                        <p class="text-[10px] text-ink/50 mb-2">Rating: <span x-text="rating"></span> / 5</p>
+                        
                         <textarea name="ulasan" rows="2" placeholder="Ceritakan pengalaman Anda menyewa di ALNAY..." class="w-full px-3 py-2 rounded-lg border border-line/50 bg-white text-xs mb-3 focus:outline-none focus:border-gold"></textarea>
                         <button type="submit" class="px-4 py-2 bg-gold text-white text-xs font-bold rounded-lg hover:bg-gold/90">Kirim Ulasan</button>
                     </form>
                 </div>
-            @else
+            @elseif($sudahRating)
                 <div class="p-3 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200 mb-4 text-center">
                     Anda sudah memberikan ulasan untuk pesanan ini. Terima kasih!
                 </div>

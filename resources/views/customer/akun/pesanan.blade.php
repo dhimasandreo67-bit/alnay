@@ -81,6 +81,20 @@
                                 <span class="font-sans font-medium text-[13px] text-ink/85 tabular-nums">
                                     Rp{{ number_format($trx->total, 0, ',', '.') }}
                                 </span>
+                                
+                                @php
+                                    $detailPertama = $trx->detail->first();
+                                    $sudahRating = $detailPertama ? \App\Models\Rating::where('detail_transaksi_id', $detailPertama->id)->exists() : true;
+                                @endphp
+
+                                @if($trx->status_pembayaran === 'lunas' && !$sudahRating)
+                                    <a href="{{ route('rating.create', $detailPertama->id) }}" 
+                                       class="px-3 py-1 bg-gold text-white text-[10px] font-bold rounded-lg hover:bg-amber-600 transition-colors"
+                                       onclick="event.stopPropagation();">
+                                        ⭐ Beri Rating
+                                    </a>
+                                @endif
+
                                 <x-icon name="chevron-right" :size="14" class="text-gold group-hover:translate-x-0.5 transition-transform" />
                             </div>
                         </div>

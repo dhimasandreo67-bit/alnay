@@ -3,7 +3,7 @@
 @section('title', 'Detail Sewa Busana')
 
 @section('content')
-    <div class="space-y-6" x-data="{ tab: 'ringkasan', modeJaminan: 'fisik' }">
+    <div class="space-y-6" x-data="{ tab: '{{ session('active_tab', 'ringkasan') }}', modeJaminan: 'fisik' }">
 
         {{-- Header --}}
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -35,6 +35,19 @@
                     Pelanggan via WA</a>
                 <button class="px-4 py-2 bg-ink text-white rounded-lg text-sm font-semibold hover:bg-gray-800">Cetak Berita
                     Acara</button>
+
+                {{-- TOMBOL TANDAI SELESAI --}}
+                @if ($sewa->status === 'aktif')
+                    <form action="{{ route('admin.sewa.ubah-status', $sewa->id) }}" method="POST" class="inline">
+                        @csrf @method('PATCH')
+                        <input type="hidden" name="status" value="selesai">
+                        <button type="submit"
+                            class="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-semibold hover:bg-rose-700"
+                            onclick="return confirm('Tandai sewa ini sebagai selesai/dikembalikan?')">
+                            Tandai Selesai
+                        </button>
+                    </form>
+                @endif
             </div>
         </div>
 
@@ -118,7 +131,6 @@
                                     $foto = $foto[0] ?? null;
                                 }
 
-                                // Ambil data dinamis
                                 $namaKategori = $produk->kategori->nama_kategori ?? 'Busana Adat';
                                 $ukuranList = $produk->ukuran ?? [];
                                 $hargaJual = $produk->harga_jual ?? 0;
@@ -160,7 +172,7 @@
                             </div>
                         </div>
 
-                        {{-- 7 Kelengkapan Item Busana (Kita Ubah jadi Dinamis dari Catatan atau Kosongkan dulu) --}}
+                        {{-- Kelengkapan Item Busana (Dummy) --}}
                         <div class="border border-line rounded-xl p-4">
                             <h4 class="font-bold text-ink mb-3 text-sm flex items-center gap-2">
                                 <span class="w-2 h-2 rounded-full bg-gold"></span> Kelengkapan Item Busana
@@ -172,8 +184,6 @@
                                 <div class="flex items-center gap-2 text-sm p-2 bg-gray-50 rounded border border-gray-100">
                                     <i class="fas fa-check-circle text-emerald-500"></i> Aksesoris Pendukung
                                 </div>
-                                {{-- Catatan: Daftar kelengkapan idealnya diambil dari tabel relasi produk. 
-                                     Untuk sementara kita tampilkan info dasar dulu. --}}
                             </div>
                         </div>
                     </div>
@@ -182,25 +192,17 @@
                     <div class="bg-cream/30 p-5 rounded-xl border border-line">
                         <h4 class="font-bold text-ink mb-4 text-sm">Audit Alur Penyewaan</h4>
                         <div class="relative border-l-2 border-gold/30 ml-2 space-y-6">
-                            <div class="relative pl-4">
-                                <div
-                                    class="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-100">
+                            @foreach ($timeline as $item)
+                                <div class="relative pl-4">
+                                    <div
+                                        class="absolute -left-[5px] top-1 w-2 h-2 rounded-full {{ $item['color'] }} ring-2 ring-white">
+                                    </div>
+                                    <p class="text-xs font-bold text-ink">{{ $item['title'] }}</p>
+                                    <p class="text-[10px] text-gray-500">
+                                        {{ \Carbon\Carbon::parse($item['date'])->translatedFormat('d M Y • H:i') }} WIB</p>
+                                    <p class="text-[10px] text-gray-400 mt-0.5">{{ $item['desc'] }}</p>
                                 </div>
-                                <p class="text-xs font-bold text-ink">Busana Diterima Kembali</p>
-                                <p class="text-[10px] text-gray-500">18 Sep 2026 • 13:45 WIB</p>
-                            </div>
-                            <div class="relative pl-4">
-                                <div
-                                    class="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-rose-100">
-                                </div>
-                                <p class="text-xs font-bold text-ink">Tenggat Waktu Telah Terlewati</p>
-                                <p class="text-[10px] text-gray-500">16 Sep 2026 • 20:00 WIB</p>
-                            </div>
-                            <div class="relative pl-4">
-                                <div class="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-gray-400"></div>
-                                <p class="text-xs font-bold text-ink">Serah Terima & Fitting</p>
-                                <p class="text-[10px] text-gray-500">14 Sep 2026 • 11:00 WIB</p>
-                            </div>
+                            @endforeach
                         </div>
                     </div>
                 </div>
@@ -208,8 +210,7 @@
 
             {{-- TAB 2: JAMINAN --}}
             <div x-show="tab === 'jaminan'" x-cloak x-transition.opacity>
-
-                {{-- Mode Simulasi (Fisik / Digital) --}}
+                {{-- Mode Simulasi --}}
                 <div
                     class="mb-6 p-4 bg-gray-50 rounded-xl border border-line flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div>
@@ -219,12 +220,10 @@
                     </div>
                     <div class="flex bg-white rounded-lg border border-line p-1">
                         <button @click="modeJaminan = 'fisik'"
-                            :class="modeJaminan === 'fisik' ? 'bg-ink text-white shadow-sm' :
-                                'text-gray-500 hover:bg-gray-50'"
+                            :class="modeJaminan === 'fisik' ? 'bg-ink text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'"
                             class="px-4 py-2 text-xs font-bold rounded-md transition-all">METODE: FISIK (STUDIO)</button>
                         <button @click="modeJaminan = 'digital'"
-                            :class="modeJaminan === 'digital' ? 'bg-ink text-white shadow-sm' :
-                                'text-gray-500 hover:bg-gray-50'"
+                            :class="modeJaminan === 'digital' ? 'bg-ink text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'"
                             class="px-4 py-2 text-xs font-bold rounded-md transition-all">METODE: NON-FISIK
                             (DIGITAL)</button>
                     </div>
@@ -243,8 +242,7 @@
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {{-- Form Verifikasi --}}
-                        <form action="{{ route('admin.sewa.verifikasi-jaminan', $sewa->id) }}" method="POST"
-                            class="space-y-4">
+                        <form action="{{ route('admin.sewa.verifikasi-jaminan', $sewa->id) }}" method="POST" class="space-y-4">
                             @csrf
                             <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg flex gap-3">
                                 <input type="checkbox" checked
@@ -260,13 +258,14 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-gray-600 mb-1">NOMOR NIK KTP</label>
-                                    <input type="text" name="nomor_ktp" value="{{ $sewa->jaminan->nomor_ktp ?? '' }}"
+                                    <input type="text" name="no_ktp" value="{{ $sewa->jaminan->no_ktp ?? '' }}"
                                         class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
                                         placeholder="3273..." required>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-gray-600 mb-1">NAMA SESUAI KTP</label>
-                                    <input type="text" name="nama_ktp" value="{{ $sewa->jaminan->nama_ktp ?? '' }}"
+                                    <input type="text" name="nama_sesuai_ktp"
+                                        value="{{ $sewa->jaminan->nama_sesuai_ktp ?? '' }}"
                                         class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
                                         placeholder="Nama Lengkap" required>
                                 </div>
@@ -327,7 +326,7 @@
                             </div>
                         </div>
 
-                        {{-- Form Data KTP --}}
+                        {{-- Form Input NIK & Nama --}}
                         <div class="space-y-4">
                             <div class="bg-amber-50 rounded-xl p-5 border border-amber-100 text-center">
                                 <p class="text-xs font-bold text-amber-800 uppercase mb-1">Jumlah Deposit Yang Sudah
@@ -338,23 +337,46 @@
                                         class="fas fa-shield-alt"></i> via Midtrans - Status: Tertahan</p>
                             </div>
 
-                            <div class="space-y-3 text-sm">
-                                <div class="flex justify-between border-b border-line pb-2">
-                                    <span class="text-gray-500">NIK Terdeteksi:</span>
-                                    <span class="font-semibold text-ink">{{ $sewa->jaminan->nomor_ktp ?? '-' }}</span>
+                            <form action="{{ route('admin.sewa.verifikasi-jaminan', $sewa->id) }}" method="POST"
+                                class="space-y-4 bg-gray-50 p-4 rounded-xl border border-line">
+                                @csrf
+                                <p class="text-xs font-bold text-gray-600 mb-2">INPUT DATA KTP (Cocokkan dengan foto)</p>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">NOMOR NIK KTP</label>
+                                    <input type="text" name="no_ktp" value="{{ $sewa->jaminan->no_ktp ?? '' }}"
+                                        class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
+                                        placeholder="3273..." required>
                                 </div>
-                                <div class="flex justify-between border-b border-line pb-2">
-                                    <span class="text-gray-500">Nama:</span>
-                                    <span class="font-semibold text-ink">{{ $sewa->jaminan->nama_ktp ?? '-' }}</span>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">NAMA SESUAI KTP</label>
+                                    <input type="text" name="nama_sesuai_ktp"
+                                        value="{{ $sewa->jaminan->nama_sesuai_ktp ?? '' }}"
+                                        class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
+                                        placeholder="Nama Lengkap" required>
                                 </div>
-                            </div>
+
+                                <button type="submit"
+                                    class="w-full py-3 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">
+                                    <i class="fas fa-check-circle"></i> Terima & Verifikasi KTP
+                                </button>
+                            </form>
+
+                            {{-- Tombol Tolak --}}
+                            <form action="#" method="POST" onsubmit="return confirm('Tolak KTP ini?')">
+                                @csrf
+                                <button type="submit"
+                                    class="w-full py-2.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-xs font-bold hover:bg-rose-100 transition">
+                                    Tolak KTP (Minta Upload Ulang)
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
-
             </div>
 
-                        {{-- TAB 3: QC --}}
+            {{-- TAB 3: QC --}}
             <div x-show="tab === 'qc'" x-cloak x-transition.opacity>
                 <div class="flex items-center justify-between mb-6 border-b border-line pb-4">
                     <h2 class="text-lg font-bold text-ink">Pengecekan Barang (QC)</h2>
@@ -363,16 +385,20 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {{-- Form Input QC --}}
                     <div class="space-y-5">
-                        <form action="{{ route('admin.sewa.simpan-qc', $sewa->id) }}" method="POST" class="space-y-5">
+                        <form action="{{ route('admin.sewa.simpan-qc', $sewa->id) }}" method="POST"
+                            enctype="multipart/form-data" class="space-y-5">
                             @csrf
                             <div class="bg-gray-50 p-4 rounded-xl border border-line mb-4">
                                 <h3 class="font-bold text-sm text-ink">FORMULIR QC</h3>
-                                <p class="text-xs text-gray-500">Dokumentasikan detail fisik gaun, payet, dan aksesoris.</p>
+                                <p class="text-xs text-gray-500">Dokumentasikan detail fisik gaun, payet, dan aksesoris.
+                                </p>
                             </div>
 
                             <div>
                                 <label class="block text-xs font-bold text-gray-600 mb-1">PILIHAN TAHAP QC</label>
-                                <select name="tahap" class="w-full px-3 py-2.5 border border-line rounded-lg text-sm bg-white focus:border-gold focus:ring-1 focus:ring-gold outline-none" required>
+                                <select name="tahap"
+                                    class="w-full px-3 py-2.5 border border-line rounded-lg text-sm bg-white focus:border-gold focus:ring-1 focus:ring-gold outline-none"
+                                    required>
                                     <option value="sebelum_cuci">Sebelum Cuci / Baru Diterima dari Pelanggan</option>
                                     <option value="setelah_cuci">Setelah Cuci / Siap Disewakan Kembali</option>
                                 </select>
@@ -380,10 +406,19 @@
 
                             <div>
                                 <label class="block text-xs font-bold text-gray-600 mb-1">CATATAN KONDISI</label>
-                                <textarea name="catatan" rows="4" class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none resize-none" placeholder="Contoh: 3 butir payet lepas di lengan kanan..." required></textarea>
+                                <textarea name="catatan" rows="4"
+                                    class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none resize-none"
+                                    placeholder="Contoh: 3 butir payet lepas di lengan kanan..." required></textarea>
                             </div>
 
-                            <button type="submit" class="w-full py-3 bg-ink text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">FOTO BUKTI (Opsional)</label>
+                                <input type="file" name="foto_bukti" accept="image/*"
+                                    class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gold/10 file:text-gold hover:file:bg-gold/20">
+                            </div>
+
+                            <button type="submit"
+                                class="w-full py-3 bg-ink text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
                                 <i class="fas fa-plus"></i> Simpan Catatan QC
                             </button>
                         </form>
@@ -393,26 +428,108 @@
                     <div class="bg-cream/30 p-5 rounded-xl border border-line h-fit">
                         <div class="flex items-center justify-between mb-4">
                             <h4 class="font-bold text-sm text-ink">RIWAYAT PENGECEKAN</h4>
-                            <span class="text-[10px] bg-white border border-line px-2 py-1 rounded text-gray-500 font-bold">{{ $sewa->pengecekan->count() }} Entri</span>
+                            <span
+                                class="text-[10px] bg-white border border-line px-2 py-1 rounded text-gray-500 font-bold">{{ $sewa->pengecekan->count() }}
+                                Entri</span>
                         </div>
 
                         <div class="relative border-l-2 border-gold/30 ml-2 space-y-8">
                             @forelse($sewa->pengecekan->sortByDesc('created_at') as $qc)
-                            <div class="relative pl-6">
-                                <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-white border-2 {{ $qc->tahap === 'sebelum_cuci' ? 'border-rose-400' : 'border-emerald-400' }}"></div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-[10px] font-bold {{ $qc->tahap === 'sebelum_cuci' ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50' }} px-2 py-0.5 rounded uppercase">
-                                        {{ str_replace('_', ' ', $qc->tahap) }}
-                                    </span>
+                                <div class="relative pl-6" x-data="{ editMode: false }">
+                                    {{-- Dot Timeline --}}
+                                    <div
+                                        class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-white border-2 {{ $qc->tahap === 'sebelum_cuci' ? 'border-rose-400' : 'border-emerald-400' }}">
+                                    </div>
+
+                                    {{-- Header Timeline --}}
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span
+                                            class="text-[10px] font-bold {{ $qc->tahap === 'sebelum_cuci' ? 'text-rose-600 bg-rose-50' : 'text-emerald-600 bg-emerald-50' }} px-2 py-0.5 rounded uppercase">
+                                            {{ str_replace('_', ' ', $qc->tahap) }}
+                                        </span>
+
+                                        {{-- Tombol Aksi --}}
+                                        <div class="flex gap-1">
+                                            <button @click="editMode = !editMode"
+                                                class="text-gray-400 hover:text-gold transition-colors" title="Edit">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </button>
+                                            <form action="{{ route('admin.sewa.hapus-qc', $qc->id) }}" method="POST"
+                                                onsubmit="return confirm('Yakin ingin menghapus catatan QC ini?')">
+                                                @csrf @method('DELETE')
+                                                <button type="submit"
+                                                    class="text-gray-400 hover:text-rose-600 transition-colors"
+                                                    title="Hapus">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+
+                                    <p class="text-[10px] text-gray-500 mb-2">
+                                        {{ $qc->created_at->translatedFormat('d M Y, H:i') }} WIB</p>
+
+                                    {{-- Mode Tampilan --}}
+                                    <div x-show="!editMode" class="bg-white p-3 rounded-lg border border-line text-xs text-gray-600 italic">
+                                        "{{ $qc->catatan }}"
+                                    </div>
+
+                                    {{-- Baris Bawah: Petugas & Link Foto --}}
+                                    <div x-show="!editMode" class="flex items-center justify-between mt-2">
+                                        <p class="text-[10px] text-gray-500 flex items-center gap-1">
+                                            <i class="fas fa-user-check"></i> Petugas: {{ $qc->petugas }}
+                                        </p>
+                                        @if ($qc->foto_bukti)
+                                            <a href="{{ asset('storage/' . $qc->foto_bukti) }}" target="_blank"
+                                            class="inline-flex items-center gap-1 text-[10px] font-bold text-gold hover:underline">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                </svg>
+                                                Lihat Foto
+                                            </a>
+                                        @endif
+                                    </div>
+
+                                    {{-- Mode Edit --}}
+                                    <div x-show="editMode" x-cloak
+                                        class="bg-gray-50 p-3 rounded-lg border border-line">
+                                        <form action="{{ route('admin.sewa.update-qc', $qc->id) }}" method="POST"
+                                            enctype="multipart/form-data">
+                                            @csrf @method('PUT')
+                                            <select name="tahap"
+                                                class="w-full mb-2 px-2 py-1 border border-line rounded text-xs">
+                                                <option value="sebelum_cuci"
+                                                    {{ $qc->tahap === 'sebelum_cuci' ? 'selected' : '' }}>Sebelum Cuci
+                                                </option>
+                                                <option value="setelah_cuci"
+                                                    {{ $qc->tahap === 'setelah_cuci' ? 'selected' : '' }}>Setelah Cuci
+                                                </option>
+                                            </select>
+                                            <textarea name="catatan" rows="2" class="w-full mb-2 px-2 py-1 border border-line rounded text-xs" required>{{ $qc->catatan }}</textarea>
+                                            <input type="file" name="foto_bukti" accept="image/*"
+                                                class="w-full mb-2 text-xs">
+                                            <div class="flex gap-2">
+                                                <button type="submit"
+                                                    class="px-2 py-1 bg-gold text-white text-[10px] font-bold rounded">Simpan</button>
+                                                <button type="button" @click="editMode = false"
+                                                    class="px-2 py-1 bg-gray-200 text-gray-700 text-[10px] font-bold rounded">Batal</button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
-                                <p class="text-[10px] text-gray-500 mb-2">{{ $qc->created_at->translatedFormat('d M Y, H:i') }} WIB</p>
-                                <div class="bg-white p-3 rounded-lg border border-line text-xs text-gray-600 italic">
-                                    "{{ $qc->catatan }}"
-                                </div>
-                                <p class="text-[10px] text-gray-500 mt-2 flex items-center gap-1"><i class="fas fa-user-check"></i> Petugas: {{ $qc->petugas }}</p>
-                            </div>
                             @empty
-                            <p class="text-xs text-gray-500 italic pl-4">Belum ada riwayat pengecekan.</p>
+                                <p class="text-xs text-gray-500 italic pl-4">Belum ada riwayat pengecekan.</p>
                             @endforelse
                         </div>
                     </div>
@@ -433,7 +550,7 @@
                     </button>
                 </div>
 
-                {{-- Form Tambah Denda (Tersembunyi) --}}
+                {{-- Form Tambah Denda --}}
                 <form id="form-denda" action="{{ route('admin.sewa.tambah-denda', $sewa->id) }}" method="POST"
                     class="hidden mb-6 p-4 bg-gray-50 border border-line rounded-xl grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                     @csrf
@@ -447,7 +564,8 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-600 mb-1">JUMLAH (Rp)</label>
                         <input type="number" name="jumlah"
-                            class="w-full px-3 py-2 border border-line rounded-lg text-sm" placeholder="150000" required>
+                            class="w-full px-3 py-2 border border-line rounded-lg text-sm" placeholder="150000"
+                            required>
                     </div>
                     <button type="submit" class="py-2 bg-gold text-white rounded-lg text-sm font-bold">Simpan
                         Denda</button>
@@ -534,7 +652,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 @endsection

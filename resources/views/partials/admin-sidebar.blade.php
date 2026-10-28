@@ -119,10 +119,15 @@
         </nav>
     </div>
 
-    <div class="flex items-center gap-3 border-t border-white/10 px-6 py-5 shrink-0 bg-ink">
-        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold/20 text-sm font-semibold text-gold">
-            {{ \Illuminate\Support\Str::of(auth()->user()->name ?? 'A')->substr(0, 2)->upper() }}
-        </span>
+        <div class="flex items-center gap-3 border-t border-white/10 px-6 py-5 shrink-0 bg-ink">
+        @if(auth()->user()->foto_profil)
+            <img src="{{ asset('storage/' . auth()->user()->foto_profil) }}" alt="{{ auth()->user()->name }}" 
+                 class="h-9 w-9 shrink-0 rounded-full object-cover border border-white/20">
+        @else
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold/20 text-sm font-semibold text-gold">
+                {{ \Illuminate\Support\Str::of(auth()->user()->name ?? 'A')->substr(0, 2)->upper() }}
+            </span>
+        @endif
         <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium leading-tight text-cream">{{ auth()->user()->name ?? 'Admin' }}</p>
             <p class="truncate text-xs leading-tight text-cream/50">Admin Backoffice</p>

@@ -15,12 +15,12 @@ class SewaController extends Controller
         $query = Sewa::with(['transaksi.user', 'transaksi.detail.produk']);
 
         $filter = $request->get('status', 'semua');
-        
+
         if ($filter === 'dipinjam') {
             $query->where('status', 'aktif');
         } elseif ($filter === 'terlambat') {
             $query->where('status', 'aktif')
-                  ->where('tanggal_kembali_rencana', '<', now()->toDateString());
+                ->where('tanggal_kembali_rencana', '<', now()->toDateString());
         } elseif ($filter === 'dikembalikan') {
             $query->where('status', 'selesai');
         }
@@ -31,27 +31,57 @@ class SewaController extends Controller
         $totalTerlambat = Sewa::where('status', 'aktif')
             ->where('tanggal_kembali_rencana', '<', now()->toDateString())
             ->count();
-        $totalSelesai = Sewa::where('status', 'selesai')->count(); 
+        $totalSelesai = Sewa::where('status', 'selesai')->count();
         $totalDeposit = \App\Models\JaminanSewa::where('status_pengembalian_deposit', 'belum')->sum('jumlah_deposit');
 
         return view('admin.sewa.index', compact(
-            'daftarSewa', 'filter', 'totalDipinjam', 'totalTerlambat', 'totalSelesai', 'totalDeposit'
+            'daftarSewa',
+            'filter',
+            'totalDipinjam',
+            'totalTerlambat',
+            'totalSelesai',
+            'totalDeposit'
         ));
     }
 
     public function show($id)
     {
-        $sewa = Sewa::with([
-            'transaksi.user', 
-            'transaksi.detail.produk', 
-            'jaminan', 
-            'pengecekan', 
-            'denda'
-        ])->findOrFail($id);
+        $sewa = Sewa::with(['transaksi.user', 'transaksi.detail.produk', 'jaminan', 'pengecekan', 'denda'])
+            ->findOrFail($id);
 
         $totalDenda = $sewa->denda->where('status_bayar', 'belum_lunas')->sum('jumlah');
 
-        return view('admin.sewa.show', compact('sewa', 'totalDenda'));
+        // --- BUAT DATA TIMELINE DINAMIS ---
+        $timeline = [];
+
+        // 1. Serah Terima (dari tanggal dibuatnya transaksi)
+        $timeline[] = [
+            'title' => 'Serah Terima & Fitting',
+            'date' => $sewa->created_at,
+            'desc' => 'Transaksi sewa dibuat dan jadwal disepakati.',
+            'color' => 'bg-gray-400',
+        ];
+
+        // 2. Tenggat Waktu Pengembalian
+        $isTerlambat = \Carbon\Carbon::parse($sewa->tanggal_kembali_rencana)->isPast() && $sewa->status !== 'selesai';
+        $timeline[] = [
+            'title' => $isTerlambat ? 'Tenggat Waktu Telah Terlewati' : 'Tenggat Waktu Pengembalian',
+            'date' => $sewa->tanggal_kembali_rencana,
+            'desc' => 'Batas waktu pengembalian busana.',
+            'color' => $isTerlambat ? 'bg-rose-500' : 'bg-amber-500',
+        ];
+
+        // 3. Jika sudah selesai, tambahkan tanggal kembali aktual
+        if ($sewa->status === 'selesai' && $sewa->tanggal_kembali_aktual) {
+            $timeline[] = [
+                'title' => 'Busana Diterima Kembali',
+                'date' => $sewa->tanggal_kembali_aktual,
+                'desc' => 'Busana telah dikembalikan dan masuk proses QC.',
+                'color' => 'bg-emerald-500',
+            ];
+        }
+
+        return view('admin.sewa.show', compact('sewa', 'totalDenda', 'timeline'));
     }
 
     public function verifikasiJaminan(Request $request, $id)
@@ -90,29 +120,35 @@ class SewaController extends Controller
     }
 
     // ================= FITUR QC =================
-        public function simpanQC(Request $request, $id)
+           public function simpanQC(Request $request, $id)
     {
         $sewa = Sewa::findOrFail($id);
         
         $request->validate([
             'tahap' => 'required|string',
             'catatan' => 'required|string',
+            'foto_bukti' => 'nullable|image|max:2048', // Opsional, max 2MB
         ]);
+
+        $fotoPath = null;
+        if ($request->hasFile('foto_bukti')) {
+            $fotoPath = $request->file('foto_bukti')->store('qc', 'public');
+        }
 
         $sewa->pengecekan()->create([
             'tahap' => $request->tahap,
             'catatan' => $request->catatan,
             'petugas' => auth('admin')->user()->name ?? 'Admin',
+            'foto_bukti' => $fotoPath,
         ]);
 
-        return back()->with('success', 'Catatan QC berhasil disimpan!');
+        return back()->with('success', 'Catatan QC berhasil disimpan!')->with('active_tab', 'qc');
     }
-
     // ================= FITUR DENDA =================
     public function tambahDenda(Request $request, $id)
     {
         $sewa = Sewa::findOrFail($id);
-        
+
         $request->validate([
             'jenis' => 'required|string',
             'jumlah' => 'required|numeric|min:0',
@@ -133,5 +169,51 @@ class SewaController extends Controller
         $denda->update(['status_bayar' => 'lunas']);
 
         return back()->with('success', 'Denda berhasil dilunasi!');
+    }
+
+    public function ubahStatus(Request $request, $id)
+    {
+        $sewa = Sewa::findOrFail($id);
+        $sewa->update(['status' => $request->status]);
+
+        return back()->with('success', 'Status sewa berhasil diubah menjadi ' . $request->status);
+    }
+
+    // Update Catatan QC
+        public function updateQC(Request $request, $id)
+    {
+        $qc = \App\Models\PengecekanBarang::findOrFail($id);
+        
+        $request->validate([
+            'tahap' => 'required|string',
+            'catatan' => 'required|string',
+            'foto_bukti' => 'nullable|image|max:2048',
+        ]);
+
+        $data = [
+            'tahap' => $request->tahap,
+            'catatan' => $request->catatan,
+        ];
+
+        if ($request->hasFile('foto_bukti')) {
+            // Hapus foto lama jika ada
+            if ($qc->foto_bukti) {
+                \Storage::disk('public')->delete($qc->foto_bukti);
+            }
+            $data['foto_bukti'] = $request->file('foto_bukti')->store('qc', 'public');
+        }
+
+        $qc->update($data);
+
+        return back()->with('success', 'Catatan QC berhasil diperbarui!')->with('active_tab', 'qc');
+    }
+
+    // Hapus Catatan QC
+    public function hapusQC($id)
+    {
+        $qc = \App\Models\PengecekanBarang::findOrFail($id);
+        $qc->delete();
+
+        return back()->with('success', 'Catatan QC berhasil dihapus!')->with('active_tab', 'qc');
     }
 }

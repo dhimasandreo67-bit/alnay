@@ -13,6 +13,7 @@ class PengecekanBarang extends Model
         'tahap',
         'catatan',
         'petugas',
+        'foto_bukti',
     ];
 
     public function sewa()

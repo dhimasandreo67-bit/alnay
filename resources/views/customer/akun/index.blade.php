@@ -32,15 +32,19 @@
 
         {{-- Header --}}
         <div class="pd-up flex items-center gap-4" style="--d: .05s;">
-            <div class="pd-pop w-14 h-14 rounded-full bg-gradient-to-br from-gold to-[#a37b2a] flex items-center justify-center text-white font-display text-xl font-semibold shadow-md">
-                {{ strtoupper(substr($user->name, 0, 1)) }}
-            </div>
+            @if($user->foto_profil)
+                <img src="{{ asset('storage/' . $user->foto_profil) }}" alt="{{ $user->name }}" 
+                     class="pd-pop w-14 h-14 rounded-full object-cover shadow-md border-2 border-white">
+            @else
+                <div class="pd-pop w-14 h-14 rounded-full bg-gradient-to-br from-gold to-[#a37b2a] flex items-center justify-center text-white font-display text-xl font-semibold shadow-md">
+                    {{ strtoupper(substr($user->name, 0, 1)) }}
+                </div>
+            @endif
             <div>
                 <h1 class="font-display text-xl md:text-2xl font-medium text-ink/85">Halo, {{ $user->name }}</h1>
                 <p class="text-[11px] text-ink/50">Selamat datang di akun Anda</p>
             </div>
         </div>
-
         {{-- Statistik --}}
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
             <a href="{{ route('akun.fitting.index') }}" 

@@ -60,6 +60,10 @@ Route::middleware('auth:web')->group(function () {
         // --- KERANJANG SEWA ---
     Route::get('/sewa/keranjang', [SewaController::class, 'keranjangIndex'])->name('sewa.keranjang.index');
     Route::post('/sewa/keranjang/tambah', [SewaController::class, 'tambahKeKeranjang'])->name('sewa.keranjang.tambah');
+
+        // --- RATING ---
+    Route::get('/rating/{detail_id}/create', [App\Http\Controllers\Customer\RatingController::class, 'create'])->name('rating.create');
+    Route::post('/rating/{detail_id}', [App\Http\Controllers\Customer\RatingController::class, 'store'])->name('rating.store');
 });
 
 // Webhook Midtrans

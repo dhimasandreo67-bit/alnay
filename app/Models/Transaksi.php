@@ -62,4 +62,16 @@ class Transaksi extends Model
     {
         return $this->hasMany(Pengembalian::class);
     }
+
+        public function rating()
+    {
+        return $this->hasManyThrough(
+            Rating::class,
+            DetailTransaksi::class,
+            'transaksi_id', // Foreign key on detail_transaksi table
+            'detail_transaksi_id', // Foreign key on rating table
+            'id', // Local key on transaksi table
+            'id' // Local key on detail_transaksi table
+        );
+    }
 }

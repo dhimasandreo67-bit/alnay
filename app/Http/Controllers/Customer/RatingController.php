@@ -3,39 +3,37 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\DetailTransaksi;
 use App\Models\Rating;
-use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class RatingController extends Controller
 {
-    // Menyimpan ulasan
-    public function store(Request $request)
+    public function create($detail_id)
+    {
+        $detail = DetailTransaksi::with('produk')->findOrFail($detail_id);
+        return view('customer.rating-create', compact('detail'));
+    }
+
+    public function store(Request $request, $detail_id)
     {
         $request->validate([
-            'transaksi_id' => 'required|exists:transaksi,id',
             'rating' => 'required|integer|min:1|max:5',
             'ulasan' => 'nullable|string|max:500',
         ]);
 
-        $transaksi = Transaksi::where('user_id', Auth::id())->findOrFail($request->transaksi_id);
-        $produk_id = $transaksi->detail->first()->produk_id;
-
-        // Cek apakah sudah pernah memberi rating
-        $cek = Rating::where('transaksi_id', $transaksi->id)->first();
-        if ($cek) {
-            return back()->with('error', 'Anda sudah memberikan ulasan untuk pesanan ini.');
-        }
+        $detail = DetailTransaksi::findOrFail($detail_id);
 
         Rating::create([
+            'detail_transaksi_id' => $detail->id,
+            'produk_id' => $detail->produk_id,
             'user_id' => Auth::id(),
-            'produk_id' => $produk_id,
-            'transaksi_id' => $transaksi->id,
             'rating' => $request->rating,
             'ulasan' => $request->ulasan,
+            'tanggal' => now()->toDateString(),
         ]);
 
-        return back()->with('success', 'Terima kasih! Ulasan Anda sangat berharga bagi kami.');
+        return redirect()->route('akun.pesanan.index')->with('success', 'Terima kasih atas ulasan Anda!');
     }
 }

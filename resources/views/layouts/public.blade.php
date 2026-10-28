@@ -8,6 +8,7 @@
     <title>@yield('title', config('alnay.brand.nama'))</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-cream text-ink font-sans antialiased min-h-screen flex flex-col">
 
