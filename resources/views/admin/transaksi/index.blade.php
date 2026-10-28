@@ -48,18 +48,45 @@
         </div>
     </div>
 
+    {{-- Tab Jenis Transaksi --}}
+    @php
+        $tabs = ['semua' => 'Semua', 'beli' => 'Pembelian', 'sewa' => 'Penyewaan'];
+        $adaFilter = request()->filled('search') || request()->filled('status') || $channel !== '';
+    @endphp
+    <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Jenis transaksi">
+        @foreach($tabs as $key => $nama)
+            @php $aktif = $tab === $key; @endphp
+            <a href="{{ request()->fullUrlWithQuery(['tab' => $key, 'page' => null]) }}"
+               role="tab" aria-selected="{{ $aktif ? 'true' : 'false' }}"
+               class="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400
+                      {{ $aktif ? 'border-gray-900 bg-gray-900 text-white shadow-sm' : 'border-gray-200 bg-white text-gray-600 hover:border-amber-400 hover:text-amber-700' }}">
+                {{ $nama }}
+                <span class="rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums {{ $aktif ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-500' }}">
+                    {{ $tabCounts[$key] }}
+                </span>
+            </a>
+        @endforeach
+    </div>
+
     {{-- Filter & Search --}}
     <form method="GET" action="{{ route('admin.transaksi.index') }}" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <input type="hidden" name="tab" value="{{ $tab }}">
+
         <div class="relative w-full sm:w-80">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </span>
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari kode atau nama pelanggan..." 
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari kode atau nama pelanggan..."
                    class="w-full pl-10 pr-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
         </div>
 
-        <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-            <select name="status" onchange="this.form.submit()" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <select name="channel" onchange="this.form.submit()" aria-label="Asal transaksi" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
+                <option value="">Semua Asal</option>
+                <option value="online" {{ $channel === 'online' ? 'selected' : '' }}>Online (Website)</option>
+                <option value="kasir" {{ $channel === 'kasir' ? 'selected' : '' }}>Via Kasir</option>
+            </select>
+            <select name="status" onchange="this.form.submit()" aria-label="Status pembayaran" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
                 <option value="">Semua Status</option>
                 <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
                 <option value="dp" {{ request('status') === 'dp' ? 'selected' : '' }}>DP</option>
@@ -68,6 +95,9 @@
                 <option value="gagal" {{ request('status') === 'gagal' ? 'selected' : '' }}>Gagal</option>
             </select>
             <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-800 transition-all cursor-pointer">Cari</button>
+            @if($adaFilter)
+                <a href="{{ route('admin.transaksi.index', ['tab' => $tab]) }}" class="text-xs font-bold text-gray-500 hover:text-amber-600">Reset</a>
+            @endif
         </div>
     </form>
 
@@ -87,31 +117,41 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100/80">
                     @forelse ($transaksis as $t)
+                        @php
+                            $items = $t->detail;
+                            $jumlahProduk = $items->count();
+                            $totalQty = (int) $items->sum('jumlah');
+                            $pertama = $items->first();
+                            $namaPelanggan = $t->user->name ?? $t->nama_tamu ?? '-';
+                        @endphp
+
+                        {{-- Baris utama: 1 transaksi = 1 baris --}}
                         <tr class="hover:bg-amber-50/30 transition-colors">
                             <td class="px-6 py-4">
                                 <div class="text-sm font-bold text-gray-900">{{ $t->kode_transaksi }}</div>
                                 <div class="text-xs text-gray-500">{{ $t->tanggal->format('d M Y') }}</div>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-sm font-semibold text-gray-800">{{ $t->user->name ?? $t->nama_tamu ?? '-' }}</div>
+                                <div class="text-sm font-semibold text-gray-800">{{ $namaPelanggan }}</div>
                                 <div class="mt-1 flex items-center gap-1.5">
                                     <span class="text-[11px] text-gray-500">{{ $t->jenis === 'sewa' ? 'Penyewaan' : 'Pembelian' }}</span>
                                     @if(($t->channel ?? 'online') === 'kasir')
-                                        <span class="inline-flex items-center rounded-full bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-600 ring-1 ring-indigo-200">
-                                            Kasir
-                                        </span>
+                                        <span class="inline-flex items-center rounded-full bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-600 ring-1 ring-indigo-200">Kasir</span>
                                     @else
-                                        <span class="inline-flex items-center rounded-full bg-gray-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-500 ring-1 ring-gray-200">
-                                            Online
-                                        </span>
+                                        <span class="inline-flex items-center rounded-full bg-gray-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-500 ring-1 ring-gray-200">Online</span>
                                     @endif
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="text-xs text-gray-700 font-medium">{{ $t->detail->first()->produk->nama ?? '-' }}</div>
+                                <div class="text-xs text-gray-700 font-medium">{{ $pertama?->produk->nama ?? '-' }}</div>
+                                @if($jumlahProduk > 1 || $totalQty > 1)
+                                    <div class="mt-1 text-[10px] font-semibold text-gray-400">
+                                        @if($jumlahProduk > 1)+{{ $jumlahProduk - 1 }} produk lain &middot; @endif{{ $totalQty }} barang
+                                    </div>
+                                @endif
                                 @if($t->sewa)
                                     <div class="text-[10px] text-amber-700 mt-1 font-semibold">
-                                        {{ \Carbon\Carbon::parse($t->sewa->tanggal_pinjam)->format('d M') }} - 
+                                        {{ \Carbon\Carbon::parse($t->sewa->tanggal_pinjam)->format('d M') }} -
                                         {{ \Carbon\Carbon::parse($t->sewa->tanggal_kembali_rencana)->format('d M') }}
                                     </div>
                                 @endif
@@ -132,15 +172,74 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('admin.transaksi.show', $t->id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all shadow-sm">
-                                    Detail
-                                </a>
+                                <div class="inline-flex items-center gap-2">
+                                    <button type="button" data-toggle-rincian="{{ $t->id }}" aria-expanded="false" aria-controls="rincian-{{ $t->id }}"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+                                        Item
+                                        <svg class="w-3.5 h-3.5 transition-transform duration-200" data-chevron fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                                    </button>
+                                    <a href="{{ route('admin.transaksi.show', $t->id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all shadow-sm">
+                                        Detail
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+
+                        {{-- Baris rincian: tampil saat tombol Item diklik --}}
+                        <tr id="rincian-{{ $t->id }}" class="hidden bg-gray-50/60">
+                            <td colspan="6" class="px-6 py-4">
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                    @forelse($items as $d)
+                                        @php
+                                            $foto = $d->produk->foto_produk ?? null;
+                                            if (is_string($foto)) {
+                                                $dec = json_decode($foto, true);
+                                                $foto = is_array($dec) ? $dec : [$foto];
+                                            }
+                                            $foto = is_array($foto) ? collect($foto)->filter()->first() : null;
+                                            $fotoSrc = $foto ? (preg_match('#^https?://#', $foto) ? $foto : asset('storage/' . ltrim($foto, '/'))) : null;
+                                        @endphp
+                                        <div class="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3">
+                                            <div class="flex h-14 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                                                @if($fotoSrc)
+                                                    <img src="{{ $fotoSrc }}" alt="{{ $d->produk->nama ?? '' }}" loading="lazy" class="h-full w-full object-cover">
+                                                @else
+                                                    <svg class="h-5 w-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                @endif
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="truncate text-xs font-bold text-gray-900">{{ $d->produk->nama ?? 'Produk Terhapus' }}</p>
+                                                <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                                                    @if($d->ukuran)
+                                                        <span class="rounded-md bg-gray-50 px-1.5 py-0.5 text-[10px] font-bold text-gray-600 ring-1 ring-gray-200">Ukuran {{ $d->ukuran }}</span>
+                                                    @endif
+                                                    @if($d->warna)
+                                                        <span class="rounded-md bg-gray-50 px-1.5 py-0.5 text-[10px] font-bold text-gray-600 ring-1 ring-gray-200">Warna {{ $d->warna }}</span>
+                                                    @endif
+                                                    @if($d->produk?->sku)
+                                                        <span class="text-[10px] text-gray-400">{{ $d->produk->sku }}</span>
+                                                    @endif
+                                                </div>
+                                                <p class="mt-1 text-[11px] text-gray-500 tabular-nums">{{ $d->jumlah }} &times; Rp {{ number_format($d->harga_satuan, 0, ',', '.') }}</p>
+                                            </div>
+                                            <p class="shrink-0 text-xs font-bold tabular-nums text-gray-900">Rp {{ number_format($d->jumlah * $d->harga_satuan, 0, ',', '.') }}</p>
+                                        </div>
+                                    @empty
+                                        <p class="col-span-full text-xs italic text-gray-400">Belum ada item pada transaksi ini.</p>
+                                    @endforelse
+                                </div>
+
+                                @if($t->catatan)
+                                    <p class="mt-3 rounded-xl bg-amber-50/70 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-100">
+                                        <span class="font-bold">Catatan:</span> {{ $t->catatan }}
+                                    </p>
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
                             <td colspan="6" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
-                                Belum ada data transaksi.
+                                {{ $adaFilter || $tab !== 'semua' ? 'Tidak ada transaksi yang cocok dengan filter ini.' : 'Belum ada data transaksi.' }}
                             </td>
                         </tr>
                     @endforelse
@@ -152,4 +251,16 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Buka/tutup rincian item per transaksi
+    document.querySelectorAll('[data-toggle-rincian]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var baris = document.getElementById('rincian-' + btn.dataset.toggleRincian);
+            var buka = baris.classList.toggle('hidden') === false;
+            btn.setAttribute('aria-expanded', buka ? 'true' : 'false');
+            btn.querySelector('[data-chevron]').classList.toggle('rotate-180', buka);
+        });
+    });
+</script>
 @endsection

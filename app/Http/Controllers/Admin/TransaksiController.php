@@ -37,34 +37,61 @@ class TransaksiController extends Controller
 
     public function index(Request $request)
     {
-        // 1. Ambil data dengan relasi
-        $query = Transaksi::with(['user', 'sewa', 'detail.produk'])->latest();
+        $tab = in_array($request->input('tab'), ['beli', 'sewa'], true) ? $request->input('tab') : 'semua';
+        $channel = in_array($request->input('channel'), ['online', 'kasir'], true) ? $request->input('channel') : '';
 
-        // 2. Filter Pencarian (Kode Transaksi atau Nama User)
+        // 1. Query dasar: pencarian + status + channel (belum termasuk tab,
+        //    supaya angka di tiap tab tetap sesuai filter lainnya)
+        $filtered = Transaksi::query();
+
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $query->where(function($q) use ($search) {
+            $filtered->where(function ($q) use ($search) {
                 $q->where('kode_transaksi', 'like', '%' . $search . '%')
-                  ->orWhereHas('user', function($u) use ($search) {
+                  ->orWhereHas('user', function ($u) use ($search) {
                       $u->where('name', 'like', '%' . $search . '%');
                   })
                   ->orWhere('nama_tamu', 'like', '%' . $search . '%');
             });
         }
 
-        // 3. Filter Status Pembayaran
-        if ($request->filled('status') && $request->status !== '') {
-            $query->where('status_pembayaran', $request->status);
+        if ($request->filled('status')) {
+            $filtered->where('status_pembayaran', $request->status);
+        }
+
+        // Transaksi online lama bisa saja channel-nya NULL, jadi dianggap online
+        if ($channel === 'kasir') {
+            $filtered->where('channel', 'kasir');
+        } elseif ($channel === 'online') {
+            $filtered->where(function ($q) {
+                $q->whereNull('channel')->orWhere('channel', 'online');
+            });
+        }
+
+        // 2. Jumlah per tab
+        $tabCounts = [
+            'semua' => (clone $filtered)->count(),
+            'beli'  => (clone $filtered)->where('jenis', 'beli')->count(),
+            'sewa'  => (clone $filtered)->where('jenis', 'sewa')->count(),
+        ];
+
+        // 3. Data tabel (1 transaksi = 1 baris, item ditampilkan lewat expand)
+        $query = (clone $filtered)->with(['user', 'sewa', 'detail.produk'])->latest();
+        if ($tab !== 'semua') {
+            $query->where('jenis', $tab);
         }
 
         $transaksis = $query->paginate(10)->withQueryString();
 
-        // 4. Hitung Statistik untuk Card
+        // 4. Statistik untuk card (tidak terpengaruh filter)
         $totalPendapatan = Transaksi::whereIn('status_pembayaran', ['dp', 'lunas', 'dp_dibayar'])->sum('total');
         $pesananBaru = Transaksi::where('status_pembayaran', 'pending')->count();
         $pesananDiproses = Transaksi::whereIn('status_pembayaran', ['dp', 'dp_dibayar'])->count();
 
-        return view('admin.transaksi.index', compact('transaksis', 'totalPendapatan', 'pesananBaru', 'pesananDiproses'));
+        return view('admin.transaksi.index', compact(
+            'transaksis', 'totalPendapatan', 'pesananBaru', 'pesananDiproses',
+            'tab', 'channel', 'tabCounts'
+        ));
     }
 
     public function show($id)

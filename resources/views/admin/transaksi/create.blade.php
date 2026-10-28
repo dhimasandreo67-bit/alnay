@@ -657,6 +657,10 @@
             box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         } else {
             box.classList.add('hidden');
+            // Cegah klik ganda: sekali kirim = satu transaksi
+            const tombol = e.target.querySelector('button[type="submit"]');
+            tombol.disabled = true;
+            tombol.textContent = 'Menyimpan...';
         }
     });
 
