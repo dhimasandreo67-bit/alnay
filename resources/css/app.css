@@ -98,3 +98,11 @@ body {
     .pd-js .pd-reveal:not(.is-in) { opacity: 1; transform: none; }
     .pd-reveal, .pd-shine::after { transition: none !important; }
 }
+
+.no-scrollbar {
+    scrollbar-width: none;       /* Firefox */
+    -ms-overflow-style: none;    /* IE dan Edge lama */
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;               /* Chrome, Safari, Brave, Edge baru */
+}

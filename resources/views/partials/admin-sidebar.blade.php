@@ -68,9 +68,9 @@
     })->filter(fn ($group) => count($group['items']) > 0)->values();
 @endphp
 
-<aside class="flex w-64 shrink-0 flex-col justify-between bg-ink text-cream">
+<aside class="flex w-64 shrink-0 flex-col bg-ink text-cream sticky top-0 h-screen overflow-hidden">
 
-    <div>
+    <div class="flex flex-col flex-1 overflow-y-auto no-scrollbar">
         <div class="flex items-center gap-3 px-6 py-6">
             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gold font-display text-lg font-bold text-ink">A</span>
             <div>
@@ -119,15 +119,16 @@
         </nav>
     </div>
 
-    <div class="flex items-center gap-3 border-t border-white/10 px-6 py-5">
-        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-gold/20 text-sm font-semibold text-gold">
+    <div class="flex items-center gap-3 border-t border-white/10 px-6 py-5 shrink-0 bg-ink">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gold/20 text-sm font-semibold text-gold">
             {{ \Illuminate\Support\Str::of(auth()->user()->name ?? 'A')->substr(0, 2)->upper() }}
         </span>
         <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium text-cream">{{ auth()->user()->name ?? 'Admin' }}</p>
-            <p class="truncate text-xs text-cream/50">Admin Backoffice</p>
+            <p class="truncate text-sm font-medium leading-tight text-cream">{{ auth()->user()->name ?? 'Admin' }}</p>
+            <p class="truncate text-xs leading-tight text-cream/50">Admin Backoffice</p>
         </div>
-        <a href="{{ Route::has('admin.settings') ? route('admin.settings') : '#' }}" class="text-cream/50 hover:text-cream">
+        <a href="{{ Route::has('admin.settings') ? route('admin.settings') : '#' }}"
+           class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-cream/50 transition hover:bg-white/5 hover:text-cream">
             <x-admin.icon name="settings" class="h-4 w-4" />
         </a>
     </div>
