@@ -82,51 +82,54 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/jaminan', [App\Http\Controllers\Admin\JaminanController::class, 'index'])->name('jaminan.index');
 
         // 6. Layanan atelier
-        Route::get('/refund', fn () => view('placeholder'))->name('refund.index');
-        Route::get('/pengiriman', fn () => view('placeholder'))->name('pengiriman.index');
-        Route::get('/fitting', fn () => view('placeholder'))->name('fitting.index');
-        Route::get('/rating', fn () => view('placeholder'))->name('rating.index');
+        Route::get('/refund', [App\Http\Controllers\Admin\RefundController::class, 'index'])->name('refund.index');
+        Route::patch('/refund/{id}/status', [App\Http\Controllers\Admin\RefundController::class, 'updateStatus'])->name('refund.update-status');
+        Route::get('/pengiriman', [App\Http\Controllers\Admin\PengirimanController::class, 'index'])->name('pengiriman.index');
+        Route::patch('/pengiriman/{id}/status', [App\Http\Controllers\Admin\PengirimanController::class, 'updateStatus'])->name('pengiriman.update-status');
+                Route::get('/fitting', fn () => view('placeholder'))->name('fitting.index');
+                Route::get('/rating', fn () => view('placeholder'))->name('rating.index');
 
-        // 7. Sistem
-        Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit.index');
-        Route::get('/audit-log/feed', [AuditLogController::class, 'feed'])->name('audit.feed');
+                // 7. Sistem
+                Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit.index');
+                Route::get('/audit-log/feed', [AuditLogController::class, 'feed'])->name('audit.feed');
 
-        Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
-        Route::get('/transaksi/{id}', [TransaksiController::class, 'show'])->name('transaksi.show');
+                Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
+                Route::get('/transaksi/{id}', [TransaksiController::class, 'show'])->name('transaksi.show');
 
-        // Route untuk aksi ubah status
-        Route::patch('/transaksi/{id}/lunasi', [App\Http\Controllers\Admin\TransaksiController::class, 'lunasi'])->name('transaksi.lunasi');
-        Route::patch('/transaksi/{id}/selesaikan-sewa', [App\Http\Controllers\Admin\TransaksiController::class, 'selesaikanSewa'])->name('transaksi.selesai-sewa');
+                // Route untuk aksi ubah status
+                Route::patch('/transaksi/{id}/lunasi', [App\Http\Controllers\Admin\TransaksiController::class, 'lunasi'])->name('transaksi.lunasi');
+                Route::patch('/transaksi/{id}/selesaikan-sewa', [App\Http\Controllers\Admin\TransaksiController::class, 'selesaikanSewa'])->name('transaksi.selesai-sewa');
 
-        Route::prefix('pengguna')->name('pengguna.')->group(function () {
-            Route::get('/', [PenggunaController::class, 'index'])->name('index');
-            Route::post('/', [PenggunaController::class, 'store'])->name('store');
-            Route::put('/{id}', [PenggunaController::class, 'update'])->name('update');
-            // Kalau URL ini terbuka lewat GET (mis. refresh setelah submit), kembalikan ke daftar pengguna
-            Route::get('/{id}', fn () => redirect()->route('admin.pengguna.index'))->whereNumber('id');
-            Route::post('/massal', [PenggunaController::class, 'massal'])->name('massal');
-            Route::patch('/{id}/status', [PenggunaController::class, 'status'])->name('status');
-            Route::delete('/{id}', [PenggunaController::class, 'destroy'])->name('destroy');
+                Route::prefix('pengguna')->name('pengguna.')->group(function () {
+                    Route::get('/', [PenggunaController::class, 'index'])->name('index');
+                    Route::post('/', [PenggunaController::class, 'store'])->name('store');
+                    Route::put('/{id}', [PenggunaController::class, 'update'])->name('update');
+                    // Kalau URL ini terbuka lewat GET (mis. refresh setelah submit), kembalikan ke daftar pengguna
+                    Route::get('/{id}', fn () => redirect()->route('admin.pengguna.index'))->whereNumber('id');
+                    Route::post('/massal', [PenggunaController::class, 'massal'])->name('massal');
+                    Route::patch('/{id}/status', [PenggunaController::class, 'status'])->name('status');
+                    Route::delete('/{id}', [PenggunaController::class, 'destroy'])->name('destroy');
+                });
+
+                Route::get('/fitting', [ReservasiFittingController::class, 'index'])->name('fitting.index');
+                Route::patch('/fitting/{id}/status', [ReservasiFittingController::class, 'updateStatus'])->name('fitting.update-status');
+
+                Route::get('/rating', [RatingController::class, 'index'])->name('rating.index');
+
+                // Aksi Verifikasi Jaminan Fisik
+                Route::post('/sewa/{id}/verifikasi-jaminan', [App\Http\Controllers\Admin\SewaController::class, 'verifikasiJaminan'])->name('sewa.verifikasi-jaminan');
+
+                // Aksi Pengembalian Deposit
+                Route::post('/sewa/{id}/kembalikan-deposit', [App\Http\Controllers\Admin\SewaController::class, 'kembalikanDeposit'])->name('sewa.kembalikan-deposit');
+
+                // QC & Denda
+                Route::match(['get', 'post'], '/sewa/{id}/simpan-qc', [App\Http\Controllers\Admin\SewaController::class, 'simpanQC'])->name('sewa.simpan-qc');
+                Route::post('/sewa/{id}/tambah-denda', [App\Http\Controllers\Admin\SewaController::class, 'tambahDenda'])->name('sewa.tambah-denda');
+                Route::patch('/denda/{id}/lunasi', [App\Http\Controllers\Admin\SewaController::class, 'lunasiDenda'])->name('sewa.lunasi-denda');
+                Route::patch('/sewa/{id}/ubah-status', [App\Http\Controllers\Admin\SewaController::class, 'ubahStatus'])->name('sewa.ubah-status');
+
+                Route::put('/pengecekan/{id}', [App\Http\Controllers\Admin\SewaController::class, 'updateQC'])->name('sewa.update-qc');
+                Route::delete('/pengecekan/{id}', [App\Http\Controllers\Admin\SewaController::class, 'hapusQC'])->name('sewa.hapus-qc');
+                Route::patch('/pengiriman/{id}/batalkan-terima', [App\Http\Controllers\Admin\PengirimanController::class, 'batalkanTerima'])->name('pengiriman.batalkan-terima');
+            });
         });
-
-        Route::get('/fitting', [ReservasiFittingController::class, 'index'])->name('fitting.index');
-        Route::patch('/fitting/{id}/status', [ReservasiFittingController::class, 'updateStatus'])->name('fitting.update-status');
-
-        Route::get('/rating', [RatingController::class, 'index'])->name('rating.index');
-
-        // Aksi Verifikasi Jaminan Fisik
-        Route::post('/sewa/{id}/verifikasi-jaminan', [App\Http\Controllers\Admin\SewaController::class, 'verifikasiJaminan'])->name('sewa.verifikasi-jaminan');
-
-        // Aksi Pengembalian Deposit
-        Route::post('/sewa/{id}/kembalikan-deposit', [App\Http\Controllers\Admin\SewaController::class, 'kembalikanDeposit'])->name('sewa.kembalikan-deposit');
-
-        // QC & Denda
-        Route::match(['get', 'post'], '/sewa/{id}/simpan-qc', [App\Http\Controllers\Admin\SewaController::class, 'simpanQC'])->name('sewa.simpan-qc');
-        Route::post('/sewa/{id}/tambah-denda', [App\Http\Controllers\Admin\SewaController::class, 'tambahDenda'])->name('sewa.tambah-denda');
-        Route::patch('/denda/{id}/lunasi', [App\Http\Controllers\Admin\SewaController::class, 'lunasiDenda'])->name('sewa.lunasi-denda');
-        Route::patch('/sewa/{id}/ubah-status', [App\Http\Controllers\Admin\SewaController::class, 'ubahStatus'])->name('sewa.ubah-status');
-
-        Route::put('/pengecekan/{id}', [App\Http\Controllers\Admin\SewaController::class, 'updateQC'])->name('sewa.update-qc');
-        Route::delete('/pengecekan/{id}', [App\Http\Controllers\Admin\SewaController::class, 'hapusQC'])->name('sewa.hapus-qc');
-    });
-});

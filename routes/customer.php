@@ -23,7 +23,7 @@ Route::middleware('auth:web')->prefix('akun')->name('akun.')->group(function () 
     Route::get('/fitting/riwayat', [FittingController::class, 'index'])->name('akun.fitting.index');
 
     Route::get('/refund', [AkunController::class, 'refund'])->name('refund.index');
-    Route::post('/refund', fn () => back()->with('info', 'Form refund akan diimplementasikan.'))->name('refund.store');
+    Route::match(['get', 'post'], '/refund/{id}', [AkunController::class, 'ajukanRefund'])->name('refund.store');
 });
 
 // Grup Khusus Fitur Auth (Bebas URL)
@@ -64,6 +64,10 @@ Route::middleware('auth:web')->group(function () {
         // --- RATING ---
     Route::get('/rating/{detail_id}/create', [App\Http\Controllers\Customer\RatingController::class, 'create'])->name('rating.create');
     Route::post('/rating/{detail_id}', [App\Http\Controllers\Customer\RatingController::class, 'store'])->name('rating.store');
+
+        // --- KONFIRMASI PENERIMAAN PENGIRIMAN ---
+    Route::patch('/akun/pengiriman/{id}/terima', [App\Http\Controllers\Customer\AkunController::class, 'terimaPengiriman'])->name('akun.pengiriman.terima');
+
 });
 
 // Webhook Midtrans

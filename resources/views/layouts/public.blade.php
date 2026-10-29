@@ -25,5 +25,16 @@
 
     {{-- layouts/public.blade.php --}}
     @stack('scripts')
+
+    {{-- TAMBAHKAN KODE INI DI SINI --}}
+    <script>
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('dropdownNotif');
+            const btn = event.target.closest('button[onclick*="dropdownNotif"]');
+            if (dropdown && !dropdown.contains(event.target) && !btn) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 </html>

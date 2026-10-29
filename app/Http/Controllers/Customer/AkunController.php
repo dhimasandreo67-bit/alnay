@@ -33,30 +33,41 @@ class AkunController extends Controller
         }
 
         return view('customer.akun.index', compact(
-            'user', 'totalFitting', 'fittingAktif', 'pesananSession'
+            'user',
+            'totalFitting',
+            'fittingAktif',
+            'pesananSession'
         ));
     }
 
-        public function pesanan()
+    public function pesanan(Request $request)
     {
-        $pesananList = \App\Models\Transaksi::where('user_id', auth()->id())
-                        ->with(['detail.produk', 'sewa'])
-                        ->latest()
-                        ->get(); // Gunakan get() dulu, bukan paginate, sesuai desain Anda
+        $filter = $request->get('jenis', 'sewa');
 
-        return view('customer.akun.pesanan', compact('pesananList'));
+        $query = \App\Models\Transaksi::where('user_id', auth()->id())
+            ->with(['detail.produk', 'sewa']);
+
+        if ($filter === 'sewa') {
+            $query->where('jenis', 'sewa');
+        } elseif ($filter === 'beli') {
+            $query->where('jenis', 'beli');
+        }
+
+        $pesananList = $query->latest()->get();
+
+        return view('customer.akun.pesanan', compact('pesananList', 'filter'));
     }
 
-        public function pesananDetail($id)
+    public function pesananDetail($id)
     {
         $transaksi = \App\Models\Transaksi::with([
-            'detail.produk', 
+            'detail.produk',
             'sewa.pengecekan',
-            'pembayaran', 
+            'pembayaran',
             'pengiriman'
         ])
-        ->where('user_id', auth()->id())
-        ->findOrFail($id);
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
 
         return view('customer.akun.pesanan-detail', compact('transaksi'));
     }
@@ -74,5 +85,34 @@ class AkunController extends Controller
     public function refund()
     {
         return view('customer.akun.refund');
+    }
+
+        public function ajukanRefund(Request $request, $id)
+    {
+        $request->validate([
+            'alasan' => 'required|string|max:500',
+        ]);
+
+        $transaksi = \App\Models\Transaksi::where('user_id', auth()->id())->findOrFail($id);
+
+        \App\Models\Refund::create([
+            'transaksi_id' => $transaksi->id,
+            'diajukan_oleh' => auth()->id(),
+            'alasan' => $request->alasan,
+            'status' => 'pending',
+        ]);
+
+        return back()->with('success', 'Pengajuan refund berhasil dikirim!');
+    }
+
+        public function terimaPengiriman($id)
+    {
+        $pengiriman = \App\Models\Pengiriman::whereHas('transaksi', function($q) {
+            $q->where('user_id', auth()->id());
+        })->findOrFail($id);
+
+        $pengiriman->update(['status_kirim' => 'diterima']);
+
+        return back()->with('success', 'Terima kasih! Konfirmasi penerimaan berhasil.');
     }
 }

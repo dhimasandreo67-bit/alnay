@@ -65,11 +65,39 @@
                 @endif
             </a>
 
-            {{-- Tombol Notifikasi --}}
-            <a href="#" class="relative w-11 h-11 rounded-full flex items-center justify-center text-ink hover:bg-cream transition-colors" aria-label="Notifikasi">
-                <x-icon name="bell" :size="20" />
-                <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-panel"></span>
-            </a>
+                        {{-- Tombol Notifikasi --}}
+            <div class="relative">
+                <button type="button" onclick="document.getElementById('dropdownNotif').classList.toggle('hidden')"
+                        class="relative w-11 h-11 rounded-full flex items-center justify-center text-ink hover:bg-cream transition-colors" aria-label="Notifikasi">
+                    <x-icon name="bell" :size="20" />
+                    @if(isset($jumlahNotifikasi) && $jumlahNotifikasi > 0)
+                        <span class="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-panel">
+                            {{ $jumlahNotifikasi }}
+                        </span>
+                    @endif
+                </button>
+
+                {{-- Dropdown Notifikasi --}}
+                <div id="dropdownNotif" class="hidden absolute right-0 mt-2 w-80 bg-panel border border-line rounded-2xl shadow-xl z-50 overflow-hidden">
+                    <div class="p-4 border-b border-line/30">
+                        <h3 class="text-sm font-bold text-ink">Notifikasi</h3>
+                    </div>
+                    <div class="max-h-80 overflow-y-auto">
+                        @forelse($notifikasi ?? [] as $n)
+                            <a href="{{ route('akun.pesanan.detail', $n->id) }}" 
+                               class="block p-4 border-b border-line/20 hover:bg-cream/50 transition-colors">
+                                <p class="text-xs font-semibold text-ink/85">{{ $n->kode_transaksi }}</p>
+                                <p class="text-[10px] text-ink/50 mt-0.5">
+                                    Pesanan {{ strtoupper($n->jenis) }} • {{ strtoupper($n->status_pembayaran) }}
+                                </p>
+                                <p class="text-[10px] text-ink/40 mt-1">{{ $n->created_at->diffForHumans() }}</p>
+                            </a>
+                        @empty
+                            <div class="p-6 text-center text-gray-400 text-xs">Tidak ada notifikasi.</div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
 
             @guest
                 <a href="{{ route('masuk') }}"
