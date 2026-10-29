@@ -107,14 +107,32 @@ class Produk extends Model
     }
 
     protected function fotoUrlDariPath(?string $path): ?string
-{
-    if (!$path) return null;
-    if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-        return $path;
+    {
+        if (!$path) return null;
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+        if (str_starts_with($path, 'images/')) {      // ← tambahkan ini
+            return asset($path);
+        }
+        return asset('storage/' . $path);
     }
-    if (str_starts_with($path, 'images/')) {      // ← tambahkan ini
-        return asset($path);
+
+    // Relasi ke tabel rating
+    public function rating()
+    {
+        return $this->hasMany(Rating::class, 'produk_id');
     }
-    return asset('storage/' . $path);
-}
+
+    // Accessor: Rata-rata rating
+    public function getRatingRataRataAttribute()
+    {
+        return $this->rating()->avg('rating') ?? 0;
+    }
+
+    // Accessor: Jumlah rating
+    public function getJumlahRatingAttribute()
+    {
+        return $this->rating()->count();
+    }
 }

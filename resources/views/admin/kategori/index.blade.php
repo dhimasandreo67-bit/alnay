@@ -170,12 +170,13 @@
         {{-- Filter & Search Toolbar --}}
         <form method="GET" action="{{ route('admin.kategori.index') }}"
             class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-            
+
             {{-- Pencarian --}}
             <div class="relative w-full sm:w-80">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </span>
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama kategori..."
@@ -184,7 +185,7 @@
 
             {{-- Filter & Tombol --}}
             <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                
+
                 {{-- Dropdown Status --}}
                 <select name="status" onchange="this.form.submit()"
                     class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
@@ -296,7 +297,9 @@
                                             {{ $category->id }},
                                             {{ json_encode($category->nama_kategori) }},
                                             {{ json_encode($category->slug) }},
-                                            {{ $category->is_active ? 'true' : 'false' }}
+                                            {{ $category->is_active ? 'true' : 'false' }},
+                                            {{ json_encode($category->foto) }},
+                                            {{ json_encode($category->kode_kategori) }}
                                         )"
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer shadow-sm"
                                             title="Edit Kategori">
@@ -391,14 +394,24 @@
                 </button>
             </div>
 
-            <form action="{{ route('admin.kategori.store') }}" method="POST" class="space-y-4">
+            <form action="{{ route('admin.kategori.store') }}" method="POST" enctype="multipart/form-data"
+                class="space-y-4">
                 @csrf
                 <div class="space-y-1.5">
                     <label for="create_nama" class="block text-xs font-bold uppercase tracking-wider text-gray-700">
                         Nama Kategori <span class="text-rose-500">*</span>
                     </label>
-                    <input type="text" name="nama" id="create_nama" required
+                    <input type="text" name="nama_kategori" id="create_nama" required
                         placeholder="Contoh: Kebaya Pengantin"
+                        class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="create_kode" class="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                        Kode Kategori <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" name="kode_kategori" id="create_kode" required
+                        placeholder="Contoh: JSB (3 huruf kapital)" maxlength="10"
                         class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm">
                 </div>
 
@@ -406,6 +419,13 @@
                     <label for="create_slug" class="block text-xs font-bold uppercase tracking-wider text-gray-700">Slug
                         (Opsional)</label>
                     <input type="text" name="slug" id="create_slug" placeholder="otomatis dibuat jika dikosongkan"
+                        class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="create_foto" class="block text-xs font-bold uppercase tracking-wider text-gray-700">Foto
+                        Kategori</label>
+                    <input type="file" name="foto" id="create_foto" accept="image/*"
                         class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm">
                 </div>
 
@@ -451,7 +471,7 @@
                 </button>
             </div>
 
-            <form id="formEdit" method="POST" class="space-y-4">
+            <form id="formEdit" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf
                 @method('PUT')
 
@@ -459,7 +479,15 @@
                     <label for="edit_nama" class="block text-xs font-bold uppercase tracking-wider text-gray-700">
                         Nama Kategori <span class="text-rose-500">*</span>
                     </label>
-                    <input type="text" name="nama" id="edit_nama" required
+                    <input type="text" name="nama_kategori" id="edit_nama" required
+                        class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="edit_kode" class="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                        Kode Kategori <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" name="kode_kategori" id="edit_kode" required
                         class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm">
                 </div>
 
@@ -468,6 +496,17 @@
                         class="block text-xs font-bold uppercase tracking-wider text-gray-700">Slug</label>
                     <input type="text" name="slug" id="edit_slug"
                         class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="edit_foto" class="block text-xs font-bold uppercase tracking-wider text-gray-700">Foto
+                        Kategori</label>
+                    <input type="file" name="foto" id="edit_foto" accept="image/*"
+                        class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm">
+                    <div id="edit_foto_existing" class="mt-2 hidden">
+                        <img src="" alt="Foto saat ini" class="w-16 h-16 rounded-lg object-cover border">
+                        <p class="text-[10px] text-gray-400 mt-1">Foto saat ini. Unggah baru untuk mengganti.</p>
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-3 bg-amber-50/30 p-3.5 rounded-2xl border border-amber-100/50">
@@ -505,14 +544,24 @@
             document.body.style.overflow = '';
         }
 
-        function openEditModal(id, nama, slug, isActive) {
+        function openEditModal(id, nama, slug, isActive, foto, kodeKategori) {
             const form = document.getElementById('formEdit');
             form.action = @json(url('/admin/kategori')) + '/' + id;
 
             document.getElementById('edit_nama').value = nama || '';
             document.getElementById('edit_slug').value = slug || '';
+            document.getElementById('edit_kode').value = kodeKategori || '';
             document.getElementById('edit_is_active').checked = !!isActive;
             document.getElementById('editSubtitle').textContent = nama || '';
+
+            // Tampilkan foto lama jika ada
+            const fotoExisting = document.getElementById('edit_foto_existing');
+            if (foto) {
+                fotoExisting.classList.remove('hidden');
+                fotoExisting.querySelector('img').src = "{{ asset('storage') }}/" + foto;
+            } else {
+                fotoExisting.classList.add('hidden');
+            }
 
             document.getElementById('modalEdit').classList.remove('hidden');
             document.body.style.overflow = 'hidden';

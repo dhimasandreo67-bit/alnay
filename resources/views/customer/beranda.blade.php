@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
 {{-- ============================================================
-     CUSTOM STYLES (Dari Desain Lama Anda)
+     CUSTOM STYLES
      ============================================================ --}}
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
@@ -21,7 +21,7 @@
         font-family: 'Inter', sans-serif;
     }
 
-    /* Responsivitas beranda tanpa mengubah desain dan fungsi yang sudah ada */
+    /* Responsivitas beranda */
     html, body {
         max-width: 100%;
         overflow-x: clip;
@@ -168,42 +168,71 @@
     }
 
     /* Animasi Marker Peta */
-.custom-marker {
-    animation: bounce-marker 2s infinite ease-in-out;
-}
-@keyframes bounce-marker {
-    0%, 100% { transform: translateY(0) rotate(-45deg); }
-    50% { transform: translateY(-8px) rotate(-45deg); }
-}
+    .custom-marker {
+        animation: bounce-marker 2s infinite ease-in-out;
+    }
+    @keyframes bounce-marker {
+        0%, 100% { transform: translateY(0) rotate(-45deg); }
+        50% { transform: translateY(-8px) rotate(-45deg); }
+    }
 
-/* Efek Hover pada Container Peta */
-.group:hover #peta-alnay {
-    filter: brightness(1.05);
-}
+    /* Efek Hover pada Container Peta */
+    .group:hover #peta-alnay {
+        filter: brightness(1.05);
+    }
 
-/* === TAMBAHKAN CSS INI DI BAWAH === */
-/* Batasi Z-Index Leaflet Map */
-#peta-alnay {
-    position: relative !important;
-    z-index: 1 !important;
-    isolation: isolate !important;
-}
+    /* Batasi Z-Index Leaflet Map */
+    #peta-alnay {
+        position: relative !important;
+        z-index: 1 !important;
+        isolation: isolate !important;
+    }
 
-#peta-alnay .leaflet-pane,
-#peta-alnay .leaflet-top,
-#peta-alnay .leaflet-bottom,
-#peta-alnay .leaflet-control,
-#peta-alnay .leaflet-map-pane {
-    z-index: 1 !important;
-}
+    #peta-alnay .leaflet-pane,
+    #peta-alnay .leaflet-top,
+    #peta-alnay .leaflet-bottom,
+    #peta-alnay .leaflet-control,
+    #peta-alnay .leaflet-map-pane {
+        z-index: 1 !important;
+    }
 
-#peta-alnay .leaflet-tile-pane { z-index: 1 !important; }
-#peta-alnay .leaflet-overlay-pane { z-index: 2 !important; }
-#peta-alnay .leaflet-shadow-pane { z-index: 3 !important; }
-#peta-alnay .leaflet-marker-pane { z-index: 4 !important; }
-#peta-alnay .leaflet-tooltip-pane { z-index: 5 !important; }
-#peta-alnay .leaflet-popup-pane { z-index: 6 !important; }
-/* === AKHIR CSS === */
+    #peta-alnay .leaflet-tile-pane { z-index: 1 !important; }
+    #peta-alnay .leaflet-overlay-pane { z-index: 2 !important; }
+    #peta-alnay .leaflet-shadow-pane { z-index: 3 !important; }
+    #peta-alnay .leaflet-marker-pane { z-index: 4 !important; }
+    #peta-alnay .leaflet-tooltip-pane { z-index: 5 !important; }
+    #peta-alnay .leaflet-popup-pane { z-index: 6 !important; }
+
+    /* === ANIMASI SCROLL REVEAL === */
+    .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.8s cubic-bezier(0.22, 0.8, 0.3, 1), transform 0.8s cubic-bezier(0.22, 0.8, 0.3, 1);
+    }
+    .reveal.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* === HOVER EFFECT KARTU PRODUK === */
+    .card-produk {
+        transition: transform 0.4s cubic-bezier(0.22, 0.8, 0.3, 1), box-shadow 0.4s ease;
+    }
+    .card-produk:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.15);
+    }
+
+    /* === TRANSISI TOMBOL === */
+    .btn-smooth {
+        transition: all 0.3s ease;
+    }
+    .btn-smooth:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(201, 154, 50, 0.3);
+    }
+
+
 </style>
 
 
@@ -228,12 +257,12 @@
 
             <div class="mt-6 flex flex-wrap gap-3">
                 <a href="{{ route('koleksi.index') }}"
-                   class="inline-flex items-center rounded-md px-6 py-3 text-xs font-bold text-white transition-colors"
+                   class="btn-smooth inline-flex items-center rounded-md px-6 py-3 text-xs font-bold text-white"
                    style="background-color: #c99a32;">
                     Jelajahi Koleksi Produk
                 </a>
                 <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" rel="noopener"
-                   class="inline-flex items-center gap-2 rounded-md border border-white/30 px-6 py-3 text-xs font-bold text-white transition-colors hover:bg-white/10">
+                   class="btn-smooth inline-flex items-center gap-2 rounded-md border border-white/30 px-6 py-3 text-xs font-bold text-white hover:bg-white/10">
                     💬 Konsultasi WhatsApp
                 </a>
             </div>
@@ -242,7 +271,7 @@
         {{-- KANAN: Carousel 3 Foto --}}
         <div class="relative w-full min-w-0 lg:w-1/2">
             <button onclick="prevPhoto()" 
-                    class="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-all">
+                    class="carousel-btn absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
@@ -253,7 +282,7 @@
             </div>
 
             <button onclick="nextPhoto()" 
-                    class="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-all">
+                    class="carousel-btn absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
@@ -263,28 +292,33 @@
 </section>
 
 
-<section class="max-w-7xl mx-auto px-4 mt-10">
-    <div class="flex flex-wrap justify-center gap-8 sm:gap-12">
+<section class="reveal max-w-7xl mx-auto px-4 mt-10">
+    <div class="flex flex-wrap justify-center gap-6 sm:gap-10">
         @foreach ($kategori as $k)
             <a href="{{ route('koleksi.kategori', ['kode' => $k['kode_kategori']]) }}"
-               class="group flex w-28 md:w-32 flex-col items-center gap-3 text-center">
+               class="group flex w-24 md:w-28 flex-col items-center gap-3 text-center transition-all duration-300 hover:-translate-y-1">
 
-                <div class="h-24 w-24 md:h-28 md:w-28 overflow-hidden rounded-full border" style="border-color: #e5e7eb; background-color: white;">
+                {{-- Lingkaran Foto Kategori --}}
+                <div class="relative h-20 w-20 md:h-24 md:w-24 overflow-hidden rounded-full border-2 border-gray-100 bg-white shadow-sm transition-all duration-300 group-hover:border-gold group-hover:shadow-md">
                     @if (! empty($k['foto']))
-                        <img src="{{ asset($k['foto']) }}" alt="{{ $k['nama_kategori'] }}" loading="lazy" class="h-full w-full object-cover">
+                        <img src="{{ asset($k['foto']) }}" 
+                             alt="{{ $k['nama_kategori'] }}" 
+                             loading="lazy" 
+                             class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110">
                     @else
-                        <div class="flex h-full w-full items-center justify-center font-display text-2xl" style="color: #c99a32;">
+                        <div class="flex h-full w-full items-center justify-center font-display text-2xl text-gold bg-gold/5">
                             {{ mb_substr($k['nama_kategori'], 0, 1) }}
                         </div>
                     @endif
                 </div>
 
-                <div>
-                    <p class="text-sm font-semibold group-hover:text-[#c99a32] transition-colors" style="color: #15233d;">
+                {{-- Nama Kategori --}}
+                <div class="w-full">
+                    <p class="text-xs font-semibold text-ink group-hover:text-gold transition-colors leading-tight">
                         {{ $k['nama_kategori'] }}
                     </p>
                     @if (! empty($k['subjudul']))
-                        <p class="text-xs" style="color: #9ca3af;">{{ $k['subjudul'] }}</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5 truncate">{{ $k['subjudul'] }}</p>
                     @endif
                 </div>
             </a>
@@ -294,16 +328,16 @@
 
 
 {{-- ============================================================
-     3. PRODUK TERBARU (Styling Sesuai Desain Lama)
+     3. PRODUK TERBARU
      ============================================================ --}}
-<section class="max-w-7xl mx-auto px-4 py-10 md:py-14">
+<section class="reveal max-w-7xl mx-auto px-4 py-10 md:py-14">
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <h2 class="font-display text-xl font-bold sm:text-2xl" style="color: #15233d;">Produk Terbaru</h2>
             <p class="mt-1 text-xs" style="color: #6b7280;">Rilisan busana adat paling baru</p>
         </div>
 
-        <a href="{{ route('koleksi.index') }}" class="whitespace-nowrap text-xs font-semibold hover:underline" style="color: #c99a32;">
+        <a href="{{ route('koleksi.index') }}" class="btn-smooth whitespace-nowrap text-xs font-semibold hover:underline" style="color: #c99a32;">
             Lihat Semua →
         </a>
     </div>
@@ -318,13 +352,12 @@
                     $mode = $p['dapat_dijual'] ? 'dua' : 'satu';
                 @endphp
 
-                {{-- PERBAIKAN: flex flex-col h-full --}}
-                <div class="card-shadow overflow-hidden rounded-lg border flex flex-col h-full" 
+                <div class="card-produk overflow-hidden rounded-lg border flex flex-col h-full" 
                      style="border-color: #f3f4f6; background-color: white;">
                     
-                    <div class="relative h-[200px]">
+                    <div class="relative h-[200px] overflow-hidden">
                         @if ($p['foto_produk'])
-                            <img src="{{ asset($p['foto_produk']) }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover">
+                            <img src="{{ asset($p['foto_produk']) }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105">
                         @else
                             <div class="flex h-full w-full items-center justify-center" style="background-color: #f5f0e6;">
                                 <span style="color: #15233d;">{{ $p['nama'] }}</span>
@@ -341,7 +374,6 @@
                         </span>
                     </div>
 
-                    {{-- PERBAIKAN: flex-grow untuk mendorong button ke bawah --}}
                     <div class="p-3 flex-grow flex flex-col">
                         <h3 class="text-[13px] font-bold" style="color: #15233d;">{{ $p['nama'] }}</h3>
                         <p class="mt-0.5 text-[11px]" style="color: #6b7280;">{{ $p['deskripsi'] }}</p>
@@ -361,16 +393,15 @@
                         </div>
                     </div>
 
-                    {{-- PERBAIKAN: Button section tetap di bawah --}}
                     <div class="p-3 pt-0">
                         <div class="flex gap-2">
                             @if($mode === 'dua')
-                                <a href="#" class="flex-1 rounded-md border py-2 text-center text-[10px] font-bold hover:bg-gray-50"
+                                <a href="{{ route('produk.detail', $p['sku']) }}" class="flex-1 rounded-md border py-2 text-center text-[10px] font-bold hover:bg-gray-50 btn-smooth"
                                    style="border-color: #d1d5db; color: #333;">Sewa</a>
-                                <a href="#" class="flex-1 rounded-md py-2 text-center text-[10px] font-bold text-white"
+                                <a href="{{ route('produk.detail', ['sku' => $p['sku'], 'mode' => 'beli']) }}" class="flex-1 rounded-md py-2 text-center text-[10px] font-bold text-white btn-smooth"
                                    style="background-color: #c99a32;">Beli Baru</a>
                             @else
-                                <a href="#" class="w-full rounded-md py-2 text-center text-[10px] font-bold text-white"
+                                <a href="{{ route('produk.detail', $p['sku']) }}" class="w-full rounded-md py-2 text-center text-[10px] font-bold text-white btn-smooth"
                                    style="background-color: #c99a32;">Sewa Sekarang</a>
                             @endif
                         </div>
@@ -383,16 +414,16 @@
 
 
 {{-- ============================================================
-     4. PRODUK TERPOPULER (Styling Sesuai Desain Lama)
+     4. PRODUK TERPOPULER
      ============================================================ --}}
-<section class="max-w-7xl mx-auto px-4 py-10 md:py-14">
+<section class="reveal max-w-7xl mx-auto px-4 py-10 md:py-14">
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <h2 class="font-display text-xl font-bold sm:text-2xl" style="color: #15233d;">Produk Terpopuler</h2>
             <p class="mt-1 text-xs" style="color: #6b7280;">Favorit pilihan pelanggan dari beberapa waktu terakhir</p>
         </div>
 
-        <a href="{{ route('koleksi.index') }}" class="whitespace-nowrap text-xs font-semibold hover:underline" style="color: #c99a32;">
+        <a href="{{ route('koleksi.index') }}" class="btn-smooth whitespace-nowrap text-xs font-semibold hover:underline" style="color: #c99a32;">
             Lihat Semua →
         </a>
     </div>
@@ -407,38 +438,34 @@
                     $mode = $p['dapat_dijual'] ? 'dua' : 'satu';
                 @endphp
 
-                <div class="card-shadow overflow-hidden rounded-lg border flex flex-col h-full" 
+                <div class="card-produk overflow-hidden rounded-lg border flex flex-col h-full" 
                      style="border-color: #f3f4f6; background-color: white;">
                     
-                    <div class="relative h-[200px]">
+                    <div class="relative h-[200px] overflow-hidden">
                         @if ($p['foto_produk'])
-                            <img src="{{ asset($p['foto_produk']) }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover">
+                            <img src="{{ asset($p['foto_produk']) }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105">
                         @else
                             <div class="flex h-full w-full items-center justify-center" style="background-color: #f5f0e6;">
                                 <span style="color: #15233d;">{{ $p['nama'] }}</span>
                             </div>
                         @endif
 
-                        {{-- Badge TOP --}}
                         <span class="absolute left-2.5 top-2.5 rounded px-2 py-1 text-[9px] font-bold text-white"
                               style="background-color: #c99a32;">
                             TOP #{{ $index + 1 }}
                         </span>
 
-                        {{-- Badge Tersedia/Habis --}}
                         <span class="absolute right-2.5 top-2.5 rounded px-2 py-1 text-[9px] font-bold uppercase text-white"
                               style="background-color: {{ $badgeColor }};">
                             {{ $badge }}
                         </span>
 
-                        {{-- Badge Sewa & Beli --}}
                         <span class="absolute bottom-2.5 left-2.5 rounded bg-black/70 px-2 py-1 text-[9px] font-semibold text-white">
                             {{ $tag }}
                         </span>
                     </div>
 
                     <div class="p-3 flex-grow flex flex-col">
-                        {{-- Rating --}}
                         <p class="text-[10px] font-semibold" style="color: #c99a32;">
                             ★ {{ number_format($p['rating_rata_rata'], 1) }} 
                             <span style="color: #6b7280;">({{ $p['jumlah_rating'] }} ulasan)</span>
@@ -465,12 +492,12 @@
                     <div class="p-3 pt-0">
                         <div class="flex gap-2">
                             @if($mode === 'dua')
-                                <a href="#" class="flex-1 rounded-md border py-2 text-center text-[10px] font-bold hover:bg-gray-50"
+                                <a href="{{ route('produk.detail', $p['sku']) }}" class="flex-1 rounded-md border py-2 text-center text-[10px] font-bold hover:bg-gray-50 btn-smooth"
                                    style="border-color: #d1d5db; color: #333;">Sewa</a>
-                                <a href="#" class="flex-1 rounded-md py-2 text-center text-[10px] font-bold text-white"
+                                <a href="{{ route('produk.detail', ['sku' => $p['sku'], 'mode' => 'beli']) }}" class="flex-1 rounded-md py-2 text-center text-[10px] font-bold text-white btn-smooth"
                                    style="background-color: #111111;">Beli Baru</a>
                             @else
-                                <a href="#" class="w-full rounded-md py-2 text-center text-[10px] font-bold text-white"
+                                <a href="{{ route('produk.detail', $p['sku']) }}" class="w-full rounded-md py-2 text-center text-[10px] font-bold text-white btn-smooth"
                                    style="background-color: #c99a32;">Sewa Sekarang</a>
                             @endif
                         </div>
@@ -481,60 +508,49 @@
     @endif
 </section>
 
+
 {{-- ============================================================
-     6. EVENT BANNERS (Section Baru)
+     6. EVENT BANNER (Satu Card Ringkas)
      ============================================================ --}}
-<section class="max-w-7xl mx-auto px-4 py-10">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {{-- Banner 1: Vote Event --}}
-        <div class="rounded-2xl overflow-hidden relative" style="background-color: #1a1610;">
-            <div class="p-6 md:p-8 relative z-10">
-                <span class="inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" style="background-color: #c99a32; color: white;">
-                    ● Sedang Berlangsung
-                </span>
-                <h3 class="font-display text-xl md:text-2xl font-bold text-white mt-3">
-                    Event hebat ALNAY.ID<br>
-                    <span style="color: #c99a32;">Ayo vote</span>
-                </h3>
-                <p class="text-xs text-gray-400 mt-2">Beri suara & menangkan hadiah menarik!</p>
-                <a href="#" class="inline-block mt-4 px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-colors hover:opacity-90 cursor-pointer" style="background-color: #c99a32; color: white;">
-    Lihat & Vote
-</a>
-            </div>
-            {{-- Image overlay --}}
-            <div class="absolute right-0 top-0 h-full w-1/3 opacity-60">
-                <img src="{{ asset('images/home/event-vote.jpg') }}" alt="Event Vote" class="h-full w-full object-cover">
-            </div>
+<section class="reveal max-w-7xl mx-auto px-4 py-8">
+    <a href="https://eventalnay.id/beranda" target="_blank" rel="noopener"
+       class="group flex flex-col md:flex-row items-center justify-between gap-6 rounded-2xl p-6 md:p-8 transition-all duration-500 hover:shadow-xl hover:-translate-y-1"
+       style="background-color: #1a1610;">
+
+        {{-- Kiri: Teks --}}
+        <div class="flex-1 min-w-0">
+            <span class="inline-block px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider"
+                  style="background-color: #c99a32; color: white;">
+                ● Event Spesial ALNAY.ID
+            </span>
+
+            <h2 class="font-display text-xl md:text-2xl font-bold text-white mt-3 leading-snug">
+                Ikuti Event Budaya &amp; Menangkan Hadiah Menarik
+            </h2>
+
+            <p class="text-xs md:text-sm text-gray-400 mt-2 leading-relaxed max-w-xl">
+                Kompetisi busana adat, workshop kebudayaan, hingga event seru lainnya. Semua ada di satu tempat!
+            </p>
         </div>
 
-        {{-- Banner 2: Daftar Event --}}
-        <div class="rounded-2xl overflow-hidden relative" style="background-color: #1a1610;">
-            <div class="p-6 md:p-8 relative z-10">
-                <span class="inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" style="background-color: #c99a32; color: white;">
-                    ● Akan Datang
-                </span>
-                <h3 class="font-display text-xl md:text-2xl font-bold text-white mt-3">
-                    Event hebat ALNAY.ID<br>
-                    <span style="color: #c99a32;">Ayo daftar</span>
-                </h3>
-                <p class="text-xs text-gray-400 mt-2">Daftar sekarang & dapatkan diskon spesial!</p>
-                <a href="#" class="inline-block mt-4 px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-colors hover:opacity-90 cursor-pointer" style="background-color: #c99a32; color: white;">
-    Daftar Sekarang
-</a>
-            </div>
-            {{-- Image overlay --}}
-            <div class="absolute right-0 top-0 h-full w-1/3 opacity-60">
-                <img src="{{ asset('images/home/event-daftar.jpg') }}" alt="Event Daftar" class="h-full w-full object-cover">
-            </div>
+        {{-- Kanan: Tombol --}}
+        <div class="shrink-0">
+            <span class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-300 group-hover:gap-3"
+                  style="background-color: #c99a32; color: white;">
+                Kunjungi Halaman Event
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                </svg>
+            </span>
         </div>
-    </div>
+    </a>
 </section>
 
 
 {{-- ============================================================
-     7. OPSI FLEKSIBEL: SEWA ATAU BELI (Section Baru)
+     7. OPSI FLEKSIBEL: SEWA ATAU BELI
      ============================================================ --}}
-<section class="max-w-7xl mx-auto px-4 py-14">
+<section class="reveal max-w-7xl mx-auto px-4 py-14">
     <div class="text-center mb-10">
         <p class="text-[10px] font-bold uppercase tracking-[0.2em]" style="color: #c99a32;">Transparansi Mutu</p>
         <h2 class="font-display text-2xl md:text-3xl font-bold mt-2" style="color: #15233d;">Opsi Fleksibel: Sewa atau Beli</h2>
@@ -545,7 +561,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
         {{-- Card 1: Layanan Sewa Busana --}}
-        <div class="rounded-xl border p-6 md:p-8" style="border-color: #f3f4f6; background-color: white;">
+        <div class="rounded-xl border p-6 md:p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg" style="border-color: #f3f4f6; background-color: white;">
             <span class="inline-block px-3 py-1 rounded-full text-[9px] font-bold uppercase" style="background-color: #fef3c7; color: #92400e;">
                 Paling Diminati
             </span>
@@ -571,13 +587,13 @@
                 </li>
             </ul>
 
-            <a href="{{ route('koleksi.index') }}" class="block w-full mt-6 py-3 rounded-md text-center text-xs font-bold uppercase tracking-wider transition-colors hover:opacity-90" style="background-color: #c99a32; color: white;">
-    Eksplorasi Katalog Sewa
-</a>
+            <a href="{{ route('koleksi.index') }}" class="btn-smooth block w-full mt-6 py-3 rounded-md text-center text-xs font-bold uppercase tracking-wider" style="background-color: #c99a32; color: white;">
+                Eksplorasi Katalog Sewa
+            </a>
         </div>
 
         {{-- Card 2: Beli & Custom Bespoke --}}
-        <div class="rounded-xl p-6 md:p-8" style="background-color: #1a1610;">
+        <div class="rounded-xl p-6 md:p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg" style="background-color: #1a1610;">
             <h3 class="font-display text-lg font-bold text-white">Beli & Custom Bespoke</h3>
             <p class="text-xs text-gray-400 mt-2">Mahakarya eksklusif milik selamanya sebagai busana warisan keluarga.</p>
             
@@ -600,19 +616,19 @@
                 </li>
             </ul>
 
-            <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="block w-full mt-6 py-3 rounded-md border text-center text-xs font-bold uppercase tracking-wider transition-colors hover:bg-white/10" style="border-color: #374151; color: white;">
-    Konsultasi Bespoke
-</a>
+            <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="btn-smooth block w-full mt-6 py-3 rounded-md border text-center text-xs font-bold uppercase tracking-wider hover:bg-white/10" style="border-color: #374151; color: white;">
+                Konsultasi Bespoke
+            </a>
         </div>
     </div>
 </section>
 
 
 {{-- ============================================================
-     8. OFFLINE ATELIER & STUDIO (Section Baru)
+     8. OFFLINE ATELIER & STUDIO
      ============================================================ --}}
-<section class="max-w-7xl mx-auto px-4 py-14">
-    <div class="rounded-xl border p-6 md:p-10" style="border-color: #f3f4f6; background-color: white;">
+<section class="reveal max-w-7xl mx-auto px-4 py-14">
+    <div class="rounded-xl border p-6 md:p-10 transition-all duration-300 hover:shadow-lg" style="border-color: #f3f4f6; background-color: white;">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             {{-- Left: Text Content --}}
             <div>
@@ -624,38 +640,38 @@
                 </p>
                 
                 <div class="mt-6 flex flex-wrap gap-3">
-                    <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="inline-block px-5 py-3 rounded-md border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-gray-50" style="border-color: #15233d; color: #15233d;">
-    Info Lokasi & Booking Jadwal
-</a>
-                   <a href="#" class="inline-block px-5 py-3 rounded-md border text-xs font-bold uppercase tracking-wider transition-colors hover:bg-gray-50 cursor-pointer" style="border-color: #d1d5db; color: #374151;">
-    Panduan Sewa Online
-</a>
+                    <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="btn-smooth inline-block px-5 py-3 rounded-md border text-xs font-bold uppercase tracking-wider hover:bg-gray-50" style="border-color: #15233d; color: #15233d;">
+                        Info Lokasi & Booking Jadwal
+                    </a>
+                    <a href="#" class="btn-smooth inline-block px-5 py-3 rounded-md border text-xs font-bold uppercase tracking-wider hover:bg-gray-50" style="border-color: #d1d5db; color: #374151;">
+                        Panduan Sewa Online
+                    </a>
                 </div>
             </div>
 
-                        {{-- Right: Map Container --}}
-<div class="relative rounded-lg overflow-hidden group cursor-pointer border" style="border-color: #f3f4f6; z-index: 1;">
-    <div id="peta-alnay" class="w-full h-[250px] md:h-[270px] rounded-lg transition-transform duration-500 group-hover:scale-105"></div>
+            {{-- Right: Map Container --}}
+            <div class="relative rounded-lg overflow-hidden group cursor-pointer border" style="border-color: #f3f4f6; z-index: 1;">
+                <div id="peta-alnay" class="w-full h-[250px] md:h-[270px] rounded-lg transition-transform duration-500 group-hover:scale-105"></div>
 
-    <div class="absolute top-3 left-3 right-3 p-3 rounded-lg shadow-lg transition-all duration-300 group-hover:-translate-y-1"
-         style="background-color: rgba(23, 20, 15, 0.92); backdrop-filter: blur(4px); z-index: 10;">
-        <p class="text-white text-xs font-bold flex items-center gap-1.5">
-            <svg class="w-3.5 h-3.5" style="color: #c99a32;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
-            Atelier & Fashion Etnik
-        </p>
-        <p class="text-gray-300 text-[10px] mt-1 leading-relaxed">Jl. Terusan Rajabasa No.11, Perum Bumi Permata Cirmai, Kel. Kedung, Kec. Kemiling, Bandar Lampung</p>
-        <p class="text-gray-400 text-[9px] mt-1">Buka: 09.00 - 20.00 WIB</p>
-    </div>
-</div>
+                <div class="absolute top-3 left-3 right-3 p-3 rounded-lg shadow-lg transition-all duration-300 group-hover:-translate-y-1"
+                     style="background-color: rgba(23, 20, 15, 0.92); backdrop-filter: blur(4px); z-index: 10;">
+                    <p class="text-white text-xs font-bold flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" style="color: #c99a32;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                        Atelier & Fashion Etnik
+                    </p>
+                    <p class="text-gray-300 text-[10px] mt-1 leading-relaxed">Jl. Terusan Rajabasa No.11, Perum Bumi Permata Cirmai, Kel. Kedung, Kec. Kemiling, Bandar Lampung</p>
+                    <p class="text-gray-400 text-[9px] mt-1">Buka: 09.00 - 20.00 WIB</p>
+                </div>
+            </div>
         </div>
     </div>
 </section>
 
 
 {{-- ============================================================
-     5. TESTIMONI (Styling Sesuai Desain Lama)
+     5. TESTIMONI
      ============================================================ --}}
-<section class="max-w-7xl mx-auto px-4 py-10 md:py-14">
+<section class="reveal max-w-7xl mx-auto px-4 py-10 md:py-14">
     <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
             <p class="text-[11px] font-semibold uppercase tracking-widest" style="color: #c99a32;">Kisah Bahagia Bersama ALNAY.ID</p>
@@ -674,7 +690,7 @@
                     $inisial = strtoupper(substr($t['nama'], 0, 2));
                 @endphp
 
-                <div class="card-shadow rounded-xl border p-5" style="border-color: #f3f4f6; background-color: white;">
+                <div class="card-produk rounded-xl border p-5" style="border-color: #f3f4f6; background-color: white;">
                     <p style="color: #c99a32;">
                         @for($i = 1; $i <= 5; $i++)
                             {{ $i <= $t['bintang'] ? '★' : '☆' }}
@@ -699,16 +715,14 @@
     @endif
 </section>
 
-{{-- === JAVASCRIPT CAROUSEL === --}}
+{{-- === JAVASCRIPT === --}}
 <script>
     // =====================================================
-    // 1. SCRIPT CAROUSEL (Sudah ada sebelumnya)
+    // 1. CAROUSEL
     // =====================================================
     let currentIndex = 0;
     let isAnimating = false;
     
-    // PERBAIKAN: Menggunakan tanda kutip ganda (") untuk string JavaScript
-    // agar tidak bentrok dengan tanda kutip tunggal (') di dalam fungsi asset()
     const photos = [
         { src: "{{ asset('images/home/hero-pasangan.jpg') }}", title: 'Busana Adat Berpasangan', subtitle: 'Pesona budaya dalam balutan busana istimewa' },
         { src: "{{ asset('images/home/hero-gown.jpg') }}", title: 'Gown Pengantin', subtitle: 'Elegan dan anggun untuk momen spesial' },
@@ -745,8 +759,8 @@
     function prevPhoto() { if (isAnimating) return; isAnimating = true; currentIndex = (currentIndex - 1 + photos.length) % photos.length; renderCarousel(); setTimeout(() => { isAnimating = false; }, 500); }
 
 
-        // =====================================================
-    // 2. INITIALIZATION (Peta + Carousel)
+    // =====================================================
+    // 2. INITIALIZATION (Peta + Carousel + Scroll Reveal)
     // =====================================================
     document.addEventListener('DOMContentLoaded', function() {
         // Render carousel pertama kali
@@ -758,7 +772,6 @@
         script.integrity = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
         script.crossOrigin = "";
         script.onload = function() {
-            // Koordinat ALNAY.ID (Bandar Lampung)
             const alnayLocation = [-5.3971, 105.2668]; 
             
             const map = L.map('peta-alnay', {
@@ -772,7 +785,6 @@
                 maxZoom: 19
             }).addTo(map);
 
-            // Custom Marker Icon
             const customIcon = L.divIcon({
                 className: 'custom-marker',
                 html: `<div style="background-color: #c99a32; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
@@ -784,17 +796,28 @@
                 iconAnchor: [16, 32]
             });
 
-            const marker = L.marker(alnayLocation, { icon: customIcon }).addTo(map);
+            L.marker(alnayLocation, { icon: customIcon }).addTo(map);
 
-            // Link Google Maps
             const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${alnayLocation[0]},${alnayLocation[1]}`;
             
-            // Klik peta untuk buka Google Maps
             document.getElementById('peta-alnay').addEventListener('click', function() {
                 window.open(googleMapsUrl, '_blank');
             });
         };
         document.head.appendChild(script);
+
+        // === ANIMASI SCROLL REVEAL ===
+        const reveals = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+        
+        reveals.forEach(el => observer.observe(el));
     });
 </script>
 @endsection

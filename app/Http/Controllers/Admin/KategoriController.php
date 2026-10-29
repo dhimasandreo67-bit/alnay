@@ -46,21 +46,30 @@ class KategoriController extends Controller
     }
 
     // 3. Simpan kategori baru ke database
-    public function store(Request $request)
+        public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:kategori,slug',
+            'nama_kategori' => 'required|string|max:100',
+            'slug' => 'required|string|max:100|unique:kategori,slug',
+            'kode_kategori' => 'required|string|max:10|unique:kategori,kode_kategori',
+            'foto' => 'nullable|image|max:2048',
             'is_active' => 'boolean',
         ]);
 
+        $fotoPath = null;
+        if ($request->hasFile('foto')) {
+            $fotoPath = $request->file('foto')->store('kategori', 'public');
+        }
+
         Kategori::create([
-            'nama_kategori' => $validated['nama'],
-            'slug'          => $validated['slug'] ?: Str::slug($validated['nama']),
-            'is_active'     => $request->has('is_active'),
+            'nama_kategori' => $validated['nama_kategori'],
+            'slug' => $validated['slug'],
+            'kode_kategori' => $validated['kode_kategori'],
+            'foto' => $fotoPath,
+            'is_active' => $request->boolean('is_active', true),
         ]);
 
-        return redirect()->route('admin.kategori.index')->with('success', 'Kategori berhasil ditambahkan.');
+        return redirect()->route('admin.kategori.index')->with('success', 'Kategori berhasil ditambahkan!');
     }
 
     // 4. Tampilkan form edit kategori
@@ -70,23 +79,36 @@ class KategoriController extends Controller
     }
 
     // 5. Update kategori di database
-    public function update(Request $request, $id)
+        public function update(Request $request, $id)
     {
-        $category = Kategori::findOrFail($id);
+        $kategori = Kategori::findOrFail($id);
 
         $validated = $request->validate([
-            'nama' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:kategori,slug,' . $category->id,
+            'nama_kategori' => 'required|string|max:100',
+            'slug' => 'required|string|max:100|unique:kategori,slug,' . $kategori->id,
+            'kode_kategori' => 'required|string|max:10|unique:kategori,kode_kategori,' . $kategori->id,
+            'foto' => 'nullable|image|max:2048', // <--- TAMBAHKAN
             'is_active' => 'boolean',
         ]);
 
-        $category->update([
-            'nama_kategori' => $validated['nama'],
-            'slug'          => $validated['slug'] ?: Str::slug($validated['nama']),
-            'is_active'     => $request->has('is_active'),
+        $fotoPath = $kategori->foto;
+        if ($request->hasFile('foto')) {
+            // Hapus foto lama
+            if ($kategori->foto) {
+                \Storage::disk('public')->delete($kategori->foto);
+            }
+            $fotoPath = $request->file('foto')->store('kategori', 'public');
+        }
+
+        $kategori->update([
+            'nama_kategori' => $validated['nama_kategori'],
+            'slug' => $validated['slug'],
+            'kode_kategori' => $validated['kode_kategori'],
+            'foto' => $fotoPath,
+            'is_active' => $request->boolean('is_active', true),
         ]);
 
-        return redirect()->route('admin.kategori.index')->with('success', 'Kategori berhasil diperbarui.');
+        return redirect()->route('admin.kategori.index')->with('success', 'Kategori berhasil diperbarui!');
     }
 
     // 6. Hapus kategori dari database

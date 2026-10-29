@@ -20,7 +20,7 @@ Route::get('/', [HomeController::class, 'index'])->name('beranda');
 
 // Koleksi
 Route::get('/koleksi', [KoleksiController::class, 'index'])->name('koleksi.index');
-Route::get('/koleksi/{kode}', fn ($kode) => view('placeholder'))->name('koleksi.kategori');
+Route::get('/koleksi/{kode}', [KoleksiController::class, 'showKategori'])->name('koleksi.kategori');
 
 // Detail produk
 Route::get('/produk/{sku}', [ProdukController::class, 'show'])->name('produk.detail');

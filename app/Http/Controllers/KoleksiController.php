@@ -82,4 +82,21 @@ class KoleksiController extends Controller
 
         return view('customer.koleksi', compact('produkList', 'kategoriList'));
     }
+
+        public function showKategori($kode)
+    {
+        // 1. Cari kategori berdasarkan kode_kategori (misal: JSB, GWN)
+        $kategori = Kategori::where('kode_kategori', $kode)->firstOrFail();
+
+        // 2. Ambil semua kategori untuk sidebar
+        $kategoriList = Kategori::withCount('produks')->orderBy('nama_kategori')->get();
+
+        // 3. Ambil produk dari kategori tersebut
+        $produkList = Produk::with('kategori')
+            ->where('kategori_id', $kategori->id)
+            ->latest()
+            ->paginate(12);
+
+        return view('customer.koleksi', compact('produkList', 'kategoriList', 'kategori'));
+    }
 }

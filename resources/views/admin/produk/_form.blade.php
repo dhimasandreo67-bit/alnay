@@ -114,8 +114,14 @@ Partial form produk, dipakai oleh create.blade.php dan edit.blade.php.
                         <p class="text-[11px] text-muted mt-0.5">Kepuasan Klien</p>
                     </div>
                     <div class="text-right">
-                        <p class="text-xl font-black text-gold">★ {{ number_format($formData['ratingRataRata'] ?? 0, 1) }}</p>
-                        <p class="text-[10px] font-semibold text-muted">{{ ($formData['jumlahRating'] ?? 0) > 0 ? ($formData['jumlahRating'] . ' Ulasan') : 'Belum ada' }}</p>
+                        @php
+                            // Ambil data rating langsung dari relasi (jika produk sudah ada)
+                            $ratingRataRata = isset($produk) ? ($produk->rating()->avg('rating') ?? 0) : ($formData['ratingRataRata'] ?? 0);
+                            $jumlahRating = isset($produk) ? $produk->rating()->count() : ($formData['jumlahRating'] ?? 0);
+                        @endphp
+
+                        <p class="text-xl font-black text-gold">★ {{ number_format($ratingRataRata, 1) }}</p>
+                        <p class="text-[10px] font-semibold text-muted">{{ $jumlahRating > 0 ? ($jumlahRating . ' Ulasan') : 'Belum ada' }}</p>
                     </div>
                 </div>
             </div>
