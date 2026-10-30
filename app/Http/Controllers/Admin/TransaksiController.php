@@ -402,12 +402,17 @@ class TransaksiController extends Controller
     public function lunasi($id)
     {
         $transaksi = Transaksi::findOrFail($id);
+        $statusLama = $transaksi->status_pembayaran;
 
         // Ubah status transaksi
         $transaksi->update(['status_pembayaran' => 'lunas']);
 
         // Ubah status di tabel pembayaran (jika ada tagihan DP/Pending)
         $transaksi->pembayaran()->update(['status_midtrans' => 'success']);
+
+        Audit::catat('updated', "melunasi pembayaran transaksi \"{$transaksi->kode_transaksi}\"", $transaksi, [
+            ['field' => 'Status Pembayaran', 'lama' => $statusLama, 'baru' => 'lunas'],
+        ]);
 
         return redirect()->back()->with('success', 'Status pembayaran berhasil diubah menjadi LUNAS.');
     }

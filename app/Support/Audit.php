@@ -44,27 +44,57 @@ class Audit
     /** Urutan kolom yang dipakai sebagai nama/label sebuah data. */
     protected const KOLOM_LABEL = ['name', 'nama', 'nama_produk', 'nama_kategori', 'judul', 'kode_transaksi', 'kode', 'email'];
 
+    /** Penanda supaya listener tidak terpasang dua kali. */
+    protected static bool $terdaftar = false;
+
     /**
      * Pasang listener. Dipanggil sekali dari AppServiceProvider::boot().
      */
     public static function daftarkan(): void
     {
+        if (self::$terdaftar) {
+            return;
+        }
+        self::$terdaftar = true;
+
         Event::listen(
             ['eloquent.created: *', 'eloquent.updated: *', 'eloquent.deleted: *'],
             function (string $event, array $data) {
-                $model = $data[0] ?? null;
+                try {
+                    $model = $data[0] ?? null;
 
-                if ($model instanceof Model) {
-                    self::catatModel(Str::before(Str::after($event, 'eloquent.'), ':'), $model);
+                    if ($model instanceof Model) {
+                        self::catatModel(Str::before(Str::after($event, 'eloquent.'), ':'), $model);
+                    }
+                } catch (Throwable $e) {
+                    report($e);
                 }
             }
         );
 
-        Event::listen(Login::class, fn (Login $e) => self::catatAuth('login', $e->user, $e->guard));
-        Event::listen(Logout::class, fn (Logout $e) => self::catatAuth('logout', $e->user, $e->guard));
+        Event::listen(Login::class, function (Login $e) {
+            try {
+                self::catatAuth('login', $e->user, $e->guard);
+            } catch (Throwable $ex) {
+                report($ex);
+            }
+        });
+
+        Event::listen(Logout::class, function (Logout $e) {
+            try {
+                self::catatAuth('logout', $e->user, $e->guard);
+            } catch (Throwable $ex) {
+                report($ex);
+            }
+        });
+
         Event::listen(Failed::class, function (Failed $e) {
-            $kredensial = is_array($e->credentials) ? $e->credentials : [];
-            self::catatAuth('login_gagal', null, $e->guard, $kredensial['email'] ?? $kredensial['no_hp'] ?? null);
+            try {
+                $kredensial = is_array($e->credentials) ? $e->credentials : [];
+                self::catatAuth('login_gagal', null, $e->guard, $kredensial['email'] ?? $kredensial['no_hp'] ?? null);
+            } catch (Throwable $ex) {
+                report($ex);
+            }
         });
     }
 
