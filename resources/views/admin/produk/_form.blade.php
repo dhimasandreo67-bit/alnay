@@ -3,7 +3,7 @@ Partial form produk, dipakai oleh create.blade.php dan edit.blade.php.
 --}}
 <form method="POST" action="{{ $actionUrl }}" enctype="multipart/form-data"
     class="grid grid-cols-1 lg:grid-cols-3 gap-6"
-    x-data="produkForm(@js($formData), @js($paletWarna))"> <!-- Tambahkan $paletWarna ke Alpine -->
+    x-data="produkForm(@js($formData), @js($paletWarna))">
     @csrf
     @if($method === 'PUT') @method('PUT') @endif
 
@@ -218,37 +218,90 @@ Partial form produk, dipakai oleh create.blade.php dan edit.blade.php.
                        class="input-elegant w-full px-4 py-3 bg-cream/40 border border-line rounded-xl text-sm focus:bg-white focus:outline-none">
             </div>
 
-            {{-- Variasi Ukuran --}}
+            {{-- Variasi Ukuran, Warna & Stok --}}
             <div class="space-y-3 border-t border-line pt-5">
                 <div class="flex items-center justify-between">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-ink/70">Variasi Ukuran & Stok</label>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-ink/70">Variasi Ukuran, Warna & Stok</label>
                     <button type="button" @click="addUkuranVariasi()"
                             class="inline-flex items-center gap-1.5 text-xs font-bold text-gold hover:text-ink bg-gold/10 hover:bg-gold/20 px-3 py-1.5 rounded-lg transition-all active:scale-95">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                        Tambah
+                        Tambah Ukuran
                     </button>
                 </div>
 
                 <p class="text-xs text-muted" x-show="ukuranVariasi.length === 0">
                     Kosongkan jika produk ini tidak punya varian ukuran (mis. aksesoris All Size).
                 </p>
+                <p class="text-xs text-muted" x-show="ukuranVariasi.length > 0">
+                    Tambahkan rincian warna untuk membagi stok per warna (stok ukuran dihitung otomatis). Tanpa rincian warna, stok ukuran diisi manual.
+                </p>
 
-                <div class="space-y-3">
+                <div class="space-y-4">
                     <template x-for="(row, i) in ukuranVariasi" :key="'uk-' + i">
-                        <div class="flex items-center gap-3 animate-fade-up">
-                            <select x-model="row.ukuran" :name="'ukuran[' + i + '][ukuran]'"
-                                    class="input-elegant flex-1 px-4 py-3 bg-cream/40 border border-line rounded-xl text-sm font-bold focus:bg-white focus:outline-none cursor-pointer">
-                                <option value="">Pilih ukuran...</option>
-                                @foreach($opsiUkuran as $ukuran)
-                                    <option value="{{ $ukuran }}">{{ $ukuran }}</option>
-                                @endforeach
-                            </select>
-                            <input type="number" step="1" min="0" x-model.number="row.stok" :name="'ukuran[' + i + '][stok]'" placeholder="Stok"
-                                   class="input-elegant w-32 px-4 py-3 bg-cream/40 border border-line rounded-xl text-sm font-bold focus:bg-white focus:outline-none">
-                            <button type="button" @click="ukuranVariasi.splice(i, 1)"
-                                    class="w-11 h-11 shrink-0 rounded-xl border border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center transition-all active:scale-90 font-black">
-                                &times;
-                            </button>
+                        <div class="rounded-2xl border border-line bg-cream/20 p-4 space-y-3 animate-fade-up">
+
+                            {{-- Baris ukuran --}}
+                            <div class="flex items-center gap-3">
+                                <select x-model="row.ukuran" :name="'ukuran[' + i + '][ukuran]'"
+                                        class="input-elegant flex-1 px-4 py-3 bg-cream/40 border border-line rounded-xl text-sm font-bold focus:bg-white focus:outline-none cursor-pointer">
+                                    <option value="">Pilih ukuran...</option>
+                                    @foreach($opsiUkuran as $ukuran)
+                                        <option value="{{ $ukuran }}">{{ $ukuran }}</option>
+                                    @endforeach
+                                </select>
+
+                                {{-- Stok manual (hanya kalau tidak ada rincian warna) --}}
+                                <input type="number" step="1" min="0" x-show="row.warna.length === 0" x-model.number="row.stok" placeholder="Stok"
+                                       class="input-elegant w-32 px-4 py-3 bg-cream/40 border border-line rounded-xl text-sm font-bold focus:bg-white focus:outline-none">
+
+                                {{-- Stok otomatis dari warna --}}
+                                <div x-show="row.warna.length > 0" x-cloak
+                                     class="w-32 px-4 py-3 bg-cream border border-line rounded-xl text-sm text-center font-bold text-muted"
+                                     x-text="stokUkuran(row) + ' unit'"></div>
+
+                                {{-- Nilai stok yang dikirim ke server --}}
+                                <input type="hidden" :name="'ukuran[' + i + '][stok]'" :value="stokUkuran(row)">
+
+                                <button type="button" @click="ukuranVariasi.splice(i, 1)"
+                                        class="w-11 h-11 shrink-0 rounded-xl border border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-700 flex items-center justify-center transition-all active:scale-90 font-black">
+                                    &times;
+                                </button>
+                            </div>
+
+                            {{-- Rincian warna per ukuran --}}
+                            <div class="pl-3 ml-1 border-l-2 border-gold/30 space-y-2">
+                                <template x-for="(w, j) in row.warna" :key="'w-' + i + '-' + j">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-4 h-4 shrink-0 rounded-full border border-black/10 shadow-inner" :style="`background-color: ${getHexColor(w.nama)}`"></span>
+                                        <select x-model="w.nama" :name="'ukuran[' + i + '][warna][' + j + '][nama]'"
+                                                class="input-elegant flex-1 px-3 py-2.5 bg-cream/40 border border-line rounded-xl text-sm font-semibold focus:bg-white focus:outline-none cursor-pointer">
+                                            <option value="">Pilih warna...</option>
+                                            <template x-for="opt in opsiWarna(w.nama)" :key="opt">
+                                                <option :value="opt" x-text="opt" :selected="opt === w.nama"></option>
+                                            </template>
+                                        </select>
+                                        <input type="number" step="1" min="0" x-model.number="w.stok" :name="'ukuran[' + i + '][warna][' + j + '][stok]'" placeholder="Stok"
+                                               class="input-elegant w-28 px-3 py-2.5 bg-cream/40 border border-line rounded-xl text-sm font-bold focus:bg-white focus:outline-none">
+                                        <button type="button" @click="row.warna.splice(j, 1)"
+                                                class="w-9 h-9 shrink-0 rounded-lg border border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-all active:scale-90 font-black">
+                                            &times;
+                                        </button>
+                                    </div>
+                                </template>
+
+                                <div class="flex flex-wrap items-center gap-2 pt-1">
+                                    <button type="button" @click="addWarnaUkuran(row)" :disabled="warna.length === 0"
+                                            :class="warna.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gold/20'"
+                                            class="inline-flex items-center gap-1 text-[11px] font-bold text-gold bg-gold/10 px-2.5 py-1.5 rounded-lg transition-all active:scale-95">
+                                        + Warna
+                                    </button>
+                                    <button type="button" @click="isiSemuaWarna(row)" x-show="warna.length > 0"
+                                            class="inline-flex items-center gap-1 text-[11px] font-bold text-ink/70 bg-cream border border-line px-2.5 py-1.5 rounded-lg hover:bg-white transition-all active:scale-95">
+                                        Isi semua warna produk
+                                    </button>
+                                    <p class="text-[11px] text-muted" x-show="warna.length === 0">Pilih warna busana di atas dulu untuk membagi stok per warna.</p>
+                                </div>
+                            </div>
                         </div>
                     </template>
                 </div>
@@ -413,7 +466,12 @@ document.addEventListener('alpine:init', () => {
         warna: initial.warna || [],
         customColorHex: initial.customColorHex || '#CA9A3E',
         customColorName: initial.customColorName || '',
-        ukuranVariasi: initial.ukuranVariasi || [],
+        // Setiap ukuran: { ukuran, stok, warna: [{ nama, stok }] }
+        ukuranVariasi: (initial.ukuranVariasi || []).map((r) => ({
+            ukuran: r.ukuran || '',
+            stok: Number(r.stok) || 0,
+            warna: (r.warna || []).map((w) => ({ nama: w.nama || '', stok: Number(w.stok) || 0 })),
+        })),
         hargaSewa: initial.hargaSewa ?? null,
         dp: initial.dp ?? null,
         hargaJual: initial.hargaJual ?? null,
@@ -436,7 +494,39 @@ document.addEventListener('alpine:init', () => {
             return `${kode.toUpperCase()}-000`;
         },
         get totalStokVariasi() {
-            return this.ukuranVariasi.reduce((sum, row) => sum + (Number(row.stok) || 0), 0);
+            return this.ukuranVariasi.reduce((sum, row) => sum + this.stokUkuran(row), 0);
+        },
+
+        // Stok sebuah ukuran: jumlah stok warnanya kalau ada rincian, selain itu angka manual.
+        stokUkuran(row) {
+            if (row.warna && row.warna.length > 0) {
+                return row.warna.reduce((s, w) => s + (Number(w.stok) || 0), 0);
+            }
+            return Number(row.stok) || 0;
+        },
+
+        // Pilihan warna di dropdown: warna produk + warna yang sedang terpilih (kalau sudah dihapus dari daftar produk).
+        opsiWarna(current) {
+            const list = [...this.warna];
+            if (current && !list.includes(current)) list.push(current);
+            return list;
+        },
+        addWarnaUkuran(row) {
+            if (this.warna.length === 0) return;
+            const dipakai = row.warna.map((w) => w.nama);
+            const berikut = this.warna.find((w) => !dipakai.includes(w)) || '';
+            // Warna pertama mewarisi stok manual yang sudah diisi, supaya angkanya tidak hilang.
+            const stokAwal = row.warna.length === 0 ? (Number(row.stok) || 0) : 0;
+            row.warna.push({ nama: berikut, stok: stokAwal });
+        },
+        isiSemuaWarna(row) {
+            const dipakai = row.warna.map((w) => w.nama);
+            const adaStokManual = row.warna.length === 0 ? (Number(row.stok) || 0) : 0;
+            this.warna.forEach((w, idx) => {
+                if (!dipakai.includes(w)) {
+                    row.warna.push({ nama: w, stok: idx === 0 && adaStokManual ? adaStokManual : 0 });
+                }
+            });
         },
         toggleWarnaPreset(label) {
             const idx = this.warna.indexOf(label);
@@ -455,7 +545,7 @@ document.addEventListener('alpine:init', () => {
             // Cari hex berdasarkan nama di paletWarna, jika tidak ada cek apakah itu warna kustom
             return this.paletWarna[name] || '#CCCCCC'; // Fallback ke abu-abu jika tidak ditemukan
         },
-        addUkuranVariasi() { this.ukuranVariasi.push({ ukuran: '', stok: 0 }); },
+        addUkuranVariasi() { this.ukuranVariasi.push({ ukuran: '', stok: 0, warna: [] }); },
         handleFoto(event, slotIndex) {
             const file = event.target.files[0];
             if (!file) return;

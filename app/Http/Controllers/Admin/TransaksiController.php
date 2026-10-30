@@ -194,33 +194,52 @@ class TransaksiController extends Controller
                 }
             }
 
-            // Validasi ukuran/warna per item + kumpulkan kebutuhan stok per produk & ukuran
-            $kebutuhan = []; // [produk_id => ['total' => n, 'ukuran' => ['M' => n]]]
+            // Validasi ukuran/warna per item + kumpulkan kebutuhan stok per produk, ukuran, dan warna
+            // [produk_id => ['total' => n, 'ukuran' => ['M' => n], 'warna' => ['M' => ['Merah' => n]]]]
+            $kebutuhan = [];
             foreach ($validated['items'] as $item) {
                 $produk = $produkMap[$item['produk_id']];
                 $varian = collect($produk->ukuran ?? [])->values();
                 $ukuran = $item['ukuran'] ?? null;
                 $warna = $item['warna'] ?? null;
+                $barisUkuran = null;
 
                 if ($varian->isNotEmpty()) {
                     if (! $ukuran) {
                         $gagal("Pilih ukuran untuk produk \"{$produk->nama}\".");
                     }
-                    if (! $varian->contains(fn ($v) => ($v['ukuran'] ?? null) === $ukuran)) {
+
+                    $barisUkuran = $varian->first(fn ($v) => ($v['ukuran'] ?? null) === $ukuran);
+                    if (! $barisUkuran) {
                         $gagal("Ukuran {$ukuran} tidak ada pada produk \"{$produk->nama}\".");
                     }
+
                     $kebutuhan[$produk->id]['ukuran'][$ukuran] = ($kebutuhan[$produk->id]['ukuran'][$ukuran] ?? 0) + $item['qty'];
                 }
 
-                $daftarWarna = (array) ($produk->warna ?? []);
-                if ($warna && ! empty($daftarWarna) && ! in_array($warna, $daftarWarna, true)) {
-                    $gagal("Warna {$warna} tidak tersedia pada produk \"{$produk->nama}\".");
+                // Ukuran ini punya rincian stok per warna?
+                $rincianWarna = collect($barisUkuran['warna'] ?? [])->keyBy('nama');
+
+                if ($rincianWarna->isNotEmpty()) {
+                    if (! $warna) {
+                        $gagal("Pilih warna untuk produk \"{$produk->nama}\" ukuran {$ukuran}.");
+                    }
+                    if (! $rincianWarna->has($warna)) {
+                        $gagal("Warna {$warna} tidak tersedia pada produk \"{$produk->nama}\" ukuran {$ukuran}.");
+                    }
+
+                    $kebutuhan[$produk->id]['warna'][$ukuran][$warna] = ($kebutuhan[$produk->id]['warna'][$ukuran][$warna] ?? 0) + $item['qty'];
+                } else {
+                    $daftarWarna = (array) ($produk->warna ?? []);
+                    if ($warna && ! empty($daftarWarna) && ! in_array($warna, $daftarWarna, true)) {
+                        $gagal("Warna {$warna} tidak tersedia pada produk \"{$produk->nama}\".");
+                    }
                 }
 
                 $kebutuhan[$produk->id]['total'] = ($kebutuhan[$produk->id]['total'] ?? 0) + $item['qty'];
             }
 
-            // Cek stok (total, dan per ukuran bila produk punya variasi)
+            // Cek stok (total, per ukuran, dan per kombinasi ukuran + warna)
             foreach ($kebutuhan as $produkId => $k) {
                 $produk = $produkMap[$produkId];
                 $varian = collect($produk->ukuran ?? [])->keyBy('ukuran');
@@ -231,6 +250,17 @@ class TransaksiController extends Controller
                         $gagal("Stok \"{$produk->nama}\" ukuran {$uk} tinggal {$stokUkuran}, diminta {$qty}.");
                     }
                 }
+
+                foreach ($k['warna'] ?? [] as $uk => $daftar) {
+                    foreach ($daftar as $namaWarna => $qty) {
+                        $barisWarna = collect($varian[$uk]['warna'] ?? [])->firstWhere('nama', $namaWarna);
+                        $stokWarna = (int) ($barisWarna['stok'] ?? 0);
+                        if ($qty > $stokWarna) {
+                            $gagal("Stok \"{$produk->nama}\" ukuran {$uk} warna {$namaWarna} tinggal {$stokWarna}, diminta {$qty}.");
+                        }
+                    }
+                }
+
                 if ($k['total'] > (int) $produk->stok) {
                     $gagal("Stok \"{$produk->nama}\" tinggal {$produk->stok}, diminta {$k['total']}.");
                 }
@@ -281,13 +311,26 @@ class TransaksiController extends Controller
                 ])->save();
             }
 
-            // Kurangi stok sekali per produk (total + stok per variasi ukuran)
+            // Kurangi stok sekali per produk (total + per ukuran + per warna)
             foreach ($kebutuhan as $produkId => $k) {
                 $produk = $produkMap[$produkId];
 
                 if (! empty($k['ukuran'])) {
                     $varian = collect($produk->ukuran)->map(function ($v) use ($k) {
-                        $v['stok'] = (int) $v['stok'] - (int) ($k['ukuran'][$v['ukuran']] ?? 0);
+                        $uk = $v['ukuran'] ?? null;
+
+                        if (! empty($v['warna'])) {
+                            // Ukuran dengan rincian warna: kurangi stok tiap warna, stok ukuran = jumlah warnanya
+                            $v['warna'] = collect($v['warna'])->map(function ($w) use ($k, $uk) {
+                                $w['stok'] = (int) $w['stok'] - (int) ($k['warna'][$uk][$w['nama']] ?? 0);
+                                return $w;
+                            })->values()->all();
+
+                            $v['stok'] = (int) collect($v['warna'])->sum('stok');
+                        } else {
+                            $v['stok'] = (int) $v['stok'] - (int) ($k['ukuran'][$uk] ?? 0);
+                        }
+
                         return $v;
                     })->values()->all();
 
@@ -360,7 +403,7 @@ class TransaksiController extends Controller
     }
 
     /**
-     * Tambahkan lagi jumlah item transaksi ke stok produk (total + per variasi ukuran).
+     * Tambahkan lagi jumlah item transaksi ke stok produk (total + per ukuran + per kombinasi ukuran & warna).
      */
     protected function kembalikanStok(Transaksi $transaksi): void
     {
@@ -380,9 +423,29 @@ class TransaksiController extends Controller
 
             if ($punyaVarian) {
                 $varian = $varian->map(function ($v) use ($d) {
-                    if (($v['ukuran'] ?? null) === $d->ukuran) {
+                    if (($v['ukuran'] ?? null) !== $d->ukuran) {
+                        return $v;
+                    }
+
+                    $punyaWarna = ! empty($v['warna'])
+                        && $d->warna
+                        && collect($v['warna'])->contains(fn ($w) => ($w['nama'] ?? null) === $d->warna);
+
+                    if ($punyaWarna) {
+                        // Kembalikan ke kombinasi ukuran + warna yang tepat, lalu hitung ulang stok ukuran
+                        $v['warna'] = collect($v['warna'])->map(function ($w) use ($d) {
+                            if (($w['nama'] ?? null) === $d->warna) {
+                                $w['stok'] = (int) $w['stok'] + (int) $d->jumlah;
+                            }
+                            return $w;
+                        })->values()->all();
+
+                        $v['stok'] = (int) collect($v['warna'])->sum('stok');
+                    } else {
+                        // Tanpa rincian warna (atau transaksi lama yang warnanya tidak tercatat)
                         $v['stok'] = (int) $v['stok'] + (int) $d->jumlah;
                     }
+
                     return $v;
                 })->values();
 
@@ -402,17 +465,12 @@ class TransaksiController extends Controller
     public function lunasi($id)
     {
         $transaksi = Transaksi::findOrFail($id);
-        $statusLama = $transaksi->status_pembayaran;
 
         // Ubah status transaksi
         $transaksi->update(['status_pembayaran' => 'lunas']);
 
         // Ubah status di tabel pembayaran (jika ada tagihan DP/Pending)
         $transaksi->pembayaran()->update(['status_midtrans' => 'success']);
-
-        Audit::catat('updated', "melunasi pembayaran transaksi \"{$transaksi->kode_transaksi}\"", $transaksi, [
-            ['field' => 'Status Pembayaran', 'lama' => $statusLama, 'baru' => 'lunas'],
-        ]);
 
         return redirect()->back()->with('success', 'Status pembayaran berhasil diubah menjadi LUNAS.');
     }

@@ -4,9 +4,18 @@
 
 @php
     $ukuranVariasiAwal = collect($produk->ukuran ?? [])->map(function ($item) {
-        return is_array($item)
-            ? ['ukuran' => $item['ukuran'] ?? '', 'stok' => (int) ($item['stok'] ?? 0)]
-            : ['ukuran' => $item, 'stok' => 0];
+        if (! is_array($item)) {
+            return ['ukuran' => $item, 'stok' => 0, 'warna' => []];
+        }
+
+        return [
+            'ukuran' => $item['ukuran'] ?? '',
+            'stok'   => (int) ($item['stok'] ?? 0),
+            'warna'  => collect($item['warna'] ?? [])->map(fn ($w) => [
+                'nama' => (string) ($w['nama'] ?? ''),
+                'stok' => (int) ($w['stok'] ?? 0),
+            ])->values()->all(),
+        ];
     })->values()->all();
 @endphp
 

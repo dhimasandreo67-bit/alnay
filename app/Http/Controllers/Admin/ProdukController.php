@@ -105,6 +105,9 @@ class ProdukController extends Controller
             'ukuran'                => 'nullable|array',
             'ukuran.*.ukuran'       => 'required_with:ukuran|string|max:20',
             'ukuran.*.stok'         => 'required_with:ukuran|integer|min:0',
+            'ukuran.*.warna'        => 'nullable|array',
+            'ukuran.*.warna.*.nama' => 'required|string|max:100',
+            'ukuran.*.warna.*.stok' => 'required|integer|min:0',
             'bisa_disewa'           => 'nullable|boolean',
             'dapat_dijual'          => 'nullable|boolean',
             'status'                => 'required|in:' . implode(',', array_keys(Produk::opsiStatus())),
@@ -116,6 +119,9 @@ class ProdukController extends Controller
             'diskon_persen'         => 'nullable|numeric|min:0|max:100',
             'foto'                  => 'nullable|array|max:4',
             'foto.*'                => 'nullable|image|max:5120', // 5MB
+        ], [
+            'ukuran.*.warna.*.nama.required' => 'Pilih nama warna pada setiap baris rincian warna.',
+            'ukuran.*.warna.*.stok.required' => 'Isi stok pada setiap baris rincian warna.',
         ]);
 
         $bisaDisewa  = $request->boolean('bisa_disewa');
@@ -127,7 +133,14 @@ class ProdukController extends Controller
                 ->withErrors(['jenis_transaksi' => 'Pilih minimal satu jenis transaksi: Bisa disewa atau Bisa dijual.']);
         }
 
-        $ukuranVariasi = $validated['ukuran'] ?? [];
+        $ukuranVariasi = $this->rapikanUkuran($validated['ukuran'] ?? []);
+
+        if ($ukuranGanda = $this->ukuranGanda($ukuranVariasi)) {
+            return back()
+                ->withInput()
+                ->withErrors(['ukuran' => "Ukuran {$ukuranGanda} dipilih lebih dari sekali. Gabungkan jadi satu baris."]);
+        }
+
         if (empty($ukuranVariasi) && !$request->filled('stok')) {
             return back()
                 ->withInput()
@@ -193,6 +206,9 @@ class ProdukController extends Controller
             'ukuran'                => 'nullable|array',
             'ukuran.*.ukuran'       => 'required_with:ukuran|string|max:20',
             'ukuran.*.stok'         => 'required_with:ukuran|integer|min:0',
+            'ukuran.*.warna'        => 'nullable|array',
+            'ukuran.*.warna.*.nama' => 'required|string|max:100',
+            'ukuran.*.warna.*.stok' => 'required|integer|min:0',
             'bisa_disewa'           => 'nullable|boolean',
             'dapat_dijual'          => 'nullable|boolean',
             'status'                => 'required|in:' . implode(',', array_keys(Produk::opsiStatus())),
@@ -206,6 +222,9 @@ class ProdukController extends Controller
             'foto.*'                => 'nullable|image|max:5120',
             'foto_existing'         => 'nullable|array|max:4',
             'foto_existing.*'       => 'nullable|string',
+        ], [
+            'ukuran.*.warna.*.nama.required' => 'Pilih nama warna pada setiap baris rincian warna.',
+            'ukuran.*.warna.*.stok.required' => 'Isi stok pada setiap baris rincian warna.',
         ]);
 
         $bisaDisewa  = $request->boolean('bisa_disewa');
@@ -217,7 +236,14 @@ class ProdukController extends Controller
                 ->withErrors(['jenis_transaksi' => 'Pilih minimal satu jenis transaksi: Bisa disewa atau Bisa dijual.']);
         }
 
-        $ukuranVariasi = $validated['ukuran'] ?? [];
+        $ukuranVariasi = $this->rapikanUkuran($validated['ukuran'] ?? []);
+
+        if ($ukuranGanda = $this->ukuranGanda($ukuranVariasi)) {
+            return back()
+                ->withInput()
+                ->withErrors(['ukuran' => "Ukuran {$ukuranGanda} dipilih lebih dari sekali. Gabungkan jadi satu baris."]);
+        }
+
         if (empty($ukuranVariasi) && !$request->filled('stok')) {
             return back()
                 ->withInput()
@@ -299,6 +325,58 @@ class ProdukController extends Controller
         return redirect()
             ->route('admin.produk.index')
             ->with('success', 'Produk berhasil dihapus.');
+    }
+
+    /**
+     * Rapikan input variasi ukuran menjadi format simpan:
+     *   [{ukuran, stok, warna?: [{nama, stok}]}]
+     *
+     * - Kalau sebuah ukuran punya rincian warna, stok ukuran = jumlah stok warnanya.
+     * - Warna yang sama di satu ukuran digabung (stoknya dijumlahkan).
+     * - Ukuran tanpa rincian warna tetap berupa satu angka stok (format lama, tetap kompatibel).
+     *
+     * @param  array<int, array<string, mixed>>  $ukuran
+     * @return array<int, array<string, mixed>>
+     */
+    protected function rapikanUkuran(array $ukuran): array
+    {
+        $hasil = [];
+
+        foreach ($ukuran as $row) {
+            $perWarna = [];
+
+            foreach (($row['warna'] ?? []) as $w) {
+                $nama = trim((string) ($w['nama'] ?? ''));
+                if ($nama === '') {
+                    continue;
+                }
+                $perWarna[$nama] = ($perWarna[$nama] ?? 0) + (int) ($w['stok'] ?? 0);
+            }
+
+            $item = [
+                'ukuran' => trim((string) $row['ukuran']),
+                'stok'   => $perWarna ? array_sum($perWarna) : (int) ($row['stok'] ?? 0),
+            ];
+
+            if ($perWarna) {
+                $item['warna'] = [];
+                foreach ($perWarna as $nama => $stok) {
+                    $item['warna'][] = ['nama' => (string) $nama, 'stok' => (int) $stok];
+                }
+            }
+
+            $hasil[] = $item;
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * Kembalikan nama ukuran yang muncul lebih dari sekali (null kalau tidak ada).
+     */
+    protected function ukuranGanda(array $ukuranVariasi): ?string
+    {
+        return collect($ukuranVariasi)->pluck('ukuran')->duplicates()->first();
     }
 
     /**

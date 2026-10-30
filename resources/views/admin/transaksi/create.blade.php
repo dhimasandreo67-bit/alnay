@@ -23,7 +23,14 @@
 
     $produkJs = $produks->map(function ($p) use ($fotoUrl) {
         $ukuran = collect($p->ukuran ?? [])->map(function ($v) {
-            return ['ukuran' => (string) ($v['ukuran'] ?? ''), 'stok' => (int) ($v['stok'] ?? 0)];
+            return [
+                'ukuran' => (string) ($v['ukuran'] ?? ''),
+                'stok'   => (int) ($v['stok'] ?? 0),
+                'warna'  => collect($v['warna'] ?? [])->map(fn ($w) => [
+                    'nama' => (string) ($w['nama'] ?? ''),
+                    'stok' => (int) ($w['stok'] ?? 0),
+                ])->values(),
+            ];
         })->values();
 
         $warna = collect((array) ($p->warna ?? []))
@@ -399,11 +406,29 @@
     const hargaFinal = (p, j) => { const d = hargaDasar(p, j); return d - (d * p.diskon_persen / 100); };
     const punyaUkuran = (p) => p.ukuran.length > 0;
 
-    function stokUntuk(p, ukuran) {
+    function barisUkuran(p, ukuran) { return p.ukuran.find((x) => x.ukuran === ukuran) || null; }
+    function rincianWarna(p, ukuran) {
+        const b = barisUkuran(p, ukuran);
+        return b && b.warna && b.warna.length ? b.warna : [];
+    }
+    function punyaRincianWarna(p, ukuran) { return rincianWarna(p, ukuran).length > 0; }
+    // Daftar warna yang bisa dipilih: rincian per ukuran kalau ada, selain itu warna produk (stok = null)
+    function daftarWarna(p, ukuran) {
+        const r = rincianWarna(p, ukuran);
+        return r.length ? r : p.warna.map((w) => ({ nama: w, stok: null }));
+    }
+
+    function stokUntuk(p, ukuran, warna) {
         if (!punyaUkuran(p)) return p.stok;
         if (!ukuran) return p.ukuran.reduce((a, v) => a + v.stok, 0);
-        const v = p.ukuran.find((x) => x.ukuran === ukuran);
-        return v ? v.stok : 0;
+        const v = barisUkuran(p, ukuran);
+        if (!v) return 0;
+        const r = rincianWarna(p, ukuran);
+        if (r.length && warna) {
+            const w = r.find((x) => x.nama === warna);
+            return w ? w.stok : 0;
+        }
+        return v.stok;
     }
 
     function cocokJenis(p, j) { return j === 'sewa' ? p.bisa_disewa : p.dapat_dijual; }
@@ -498,11 +523,18 @@
         let ukuran = '';
         if (p.ukuran.length === 1) ukuran = p.ukuran[0].ukuran;
 
-        const ada = state.cart.find((r) => r.produk_id === p.id && r.ukuran === ukuran && r.warna === '');
+        // Kalau ukuran sudah pasti dan warnanya cuma satu, pilih otomatis
+        let warna = '';
+        if (ukuran) {
+            const r = rincianWarna(p, ukuran);
+            if (r.length === 1) warna = r[0].nama;
+        }
+
+        const ada = state.cart.find((r) => r.produk_id === p.id && r.ukuran === ukuran && r.warna === warna);
         if (ada) {
-            ada.qty = Math.min(ada.qty + 1, Math.max(1, stokUntuk(p, ada.ukuran)));
+            ada.qty = Math.min(ada.qty + 1, Math.max(1, stokUntuk(p, ada.ukuran, ada.warna)));
         } else {
-            state.cart.push({ produk_id: p.id, ukuran: ukuran, warna: '', qty: 1 });
+            state.cart.push({ produk_id: p.id, ukuran: ukuran, warna: warna, qty: 1 });
         }
         renderCart();
     }
@@ -512,8 +544,11 @@
         if (!p) return '';
         const final = hargaFinal(p, j);
         const dasar = hargaDasar(p, j);
-        const stokMaks = Math.max(1, stokUntuk(p, r.ukuran));
+        const stokMaks = Math.max(1, stokUntuk(p, r.ukuran, r.warna));
         const perluUkuran = punyaUkuran(p) && !r.ukuran;
+        const rinci = punyaRincianWarna(p, r.ukuran);
+        const perluWarna = rinci && !r.warna;
+        const daftar = daftarWarna(p, r.ukuran);
 
         const foto = p.foto
             ? '<img src="' + esc(p.foto) + '" alt="" class="h-full w-full object-cover">'
@@ -527,11 +562,12 @@
               + '</select></div>'
             : '<input type="hidden" name="items[' + idx + '][ukuran]" value="">';
 
-        const selWarna = p.warna.length
+        const selWarna = daftar.length
             ? '<div><label class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Warna</label>'
-              + '<select name="items[' + idx + '][warna]" data-f="warna" class="mt-0.5 w-full rounded-lg border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all">'
-              + '<option value="">Sesuai produk</option>'
-              + p.warna.map((w) => '<option value="' + esc(w) + '" ' + (w === r.warna ? 'selected' : '') + '>' + esc(w) + '</option>').join('')
+              + '<select name="items[' + idx + '][warna]" data-f="warna" class="mt-0.5 w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all ' + (perluWarna ? 'border-rose-300 bg-rose-50' : 'border-gray-200') + '">'
+              + '<option value="">' + (rinci ? 'Pilih warna' : 'Sesuai produk') + '</option>'
+              + daftar.map((w) => '<option value="' + esc(w.nama) + '" ' + (rinci && w.stok <= 0 ? 'disabled' : '') + ' ' + (w.nama === r.warna ? 'selected' : '') + '>'
+                    + esc(w.nama) + (w.stok !== null ? ' (stok ' + w.stok + ')' : '') + '</option>').join('')
               + '</select></div>'
             : '<input type="hidden" name="items[' + idx + '][warna]" value="">';
 
@@ -544,7 +580,12 @@
             if (p.denda > 0) info.push('Denda telat ' + rupiah(p.denda) + '/hari');
         }
 
-        return '<div data-idx="' + idx + '" class="rounded-2xl border ' + (perluUkuran ? 'border-rose-200' : 'border-gray-100') + ' bg-gray-50/50 p-3">'
+        const bermasalah = perluUkuran || perluWarna;
+        const sisaStok = (r.ukuran || !punyaUkuran(p)) && (!rinci || r.warna)
+            ? '<p class="mt-1.5 text-[11px] font-semibold text-gray-500">Sisa stok pilihan ini: <span class="tabular-nums text-gray-800">' + stokUntuk(p, r.ukuran, r.warna) + '</span></p>'
+            : '';
+
+        return '<div data-idx="' + idx + '" class="rounded-2xl border ' + (bermasalah ? 'border-rose-200' : 'border-gray-100') + ' bg-gray-50/50 p-3">'
             + '<input type="hidden" name="items[' + idx + '][produk_id]" value="' + p.id + '">'
             + '<div class="flex gap-3">'
             + '<div class="flex h-16 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">' + foto + '</div>'
@@ -555,6 +596,8 @@
             + '</div>'
             + '<div class="mt-3 grid grid-cols-2 gap-2">' + selUkuran + selWarna + '</div>'
             + (perluUkuran ? '<p class="mt-1.5 text-[11px] font-semibold text-rose-600">Pilih ukuran dulu agar stok tercatat benar.</p>' : '')
+            + (!perluUkuran && perluWarna ? '<p class="mt-1.5 text-[11px] font-semibold text-rose-600">Pilih warna agar stok kombinasi ukuran dan warna tercatat benar.</p>' : '')
+            + sisaStok
             + (info.length ? '<p class="mt-2 text-[10px] leading-relaxed text-gray-400">' + info.join(' &middot; ') + '</p>' : '')
             + '<div class="mt-3 flex items-center justify-between">'
             + '<div class="inline-flex items-center rounded-lg border border-gray-200 bg-white">'
@@ -612,7 +655,7 @@
     function sinkronQty(idx, nilai) {
         const r = state.cart[idx];
         const p = pById(r.produk_id);
-        const maks = Math.max(1, stokUntuk(p, r.ukuran));
+        const maks = Math.max(1, stokUntuk(p, r.ukuran, r.warna));
         r.qty = Math.min(Math.max(1, parseInt(nilai, 10) || 1), maks);
     }
 
@@ -632,9 +675,18 @@
         if (!f) return;
         const idx = Number(e.target.closest('[data-idx]').dataset.idx);
         const r = state.cart[idx];
+        const p = pById(r.produk_id);
         if (f === 'qty') sinkronQty(idx, e.target.value);
-        if (f === 'ukuran') { r.ukuran = e.target.value; sinkronQty(idx, r.qty); }
-        if (f === 'warna') r.warna = e.target.value;
+        if (f === 'ukuran') {
+            r.ukuran = e.target.value;
+            // Warna yang dipilih harus ada di ukuran baru, kalau tidak dikosongkan
+            if (!daftarWarna(p, r.ukuran).some((w) => w.nama === r.warna)) r.warna = '';
+            // Kalau ukuran baru hanya punya satu warna, pilih otomatis
+            const rinci = rincianWarna(p, r.ukuran);
+            if (!r.warna && rinci.length === 1) r.warna = rinci[0].nama;
+            sinkronQty(idx, r.qty);
+        }
+        if (f === 'warna') { r.warna = e.target.value; sinkronQty(idx, r.qty); }
         renderCart();
     });
 
@@ -730,6 +782,7 @@
         state.cart.forEach((r) => {
             const p = pById(r.produk_id);
             if (p && punyaUkuran(p) && !r.ukuran) err.push('Pilih ukuran untuk "' + p.nama + '".');
+            if (p && r.ukuran && punyaRincianWarna(p, r.ukuran) && !r.warna) err.push('Pilih warna untuk "' + p.nama + '" ukuran ' + r.ukuran + '.');
         });
 
         if (jenisAktif() === 'sewa') {
