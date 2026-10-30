@@ -2,12 +2,11 @@
     'label',
     'value',
     'icon' => 'grid',
-    'accent' => 'gold',     // gold | rose | blue | green
-    'trend' => null,        // e.g. '+12%'
-    'trendLabel' => null,   // e.g. 'dibanding kemarin'
-    'trendType' => 'up',    // up | down | neutral
-    'note' => null,         // e.g. '3 gaun jatuh tempo besok' — plain supporting line
-    'noteType' => 'muted',  // muted | warn | danger
+    'accent' => 'gold',  
+    'trendLabel' => null,  
+    'trendType' => 'up',   
+    'note' => null,       
+    'noteType' => 'muted',  
 ])
 
 @php

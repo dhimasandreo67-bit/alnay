@@ -29,11 +29,11 @@
 
 {{-- HEADER UTAMA --}}
 <header x-data="{ mobileOpen: false }" class="bg-panel border-b border-line sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-4">
 
         {{-- Logo --}}
         <a href="{{ route('beranda') }}" class="flex items-center gap-2 shrink-0 min-h-[44px]">
-            <span class="w-9 h-9 rounded-md bg-ink text-gold flex items-center justify-center font-display font-bold text-lg">A</span>
+            <span class="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-ink text-gold flex items-center justify-center font-display font-bold text-base sm:text-lg">A</span>
             <span class="hidden sm:block leading-tight">
                 <span class="block font-display font-bold text-ink text-lg tracking-tight">ALNAY.ID</span>
                 <span class="block text-[9px] uppercase tracking-[0.2em] text-muted">Atelier Backoffice</span>
@@ -49,12 +49,12 @@
         </form>
 
         {{-- Aksi kanan --}}
-        <div class="flex items-center gap-2 ml-auto">
+        <div class="flex items-center gap-1 sm:gap-2 ml-auto">
 
             {{-- Keranjang (tampilan saja — prompt: fitur keranjang belum ada) --}}
-            <a href="{{ route('keranjang.index') }}" {{-- TODO: route asli --}}
-               class="relative w-11 h-11 rounded-full flex items-center justify-center text-ink hover:bg-cream transition-colors"
-               aria-label="Keranjang">
+            <a href="{{ route('keranjang.index') }}"
+                class="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-ink hover:bg-cream transition-colors"
+                aria-label="Keranjang">
                 <x-icon name="cart" :size="20" />
                 <span class="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">2</span>
                 {{-- Badge angka dummy — nanti dari state keranjang --}}
@@ -74,16 +74,16 @@
 
             @auth
                 <a href="{{ route('admin.dashboard') }}"
-                   class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium text-ink hover:text-gold transition-colors min-h-[44px]">
+                class="inline-flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2.5 rounded-full sm:rounded-none text-sm font-medium text-ink hover:text-gold hover:bg-cream sm:hover:bg-transparent transition-colors">
                     <x-icon name="user" :size="18" />
-                    Akun
+                    <span class="hidden sm:inline ml-1.5">Akun</span>
                 </a>
             @endauth
 
             {{-- Hamburger (mobile) --}}
             <button type="button" @click="mobileOpen = !mobileOpen"
-                    class="md:hidden w-11 h-11 rounded-full flex items-center justify-center text-ink hover:bg-cream transition-colors"
-                    aria-label="Menu">
+                class="md:hidden w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-ink hover:bg-cream transition-colors"
+                aria-label="Menu">
                 <template x-if="!mobileOpen"><x-icon name="menu" :size="22" /></template>
                 <template x-if="mobileOpen"><x-icon name="close" :size="22" /></template>
             </button>

@@ -8,12 +8,12 @@
 </head>
 <body class="bg-cream text-ink font-sans antialiased min-h-screen">
 
-    {{-- Header Minimalis --}}
+        {{-- Header Minimalis --}}
     <header class="bg-panel border-b border-line sticky top-0 z-40">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
             {{-- Tombol Kembali --}}
             <a href="{{ route('beranda') }}" 
-                class="inline-flex items-center gap-2 text-sm font-medium text-ink hover:text-gold transition-colors group min-h-[44px]">
+                class="inline-flex items-center gap-2 text-sm font-medium text-ink hover:text-gold transition-colors group min-h-[44px] shrink-0">
                 <div class="w-8 h-8 rounded-full bg-cream flex items-center justify-center group-hover:bg-gold/10 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="m15 18-6-6 6-6"/>
@@ -24,11 +24,11 @@
 
             {{-- Logo Tengah --}}
             <a href="{{ route('beranda') }}" class="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-                <span class="font-display font-bold text-lg tracking-[0.1em] text-gold">ALNAY.ID</span>
+                <span class="font-display font-bold text-base sm:text-lg tracking-[0.1em] text-gold">ALNAY.ID</span>
             </a>
 
             {{-- Spacer Kanan --}}
-            <div class="w-8"></div> 
+            <div class="w-8 shrink-0"></div> 
         </div>
     </header>
 

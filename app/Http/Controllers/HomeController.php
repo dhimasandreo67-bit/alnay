@@ -60,7 +60,7 @@ class HomeController extends Controller
     /**
      * Ubah model Produk menjadi array (bentuk sama dengan dummy).
      */
-    private function produkKeArray(Produk $p): array
+        private function produkKeArray(Produk $p): array
     {
         return [
             'id'                   => $p->id,
@@ -77,6 +77,11 @@ class HomeController extends Controller
             'stok'                 => $p->stok,
             'status'               => $p->status,
             'dapat_dijual'         => $p->dapat_dijual,
+            
+            // TAMBAHKAN 2 BARIS INI:
+            'bisa_disewa'          => $p->bisa_disewa, 
+            'sampul_url'           => $p->sampulUrl(),
+            
             'denda_per_hari_telat' => $p->denda_per_hari_telat,
             'rating_rata_rata'     => $p->rating_rata_rata, // accessor
             'jumlah_rating'        => $p->jumlah_rating,    // accessor

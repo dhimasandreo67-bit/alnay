@@ -62,61 +62,66 @@
         </div>
 
         {{-- 2. KARTU STATISTIK --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                {{-- 2. KARTU STATISTIK --}}
+        <div class="grid grid-cols-3 gap-2 sm:gap-4">
             {{-- Fitting --}}
             <a href="{{ route('akun.fitting.index') }}" 
-               class="stat-card pd-up group bg-panel border border-line/40 rounded-2xl p-5 transition-all duration-300"
+               class="stat-card pd-up group bg-panel border border-line/40 rounded-2xl p-3 sm:p-4 transition-all duration-300 flex flex-col h-full"
                style="--d: .1s;">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-ink/40 mb-1.5">Total Fitting</p>
-                        <p class="font-display text-3xl font-black text-ink/90">{{ $totalFitting }}</p>
-                    </div>
-                    <div class="icon-box w-10 h-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center transition-all duration-300">
-                        <x-icon name="calendar" :size="20" />
+                {{-- Header: Judul & Ikon --}}
+                <div class="flex items-start justify-between gap-1 mb-2 sm:mb-3">
+                    <p class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-ink/40 leading-tight pt-1">Total Fitting</p>
+                    <div class="icon-box w-6 h-6 sm:w-8 sm:h-8 rounded-md bg-gold/10 text-gold flex items-center justify-center transition-all duration-300 shrink-0">
+                        <x-icon name="calendar" class="w-3 h-3 sm:w-4 sm:h-4" />
                     </div>
                 </div>
-                <div class="text-xs font-semibold text-gold mt-4 flex items-center gap-1">
-                    Lihat semua 
-                    <x-icon name="chevron-right" :size="14" class="arrow-icon transition-transform duration-300" />
+                
+                {{-- Angka --}}
+                <p class="font-display text-2xl sm:text-3xl font-black text-ink/90">{{ $totalFitting }}</p>
+                
+                {{-- Tombol Bawah --}}
+                <div class="text-[9px] sm:text-xs font-semibold text-gold mt-auto pt-3 flex items-center gap-0.5 sm:gap-1">
+                    Lihat <span class="hidden sm:inline">semua</span>
+                    <x-icon name="chevron-right" class="w-3 h-3 sm:w-3.5 sm:h-3.5 arrow-icon transition-transform duration-300" />
                 </div>
             </a>
 
             {{-- Pesanan --}}
             <a href="{{ route('akun.pesanan.index') }}" 
-               class="stat-card pd-up group bg-panel border border-line/40 rounded-2xl p-5 transition-all duration-300"
+               class="stat-card pd-up group bg-panel border border-line/40 rounded-2xl p-3 sm:p-4 transition-all duration-300 flex flex-col h-full"
                style="--d: .15s;">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-ink/40 mb-1.5">Pesanan Aktif</p>
-                        <p class="font-display text-3xl font-black text-ink/90">{{ count($pesananSession) }}</p>
-                    </div>
-                    <div class="icon-box w-10 h-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center transition-all duration-300">
-                        <x-icon name="cart" :size="20" />
+                <div class="flex items-start justify-between gap-1 mb-2 sm:mb-3">
+                    <p class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-ink/40 leading-tight pt-1">Pesanan Aktif</p>
+                    <div class="icon-box w-6 h-6 sm:w-8 sm:h-8 rounded-md bg-gold/10 text-gold flex items-center justify-center transition-all duration-300 shrink-0">
+                        <x-icon name="cart" class="w-3 h-3 sm:w-4 sm:h-4" />
                     </div>
                 </div>
-                <div class="text-xs font-semibold text-gold mt-4 flex items-center gap-1">
-                    Lihat semua 
-                    <x-icon name="chevron-right" :size="14" class="arrow-icon transition-transform duration-300" />
+                
+                <p class="font-display text-2xl sm:text-3xl font-black text-ink/90">{{ count($pesananSession) }}</p>
+                
+                <div class="text-[9px] sm:text-xs font-semibold text-gold mt-auto pt-3 flex items-center gap-0.5 sm:gap-1">
+                    Lihat <span class="hidden sm:inline">semua</span>
+                    <x-icon name="chevron-right" class="w-3 h-3 sm:w-3.5 sm:h-3.5 arrow-icon transition-transform duration-300" />
                 </div>
             </a>
 
             {{-- Profil --}}
             <a href="{{ route('akun.profil.edit') }}" 
-               class="stat-card pd-up group bg-panel border border-line/40 rounded-2xl p-5 transition-all duration-300"
+               class="stat-card pd-up group bg-panel border border-line/40 rounded-2xl p-3 sm:p-4 transition-all duration-300 flex flex-col h-full"
                style="--d: .2s;">
-                <div class="flex items-start justify-between">
-                    <div>
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-ink/40 mb-1.5">Profil Saya</p>
-                        <p class="font-display text-2xl font-black text-ink/90 mt-1">Edit Data</p>
-                    </div>
-                    <div class="icon-box w-10 h-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center transition-all duration-300">
-                        <x-icon name="user" :size="20" />
+                <div class="flex items-start justify-between gap-1 mb-2 sm:mb-3">
+                    <p class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-ink/40 leading-tight pt-1">Profil Saya</p>
+                    <div class="icon-box w-6 h-6 sm:w-8 sm:h-8 rounded-md bg-gold/10 text-gold flex items-center justify-center transition-all duration-300 shrink-0">
+                        <x-icon name="user" class="w-3 h-3 sm:w-4 sm:h-4" />
                     </div>
                 </div>
-                <div class="text-xs font-semibold text-gold mt-4 flex items-center gap-1">
-                    Ubah data 
-                    <x-icon name="chevron-right" :size="14" class="arrow-icon transition-transform duration-300" />
+                
+                {{-- Teks pengganti angka --}}
+                <p class="font-display text-sm sm:text-base font-black text-ink/90 leading-tight">Edit<br class="hidden sm:block"> Data</p>
+                
+                <div class="text-[9px] sm:text-xs font-semibold text-gold mt-auto pt-3 flex items-center gap-0.5 sm:gap-1">
+                    Ubah <span class="hidden sm:inline">data</span>
+                    <x-icon name="chevron-right" class="w-3 h-3 sm:w-3.5 sm:h-3.5 arrow-icon transition-transform duration-300" />
                 </div>
             </a>
         </div>
