@@ -9,6 +9,29 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {{-- Tambahan CSS untuk Scrollbar Tipis pada Notifikasi --}}
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #e5e7eb; /* gray-200 */
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #d1d5db; /* gray-300 */
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #d1d5db; }
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
 <body class="bg-cream text-ink font-sans antialiased min-h-screen flex flex-col">
 
@@ -26,7 +49,7 @@
     {{-- layouts/public.blade.php --}}
     @stack('scripts')
 
-    {{-- TAMBAHKAN KODE INI DI SINI --}}
+    {{-- Script tutup dropdown saat klik di luar --}}
     <script>
         document.addEventListener('click', function(event) {
             const dropdown = document.getElementById('dropdownNotif');

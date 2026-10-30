@@ -71,6 +71,8 @@
                 transition: none !important;
             }
         }
+
+        
     </style>
 
     <div class="bg-cream min-h-screen py-8 md:py-12">
@@ -84,15 +86,17 @@
                 <h1 class="font-display text-2xl font-medium text-ink/85">Pesanan Saya</h1>
             </div>
 
-            {{-- Toggle Slide: Sewa / Beli --}}
-            <div class="pd-up mb-6" style="--d: .08s;">
-                <div class="inline-flex p-1.5 bg-gray-100/80 rounded-2xl border border-gray-200 shadow-sm backdrop-blur-sm">
+            {{-- Toggle Slide: Sewa / Beli (Minimalis Underline) --}}
+            <div class="pd-up mb-8 border-b border-gray-200" style="--d: .08s;">
+                <div class="flex gap-8 -mb-[1px]">
                     <a href="{{ route('akun.pesanan.index', ['jenis' => 'sewa']) }}" 
-                    class="px-6 py-2.5 text-sm font-bold rounded-xl transition-all {{ ($filter ?? 'sewa') === 'sewa' ? 'bg-white text-ink shadow-sm' : 'text-gray-500 hover:text-ink' }}">
+                    class="pb-3 text-sm font-semibold transition-all border-b-2 
+                    {{ ($filter ?? 'sewa') === 'sewa' ? 'border-[#c99a32] text-[#c99a32]' : 'border-transparent text-gray-400 hover:text-gray-700' }}">
                         Pesanan Sewa
                     </a>
                     <a href="{{ route('akun.pesanan.index', ['jenis' => 'beli']) }}" 
-                    class="px-6 py-2.5 text-sm font-bold rounded-xl transition-all {{ ($filter ?? '') === 'beli' ? 'bg-white text-ink shadow-sm' : 'text-gray-500 hover:text-ink' }}">
+                    class="pb-3 text-sm font-semibold transition-all border-b-2 
+                    {{ ($filter ?? '') === 'beli' ? 'border-[#c99a32] text-[#c99a32]' : 'border-transparent text-gray-400 hover:text-gray-700' }}">
                         Pesanan Beli
                     </a>
                 </div>
@@ -122,64 +126,67 @@
                 </div>
             @else
                 <div class="space-y-3">
-                    @foreach ($pesananList as $index => $trx)
-                        <a href="{{ route('akun.pesanan.detail', $trx->id) }}" 
-                           class="block bg-panel border border-line/40 rounded-xl p-5 hover:border-gold/50 hover:shadow-md transition-all duration-300 group"
-                           style="--d: {{ $index * 0.08 }}s;">
-                           
-                            {{-- Header Card --}}
-                            <div class="flex items-start justify-between gap-3 mb-3">
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="px-2 py-0.5 rounded bg-gold/10 text-gold text-[9px] font-semibold uppercase">{{ $trx->jenis }}</span>
-                                        <span class="text-[10px] text-ink/40">{{ $trx->kode_transaksi }}</span>
-                                    </div>
-                                    <p class="text-[13px] font-medium text-ink/80">{{ $trx->detail->first()->produk->nama ?? '-' }}</p>
-                                    <p class="text-[10px] text-ink/50">{{ $trx->tanggal->format('d M Y') }}</p>
+                @foreach ($pesananList as $index => $trx)
+                    <a href="{{ route('akun.pesanan.detail', $trx->id) }}" 
+                    class="pd-up block bg-panel border border-line/40 rounded-xl p-5 hover:border-gold/50 hover:shadow-sm transition-all duration-300 group"
+                    style="--d: {{ $index * 0.08 }}s;">
+                        
+                        {{-- Header Card --}}
+                        <div class="flex items-start justify-between gap-3 mb-4">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    {{-- Badge Jenis (Sewa/Beli) lebih minimalis --}}
+                                    <span class="text-[9px] font-bold uppercase tracking-wider text-ink/40">{{ $trx->jenis }}</span>
+                                    <span class="w-1 h-1 rounded-full bg-line/50"></span>
+                                    <span class="text-[10px] text-ink/40 font-medium">{{ $trx->kode_transaksi }}</span>
                                 </div>
-                                @php
-                                    $statusClass = match ($trx->status_pembayaran) {
-                                        'lunas' => 'bg-emerald-50 text-emerald-700',
-                                        'dp' => 'bg-amber-50 text-amber-700',
-                                        default => 'bg-cream text-ink/60',
-                                    };
-                                @endphp
-                                <span class="px-2 py-1 rounded text-[9px] font-semibold uppercase {{ $statusClass }}">
-                                    {{ ucfirst($trx->status_pembayaran) }}
+                                <p class="text-[13px] font-semibold text-ink/85">{{ $trx->detail->first()->produk->nama ?? '-' }}</p>
+                                <p class="text-[10px] text-ink/50 mt-1">{{ $trx->tanggal->format('d M Y') }}</p>
+                            </div>
+                            
+                            {{-- Status (Hanya teks berwarna, tanpa kotak) --}}
+                            @php
+                                $statusClass = match ($trx->status_pembayaran) {
+                                    'lunas' => 'text-emerald-600',
+                                    'dp', 'dp_dibayar' => 'text-amber-600',
+                                    default => 'text-ink/50',
+                                };
+                            @endphp
+                            <span class="text-[10px] font-bold uppercase tracking-wider {{ $statusClass }}">
+                                {{ str_replace('_', ' ', $trx->status_pembayaran) }}
+                            </span>
+                        </div>
+
+                        {{-- Footer Card --}}
+                        <div class="flex items-center justify-between pt-3 border-t border-dashed border-line/30">
+                            <span class="text-[10px] text-ink/40 uppercase tracking-wider font-medium">Total</span>
+                            <div class="flex items-center gap-3">
+                                <span class="font-sans font-bold text-[13px] text-ink/85 tabular-nums">
+                                    Rp{{ number_format($trx->total, 0, ',', '.') }}
                                 </span>
-                            </div>
 
-                            {{-- Footer Card --}}
-                            <div class="flex items-center justify-between pt-3 border-t border-line/30">
-                                <span class="text-[11px] text-ink/50 font-medium">Total</span>
-                                <div class="flex items-center gap-3">
-                                    <span class="font-sans font-semibold text-[13px] text-ink/85 tabular-nums">
-                                        Rp{{ number_format($trx->total, 0, ',', '.') }}
+                                @php
+                                    $detailPertama = $trx->detail->first();
+                                    $sudahRating = $detailPertama
+                                        ? \App\Models\Rating::where('detail_transaksi_id', $detailPertama->id)->exists()
+                                        : true;
+                                @endphp
+
+                                {{-- Tombol Beri Rating Minimalis --}}
+                                @if ($trx->status_pembayaran === 'lunas' && !$sudahRating)
+                                    <span onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ route('rating.create', $detailPertama->id) }}';"
+                                        class="inline-flex items-center gap-1 text-gold text-[10px] font-semibold hover:text-amber-600 transition-colors whitespace-nowrap cursor-pointer mr-2">
+                                        ★ Beri Rating
                                     </span>
+                                @endif
 
-                                    @php
-                                        $detailPertama = $trx->detail->first();
-                                        $sudahRating = $detailPertama
-                                            ? \App\Models\Rating::where('detail_transaksi_id', $detailPertama->id)->exists()
-                                            : true;
-                                    @endphp
-
-                                    @if ($trx->status_pembayaran === 'lunas' && !$sudahRating)
-                                        <span onclick="event.preventDefault(); event.stopPropagation(); window.location.href='{{ route('rating.create', $detailPertama->id) }}';"
-                                              class="inline-flex items-center gap-1 px-2.5 py-1 bg-gold text-white text-[9px] font-bold rounded-lg hover:bg-amber-600 transition-colors whitespace-nowrap cursor-pointer">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                                            </svg>
-                                            Beri Rating
-                                        </span>
-                                    @endif
-
-                                    <x-icon name="chevron-right" :size="14" class="text-gold group-hover:translate-x-0.5 transition-transform shrink-0" />
-                                </div>
+                                {{-- Panah Chevron Minimalis --}}
+                                <x-icon name="chevron-right" :size="14" class="text-ink/20 group-hover:text-gold group-hover:translate-x-0.5 transition-all duration-300 shrink-0" />
                             </div>
-                        </a>
-                    @endforeach
-                </div>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
             @endif
         </div>
     </div>

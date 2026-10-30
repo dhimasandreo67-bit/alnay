@@ -29,7 +29,7 @@
        aria-label="Lihat {{ $produk->nama }}"></a>
 
         {{-- Gambar --}}
-    <div class="relative aspect-[4/3] bg-cream-dim overflow-hidden shrink-0">
+    <div class="relative aspect-[3/4] bg-cream-dim overflow-hidden shrink-0">
         @if ($fotoUrl)
             <img src="{{ $fotoUrl }}" alt="{{ $produk->nama }}"
                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
@@ -52,19 +52,21 @@
     </div>
 
     {{-- Isi kartu --}}
-    <div class="p-3 flex flex-col flex-1">
+    <div class="p-2 flex flex-col flex-1">
 
         {{-- Nama --}}
-        <h3 class="font-sans font-semibold text-ink text-[13px] leading-snug line-clamp-2 mb-1 group-hover:text-gold transition-colors min-h-[36px]">
+        <h3 class="font-sans font-semibold text-ink text-[13px] leading-snug line-clamp-1 mb-1 group-hover:text-gold transition-colors">
             {{ $produk->nama }}
         </h3>
 
-        @if (! empty($produk->deskripsi))
+        {{-- Deskripsi disembunyikan agar card lebih ringkas --}}
+
+        {{-- @if (! empty($produk->deskripsi))
             <p class="text-xs text-muted line-clamp-1 mt-0.5 mb-2">{{ $produk->deskripsi }}</p>
-        @endif
+        @endif --}}
 
         {{-- Rating --}}
-        <div class="flex items-center gap-1.5 mb-2">
+        <div class="flex items-center gap-1.5 mb-1">
             <div class="flex text-amber-400 gap-0.5">
                 @for ($i = 1; $i <= 5; $i++)
                     <svg class="w-3 h-3 {{ $i <= round($produk->rating_rata_rata) ? 'text-amber-400' : 'text-gray-300' }}" fill="currentColor" viewBox="0 0 20 20">
@@ -78,20 +80,20 @@
 
         {{-- Harga & tombol --}}
         <div class="mt-auto">
-            <div class="space-y-1 mb-3 border-t border-line/50 pt-2">
-                @if ($produk->dapat_dijual && $produk->harga_jual)
+            <div class="space-y-0.5 mb-1.5 border-t border-line/50 pt-1.5">
+                @if ($produk->dapat_dijual && $produk->harga_jual > 0)
                     <div class="flex items-baseline justify-between">
                         <span class="text-[9px] uppercase tracking-wider text-muted">Beli</span>
-                        <span class="font-sans font-bold text-[12px] text-ink">
+                        <span class="font-sans font-bold text-[11px] text-ink">
                             Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}
                         </span>
                     </div>
                 @endif
 
-                @if ($produk->harga_sewa)
+                @if ($produk->bisa_disewa && $produk->harga_sewa > 0)
                     <div class="flex items-baseline justify-between">
                         <span class="text-[9px] uppercase tracking-wider text-muted">Sewa</span>
-                        <span class="font-sans font-bold text-[12px] text-gold">
+                        <span class="font-sans font-bold text-[11px] text-gold">
                             Rp {{ number_format($produk->harga_sewa, 0, ',', '.') }}
                         </span>
                     </div>
@@ -99,14 +101,16 @@
             </div>
 
             {{-- Tombol (z-20 supaya di atas link overlay) --}}
-            <div class="relative z-20 grid {{ $produk->dapat_dijual ? 'grid-cols-2' : 'grid-cols-1' }} gap-2">
-                <a href="{{ route('produk.detail', ['sku' => $produk->sku]) }}"
-                   class="inline-flex items-center justify-center px-3 py-2.5 rounded-full border border-ink/20 text-ink text-xs font-semibold uppercase tracking-wider hover:bg-ink hover:text-cream transition-colors min-h-[44px]">
-                    Sewa
-                </a>
+            <div class="relative z-20 grid {{ ($produk->bisa_disewa && $produk->dapat_dijual) ? 'grid-cols-2' : 'grid-cols-1' }} gap-1.5">
+                @if ($produk->bisa_disewa)
+                    <a href="{{ route('produk.detail', ['sku' => $produk->sku]) }}"
+                    class="inline-flex items-center justify-center px-3 py-2.5 rounded-full border border-ink/20 text-ink text-xs font-semibold uppercase tracking-wider hover:bg-ink hover:text-cream transition-colors min-h-[44px]">
+                        Sewa
+                    </a>
+                @endif
                 @if ($produk->dapat_dijual)
                     <a href="{{ route('produk.detail', ['sku' => $produk->sku, 'mode' => 'beli']) }}"
-                       class="inline-flex items-center justify-center px-3 py-2.5 rounded-full bg-gold text-white text-xs font-semibold uppercase tracking-wider hover:bg-gold/90 transition-colors min-h-[44px]">
+                    class="inline-flex items-center justify-center px-3 py-2.5 rounded-full bg-gold text-white text-xs font-semibold uppercase tracking-wider hover:bg-gold/90 transition-colors min-h-[44px]">
                         Beli
                     </a>
                 @endif

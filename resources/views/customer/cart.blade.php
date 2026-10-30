@@ -26,6 +26,29 @@
     .kr-qty button:hover:not(:disabled) { background-color: #faf3e0; color: #a37b2a; }
     .kr-qty button:disabled { opacity: .35; cursor: not-allowed; }
     @media (prefers-reduced-motion: reduce) { .kr-rise { animation: none; } .kr-item, .kr-item img { transition: none; } }
+
+    /* Animasi Transisi Halaman (Smooth Toggle) */
+@view-transition {
+    navigation: auto;
+}
+
+::view-transition-old(root) {
+    animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
+}
+
+::view-transition-new(root) {
+    animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
+}
+
+@keyframes fade-out {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.98); }
+}
+
+@keyframes fade-in {
+    from { opacity: 0; transform: scale(1.02); }
+    to { opacity: 1; transform: scale(1); }
+}
 </style>
 
 @if(session('success'))
@@ -50,43 +73,80 @@
 
 <section class="max-w-7xl mx-auto px-4 pt-10 pb-32 lg:pb-14">
     
-    {{-- HEADER & SWITCH BUTTON --}}
+    {{-- HEADER & TAB MINIMALIS (Posisi Tengah & Tombol Lanjut Belanja) --}}
     <div class="kr-rise mb-8">
-        <div class="mb-3 flex items-center gap-2">
-            <span class="inline-block h-1.5 w-1.5 rotate-45" style="background-color: #c99a32;"></span>
-            <span class="text-[10px] font-bold uppercase tracking-[.24em]" style="color: #a37b2a;">Belanja</span>
-        </div>
         
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            {{-- Switch Tab --}}
-            <div class="inline-flex p-1.5 bg-gray-100/80 rounded-2xl border border-gray-200 shadow-sm backdrop-blur-sm">
+        {{-- Container Tab di Tengah --}}
+        <div class="flex items-center justify-between w-full border-b border-gray-200 relative pb-4">
+            
+            {{-- Spacer Kiri (Agar tab tetap di tengah persis) --}}
+            <div class="w-40 hidden md:block"></div>
+
+            {{-- Tab Tengah --}}
+            <div class="flex items-center gap-8 sm:gap-12 -mb-[1px] mx-auto md:mx-0">
+                {{-- Tab Keranjang Beli --}}
                 <a href="{{ route('keranjang.index') }}" 
-                   class="px-6 py-2.5 text-sm font-bold rounded-xl bg-white text-ink shadow-sm transition-all">
+                class="pb-4 text-sm font-medium transition-all flex items-center gap-2 border-b-2 
+                {{ request()->routeIs('keranjang.index') 
+                    ? 'border-[#c99a32] text-[#c99a32]' 
+                    : 'border-transparent text-gray-400 hover:text-gray-700' }}">
                     Keranjang Beli
                 </a>
+
+                {{-- Tab Keranjang Sewa --}}
                 <a href="{{ route('sewa.keranjang.index') }}" 
-                   class="px-6 py-2.5 text-sm font-semibold text-gray-500 hover:text-ink rounded-xl transition-all flex items-center gap-2">
+                class="pb-4 text-sm font-medium transition-all flex items-center gap-2 border-b-2 active:scale-95
+                {{ request()->routeIs('sewa.keranjang.index') 
+                    ? 'border-[#c99a32] text-[#c99a32]' 
+                    : 'border-transparent text-gray-400 hover:text-gray-700' }}">
                     Keranjang Sewa
                     @if(session()->has('keranjang_sewa') && count(session('keranjang_sewa')) > 0)
-                        <span class="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm">{{ count(session('keranjang_sewa')) }}</span>
+                        <span class="bg-[#fbf6e9] text-[#a37b2a] text-[10px] px-2 py-0.5 rounded-full">{{ count(session('keranjang_sewa')) }}</span>
                     @endif
                 </a>
             </div>
-            
-            @if(count($cartItems) > 0)
-                <p class="text-sm text-gray-500 font-medium">{{ count($cartItems) }} produk siap kamu bayar.</p>
-            @endif
+
+            {{-- TOMBOL LANJUT BELANJA (Kanan Atas) --}}
+            <div class="hidden md:flex w-40 justify-end">
+                <a href="{{ route('koleksi.index') }}"
+                   class="group flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-[#a37b2a] transition-colors duration-300">
+                    <span class="flex items-center justify-center w-7 h-7 rounded-full border border-gray-200 bg-white text-gray-400 
+                                 group-hover:border-[#c99a32] group-hover:bg-[#fbf6e9] group-hover:text-[#c99a32] 
+                                 group-hover:-translate-y-0.5 group-hover:shadow-sm transition-all duration-300">
+                        <svg class="w-3.5 h-3.5 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                    </span>
+                    <span class="tracking-wide uppercase">Lanjut Belanja</span>
+                </a>
+            </div>
         </div>
+        
+        {{-- Info Jumlah Produk (Jika ada) --}}
+        @if(count($cartItems) > 0)
+            <div class="text-center mt-4">
+                <p class="text-xs text-gray-400 font-medium">{{ count($cartItems) }} produk siap dibayar.</p>
+            </div>
+        @endif
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div class="{{ count($cartItems) == 0 ? 'lg:col-span-3' : 'lg:col-span-2' }}">
             @if(count($cartItems) == 0)
-                <div class="kr-rise rounded-2xl border border-dashed bg-white px-6 py-20 text-center max-w-2xl mx-auto" style="border-color: #d9cfb8; --d: .05s;">
-                    <div class="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full" style="background-color: #f8f1df; color: #c99a32;"><svg class="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg></div>
-                    <h3 class="font-display text-xl font-bold" style="color: #15233d;">Keranjang belanja masih kosong</h3>
-                    <p class="mx-auto mt-2 mb-7 max-w-sm text-sm leading-relaxed text-gray-500">Yuk, cari busana adat favoritmu dan mulai beli.</p>
-                    <a href="{{ route('koleksi.index') }}" class="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0" style="background-color: #c99a32;">Mulai Belanja <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg></a>
+                <div class="kr-rise rounded-3xl border border-dashed bg-white px-6 py-14 md:py-16 text-center max-w-2xl mx-auto shadow-sm" style="border-color: #d9cfb8; --d: .05s;">
+                    <div class="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full" style="background-color: #f8f1df; color: #c99a32;">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-display text-2xl font-bold mb-2" style="color: #15233d;">Keranjang belanja masih kosong</h3>
+                    <p class="mx-auto mb-8 max-w-sm text-sm leading-relaxed text-gray-500">Yuk, cari busana adat favoritmu dan mulai beli sekarang juga.</p>
+                    <a href="{{ route('koleksi.index') }}" class="inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-amber-500/30 transition hover:-translate-y-1 hover:shadow-amber-500/50 active:translate-y-0" style="background-color: #c99a32;">
+                        Mulai Belanja 
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path>
+                        </svg>
+                    </a>
                 </div>
             @else
                 <div class="kr-rise mb-4 flex items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm" style="border-color: #f0ece2; --d: .04s;">
@@ -157,8 +217,8 @@
                 <div class="my-5 border-t border-dashed" style="border-color: #e5e0d3;"></div>
                 <div class="mb-6 flex items-end justify-between"><span class="text-base font-bold" style="color: #15233d;">Grand Total</span><span class="text-2xl font-bold tabular-nums" style="color: #c99a32;">Rp {{ number_format($total, 0, ',', '.') }}</span></div>
                 <div class="mb-6 flex items-start gap-2.5 rounded-xl px-3.5 py-3" style="background-color: #faf6ea;"><svg class="mt-0.5 h-4 w-4 shrink-0" style="color: #c99a32;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg><p class="text-xs leading-relaxed text-gray-600">Tanpa biaya deposit jaminan sewa (barang menjadi hak milik).</p></div>
-                <a href="{{ route('checkout.index') }}" class="mb-3 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0" style="background-color: #c99a32;">Lanjut ke Pembayaran <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg></a>
-                <a href="{{ route('koleksi.index') }}" class="block text-center text-sm font-semibold text-gray-500 transition hover:text-[#a37b2a] hover:underline">← Lanjut Berbelanja</a>
+                <a href="{{ route('checkout.index') }}" class="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0" style="background-color: #c99a32;">Lanjut ke Pembayaran <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg></a>
+                {{-- Tombol Lanjut Berbelanja Lama Dihapus --}}
             </div>
         </div>
         @endif

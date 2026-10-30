@@ -107,10 +107,6 @@
         }
     }
     
-    .card-shadow {
-        box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
-    }
-    
     /* === CAROUSEL TRANSITIONS === */
     .carousel-item {
         transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -131,35 +127,7 @@
         transform: scale(0.9);
         filter: blur(2px);
     }
-    
-    /* Fade & Slide Effect */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.95); }
-        to { opacity: 1; transform: scale(1); }
-    }
-    
-    @keyframes slideLeft {
-        from { transform: translateX(100%) scale(0.9); opacity: 0; }
-        to { transform: translateX(0) scale(1); opacity: 1; }
-    }
-    
-    @keyframes slideRight {
-        from { transform: translateX(-100%) scale(0.9); opacity: 0; }
-        to { transform: translateX(0) scale(1); opacity: 1; }
-    }
-    
-    .carousel-animate-fade { animation: fadeIn 0.6s ease-out; }
-    .carousel-animate-left { animation: slideLeft 0.6s ease-out; }
-    .carousel-animate-right { animation: slideRight 0.6s ease-out; }
-    
-    /* Text Overlay Animation */
-    .carousel-text { animation: fadeInUp 0.5s ease-out 0.2s both; }
-    
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
+
     /* Button Hover Effect */
     .carousel-btn { transition: all 0.3s ease; }
     .carousel-btn:hover {
@@ -192,21 +160,20 @@
     #peta-alnay .leaflet-top,
     #peta-alnay .leaflet-bottom,
     #peta-alnay .leaflet-control,
-    #peta-alnay .leaflet-map-pane {
+    #peta-alnay .leaflet-map-pane,
+    #peta-alnay .leaflet-tile-pane,
+    #peta-alnay .leaflet-overlay-pane,
+    #peta-alnay .leaflet-shadow-pane,
+    #peta-alnay .leaflet-marker-pane,
+    #peta-alnay .leaflet-tooltip-pane,
+    #peta-alnay .leaflet-popup-pane {
         z-index: 1 !important;
     }
-
-    #peta-alnay .leaflet-tile-pane { z-index: 1 !important; }
-    #peta-alnay .leaflet-overlay-pane { z-index: 2 !important; }
-    #peta-alnay .leaflet-shadow-pane { z-index: 3 !important; }
-    #peta-alnay .leaflet-marker-pane { z-index: 4 !important; }
-    #peta-alnay .leaflet-tooltip-pane { z-index: 5 !important; }
-    #peta-alnay .leaflet-popup-pane { z-index: 6 !important; }
 
     /* === ANIMASI SCROLL REVEAL === */
     .reveal {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(30px);
         transition: opacity 0.8s cubic-bezier(0.22, 0.8, 0.3, 1), transform 0.8s cubic-bezier(0.22, 0.8, 0.3, 1);
     }
     .reveal.is-visible {
@@ -214,25 +181,37 @@
         transform: translateY(0);
     }
 
-    /* === HOVER EFFECT KARTU PRODUK === */
+    /* === HOVER EFFECT KARTU PRODUK (Lebih Modern) === */
     .card-produk {
-        transition: transform 0.4s cubic-bezier(0.22, 0.8, 0.3, 1), box-shadow 0.4s ease;
+        transition: all 0.4s cubic-bezier(0.22, 0.8, 0.3, 1);
+        border-radius: 16px;
+        border: 1px solid #f3f4f6;
+        background-color: white;
+        overflow: hidden;
     }
     .card-produk:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.15);
+        transform: translateY(-8px);
+        box-shadow: 0 25px 35px -10px rgba(0, 0, 0, 0.1);
+        border-color: #e5e7eb;
     }
 
-    /* === TRANSISI TOMBOL === */
+    /* Zoom in gambar produk saat dihover */
+    .card-produk:hover img {
+        transform: scale(1.08);
+    }
+    .card-produk img {
+        transition: transform 0.6s cubic-bezier(0.22, 0.8, 0.3, 1);
+    }
+
+    /* === TRANSISI TOMBOL (Lebih Lembut) === */
     .btn-smooth {
         transition: all 0.3s ease;
+        border-radius: 10px;
     }
     .btn-smooth:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 15px rgba(201, 154, 50, 0.3);
+        box-shadow: 0 8px 20px rgba(201, 154, 50, 0.3);
     }
-
-
 </style>
 
 
@@ -292,8 +271,11 @@
 </section>
 
 
-<section class="reveal max-w-7xl mx-auto px-4 mt-10">
-    <div class="flex flex-wrap justify-center gap-6 sm:gap-10">
+{{-- ============================================================
+     2. KATEGORI (Ikon Bulat)
+     ============================================================ --}}
+<section class="reveal max-w-7xl mx-auto px-4 mt-12 md:mt-16">
+    <div class="flex flex-wrap justify-center gap-8 sm:gap-12">
         @foreach ($kategori as $k)
             <a href="{{ route('koleksi.kategori', ['kode' => $k['kode_kategori']]) }}"
                class="group flex w-24 md:w-28 flex-col items-center gap-3 text-center transition-all duration-300 hover:-translate-y-1">
@@ -330,20 +312,19 @@
 {{-- ============================================================
      3. PRODUK TERBARU
      ============================================================ --}}
-<section class="reveal max-w-7xl mx-auto px-4 py-10 md:py-14">
-    <div class="flex flex-wrap items-end justify-between gap-3">
+<section class="reveal max-w-7xl mx-auto px-4 py-12 md:py-20">
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-8">
         <div>
-            <h2 class="font-display text-xl font-bold sm:text-2xl" style="color: #15233d;">Produk Terbaru</h2>
-            <p class="mt-1 text-xs" style="color: #6b7280;">Rilisan busana adat paling baru</p>
+            <h2 class="font-display text-2xl font-bold sm:text-3xl" style="color: #15233d;">Produk Terbaru</h2>
+            <p class="mt-1.5 text-sm" style="color: #6b7280;">Rilisan busana adat paling baru</p>
         </div>
-
-        <a href="{{ route('koleksi.index') }}" class="btn-smooth whitespace-nowrap text-xs font-semibold hover:underline" style="color: #c99a32;">
+        <a href="{{ route('koleksi.index') }}" class="btn-smooth whitespace-nowrap text-sm font-semibold hover:underline" style="color: #c99a32;">
             Lihat Semua →
         </a>
     </div>
 
     @if (count($produkTerbaru) > 0)
-        <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             @foreach ($produkTerbaru as $p)
                 @php
                     $badge = $p['stok'] > 0 ? 'Tersedia' : 'Habis';
@@ -352,40 +333,40 @@
                     $mode = $p['dapat_dijual'] ? 'dua' : 'satu';
                 @endphp
 
-                <div class="card-produk overflow-hidden rounded-lg border flex flex-col h-full" 
-                     style="border-color: #f3f4f6; background-color: white;">
-                    
-                    <div class="relative h-[200px] overflow-hidden">
+                <div class="card-produk flex flex-col h-full relative group">
+                    <div class="relative h-[220px] overflow-hidden bg-gray-100">
                         @if ($p['foto_produk'])
-                            <img src="{{ asset($p['foto_produk']) }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105">
+                            <img src="{{ asset($p['foto_produk']) }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover">
                         @else
                             <div class="flex h-full w-full items-center justify-center" style="background-color: #f5f0e6;">
                                 <span style="color: #15233d;">{{ $p['nama'] }}</span>
                             </div>
                         @endif
 
-                        <span class="absolute left-2.5 top-2.5 rounded px-2 py-1 text-[9px] font-bold uppercase text-white"
+                        <span class="absolute left-3 top-3 rounded-lg px-2.5 py-1 text-[10px] font-bold text-white shadow-sm"
                               style="background-color: {{ $badgeColor }};">
                             {{ $badge }}
                         </span>
 
-                        <span class="absolute bottom-2.5 left-2.5 rounded bg-black/70 px-2 py-1 text-[9px] font-semibold text-white">
+                        <span class="absolute bottom-3 left-3 rounded-lg bg-black/70 backdrop-blur-sm px-2.5 py-1 text-[10px] font-semibold text-white">
                             {{ $tag }}
                         </span>
                     </div>
 
-                    <div class="p-3 flex-grow flex flex-col">
-                        <h3 class="text-[13px] font-bold" style="color: #15233d;">{{ $p['nama'] }}</h3>
-                        <p class="mt-0.5 text-[11px]" style="color: #6b7280;">{{ $p['deskripsi'] }}</p>
+                    <div class="p-4 flex-grow flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold line-clamp-1" style="color: #15233d;">{{ $p['nama'] }}</h3>
+                            <p class="mt-1.5 text-xs leading-relaxed line-clamp-2" style="color: #6b7280;">{{ $p['deskripsi'] }}</p>
+                        </div>
 
-                        <div class="mt-2.5 space-y-0.5 text-[11px]">
-                            <div class="flex justify-between">
+                        <div class="mt-4 space-y-1.5 text-xs">
+                            <div class="flex justify-between items-center">
                                 <span style="color: #6b7280;">Sewa:</span>
                                 <span class="font-bold" style="color: #15233d;">Rp {{ number_format($p['harga_sewa'], 0, ',', '.') }}</span>
                             </div>
 
                             @if($p['dapat_dijual'])
-                                <div class="flex justify-between">
+                                <div class="flex justify-between items-center">
                                     <span style="color: #6b7280;">Beli Baru:</span>
                                     <span class="font-bold" style="color: #c99a32;">Rp {{ number_format($p['harga_jual'], 0, ',', '.') }}</span>
                                 </div>
@@ -393,15 +374,15 @@
                         </div>
                     </div>
 
-                    <div class="p-3 pt-0">
-                        <div class="flex gap-2">
+                    <div class="p-4 pt-0 mt-auto">
+                        <div class="flex gap-2.5">
                             @if($mode === 'dua')
-                                <a href="{{ route('produk.detail', $p['sku']) }}" class="flex-1 rounded-md border py-2 text-center text-[10px] font-bold hover:bg-gray-50 btn-smooth"
+                                <a href="{{ route('produk.detail', $p['sku']) }}" class="flex-1 rounded-lg border py-2.5 text-center text-[11px] font-bold hover:bg-gray-50 btn-smooth"
                                    style="border-color: #d1d5db; color: #333;">Sewa</a>
-                                <a href="{{ route('produk.detail', ['sku' => $p['sku'], 'mode' => 'beli']) }}" class="flex-1 rounded-md py-2 text-center text-[10px] font-bold text-white btn-smooth"
+                                <a href="{{ route('produk.detail', ['sku' => $p['sku'], 'mode' => 'beli']) }}" class="flex-1 rounded-lg py-2.5 text-center text-[11px] font-bold text-white btn-smooth"
                                    style="background-color: #c99a32;">Beli Baru</a>
                             @else
-                                <a href="{{ route('produk.detail', $p['sku']) }}" class="w-full rounded-md py-2 text-center text-[10px] font-bold text-white btn-smooth"
+                                <a href="{{ route('produk.detail', $p['sku']) }}" class="w-full rounded-lg py-2.5 text-center text-[11px] font-bold text-white btn-smooth"
                                    style="background-color: #c99a32;">Sewa Sekarang</a>
                             @endif
                         </div>
@@ -414,22 +395,21 @@
 
 
 {{-- ============================================================
-     4. PRODUK TERPOPULER
+     4. PRODUK TERPOPULER (Badge TOP dihilangkan)
      ============================================================ --}}
-<section class="reveal max-w-7xl mx-auto px-4 py-10 md:py-14">
-    <div class="flex flex-wrap items-end justify-between gap-3">
+<section class="reveal max-w-7xl mx-auto px-4 py-12 md:py-20">
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-8">
         <div>
-            <h2 class="font-display text-xl font-bold sm:text-2xl" style="color: #15233d;">Produk Terpopuler</h2>
-            <p class="mt-1 text-xs" style="color: #6b7280;">Favorit pilihan pelanggan dari beberapa waktu terakhir</p>
+            <h2 class="font-display text-2xl font-bold sm:text-3xl" style="color: #15233d;">Produk Terpopuler</h2>
+            <p class="mt-1.5 text-sm" style="color: #6b7280;">Favorit pilihan pelanggan dari beberapa waktu terakhir</p>
         </div>
-
-        <a href="{{ route('koleksi.index') }}" class="btn-smooth whitespace-nowrap text-xs font-semibold hover:underline" style="color: #c99a32;">
+        <a href="{{ route('koleksi.index') }}" class="btn-smooth whitespace-nowrap text-sm font-semibold hover:underline" style="color: #c99a32;">
             Lihat Semua →
         </a>
     </div>
 
     @if (count($produkTerpopuler) > 0)
-        <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             @foreach ($produkTerpopuler as $index => $p)
                 @php
                     $badge = $p['stok'] > 0 ? 'Tersedia' : 'Habis';
@@ -438,50 +418,47 @@
                     $mode = $p['dapat_dijual'] ? 'dua' : 'satu';
                 @endphp
 
-                <div class="card-produk overflow-hidden rounded-lg border flex flex-col h-full" 
-                     style="border-color: #f3f4f6; background-color: white;">
-                    
-                    <div class="relative h-[200px] overflow-hidden">
+                <div class="card-produk flex flex-col h-full relative group">
+                    <div class="relative h-[220px] overflow-hidden bg-gray-100">
                         @if ($p['foto_produk'])
-                            <img src="{{ asset($p['foto_produk']) }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105">
+                            <img src="{{ asset($p['foto_produk']) }}" alt="{{ $p['nama'] }}" class="h-full w-full object-cover">
                         @else
                             <div class="flex h-full w-full items-center justify-center" style="background-color: #f5f0e6;">
                                 <span style="color: #15233d;">{{ $p['nama'] }}</span>
                             </div>
                         @endif
 
-                        <span class="absolute left-2.5 top-2.5 rounded px-2 py-1 text-[9px] font-bold text-white"
-                              style="background-color: #c99a32;">
-                            TOP #{{ $index + 1 }}
-                        </span>
+                        {{-- Badge TOP di sini sudah dihapus --}}
 
-                        <span class="absolute right-2.5 top-2.5 rounded px-2 py-1 text-[9px] font-bold uppercase text-white"
+                        <span class="absolute right-3 top-3 rounded-lg px-2.5 py-1 text-[10px] font-bold text-white shadow-sm"
                               style="background-color: {{ $badgeColor }};">
                             {{ $badge }}
                         </span>
 
-                        <span class="absolute bottom-2.5 left-2.5 rounded bg-black/70 px-2 py-1 text-[9px] font-semibold text-white">
+                        <span class="absolute bottom-3 left-3 rounded-lg bg-black/70 backdrop-blur-sm px-2.5 py-1 text-[10px] font-semibold text-white">
                             {{ $tag }}
                         </span>
                     </div>
 
-                    <div class="p-3 flex-grow flex flex-col">
-                        <p class="text-[10px] font-semibold" style="color: #c99a32;">
-                            ★ {{ number_format($p['rating_rata_rata'], 1) }} 
-                            <span style="color: #6b7280;">({{ $p['jumlah_rating'] }} ulasan)</span>
-                        </p>
+                    <div class="p-4 flex-grow flex flex-col justify-between">
+                        <div>
+                            <p class="text-[10px] font-bold" style="color: #c99a32;">
+                                ★ {{ number_format($p['rating_rata_rata'], 1) }} 
+                                <span class="font-medium" style="color: #6b7280;">({{ $p['jumlah_rating'] }} ulasan)</span>
+                            </p>
 
-                        <h3 class="mt-1 text-[13px] font-bold" style="color: #15233d;">{{ $p['nama'] }}</h3>
-                        <p class="mt-0.5 text-[11px]" style="color: #6b7280;">{{ $p['deskripsi'] }}</p>
+                            <h3 class="mt-1.5 text-sm font-bold line-clamp-1" style="color: #15233d;">{{ $p['nama'] }}</h3>
+                            <p class="mt-1.5 text-xs leading-relaxed line-clamp-2" style="color: #6b7280;">{{ $p['deskripsi'] }}</p>
+                        </div>
 
-                        <div class="mt-2.5 space-y-0.5 text-[11px]">
-                            <div class="flex justify-between">
+                        <div class="mt-4 space-y-1.5 text-xs">
+                            <div class="flex justify-between items-center">
                                 <span style="color: #6b7280;">Sewa:</span>
                                 <span class="font-bold" style="color: #15233d;">Rp {{ number_format($p['harga_sewa'], 0, ',', '.') }}</span>
                             </div>
 
                             @if($p['dapat_dijual'])
-                                <div class="flex justify-between">
+                                <div class="flex justify-between items-center">
                                     <span style="color: #6b7280;">Beli Baru:</span>
                                     <span class="font-bold" style="color: #c99a32;">Rp {{ number_format($p['harga_jual'], 0, ',', '.') }}</span>
                                 </div>
@@ -489,15 +466,15 @@
                         </div>
                     </div>
 
-                    <div class="p-3 pt-0">
-                        <div class="flex gap-2">
+                    <div class="p-4 pt-0 mt-auto">
+                        <div class="flex gap-2.5">
                             @if($mode === 'dua')
-                                <a href="{{ route('produk.detail', $p['sku']) }}" class="flex-1 rounded-md border py-2 text-center text-[10px] font-bold hover:bg-gray-50 btn-smooth"
+                                <a href="{{ route('produk.detail', $p['sku']) }}" class="flex-1 rounded-lg border py-2.5 text-center text-[11px] font-bold hover:bg-gray-50 btn-smooth"
                                    style="border-color: #d1d5db; color: #333;">Sewa</a>
-                                <a href="{{ route('produk.detail', ['sku' => $p['sku'], 'mode' => 'beli']) }}" class="flex-1 rounded-md py-2 text-center text-[10px] font-bold text-white btn-smooth"
+                                <a href="{{ route('produk.detail', ['sku' => $p['sku'], 'mode' => 'beli']) }}" class="flex-1 rounded-lg py-2.5 text-center text-[11px] font-bold text-white btn-smooth"
                                    style="background-color: #111111;">Beli Baru</a>
                             @else
-                                <a href="{{ route('produk.detail', $p['sku']) }}" class="w-full rounded-md py-2 text-center text-[10px] font-bold text-white btn-smooth"
+                                <a href="{{ route('produk.detail', $p['sku']) }}" class="w-full rounded-lg py-2.5 text-center text-[11px] font-bold text-white btn-smooth"
                                    style="background-color: #c99a32;">Sewa Sekarang</a>
                             @endif
                         </div>
@@ -512,30 +489,30 @@
 {{-- ============================================================
      6. EVENT BANNER (Satu Card Ringkas)
      ============================================================ --}}
-<section class="reveal max-w-7xl mx-auto px-4 py-8">
+<section class="reveal max-w-7xl mx-auto px-4 py-8 md:py-12">
     <a href="https://eventalnay.id/beranda" target="_blank" rel="noopener"
-       class="group flex flex-col md:flex-row items-center justify-between gap-6 rounded-2xl p-6 md:p-8 transition-all duration-500 hover:shadow-xl hover:-translate-y-1"
+       class="group flex flex-col md:flex-row items-center justify-between gap-6 rounded-3xl p-6 md:p-10 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1"
        style="background-color: #1a1610;">
 
         {{-- Kiri: Teks --}}
         <div class="flex-1 min-w-0">
-            <span class="inline-block px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider"
+            <span class="inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
                   style="background-color: #c99a32; color: white;">
                 ● Event Spesial ALNAY.ID
             </span>
 
-            <h2 class="font-display text-xl md:text-2xl font-bold text-white mt-3 leading-snug">
+            <h2 class="font-display text-xl md:text-3xl font-bold text-white mt-4 leading-snug">
                 Ikuti Event Budaya &amp; Menangkan Hadiah Menarik
             </h2>
 
-            <p class="text-xs md:text-sm text-gray-400 mt-2 leading-relaxed max-w-xl">
+            <p class="text-sm md:text-base text-gray-400 mt-3 leading-relaxed max-w-xl">
                 Kompetisi busana adat, workshop kebudayaan, hingga event seru lainnya. Semua ada di satu tempat!
             </p>
         </div>
 
         {{-- Kanan: Tombol --}}
-        <div class="shrink-0">
-            <span class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-300 group-hover:gap-3"
+        <div class="shrink-0 mt-4 md:mt-0">
+            <span class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300 group-hover:gap-4"
                   style="background-color: #c99a32; color: white;">
                 Kunjungi Halaman Event
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -550,73 +527,73 @@
 {{-- ============================================================
      7. OPSI FLEKSIBEL: SEWA ATAU BELI
      ============================================================ --}}
-<section class="reveal max-w-7xl mx-auto px-4 py-14">
-    <div class="text-center mb-10">
-        <p class="text-[10px] font-bold uppercase tracking-[0.2em]" style="color: #c99a32;">Transparansi Mutu</p>
-        <h2 class="font-display text-2xl md:text-3xl font-bold mt-2" style="color: #15233d;">Opsi Fleksibel: Sewa atau Beli</h2>
-        <p class="text-xs text-gray-600 mt-2 max-w-2xl mx-auto">
+<section class="reveal max-w-7xl mx-auto px-4 py-16 md:py-24">
+    <div class="text-center mb-12">
+        <p class="text-[11px] font-bold uppercase tracking-[0.2em]" style="color: #c99a32;">Transparansi Mutu</p>
+        <h2 class="font-display text-2xl md:text-4xl font-bold mt-3" style="color: #15233d;">Opsi Fleksibel: Sewa atau Beli</h2>
+        <p class="text-sm md:text-base text-gray-500 mt-3 max-w-2xl mx-auto leading-relaxed">
             Kejelasan komitmen higienitas, fitting presisi, dan garansi busana tanpa biaya tersembunyi.
         </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
         {{-- Card 1: Layanan Sewa Busana --}}
-        <div class="rounded-xl border p-6 md:p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg" style="border-color: #f3f4f6; background-color: white;">
-            <span class="inline-block px-3 py-1 rounded-full text-[9px] font-bold uppercase" style="background-color: #fef3c7; color: #92400e;">
+        <div class="rounded-3xl border p-8 md:p-10 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl" style="border-color: #f3f4f6; background-color: white;">
+            <span class="inline-block px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide" style="background-color: #fef3c7; color: #92400e;">
                 Paling Diminati
             </span>
-            <h3 class="font-display text-lg font-bold mt-3" style="color: #15233d;">Layanan Sewa Busana</h3>
-            <p class="text-xs text-gray-600 mt-2">Solusi praktis dan hemat untuk akad nikah, resepsi, wisuda, atau pentas budaya.</p>
+            <h3 class="font-display text-xl md:text-2xl font-bold mt-4" style="color: #15233d;">Layanan Sewa Busana</h3>
+            <p class="text-sm text-gray-600 mt-3 leading-relaxed">Solusi praktis dan hemat untuk akad nikah, resepsi, wisuda, atau pentas budaya.</p>
             
-            <ul class="mt-4 space-y-2 text-xs">
-                <li class="flex items-start gap-2">
-                    <span style="color: #c99a32;">✓</span>
+            <ul class="mt-6 space-y-3 text-sm">
+                <li class="flex items-start gap-3">
+                    <span class="text-lg leading-none" style="color: #c99a32;">✓</span>
                     <span style="color: #374151;"><strong>Durasi Sewa:</strong> Fleksibel 3 sampai 7 hari kerja.</span>
                 </li>
-                <li class="flex items-start gap-2">
-                    <span style="color: #c99a32;">✓</span>
+                <li class="flex items-start gap-3">
+                    <span class="text-lg leading-none" style="color: #c99a32;">✓</span>
                     <span style="color: #374151;"><strong>Gratis Alteration:</strong> Penyesuaian ukuran pinggang & kancing aman.</span>
                 </li>
-                <li class="flex items-start gap-2">
-                    <span style="color: #c99a32;">✓</span>
+                <li class="flex items-start gap-3">
+                    <span class="text-lg leading-none" style="color: #c99a32;">✓</span>
                     <span style="color: #374151;"><strong>Termasuk Laundry:</strong> Busana kembali tidak perlu dicuci sendiri, harum dan wangi sekali!</span>
                 </li>
-                <li class="flex items-start gap-2">
-                    <span style="color: #c99a32;">✓</span>
+                <li class="flex items-start gap-3">
+                    <span class="text-lg leading-none" style="color: #c99a32;">✓</span>
                     <span style="color: #374151;"><strong>Steril & Higienis:</strong> Ozon steaming dan garment bag anti debu.</span>
                 </li>
             </ul>
 
-            <a href="{{ route('koleksi.index') }}" class="btn-smooth block w-full mt-6 py-3 rounded-md text-center text-xs font-bold uppercase tracking-wider" style="background-color: #c99a32; color: white;">
+            <a href="{{ route('koleksi.index') }}" class="btn-smooth block w-full mt-8 py-3.5 rounded-xl text-center text-xs font-bold uppercase tracking-wider" style="background-color: #c99a32; color: white;">
                 Eksplorasi Katalog Sewa
             </a>
         </div>
 
         {{-- Card 2: Beli & Custom Bespoke --}}
-        <div class="rounded-xl p-6 md:p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg" style="background-color: #1a1610;">
-            <h3 class="font-display text-lg font-bold text-white">Beli & Custom Bespoke</h3>
-            <p class="text-xs text-gray-400 mt-2">Mahakarya eksklusif milik selamanya sebagai busana warisan keluarga.</p>
+        <div class="rounded-3xl p-8 md:p-10 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl" style="background-color: #1a1610;">
+            <h3 class="font-display text-xl md:text-2xl font-bold text-white mt-4 md:mt-10">Beli & Custom Bespoke</h3>
+            <p class="text-sm text-gray-400 mt-3 leading-relaxed">Mahakarya eksklusif milik selamanya sebagai busana warisan keluarga.</p>
             
-            <ul class="mt-4 space-y-2 text-xs">
-                <li class="flex items-start gap-2">
-                    <span style="color: #c99a32;">✓</span>
+            <ul class="mt-6 space-y-3 text-sm">
+                <li class="flex items-start gap-3">
+                    <span class="text-lg leading-none" style="color: #c99a32;">✓</span>
                     <span style="color: #e5e7eb;"><strong>Full Tailoring Personal:</strong> Disesuaikan 100% dengan lekuk tubuh.</span>
                 </li>
-                <li class="flex items-start gap-2">
-                    <span style="color: #c99a32;">✓</span>
+                <li class="flex items-start gap-3">
+                    <span class="text-lg leading-none" style="color: #c99a32;">✓</span>
                     <span style="color: #e5e7eb;"><strong>Material Sutera & Songket Asli:</strong> Pilihan bahan tenun tangan terbaik.</span>
                 </li>
-                <li class="flex items-start gap-2">
-                    <span style="color: #c99a32;">✓</span>
+                <li class="flex items-start gap-3">
+                    <span class="text-lg leading-none" style="color: #c99a32;">✓</span>
                     <span style="color: #e5e7eb;"><strong>Sulam Emas Tradisional:</strong> Dikerjakan manual oleh perajin adibusana.</span>
                 </li>
-                <li class="flex items-start gap-2">
-                    <span style="color: #c99a32;">✓</span>
+                <li class="flex items-start gap-3">
+                    <span class="text-lg leading-none" style="color: #c99a32;">✓</span>
                     <span style="color: #e5e7eb;"><strong>Garansi Fitting Ulang:</strong> Revisi hingga nyaman dan pas dipakai.</span>
                 </li>
             </ul>
 
-            <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="btn-smooth block w-full mt-6 py-3 rounded-md border text-center text-xs font-bold uppercase tracking-wider hover:bg-white/10" style="border-color: #374151; color: white;">
+            <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="btn-smooth block w-full mt-8 py-3.5 rounded-xl border text-center text-xs font-bold uppercase tracking-wider hover:bg-white/10" style="border-color: #374151; color: white;">
                 Konsultasi Bespoke
             </a>
         </div>
@@ -627,40 +604,40 @@
 {{-- ============================================================
      8. OFFLINE ATELIER & STUDIO
      ============================================================ --}}
-<section class="reveal max-w-7xl mx-auto px-4 py-14">
-    <div class="rounded-xl border p-6 md:p-10 transition-all duration-300 hover:shadow-lg" style="border-color: #f3f4f6; background-color: white;">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+<section class="reveal max-w-7xl mx-auto px-4 py-16 md:py-24 bg-gray-50/50">
+    <div class="rounded-3xl border p-6 md:p-12 transition-all duration-300 hover:shadow-xl bg-white" style="border-color: #f3f4f6;">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             {{-- Left: Text Content --}}
             <div>
-                <p class="text-[10px] font-bold uppercase tracking-[0.2em]" style="color: #c99a32;">Galeri & Ruang Fitting</p>
-                <h2 class="font-display text-2xl font-bold mt-2" style="color: #15233d;">Offline Atelier & Studio ALNAY.ID</h2>
-                <p class="text-sm text-gray-600 mt-3">
+                <p class="text-[11px] font-bold uppercase tracking-[0.2em]" style="color: #c99a32;">Galeri & Ruang Fitting</p>
+                <h2 class="font-display text-2xl md:text-3xl font-bold mt-3" style="color: #15233d;">Offline Atelier & Studio ALNAY.ID</h2>
+                <p class="text-sm md:text-base text-gray-600 mt-4 leading-relaxed">
                     Kunjungi studio kami untuk konsultasi langsung, fitting presisi, dan melihat koleksi secara nyata. 
                     Dilengkapi ruang fitting privat ber-AC dan penjahit profesional siap membantu.
                 </p>
                 
-                <div class="mt-6 flex flex-wrap gap-3">
-                    <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="btn-smooth inline-block px-5 py-3 rounded-md border text-xs font-bold uppercase tracking-wider hover:bg-gray-50" style="border-color: #15233d; color: #15233d;">
-                        Info Lokasi & Booking Jadwal
+                <div class="mt-8 flex flex-wrap gap-4">
+                    <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="btn-smooth inline-block px-6 py-3.5 rounded-xl border text-xs font-bold uppercase tracking-wider hover:bg-gray-50" style="border-color: #15233d; color: #15233d;">
+                        Info Lokasi & Booking
                     </a>
-                    <a href="#" class="btn-smooth inline-block px-5 py-3 rounded-md border text-xs font-bold uppercase tracking-wider hover:bg-gray-50" style="border-color: #d1d5db; color: #374151;">
+                    <a href="#" class="btn-smooth inline-block px-6 py-3.5 rounded-xl border text-xs font-bold uppercase tracking-wider hover:bg-gray-50" style="border-color: #d1d5db; color: #374151;">
                         Panduan Sewa Online
                     </a>
                 </div>
             </div>
 
             {{-- Right: Map Container --}}
-            <div class="relative rounded-lg overflow-hidden group cursor-pointer border" style="border-color: #f3f4f6; z-index: 1;">
-                <div id="peta-alnay" class="w-full h-[250px] md:h-[270px] rounded-lg transition-transform duration-500 group-hover:scale-105"></div>
+            <div class="relative rounded-2xl overflow-hidden group cursor-pointer border shadow-sm" style="border-color: #f3f4f6; z-index: 1;">
+                <div id="peta-alnay" class="w-full h-[280px] md:h-[320px] transition-transform duration-500 group-hover:scale-105"></div>
 
-                <div class="absolute top-3 left-3 right-3 p-3 rounded-lg shadow-lg transition-all duration-300 group-hover:-translate-y-1"
-                     style="background-color: rgba(23, 20, 15, 0.92); backdrop-filter: blur(4px); z-index: 10;">
-                    <p class="text-white text-xs font-bold flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" style="color: #c99a32;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                <div class="absolute top-4 left-4 right-4 p-4 rounded-xl shadow-lg transition-all duration-300 group-hover:-translate-y-1"
+                     style="background-color: rgba(23, 20, 15, 0.92); backdrop-filter: blur(6px); z-index: 10;">
+                    <p class="text-white text-sm font-bold flex items-center gap-2">
+                        <svg class="w-4 h-4" style="color: #c99a32;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
                         Atelier & Fashion Etnik
                     </p>
-                    <p class="text-gray-300 text-[10px] mt-1 leading-relaxed">Jl. Terusan Rajabasa No.11, Perum Bumi Permata Cirmai, Kel. Kedung, Kec. Kemiling, Bandar Lampung</p>
-                    <p class="text-gray-400 text-[9px] mt-1">Buka: 09.00 - 20.00 WIB</p>
+                    <p class="text-gray-300 text-xs mt-1.5 leading-relaxed">Jl. Terusan Rajabasa No.11, Perum Bumi Permata Cirmai, Kel. Kedung, Kec. Kemiling, Bandar Lampung</p>
+                    <p class="text-gray-400 text-[10px] mt-1.5">Buka: 09.00 - 20.00 WIB</p>
                 </div>
             </div>
         </div>
@@ -671,42 +648,42 @@
 {{-- ============================================================
      5. TESTIMONI
      ============================================================ --}}
-<section class="reveal max-w-7xl mx-auto px-4 py-10 md:py-14">
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+<section class="reveal max-w-7xl mx-auto px-4 py-16 md:py-24">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-10">
         <div>
-            <p class="text-[11px] font-semibold uppercase tracking-widest" style="color: #c99a32;">Kisah Bahagia Bersama ALNAY.ID</p>
-            <h2 class="font-display mt-1 text-2xl font-bold" style="color: #15233d;">Testimoni Pengantin &amp; Klien</h2>
+            <p class="text-[11px] font-bold uppercase tracking-widest" style="color: #c99a32;">Kisah Bahagia Bersama ALNAY.ID</p>
+            <h2 class="font-display mt-2 text-2xl md:text-3xl font-bold" style="color: #15233d;">Testimoni Pengantin &amp; Klien</h2>
         </div>
 
-        <p class="text-xs" style="color: #6b7280;">
+        <p class="text-sm font-medium" style="color: #6b7280;">
             Kepuasan ★ 4.97 dari 1.800+ Acara
         </p>
     </div>
 
     @if (count($testimoni) > 0)
-        <div class="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
+        <div class="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
             @foreach ($testimoni as $t)
                 @php
                     $inisial = strtoupper(substr($t['nama'], 0, 2));
                 @endphp
 
-                <div class="card-produk rounded-xl border p-5" style="border-color: #f3f4f6; background-color: white;">
-                    <p style="color: #c99a32;">
+                <div class="card-produk rounded-2xl p-6 md:p-7 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                    <p class="text-base" style="color: #c99a32;">
                         @for($i = 1; $i <= 5; $i++)
                             {{ $i <= $t['bintang'] ? '★' : '☆' }}
                         @endfor
                     </p>
 
-                    <p class="mt-3 text-xs leading-relaxed" style="color: #4b5563;">"{{ $t['teks'] }}"</p>
+                    <p class="mt-4 text-sm leading-relaxed italic" style="color: #4b5563;">"{{ $t['teks'] }}"</p>
 
-                    <div class="mt-4 flex items-center gap-3">
-                        <div class="flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-bold"
+                    <div class="mt-6 flex items-center gap-3.5">
+                        <div class="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold"
                              style="background-color: #fbf6e9; color: #c99a32;">
                             {{ $inisial }}
                         </div>
                         <div>
-                            <p class="text-xs font-bold" style="color: #15233d;">{{ $t['nama'] }}</p>
-                            <p class="text-[10px]" style="color: #9ca3af;">{{ $t['konteks'] }}</p>
+                            <p class="text-sm font-bold" style="color: #15233d;">{{ $t['nama'] }}</p>
+                            <p class="text-xs mt-0.5" style="color: #9ca3af;">{{ $t['konteks'] }}</p>
                         </div>
                     </div>
                 </div>

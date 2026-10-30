@@ -176,9 +176,11 @@
                                 @elseif(empty($admin->admin_permissions))
                                     <span class="text-xs font-semibold text-gray-400">Belum ada akses diberikan</span>
                                 @else
-                                    <div class="flex flex-wrap gap-1 max-w-sm">
+                                    <div class="flex flex-wrap gap-1.5 max-w-xs">
                                         @foreach($admin->admin_permissions as $key)
-                                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200">{{ \App\Support\AdminMenu::label($key) }}</span>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200">
+                                                {{ \App\Support\AdminMenu::label($key) }}
+                                            </span>
                                         @endforeach
                                     </div>
                                 @endif
@@ -247,76 +249,87 @@
 </div>
 
 {{-- ============ Modal Tambah/Edit Admin ============ --}}
-<div id="adminModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm p-4">
-    <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-amber-100/60 max-h-[90vh] overflow-y-auto">
-        <form id="adminForm" method="POST" action="{{ route('admin.kelola-admin.store') }}">
+<div id="adminModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4">
+    {{-- Container Modal (Fixed Height, Flex Col) --}}
+    <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <form id="adminForm" method="POST" action="{{ route('admin.kelola-admin.store') }}" class="flex flex-col h-full overflow-hidden">
             @csrf
             <div id="adminMethodField"></div>
             <input type="hidden" name="editing_id" id="field_editing_id" value="{{ old('editing_id') }}">
 
-            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            {{-- Header (Sticky) --}}
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
                 <div>
                     <h2 id="adminModalTitle" class="text-lg font-black text-gray-900">Tambah Admin</h2>
                     <p class="text-xs text-gray-500 mt-0.5">Atur akses akun ke panel admin</p>
                 </div>
-                <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+                <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
-            <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Nama <span class="text-rose-500">*</span></label>
-                    <input type="text" name="name" id="field_name" required value="{{ old('name') }}"
-                        class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Email <span class="text-rose-500">*</span></label>
-                    <input type="email" name="email" id="field_email" required value="{{ old('email') }}"
-                        class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
+            {{-- Body (Scrollable) --}}
+            <div class="p-6 overflow-y-auto custom-scrollbar space-y-4">
+                {{-- Grid Nama & Email --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Password <span id="passwordHint" class="font-normal normal-case text-gray-400 tracking-normal"></span></label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1.5">Nama Lengkap</label>
+                        <input type="text" name="name" id="field_name" required value="{{ old('name') }}"
+                            class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1.5">Email</label>
+                        <input type="email" name="email" id="field_email" required value="{{ old('email') }}"
+                            class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 transition-all">
+                    </div>
+                </div>
+
+                {{-- Grid Password --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1.5">Password <span id="passwordHint" class="font-normal text-gray-400"></span></label>
                         <input type="password" name="password" id="field_password"
-                            class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+                            class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 transition-all">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Konfirmasi Password</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1.5">Konfirmasi Password</label>
                         <input type="password" name="password_confirmation" id="field_password_confirmation"
-                            class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+                            class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 transition-all">
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">Role</label>
-                    <select name="role" id="field_role" onchange="togglePermissionBlock()"
-                        class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all cursor-pointer">
-                        <option value="admin" @selected(old('role', 'admin') === 'admin')>Admin (akses dibatasi menu di bawah)</option>
-                        @if($canAssignOwner)
-                            <option value="owner" @selected(old('role') === 'owner')>Owner (akses penuh semua menu)</option>
-                        @endif
-                    </select>
+                {{-- Role & Status --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1.5">Role</label>
+                        <select name="role" id="field_role" onchange="togglePermissionBlock()"
+                            class="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 transition-all">
+                            <option value="admin" @selected(old('role', 'admin') === 'admin')>Admin (akses dibatasi)</option>
+                            @if($canAssignOwner)
+                                <option value="owner" @selected(old('role') === 'owner')>Owner (akses penuh)</option>
+                            @endif
+                        </select>
+                    </div>
+                    <div class="pt-5">
+                        <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                            <input type="checkbox" name="status_aktif" id="field_status_aktif" value="1" @checked(old('status_aktif', true))
+                                class="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900/20">
+                            Akun aktif (bisa login)
+                        </label>
+                    </div>
                 </div>
 
-                <label class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-700 cursor-pointer select-none bg-amber-50/30 p-3 rounded-xl border border-amber-100/50">
-                    <input type="checkbox" name="status_aktif" id="field_status_aktif" value="1" @checked(old('status_aktif', true))
-                        class="rounded border-gray-300 text-amber-600 focus:ring-amber-500/20">
-                    Akun aktif (bisa login)
-                </label>
-
-                <div id="permissionBlock">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">Halaman yang Boleh Diakses</label>
-                    <div class="space-y-3 max-h-60 overflow-y-auto border border-gray-100 rounded-xl p-3 bg-gray-50/40">
+                {{-- Permission Block (Grid) --}}
+                <div id="permissionBlock" class="pt-2">
+                    <label class="block text-xs font-bold text-gray-700 mb-2">Halaman yang Boleh Diakses</label>
+                    <div class="space-y-4 max-h-56 overflow-y-auto custom-scrollbar border border-gray-200 rounded-xl p-4 bg-gray-50">
                         @foreach($menuGrouped as $group => $items)
                             <div>
-                                <p class="text-[11px] font-bold text-amber-700/80 uppercase tracking-wider mb-1.5">{{ $group }}</p>
-                                <div class="grid grid-cols-2 gap-1.5">
+                                <p class="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">{{ $group }}</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     @foreach($items as $key => $label)
-                                        <label class="flex items-center gap-1.5 text-xs font-semibold text-gray-700 cursor-pointer">
-                                            <input type="checkbox" name="admin_permissions[]" value="{{ $key }}" @checked(in_array($key, old('admin_permissions', []))) class="permission-checkbox rounded border-gray-300 text-amber-600 focus:ring-amber-500/20">
+                                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer hover:text-amber-600 transition-colors">
+                                            <input type="checkbox" name="admin_permissions[]" value="{{ $key }}" @checked(in_array($key, old('admin_permissions', []))) class="permission-checkbox w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
                                             {{ $label }}
                                         </label>
                                     @endforeach
@@ -327,9 +340,10 @@
                 </div>
             </div>
 
-            <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-gray-100">
-                <button type="button" onclick="closeModal()" class="px-4 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition-all active:scale-95">Batal</button>
-                <button type="submit" class="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 shadow-lg shadow-amber-500/20 active:scale-95 transition-all duration-200">Simpan</button>
+            {{-- Footer (Sticky) --}}
+            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl shrink-0">
+                <button type="button" onclick="document.getElementById('adminModal').classList.add('hidden')" class="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors">Batal</button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 shadow-lg shadow-amber-500/20 active:scale-95 transition-all duration-200">Simpan Admin</button>
             </div>
         </form>
     </div>

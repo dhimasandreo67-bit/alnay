@@ -68,7 +68,7 @@
         $jumlahDisewa = $produk->getAttributes()['jumlah_disewa'] ?? null;
 
         $config = [
-            'mode' => request('mode') === 'beli' && $produk->dapat_dijual ? 'beli' : 'sewa',
+            'mode' => (request('mode') === 'beli' && $produk->dapat_dijual) || !$produk->bisa_disewa ? 'beli' : 'sewa',
             'hargaSewa' => (float) ($produk->harga_sewa ?? 0),
             'dendaPerHari' => (float) ($produk->denda_per_hari_telat ?? 0),
             'hargaJual' => (float) ($produk->harga_jual ?? 0),
@@ -166,7 +166,7 @@
 
                                         <div class="pd-up flex items-center gap-2" style="--d: .05s;">
                         <span class="inline-block px-2.5 py-1 rounded-md bg-ink/90 text-gold text-[11px] font-medium tracking-wider">
-                            {{ $produk->dapat_dijual ? 'Sewa & Beli' : 'Khusus Sewa' }}
+                            {{ $produk->bisa_disewa && $produk->dapat_dijual ? 'Sewa & Beli' : ($produk->bisa_disewa ? 'Khusus Sewa' : 'Khusus Jual') }}
                         </span>
                         
                         {{-- BADGE KATEGORI BARU --}}
@@ -201,7 +201,7 @@
                     </div>
 
                     {{-- Switch Sewa / Beli (indikator bergeser) --}}
-                    @if ($produk->dapat_dijual)
+                    @if ($produk->bisa_disewa && $produk->dapat_dijual)
                         <div class="pd-up relative grid grid-cols-2 border border-line/40 rounded-lg overflow-hidden bg-white/70 mb-5"
                             style="--d: .2s;">
                             <span aria-hidden="true"
@@ -405,36 +405,40 @@
                     {{-- Tombol aksi --}}
                     <div class="pd-up grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-stretch" style="--d: .4s;">
                         {{-- Tombol Sewa --}}
-                        <div x-show="mode === 'sewa'" x-cloak class="h-full">
-                            <form method="POST" action="{{ route('sewa.simpan') }}" x-ref="formSewa">
-                                @csrf
-                                <input type="hidden" name="produk_id" value="{{ $produk->id }}">
-                                <input type="hidden" name="tanggal_ambil" :value="tanggalAmbil">
-                                <input type="hidden" name="tanggal_kembali" :value="tanggalKembali">
-                                <input type="hidden" name="ukuran" :value="ukuran">
-                                <input type="hidden" name="durasi" :value="durasi">
-                                <input type="hidden" name="total_sewa" :value="totalSewa">
-                                <button type="submit" @click.prevent="kirimSewa()"
-                                    :class="{ 'pd-ready': tanggalAmbil && tanggalKembali }"
-                                    class="pd-shine w-full h-[46px] rounded-lg bg-gold text-white text-[13px] font-semibold tracking-wide hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 active:translate-y-0 active:scale-[0.98] transition-all duration-300">
-                                    Sewa Sekarang
-                                </button>
-                            </form>
-                        </div>
+                        @if ($produk->bisa_disewa)
+                            <div x-show="mode === 'sewa'" x-cloak class="h-full">
+                                <form method="POST" action="{{ route('sewa.simpan') }}" x-ref="formSewa">
+                                    @csrf
+                                    <input type="hidden" name="produk_id" value="{{ $produk->id }}">
+                                    <input type="hidden" name="tanggal_ambil" :value="tanggalAmbil">
+                                    <input type="hidden" name="tanggal_kembali" :value="tanggalKembali">
+                                    <input type="hidden" name="ukuran" :value="ukuran">
+                                    <input type="hidden" name="durasi" :value="durasi">
+                                    <input type="hidden" name="total_sewa" :value="totalSewa">
+                                    <button type="submit" @click.prevent="kirimSewa()"
+                                        :class="{ 'pd-ready': tanggalAmbil && tanggalKembali }"
+                                        class="pd-shine w-full h-[46px] rounded-lg bg-gold text-white text-[13px] font-semibold tracking-wide hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 active:translate-y-0 active:scale-[0.98] transition-all duration-300">
+                                        Sewa Sekarang
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
 
                         {{-- Tombol Beli --}}
-                        <div x-show="mode === 'beli'" x-cloak>
-                            <form method="POST" action="{{ route('beli.simpan') }}" x-ref="formBeli">
-                                @csrf
-                                <input type="hidden" name="produk_id" value="{{ $produk->id }}">
-                                <input type="hidden" name="qty" :value="jumlah">
-                                <input type="hidden" name="varian" value="Emas Klasik">
-                                <button type="submit"
-                                    class="pd-shine w-full h-[46px] rounded-lg bg-gold text-white text-[13px] font-semibold tracking-wide hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 active:translate-y-0 active:scale-[0.98] transition-all duration-300">
-                                    Beli Sekarang (<span x-text="formatRupiah(totalBeli)"></span>)
-                                </button>
-                            </form>
-                        </div>
+                        @if ($produk->dapat_dijual)
+                            <div x-show="mode === 'beli'" x-cloak>
+                                <form method="POST" action="{{ route('beli.simpan') }}" x-ref="formBeli">
+                                    @csrf
+                                    <input type="hidden" name="produk_id" value="{{ $produk->id }}">
+                                    <input type="hidden" name="qty" :value="jumlah">
+                                    <input type="hidden" name="varian" value="Emas Klasik">
+                                    <button type="submit"
+                                        class="pd-shine w-full h-[46px] rounded-lg bg-gold text-white text-[13px] font-semibold tracking-wide hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 active:translate-y-0 active:scale-[0.98] transition-all duration-300">
+                                        Beli Sekarang (<span x-text="formatRupiah(totalBeli)"></span>)
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
 
                         {{-- Tombol Keranjang (Cerdas: Sewa / Beli) --}}
                         <form :action="mode === 'sewa' ? '{{ route('sewa.keranjang.tambah') }}' : '{{ route('keranjang.add') }}'" method="POST" class="w-full h-full">

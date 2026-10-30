@@ -50,42 +50,55 @@
                     Booking Fitting
                 </a>
             </div>
-        @else
+                @else
             <div class="space-y-3">
                 @foreach ($fittingList as $index => $f)
                     @php
-                        $statusClass = match ($f->status) {
-                            'pending' => 'bg-amber-50 text-amber-700',
-                            'batal' => 'bg-rose-50 text-rose-700',
-                            'selesai' => 'bg-emerald-50 text-emerald-700',
-                            'terkonfirmasi' => 'bg-blue-50 text-blue-700',
-                            default => 'bg-cream text-ink/60',
+                        // Status warna teks minimalis (tanpa kotak)
+                        $statusColor = match ($f->status) {
+                            'pending' => 'text-amber-600',
+                            'batal' => 'text-rose-600',
+                            'selesai' => 'text-emerald-600',
+                            'terkonfirmasi' => 'text-blue-600',
+                            default => 'text-ink/50',
                         };
                     @endphp
-                    <div class="pd-reveal bg-panel border border-line/40 rounded-xl p-5 hover:border-gold/50 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300" style="--d: {{ $index * 0.08 }}s;">
-                        <div class="flex items-start justify-between gap-3 mb-3">
+                    
+                    <a href="{{ route('fitting.show', $f->id) }}" 
+                       class="pd-up group block bg-panel border border-line/40 rounded-xl p-5 hover:border-gold/50 hover:shadow-sm transition-all duration-300"
+                       style="--d: {{ $index * 0.08 }}s;">
+                        
+                        {{-- Header Card --}}
+                        <div class="flex items-start justify-between gap-3 mb-4">
                             <div>
-                                <p class="text-[11px] text-ink/50 mb-1">Kode Booking</p>
-                                <p class="text-[13px] font-medium text-ink/80">{{ $f->kode_booking }}</p>
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    {{-- Kode Booking Minimalis --}}
+                                    <span class="text-[9px] font-bold uppercase tracking-wider text-ink/40">Fitting</span>
+                                    <span class="w-1 h-1 rounded-full bg-line/50"></span>
+                                    <span class="text-[10px] text-ink/40 font-medium">{{ $f->kode_booking }}</span>
+                                </div>
+                                <p class="text-[13px] font-semibold text-ink/85">
+                                    {{ $f->slot ? \Carbon\Carbon::parse($f->slot->tanggal)->translatedFormat('l, d M Y') : 'Tanggal belum ditentukan' }}
+                                </p>
                             </div>
-                            <span class="px-2 py-1 rounded text-[9px] font-semibold uppercase {{ $statusClass }}">{{ $f->status }}</span>
+                            
+                            {{-- Status Teks Berwarna --}}
+                            <span class="text-[10px] font-bold uppercase tracking-wider {{ $statusColor }}">
+                                {{ $f->status }}
+                            </span>
                         </div>
 
-                        <div class="space-y-1 text-[11px] mb-3">
-                            <div class="flex justify-between">
-                                <span class="text-ink/50">Tanggal</span>
-                                <span class="font-medium text-ink/80">{{ $f->slot ? \Carbon\Carbon::parse($f->slot->tanggal)->translatedFormat('l, d M Y') : '—' }}</span>
+                        {{-- Footer Card --}}
+                        <div class="flex items-center justify-between pt-3 border-t border-dashed border-line/30">
+                            <div class="flex items-center gap-1.5 text-[11px] text-ink/60">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Jam: <span class="font-medium text-ink/85">{{ $f->slot->jam_mulai ?? '—' }} WIB</span>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-ink/50">Jam</span>
-                                <span class="font-medium text-ink/80">{{ $f->slot->jam_mulai ?? '—' }} WIB</span>
-                            </div>
+                            
+                            {{-- Ikon Panah Minimalis --}}
+                            <x-icon name="chevron-right" :size="14" class="text-ink/20 group-hover:text-gold group-hover:translate-x-0.5 transition-all duration-300 shrink-0" />
                         </div>
-
-                        <a href="{{ route('fitting.show', $f->id) }}" class="inline-flex items-center gap-1 text-[11px] text-gold font-medium hover:underline group">
-                            Lihat Detail <x-icon name="chevron-right" :size="12" class="group-hover:translate-x-0.5 transition-transform" />
-                        </a>
-                    </div>
+                    </a>
                 @endforeach
             </div>
         @endif
