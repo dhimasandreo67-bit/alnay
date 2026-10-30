@@ -31,13 +31,11 @@ export function tweenHarga(el, dari, target, dur = 450) {
 // ============================================
 // Scroll reveal
 // ============================================
-export function initScrollReveal() {
-    const els = document.querySelectorAll('.pd-reveal');
-    if (!('IntersectionObserver' in window)) {
-        els.forEach((el) => el.classList.add('is-in'));
-        return;
-    }
-    const io = new IntersectionObserver((entries) => {
+let io = null; // satu instance, dipakai ulang
+
+function getObserver() {
+    if (io || !('IntersectionObserver' in window)) return io;
+    io = new IntersectionObserver((entries) => {
         entries.forEach((en) => {
             if (en.isIntersecting) {
                 en.target.classList.add('is-in');
@@ -45,7 +43,24 @@ export function initScrollReveal() {
             }
         });
     }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
-    els.forEach((el) => io.observe(el));
+    return io;
+}
+
+export function initScrollReveal() {
+    // Hanya ambil elemen yang BELUM pernah diproses
+    const els = document.querySelectorAll('.pd-reveal:not([data-reveal-bound])');
+    if (!els.length) return;
+
+    const observer = getObserver();
+
+    els.forEach((el) => {
+        el.setAttribute('data-reveal-bound', '1'); // tandai supaya tidak diobservasi dua kali
+        if (!observer) {
+            el.classList.add('is-in'); // fallback browser lama
+        } else {
+            observer.observe(el);
+        }
+    });
 }
 
 // ============================================
@@ -57,11 +72,13 @@ if (document.readyState === 'loading') {
     initScrollReveal();
 }
 
-// Re-run saat ada elemen baru (untuk card yang dirender dinamis)
-// Gunakan MutationObserver untuk detect card baru
+// Re-run saat ada elemen baru (untuk card yang dirender dinamis),
+// tapi di-debounce supaya tidak dipanggil berkali-kali saat modal/toast buka-tutup
+let revealDebounceTimer = null;
 if ('MutationObserver' in window) {
     const mo = new MutationObserver(() => {
-        initScrollReveal();
+        clearTimeout(revealDebounceTimer);
+        revealDebounceTimer = setTimeout(initScrollReveal, 100);
     });
     mo.observe(document.body, { childList: true, subtree: true });
 }
