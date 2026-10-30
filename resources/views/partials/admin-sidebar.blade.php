@@ -70,7 +70,7 @@
 
 <aside class="flex w-64 shrink-0 flex-col bg-ink text-cream sticky top-0 h-screen overflow-hidden">
 
-    <div class="flex flex-col flex-1 overflow-y-auto no-scrollbar">
+    <div class="flex flex-col flex-1 overflow-y-auto no-scrollbar" data-sidebar-scroll>
         <div class="flex items-center gap-3 px-6 py-6">
             <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gold font-display text-lg font-bold text-ink">A</span>
             <div>
