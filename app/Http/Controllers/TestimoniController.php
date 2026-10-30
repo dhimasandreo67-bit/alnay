@@ -22,7 +22,7 @@ class TestimoniController extends Controller
         $bintang = $request->integer('bintang');
         $bintang = ($bintang >= 1 && $bintang <= 5) ? $bintang : null;
 
-        $ulasan = Rating::with(['user:id,name', 'produk:id,sku,nama'])
+        $ulasan = $ulasan = Rating::with(['user:id,name,foto_profil', 'produk:id,sku,nama,foto_produk'])
             ->whereNotNull('ulasan')
             ->when($bintang, fn ($q) => $q->where('rating', $bintang))
             ->latest('tanggal')
