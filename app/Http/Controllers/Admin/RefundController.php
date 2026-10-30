@@ -35,10 +35,25 @@ class RefundController extends Controller
     }
 
     public function updateStatus(Request $request, $id)
-    {
-        $refund = Refund::findOrFail($id);
-        $refund->update(['status' => $request->status]);
+{
+    $refund = Refund::with('transaksi')->findOrFail($id);
+    
+    $data = ['status' => $request->status, 'diproses_oleh' => auth('admin')->id()];
 
-        return back()->with('success', 'Status refund berhasil diperbarui!');
+    // Jika refund disetujui
+    if ($request->status === 'disetujui') {
+        // Cek apakah ini transaksi Beli (butuh resi penjemputan)
+        if ($refund->transaksi->jenis === 'beli') {
+            $request->validate([
+                'no_resi_penjemputan' => 'required|string|max:100',
+            ]);
+            $data['no_resi_penjemputan'] = $request->no_resi_penjemputan;
+        }
+        // Untuk Sewa, tidak perlu resi (via Gojek/Manual)
     }
+
+    $refund->update($data);
+
+    return back()->with('success', 'Status refund berhasil diperbarui!');
+}
 }

@@ -9,14 +9,15 @@ class Refund extends Model
     protected $table = 'refund';
 
     protected $fillable = [
-        'transaksi_id',
-        'diajukan_oleh',
-        'diproses_oleh',
-        'alasan',
-        'catatan_negosiasi',
-        'jumlah',
-        'status',
-    ];
+    'transaksi_id',
+    'diajukan_oleh',
+    'diproses_oleh',
+    'alasan',
+    'catatan_negosiasi',
+    'no_resi_penjemputan',
+    'jumlah',
+    'status',
+];
 
     protected function casts(): array
     {
