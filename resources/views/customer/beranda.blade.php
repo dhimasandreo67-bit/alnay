@@ -4,6 +4,10 @@
 
 @section('content')
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+
 {{-- Leaflet CSS untuk Peta Interaktif --}}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
@@ -11,8 +15,6 @@
      CUSTOM STYLES
      ============================================================ --}}
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
-    
     .font-display {
         font-family: 'Playfair Display', serif;
     }
@@ -136,12 +138,11 @@
     }
 
     /* Animasi Marker Peta */
-    .custom-marker {
-        animation: bounce-marker 2s infinite ease-in-out;
-    }
+    /* Animasi harus di elemen DALAM; elemen .custom-marker dipakai Leaflet untuk posisi (transform) */
+    .pin-bounce { animation: bounce-marker 2s infinite ease-in-out; }
     @keyframes bounce-marker {
-        0%, 100% { transform: translateY(0) rotate(-45deg); }
-        50% { transform: translateY(-8px) rotate(-45deg); }
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
     }
 
     /* Efek Hover pada Container Peta */
@@ -181,6 +182,11 @@
         transform: translateY(0);
     }
 
+    @media (prefers-reduced-motion: reduce) {
+        .reveal { opacity: 1; transform: none; transition: none; }
+        .pin-bounce { animation: none; }
+    }
+
     /* === HOVER EFFECT KARTU PRODUK (Lebih Modern) === */
     .card-produk {
         transition: all 0.4s cubic-bezier(0.22, 0.8, 0.3, 1);
@@ -213,13 +219,14 @@
         box-shadow: 0 8px 20px rgba(201, 154, 50, 0.3);
     }
 </style>
+<noscript><style>.reveal { opacity: 1 !important; transform: none !important; }</style></noscript>
 
 
 {{-- ============================================================
      1. HERO SECTION (Carousel 3D)
      ============================================================ --}}
 <section class="overflow-hidden bg-[#17140f]">
-    <div class="p-4 sm:p-10 lg:flex lg:items-center lg:gap-8 lg:py-22">
+    <div class="p-4 sm:p-10 lg:flex lg:items-center lg:gap-8 lg:py-20">
         {{-- KIRI: Teks --}}
         <div class="min-w-0 text-white lg:w-1/2 mb-8 lg:mb-0">
             <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[10px] font-semibold" style="color: #e6c877;">
@@ -249,7 +256,7 @@
 
         {{-- KANAN: Carousel 3 Foto --}}
         <div class="relative w-full min-w-0 lg:w-1/2">
-            <button onclick="prevPhoto()" 
+            <button type="button" onclick="prevPhoto()" aria-label="Foto sebelumnya" 
                     class="carousel-btn absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -260,7 +267,7 @@
                 {{-- Foto akan di-render oleh JavaScript --}}
             </div>
 
-            <button onclick="nextPhoto()" 
+            <button type="button" onclick="nextPhoto()" aria-label="Foto berikutnya" 
                     class="carousel-btn absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -329,8 +336,24 @@
                 @php
                     $badge = $p['stok'] > 0 ? 'Tersedia' : 'Habis';
                     $badgeColor = $p['stok'] > 0 ? '#2f7a4a' : '#c0392b';
-                    $tag = $p['dapat_dijual'] ? 'Sewa & Beli' : 'Khusus Sewa';
-                    $mode = $p['dapat_dijual'] ? 'dua' : 'satu';
+                    
+                    // Cek harga sewa valid (> 0)
+                    $bisaSewa = ($p['bisa_disewa'] ?? true) && ($p['harga_sewa'] ?? 0) > 0;
+                    $bisaBeli = $p['dapat_dijual'] ?? false;
+
+                    if ($bisaSewa && $bisaBeli) {
+                        $tag = 'Sewa & Beli';
+                        $mode = 'dua';
+                    } elseif ($bisaSewa) {
+                        $tag = 'Khusus Sewa';
+                        $mode = 'satu_sewa';
+                    } elseif ($bisaBeli) {
+                        $tag = 'Khusus Beli';
+                        $mode = 'satu_beli';
+                    } else {
+                        $tag = 'Hubungi Kami';
+                        $mode = 'kosong';
+                    }
                 @endphp
 
                 <div class="card-produk flex flex-col h-full relative group">
@@ -360,16 +383,22 @@
                         </div>
 
                         <div class="mt-4 space-y-1.5 text-xs">
-                            <div class="flex justify-between items-center">
-                                <span style="color: #6b7280;">Sewa:</span>
-                                <span class="font-bold" style="color: #15233d;">Rp {{ number_format($p['harga_sewa'], 0, ',', '.') }}</span>
-                            </div>
+                            @if ($bisaSewa)
+                                <div class="flex justify-between items-center">
+                                    <span style="color: #6b7280;">Sewa:</span>
+                                    <span class="font-bold" style="color: #15233d;">Rp {{ number_format($p['harga_sewa'], 0, ',', '.') }}</span>
+                                </div>
+                            @endif
 
-                            @if($p['dapat_dijual'])
+                            @if ($bisaBeli)
                                 <div class="flex justify-between items-center">
                                     <span style="color: #6b7280;">Beli Baru:</span>
                                     <span class="font-bold" style="color: #c99a32;">Rp {{ number_format($p['harga_jual'], 0, ',', '.') }}</span>
                                 </div>
+                            @endif
+
+                            @if ($mode === 'kosong')
+                                <p class="text-center text-[11px]" style="color: #9ca3af;">Harga belum tersedia — hubungi kami untuk info.</p>
                             @endif
                         </div>
                     </div>
@@ -381,6 +410,13 @@
                                    style="border-color: #d1d5db; color: #333;">Sewa</a>
                                 <a href="{{ route('produk.detail', ['sku' => $p['sku'], 'mode' => 'beli']) }}" class="flex-1 rounded-lg py-2.5 text-center text-[11px] font-bold text-white btn-smooth"
                                    style="background-color: #c99a32;">Beli Baru</a>
+                            @elseif ($mode === 'kosong')
+                                <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya ingin menanyakan produk ' . $p['nama']) }}" target="_blank" rel="noopener"
+                                   class="w-full rounded-lg border py-2.5 text-center text-[11px] font-bold hover:bg-gray-50 btn-smooth"
+                                   style="border-color: #c99a32; color: #c99a32;">Tanya via WhatsApp</a>
+                            @elseif ($mode === 'satu_beli')
+                                <a href="{{ route('produk.detail', ['sku' => $p['sku'], 'mode' => 'beli']) }}" class="w-full rounded-lg py-2.5 text-center text-[11px] font-bold text-white btn-smooth"
+                                   style="background-color: #c99a32;">Beli Sekarang</a>
                             @else
                                 <a href="{{ route('produk.detail', $p['sku']) }}" class="w-full rounded-lg py-2.5 text-center text-[11px] font-bold text-white btn-smooth"
                                    style="background-color: #c99a32;">Sewa Sekarang</a>
@@ -414,8 +450,22 @@
                 @php
                     $badge = $p['stok'] > 0 ? 'Tersedia' : 'Habis';
                     $badgeColor = $p['stok'] > 0 ? '#2f7a4a' : '#c0392b';
-                    $tag = $p['dapat_dijual'] ? 'Sewa & Beli' : 'Khusus Sewa';
-                    $mode = $p['dapat_dijual'] ? 'dua' : 'satu';
+                    $bisaSewa = ($p['bisa_disewa'] ?? true) && ($p['harga_sewa'] ?? 0) > 0;
+                    $bisaBeli = $p['dapat_dijual'] ?? false;
+
+                    if ($bisaSewa && $bisaBeli) {
+                        $tag = 'Sewa & Beli';
+                        $mode = 'dua';
+                    } elseif ($bisaSewa) {
+                        $tag = 'Khusus Sewa';
+                        $mode = 'satu_sewa';
+                    } elseif ($bisaBeli) {
+                        $tag = 'Khusus Beli';
+                        $mode = 'satu_beli';
+                    } else {
+                        $tag = 'Hubungi Kami';
+                        $mode = 'kosong';
+                    }
                 @endphp
 
                 <div class="card-produk flex flex-col h-full relative group">
@@ -452,16 +502,22 @@
                         </div>
 
                         <div class="mt-4 space-y-1.5 text-xs">
-                            <div class="flex justify-between items-center">
-                                <span style="color: #6b7280;">Sewa:</span>
-                                <span class="font-bold" style="color: #15233d;">Rp {{ number_format($p['harga_sewa'], 0, ',', '.') }}</span>
-                            </div>
+                            @if ($bisaSewa)
+                                <div class="flex justify-between items-center">
+                                    <span style="color: #6b7280;">Sewa:</span>
+                                    <span class="font-bold" style="color: #15233d;">Rp {{ number_format($p['harga_sewa'], 0, ',', '.') }}</span>
+                                </div>
+                            @endif
 
-                            @if($p['dapat_dijual'])
+                            @if ($bisaBeli)
                                 <div class="flex justify-between items-center">
                                     <span style="color: #6b7280;">Beli Baru:</span>
                                     <span class="font-bold" style="color: #c99a32;">Rp {{ number_format($p['harga_jual'], 0, ',', '.') }}</span>
                                 </div>
+                            @endif
+
+                            @if ($mode === 'kosong')
+                                <p class="text-center text-[11px]" style="color: #9ca3af;">Harga belum tersedia — hubungi kami untuk info.</p>
                             @endif
                         </div>
                     </div>
@@ -473,6 +529,13 @@
                                    style="border-color: #d1d5db; color: #333;">Sewa</a>
                                 <a href="{{ route('produk.detail', ['sku' => $p['sku'], 'mode' => 'beli']) }}" class="flex-1 rounded-lg py-2.5 text-center text-[11px] font-bold text-white btn-smooth"
                                    style="background-color: #111111;">Beli Baru</a>
+                            @elseif ($mode === 'kosong')
+                                <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya ingin menanyakan produk ' . $p['nama']) }}" target="_blank" rel="noopener"
+                                   class="w-full rounded-lg border py-2.5 text-center text-[11px] font-bold hover:bg-gray-50 btn-smooth"
+                                   style="border-color: #c99a32; color: #c99a32;">Tanya via WhatsApp</a>
+                            @elseif ($mode === 'satu_beli')
+                                <a href="{{ route('produk.detail', ['sku' => $p['sku'], 'mode' => 'beli']) }}" class="w-full rounded-lg py-2.5 text-center text-[11px] font-bold text-white btn-smooth"
+                                   style="background-color: #c99a32;">Beli Sekarang</a>
                             @else
                                 <a href="{{ route('produk.detail', $p['sku']) }}" class="w-full rounded-lg py-2.5 text-center text-[11px] font-bold text-white btn-smooth"
                                    style="background-color: #c99a32;">Sewa Sekarang</a>
@@ -655,16 +718,17 @@
             <h2 class="font-display mt-2 text-2xl md:text-3xl font-bold" style="color: #15233d;">Testimoni Pengantin &amp; Klien</h2>
         </div>
 
-        <p class="text-sm font-medium" style="color: #6b7280;">
-            Kepuasan ★ 4.97 dari 1.800+ Acara
-        </p>
+        <div class="flex flex-col items-start gap-1 sm:items-end">
+            <p class="text-sm font-medium" style="color: #6b7280;">Kepuasan ★ 4.97 dari 1.800+ Acara</p>
+            <a href="{{ route('testimoni') }}" class="btn-smooth whitespace-nowrap text-sm font-semibold hover:underline" style="color: #c99a32;">Lihat Semua Testimoni →</a>
+        </div>
     </div>
 
     @if (count($testimoni) > 0)
         <div class="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
             @foreach ($testimoni as $t)
                 @php
-                    $inisial = strtoupper(substr($t['nama'], 0, 2));
+                    $inisial = strtoupper(mb_substr($t['nama'], 0, 2));
                 @endphp
 
                 <div class="card-produk rounded-2xl p-6 md:p-7 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
@@ -764,11 +828,11 @@
 
             const customIcon = L.divIcon({
                 className: 'custom-marker',
-                html: `<div style="background-color: #c99a32; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+                html: `<div class="pin-bounce"><div style="background-color: #c99a32; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
                         <svg style="transform: rotate(45deg); width: 16px; height: 16px; fill: white;" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                         </svg>
-                       </div>`,
+                       </div></div>`,
                 iconSize: [32, 32],
                 iconAnchor: [16, 32]
             });
