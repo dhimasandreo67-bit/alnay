@@ -53,12 +53,21 @@
 
         $ukuranRaw = $produk->ukuran;
         if (is_array($ukuranRaw)) {
-            $ukuranList = array_filter($ukuranRaw);
+            // Ratakan array seberapa pun bersarangnya (jaga-jaga data tersimpan ganda, mis. [["S","M"]]).
+            $flatten = function ($nilai) use (&$flatten) {
+                $hasil = [];
+                foreach ((array) $nilai as $item) {
+                    if (is_array($item)) {
+                        $hasil = array_merge($hasil, $flatten($item));
+                    } elseif (trim((string) $item) !== '') {
+                        $hasil[] = trim((string) $item);
+                    }
+                }
+                return $hasil;
+            };
+            $ukuranList = $flatten($ukuranRaw);
         } else {
             $ukuranList = array_values(array_filter(array_map('trim', explode(',', (string) $ukuranRaw))));
-        }
-        if (empty($ukuranList)) {
-            $ukuranList = ['S', 'M', 'L', 'XL', 'Custom'];
         }
         if (empty($ukuranList)) {
             $ukuranList = ['S', 'M', 'L', 'XL', 'Custom'];
@@ -146,10 +155,19 @@
                         </div>
 
                         <div class="mt-5">
+                            @php
+                                // Ubah nilai apa pun (termasuk array bersarang) jadi teks aman untuk ditampilkan.
+                                $toTeks = function ($nilai) use (&$toTeks) {
+                                    if (is_array($nilai)) {
+                                        return implode(', ', array_map($toTeks, $nilai));
+                                    }
+                                    return $nilai === null || $nilai === '' ? '-' : $nilai;
+                                };
+                            @endphp
                             @foreach ([
                                 ['Kategori', $produk->kategori->nama_kategori ?? '-'], 
-                                ['Material', $produk->bahan ?? '-'], 
-                                ['Ukuran Tersedia', is_array($produk->ukuran) ? implode(', ', $produk->ukuran) : $produk->ukuran]
+                                ['Material', $toTeks($produk->bahan ?? '-')], 
+                                ['Ukuran Tersedia', $toTeks($produk->ukuran ?? '-')]
                             ] as $i => $baris)
                                 <div class="pd-reveal flex justify-between gap-4 py-3 px-2 -mx-2 rounded-md text-[13px] border-b border-line/40 hover:bg-cream/60 transition-colors duration-300"
                                     style="--d: {{ $i * 0.1 }}s;">
