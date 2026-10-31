@@ -379,41 +379,86 @@
         <button type="submit" form="form-hapus-transaksi" id="btn-hapus-konfirmasi" class="ui-btn ui-btn--danger">Ya, hapus</button>
     </x-slot:footer>
 </x-modal>
-
 <script>
-    // Isi modal hapus sesuai baris yang diklik
-    (function () {
-        var modal = document.getElementById('modal-hapus-transaksi');
-        var form = document.getElementById('form-hapus-transaksi');
-        var tombol = document.getElementById('btn-hapus-konfirmasi');
+    document.addEventListener('DOMContentLoaded', function () {
+        // ==========================================
+        // 1. AMBIL ELEMEN
+        // ==========================================
+        var modalHapus = document.getElementById('modal-hapus-transaksi');
+        var formHapus = document.getElementById('form-hapus-transaksi');
+        var btnKonfirmasi = document.getElementById('btn-hapus-konfirmasi');
 
-        modal.addEventListener('modal:open', function (e) {
-            var b = e.detail.trigger;
-            if (!b) return;
-            form.action = b.dataset.hapusUrl;
-            document.getElementById('hapus-kode').textContent = b.dataset.kode;
-            document.getElementById('hapus-pelanggan').textContent = b.dataset.pelanggan;
-            document.getElementById('hapus-total').textContent = b.dataset.total;
-            document.getElementById('hapus-status').textContent = b.dataset.status;
-            document.getElementById('hapus-restock').checked = b.dataset.restock === '1';
-            tombol.disabled = false;
-            tombol.textContent = 'Ya, hapus';
-        });
+        // ==========================================
+        // 2. LOGIKA MODAL HAPUS (ISI DATA & URL)
+        // ==========================================
+        if (modalHapus) {
+            modalHapus.addEventListener('modal:open', function (e) {
+                var trigger = e.detail.trigger;
+                if (!trigger) return;
 
-        // Cegah klik ganda
-        form.addEventListener('submit', function () {
-            tombol.disabled = true;
-            tombol.textContent = 'Menghapus...';
-        });
-    })();
+                // === KUNCI UTAMA: ISI URL ACTION ===
+                // Ini yang tadinya gagal karena bentrok dengan script lain
+                if (formHapus) {
+                    formHapus.action = trigger.dataset.hapusUrl;
+                }
 
-    // Buka/tutup rincian item per transaksi
-    document.querySelectorAll('[data-toggle-rincian]').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var baris = document.getElementById('rincian-' + btn.dataset.toggleRincian);
-            var buka = baris.classList.toggle('hidden') === false;
-            btn.setAttribute('aria-expanded', buka ? 'true' : 'false');
-            btn.querySelector('[data-chevron]').classList.toggle('rotate-180', buka);
+                // Isi data ke dalam modal
+                document.getElementById('hapus-kode').textContent = trigger.dataset.kode;
+                document.getElementById('hapus-pelanggan').textContent = trigger.dataset.pelanggan;
+                document.getElementById('hapus-total').textContent = trigger.dataset.total;
+                document.getElementById('hapus-status').textContent = trigger.dataset.status;
+                document.getElementById('hapus-restock').checked = trigger.dataset.restock === '1';
+
+                if (btnKonfirmasi) {
+                    btnKonfirmasi.disabled = false;
+                    btnKonfirmasi.textContent = 'Ya, hapus';
+                }
+            });
+        }
+
+        // Cegah klik ganda pada tombol konfirmasi
+        if (formHapus) {
+            formHapus.addEventListener('submit', function () {
+                if (btnKonfirmasi) {
+                    btnKonfirmasi.disabled = true;
+                    btnKonfirmasi.textContent = 'Menghapus...';
+                }
+            });
+        }
+
+        // ==========================================
+        // 3. LOGIKA SCROLL POSITION (SIMPAN & KEMBALIKAN)
+        // ==========================================
+        // Simpan posisi scroll saat form di-submit
+        if (formHapus) {
+            formHapus.addEventListener('submit', function () {
+                sessionStorage.setItem('scrollPositionAdminTransaksi', window.scrollY);
+            });
+        }
+
+        // Kembalikan posisi scroll setelah halaman selesai dimuat
+        var scrollPos = sessionStorage.getItem('scrollPositionAdminTransaksi');
+        if (scrollPos !== null) {
+            // Gunakan setTimeout agar browser selesai merender tabel terlebih dahulu
+            setTimeout(function () {
+                window.scrollTo({
+                    top: parseInt(scrollPos),
+                    behavior: 'instant'
+                });
+                sessionStorage.removeItem('scrollPositionAdminTransaksi');
+            }, 50);
+        }
+
+        // ==========================================
+        // 4. LOGIKA RINCIAN ITEM (BUKA/TUTUP)
+        // ==========================================
+        document.querySelectorAll('[data-toggle-rincian]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var baris = document.getElementById('rincian-' + btn.dataset.toggleRincian);
+                var buka = baris.classList.toggle('hidden') === false;
+                btn.setAttribute('aria-expanded', buka ? 'true' : 'false');
+                btn.querySelector('[data-chevron]').classList.toggle('rotate-180', buka);
+            });
         });
     });
 </script>
