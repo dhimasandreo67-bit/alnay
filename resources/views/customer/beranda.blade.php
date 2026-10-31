@@ -329,18 +329,17 @@
     {{-- ============================================================
      2. KATEGORI (Ikon Bulat)
      ============================================================ --}}
-    <section class="reveal max-w-7xl mx-auto mt-12 md:mt-16">
+    <section class="reveal max-w-7xl mx-auto px-4 mt-12 md:mt-16">
         {{-- Wrapper luar untuk scroll di HP --}}
-        <div class="overflow-x-auto hide-scrollbar pb-4 pt-4 sm:pb-0 sm:pt-0 -mx-4 px-4 sm:mx-0 sm:px-0">
-            <div class="flex w-max min-w-full gap-4 sm:gap-12 sm:flex-wrap sm:justify-center snap-x snap-mandatory">
+        <div class="overflow-x-auto sm:overflow-visible hide-scrollbar py-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div class="flex w-max min-w-full gap-4 sm:w-full sm:gap-12 sm:flex-wrap sm:justify-center snap-x snap-mandatory">
                 @foreach ($kategori as $k)
                     @continue(empty($k['kode_kategori']))
                     <a href="{{ route('koleksi.kategori', ['kode' => $k['kode_kategori']]) }}"
                         class="group flex w-20 sm:w-24 md:w-28 shrink-0 snap-center flex-col items-center gap-2 sm:gap-3 text-center transition-all duration-300 hover:-translate-y-1">
 
                         {{-- Lingkaran Foto Kategori --}}
-                        <div
-                            <div class="relative h-20 w-20 shrink-0 md:h-24 md:w-24 overflow-hidden rounded-full border-2 border-gray-100 bg-white shadow-sm transition-all duration-300 group-hover:border-gold group-hover:shadow-md">
+                        <div class="relative h-20 w-20 shrink-0 md:h-24 md:w-24 overflow-hidden rounded-full border-2 border-gray-100 bg-white shadow-sm transition-all duration-300 group-hover:border-gold group-hover:shadow-md">
                             @if (!empty($k['foto']))
                                 <img src="{{ asset($k['foto']) }}" alt="{{ $k['nama_kategori'] }}" loading="lazy"
                                     class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110">
