@@ -168,7 +168,7 @@
         </div>
 
         {{-- Filter & Search Toolbar --}}
-        <form method="GET" action="{{ route('admin.kategori.index') }}"
+        <form method="GET" action="{{ route('admin.kategori.index') }}" onsubmit="event.preventDefault()"
             class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
 
             {{-- Pencarian --}}
@@ -179,7 +179,8 @@
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </span>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama kategori..."
+                <input type="search" id="cariKategori" name="search" value="{{ request('search') }}"
+                    placeholder="Cari nama, kode, atau slug..." autocomplete="off" oninput="terapkanFilterKategori()"
                     class="w-full pl-10 pr-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
             </div>
 
@@ -187,32 +188,74 @@
             <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
 
                 {{-- Dropdown Status --}}
-                <select name="status" onchange="this.form.submit()"
+                <select id="filterStatusKategori" name="status" onchange="terapkanFilterKategori()"
                     class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
                     <option value="">Semua Kategori</option>
                     <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Aktif Saja</option>
                     <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Nonaktif</option>
                 </select>
 
-                {{-- Tombol Cari --}}
-                <button type="submit"
-                    class="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-800 transition-all cursor-pointer">
-                    Cari
-                </button>
-
                 {{-- Info Jumlah --}}
                 <span class="text-xs text-gray-500 font-medium">
-                    Menampilkan <strong class="text-gray-900">{{ count($categories) }}</strong> kategori
+                    Menampilkan <strong id="infoJumlah" class="text-gray-900">{{ count($categories) }}</strong> kategori
                 </span>
             </div>
         </form>
 
+        {{-- Peringatan: semua kategori punya produk, jadi tidak ada yang bisa dihapus --}}
+        @if ($categories->count() > 0 && $categories->every(fn($c) => $c->produks_count > 0))
+            <div class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-2xl shadow-sm"
+                role="alert">
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="text-sm font-bold">Semua kategori tidak dapat dihapus</p>
+                    <p class="text-xs text-amber-800/80 mt-0.5">Setiap kategori masih memiliki produk terkait. Pindahkan
+                        atau hapus produknya terlebih dahulu agar kategori bisa dipilih untuk dihapus.</p>
+                </div>
+            </div>
+        @endif
+
         {{-- Table Container --}}
         <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+            {{-- Bar hapus massal: muncul saat ada yang dicentang --}}
+            <form id="formBulkDelete" method="POST" action="{{ route('admin.kategori.bulk-destroy') }}">
+                @csrf
+                @method('DELETE')
+            </form>
+            <div id="bulkBar"
+                class="hidden items-center justify-between gap-3 px-6 py-3 bg-rose-50 border-b border-rose-100">
+                <span class="text-xs font-bold text-rose-700"><span id="bulkCount">0</span> kategori dipilih</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="clearBulk()"
+                        class="px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-700 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="button" onclick="submitBulkDelete()"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-95 transition-all cursor-pointer shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Hapus Terpilih
+                    </button>
+                </div>
+            </div>
+
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50/80">
                         <tr>
+                            <th class="px-6 py-4 w-10">
+                                <input type="checkbox" id="checkAll" onchange="toggleSelectAll(this)"
+                                    @disabled($categories->count() === 0 || $categories->every(fn($c) => $c->produks_count > 0))
+                                    class="w-4 h-4 rounded border-gray-300 accent-amber-600 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                    title="Pilih semua">
+                            </th>
                             <th
                                 class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider w-16">
                                 No</th>
@@ -232,23 +275,41 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100/80 bg-white">
                         @forelse ($categories as $index => $category)
-                            <tr class="transition-colors duration-150 hover:bg-amber-50/30 group">
+                            @php $kode = $category->kode_kategori ?: strtoupper(substr($category->slug ?? 'KAT', 0, 3)); @endphp
+                            <tr data-cari="{{ \Illuminate\Support\Str::lower($category->nama_kategori . ' ' . $category->slug . ' ' . $kode) }}"
+                                data-status="{{ $category->is_active ? '1' : '0' }}"
+                                class="transition-colors duration-150 hover:bg-amber-50/30 group">
+                                {{-- Checklist --}}
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <input type="checkbox" name="ids[]" value="{{ $category->id }}"
+                                        form="formBulkDelete" data-nama="{{ $category->nama_kategori }}" onchange="updateBulkBar()"
+                                        @disabled($category->produks_count > 0)
+                                        class="bulk-check w-4 h-4 rounded border-gray-300 accent-amber-600 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                        title="{{ $category->produks_count > 0 ? 'Tidak bisa dipilih, masih ada ' . $category->produks_count . ' produk terkait' : 'Pilih untuk dihapus' }}">
+                                </td>
+
                                 {{-- Nomor Urut --}}
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-bold text-gray-400">
+                                <td class="no-urut px-6 py-4 whitespace-nowrap text-xs font-bold text-gray-400">
                                     {{ $index + 1 }}
                                 </td>
 
                                 {{-- Nama Kategori & Deskripsi --}}
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
-                                        <div
-                                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 border border-amber-100">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                            </svg>
-                                        </div>
+                                        @if ($category->foto)
+                                            <img src="{{ asset('storage/' . $category->foto) }}"
+                                                alt="{{ $category->nama_kategori }}" loading="lazy"
+                                                class="h-12 w-12 shrink-0 rounded-2xl object-cover border border-amber-100 shadow-sm">
+                                        @else
+                                            <div
+                                                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 border border-amber-100">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                        @endif
                                         <div>
                                             <div class="flex items-center gap-2">
                                                 <div
@@ -275,7 +336,7 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span
                                         class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-black font-mono bg-gray-900 text-white tracking-wider shadow-sm">
-                                        {{ strtoupper(substr($category->slug ?? 'KAT', 0, 3)) }}
+                                        {{ $kode }}
                                     </span>
                                 </td>
 
@@ -288,7 +349,7 @@
                                     </a>
                                 </td>
 
-                                {{-- Tombol Aksi (Edit & Hapus) --}}
+                                {{-- Tombol Aksi (Edit) --}}
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="inline-flex items-center justify-end gap-1.5">
 
@@ -299,7 +360,7 @@
                                             {{ json_encode($category->slug) }},
                                             {{ $category->is_active ? 'true' : 'false' }},
                                             {{ json_encode($category->foto) }},
-                                            {{ json_encode($category->kode_kategori) }}
+                                            {{ json_encode($kode) }}
                                         )"
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer shadow-sm"
                                             title="Edit Kategori">
@@ -310,44 +371,12 @@
                                             </svg>
                                             Edit
                                         </button>
-
-                                        @if ($category->produk_count > 0)
-                                            <button type="button" disabled
-                                                onclick="alert('Kategori ini masih punya {{ $category->produk_count }} produk terkait. Pindahkan atau hapus produk tersebut dulu sebelum menghapus kategori.')"
-                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-400 bg-gray-50 border border-gray-200 cursor-not-allowed shadow-sm"
-                                                title="Tidak bisa dihapus, masih ada {{ $category->produk_count }} produk terkait">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                                Hapus
-                                            </button>
-                                        @else
-                                            <form action="{{ route('admin.kategori.destroy', $category->id) }}"
-                                                method="POST" class="inline"
-                                                onsubmit="return confirm('Yakin ingin menghapus kategori ini?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit"
-                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 bg-rose-50/50 border border-rose-100 hover:bg-rose-100 active:scale-95 transition-all cursor-pointer shadow-sm"
-                                                    title="Hapus Kategori">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
-                                                        viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                    Hapus
-                                                </button>
-                                            </form>
-                                        @endif
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
+                                <td colspan="6" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
                                     Belum ada data kategori.
                                     <button type="button" onclick="openCreateModal()"
                                         class="text-amber-600 hover:underline font-bold cursor-pointer">Tambahkan
@@ -355,6 +384,13 @@
                                 </td>
                             </tr>
                         @endforelse
+
+                        {{-- Muncul saat pencarian tidak menemukan apa pun --}}
+                        <tr id="barisKosongCari" class="hidden">
+                            <td colspan="6" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
+                                Tidak ada kategori yang cocok dengan pencarian.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -532,6 +568,44 @@
         </div>
     </div>
 
+    {{-- ===================== MODAL KONFIRMASI HAPUS MASSAL ===================== --}}
+    <div id="modalBulkDelete"
+        class="hidden fixed inset-0 z-[1000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div id="modalBulkDeleteBox"
+            class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-rose-100 transform transition-all duration-200 scale-95 opacity-0"
+            onclick="event.stopPropagation()">
+            <div class="flex flex-col items-center text-center">
+                <div
+                    class="flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 ring-8 ring-rose-50/60 text-rose-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </div>
+                <h3 class="mt-5 text-lg font-black text-gray-900">Hapus <span id="bulkConfirmCount">0</span> Kategori?</h3>
+                <p class="mt-1.5 text-xs text-gray-500 leading-relaxed">
+                    Kategori berikut beserta fotonya akan dihapus permanen dan <strong class="text-rose-600">tidak
+                        dapat dikembalikan</strong>.
+                </p>
+            </div>
+
+            <ul id="bulkConfirmList"
+                class="mt-5 max-h-40 overflow-y-auto space-y-1.5 rounded-2xl border border-gray-100 bg-gray-50/70 p-3 text-left">
+            </ul>
+
+            <div class="mt-6 flex items-center gap-3">
+                <button type="button" onclick="closeBulkConfirm()"
+                    class="flex-1 px-5 py-3 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-sm hover:bg-gray-50 active:scale-95 transition-all cursor-pointer">
+                    Batal
+                </button>
+                <button type="button" onclick="confirmBulkDelete()"
+                    class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 text-white font-bold text-sm shadow-lg shadow-rose-500/25 active:scale-95 transition-all cursor-pointer">
+                    Ya, Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         function openCreateModal() {
             document.getElementById('modalCreate').classList.remove('hidden');
@@ -584,9 +658,119 @@
             if (e.key === 'Escape') {
                 closeCreateModal();
                 closeEditModal();
+                closeBulkConfirm();
             }
         });
 
+
+        // ===== Pencarian langsung (tanpa reload), seperti katalog kasir =====
+        function terapkanFilterKategori() {
+            const q = (document.getElementById('cariKategori').value || '').trim().toLowerCase();
+            const st = document.getElementById('filterStatusKategori').value;
+            const baris = document.querySelectorAll('tr[data-cari]');
+            let n = 0;
+
+            baris.forEach(tr => {
+                const cocok = (!q || tr.dataset.cari.includes(q)) && (st === '' || tr.dataset.status === st);
+                tr.classList.toggle('hidden', !cocok);
+
+                if (cocok) {
+                    n++;
+                    const no = tr.querySelector('.no-urut');
+                    if (no) no.textContent = n;
+                } else {
+                    // Baris yang tersembunyi tidak boleh ikut terhapus
+                    const cb = tr.querySelector('.bulk-check');
+                    if (cb) cb.checked = false;
+                }
+            });
+
+            document.getElementById('infoJumlah').textContent = n;
+            document.getElementById('barisKosongCari')
+                .classList.toggle('hidden', !(baris.length > 0 && n === 0));
+            updateBulkBar();
+        }
+
+        document.addEventListener('DOMContentLoaded', terapkanFilterKategori);
+
+        // ===== Hapus massal (checklist) =====
+        function bulkChecks() {
+            // Hanya baris yang sedang tampil (hasil pencarian) yang bisa dipilih
+            return [...document.querySelectorAll('.bulk-check:not(:disabled)')]
+                .filter(c => !c.closest('tr').classList.contains('hidden'));
+        }
+
+        function updateBulkBar() {
+            const checks = bulkChecks();
+            const n = document.querySelectorAll('.bulk-check:checked').length;
+            const bar = document.getElementById('bulkBar');
+            document.getElementById('bulkCount').textContent = n;
+            bar.classList.toggle('hidden', n === 0);
+            bar.classList.toggle('flex', n > 0);
+
+            const all = document.getElementById('checkAll');
+            if (all) {
+                all.checked = checks.length > 0 && n === checks.length;
+                all.indeterminate = n > 0 && n < checks.length;
+            }
+        }
+
+        function toggleSelectAll(src) {
+            bulkChecks().forEach(c => c.checked = src.checked);
+            updateBulkBar();
+        }
+
+        function clearBulk() {
+            bulkChecks().forEach(c => c.checked = false);
+            updateBulkBar();
+        }
+
+        function submitBulkDelete() {
+            const checked = document.querySelectorAll('.bulk-check:checked');
+            if (!checked.length) return;
+
+            document.getElementById('bulkConfirmCount').textContent = checked.length;
+
+            const list = document.getElementById('bulkConfirmList');
+            list.innerHTML = '';
+            checked.forEach(c => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center gap-2 text-xs font-semibold text-gray-700';
+                const dot = document.createElement('span');
+                dot.className = 'h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500';
+                const nama = document.createElement('span');
+                nama.className = 'truncate';
+                nama.textContent = c.dataset.nama || ('Kategori #' + c.value);
+                li.append(dot, nama);
+                list.appendChild(li);
+            });
+
+            const modal = document.getElementById('modalBulkDelete');
+            const box = document.getElementById('modalBulkDeleteBox');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            requestAnimationFrame(() => {
+                box.classList.remove('scale-95', 'opacity-0');
+                box.classList.add('scale-100', 'opacity-100');
+            });
+        }
+
+        function closeBulkConfirm() {
+            const box = document.getElementById('modalBulkDeleteBox');
+            box.classList.remove('scale-100', 'opacity-100');
+            box.classList.add('scale-95', 'opacity-0');
+            document.getElementById('modalBulkDelete').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function confirmBulkDelete() {
+            sessionStorage.setItem('kategori_scroll_pos', window.scrollY);
+            document.getElementById('formBulkDelete').submit();
+        }
+
+        document.getElementById('modalBulkDelete')?.addEventListener('click', function(e) {
+            if (e.target === this) closeBulkConfirm();
+        });
 
         document.addEventListener("DOMContentLoaded", function() {
             // 1. Cek apakah ada posisi scroll yang tersimpan
