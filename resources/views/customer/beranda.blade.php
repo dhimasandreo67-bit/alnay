@@ -334,6 +334,7 @@
         <div class="overflow-x-auto hide-scrollbar pb-4 pt-4 sm:pb-0 sm:pt-0 -mx-4 px-4 sm:mx-0 sm:px-0">
             <div class="flex w-max min-w-full gap-4 sm:gap-12 sm:flex-wrap sm:justify-center snap-x snap-mandatory">
                 @foreach ($kategori as $k)
+                    @continue(empty($k['kode_kategori']))
                     <a href="{{ route('koleksi.kategori', ['kode' => $k['kode_kategori']]) }}"
                         class="group flex w-20 sm:w-24 md:w-28 shrink-0 snap-center flex-col items-center gap-2 sm:gap-3 text-center transition-all duration-300 hover:-translate-y-1">
 
