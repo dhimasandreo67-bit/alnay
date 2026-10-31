@@ -6,6 +6,13 @@
     // @json() Blade memecah isinya di tiap koma, jadi array harus disiapkan di sini, bukan ditulis langsung di dalam @json().
     $filterJs = request()->only(['search', 'aksi', 'modul', 'peran', 'dari', 'sampai']);
 
+    // Dipakai untuk menandai pemisah tanggal saat tabel dirender pertama kali.
+    $tanggalBerjalan = null;
+
+    // Label ramah-baca untuk chip filter aktif.
+    $aksiLabelMap = ['created' => 'Dibuat', 'updated' => 'Diubah', 'deleted' => 'Dihapus', 'login' => 'Masuk', 'logout' => 'Keluar', 'login_gagal' => 'Gagal masuk', 'lainnya' => 'Aksi lain'];
+    $peranLabelMap = ['owner' => 'Owner', 'admin' => 'Admin', 'pelanggan' => 'Pelanggan', 'tamu' => 'Tamu'];
+
     $kartu = [
         ['id' => 'stat-total', 'label' => 'Aktivitas Hari Ini', 'nilai' => $ringkasan['total'], 'catatan' => 'Semua aksi tercatat',
             'kelas' => 'border-amber-200/60 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/30',
@@ -60,6 +67,35 @@
         .group-shine:hover::after {
             left: 130%;
         }
+
+        /* Area tabel bisa scroll sendiri dengan header yang tetap terlihat, penting saat log banyak. */
+        #scroll-audit {
+            max-height: 70vh;
+        }
+
+        #scroll-audit thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* Pemisah tanggal ikut "menempel" tepat di bawah header saat discroll. */
+        #tbody-audit tr.tanggal-pemisah td {
+            position: sticky;
+            top: 41px;
+            z-index: 5;
+        }
+
+        /* Mode tampilan rapat: kurangi jarak vertikal tiap baris. */
+        #tabel-audit.tampilan-rapat td {
+            padding-top: .5rem !important;
+            padding-bottom: .5rem !important;
+        }
+
+        #tabel-audit.tampilan-rapat tr.tanggal-pemisah td {
+            padding-top: .25rem !important;
+            padding-bottom: .25rem !important;
+        }
     </style>
 
     {{-- Header --}}
@@ -70,6 +106,11 @@
         </div>
         <div class="flex items-center gap-3">
             <span id="live-waktu" class="text-[11px] tabular-nums text-gray-400"></span>
+            <button type="button" id="btn-densitas"
+                    class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-500 shadow-sm transition-all hover:border-amber-200 hover:text-amber-700 active:scale-95">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <span id="densitas-label">Nyaman</span>
+            </button>
             <button type="button" id="btn-live"
                     class="group-shine relative inline-flex items-center gap-2 overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white px-4 py-2 text-xs font-bold text-amber-800 shadow-sm transition-all hover:from-amber-100 hover:to-amber-50 hover:shadow-md hover:shadow-amber-500/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60">
                 <span id="live-dot" class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -150,10 +191,62 @@
         </div>
     </form>
 
+    {{-- Ringkasan hasil & chip filter aktif --}}
+    <div class="flex flex-wrap items-center justify-between gap-2 px-1">
+        <p class="text-[11px] font-semibold text-gray-400">
+            @if ($logs->total())
+                Menampilkan <span class="text-gray-600">{{ $logs->firstItem() }}–{{ $logs->lastItem() }}</span> dari <span class="text-gray-600">{{ number_format($logs->total(), 0, ',', '.') }}</span> aktivitas
+            @else
+                Tidak ada aktivitas untuk ditampilkan
+            @endif
+        </p>
+
+        @if ($adaFilter)
+            <div class="flex flex-wrap items-center gap-1.5">
+                @if (request('search'))
+                    <a href="{{ route('admin.audit.index', request()->except('search')) }}"
+                       class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
+                        Cari: "{{ \Illuminate\Support\Str::limit(request('search'), 20) }}" <span aria-hidden="true">&times;</span>
+                    </a>
+                @endif
+                @if (request('aksi'))
+                    <a href="{{ route('admin.audit.index', request()->except('aksi')) }}"
+                       class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
+                        Aksi: {{ $aksiLabelMap[request('aksi')] ?? request('aksi') }} <span aria-hidden="true">&times;</span>
+                    </a>
+                @endif
+                @if (request('modul'))
+                    <a href="{{ route('admin.audit.index', request()->except('modul')) }}"
+                       class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
+                        Modul: {{ request('modul') }} <span aria-hidden="true">&times;</span>
+                    </a>
+                @endif
+                @if (request('peran'))
+                    <a href="{{ route('admin.audit.index', request()->except('peran')) }}"
+                       class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
+                        Pelaku: {{ $peranLabelMap[request('peran')] ?? request('peran') }} <span aria-hidden="true">&times;</span>
+                    </a>
+                @endif
+                @if (request('dari'))
+                    <a href="{{ route('admin.audit.index', request()->except('dari')) }}"
+                       class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
+                        Dari: {{ request('dari') }} <span aria-hidden="true">&times;</span>
+                    </a>
+                @endif
+                @if (request('sampai'))
+                    <a href="{{ route('admin.audit.index', request()->except('sampai')) }}"
+                       class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
+                        Sampai: {{ request('sampai') }} <span aria-hidden="true">&times;</span>
+                    </a>
+                @endif
+            </div>
+        @endif
+    </div>
+
     {{-- Tabel --}}
     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100">
+        <div id="scroll-audit" class="overflow-auto">
+            <table id="tabel-audit" class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gray-50/80">
                     <tr>
                         <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Waktu</th>
@@ -166,6 +259,17 @@
                 </thead>
                 <tbody id="tbody-audit" class="divide-y divide-gray-100/80">
                     @forelse ($logs as $log)
+                        @php
+                            $tanggalLog = optional($log->created_at)->isoFormat('dddd, D MMMM Y');
+                        @endphp
+                        @if ($tanggalLog && $tanggalLog !== $tanggalBerjalan)
+                            <tr class="tanggal-pemisah bg-gray-50/90">
+                                <td colspan="6" class="px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                                    {{ $tanggalLog }}
+                                </td>
+                            </tr>
+                            @php($tanggalBerjalan = $tanggalLog)
+                        @endif
                         @include('admin.audit._baris', ['log' => $log])
                     @empty
                         <tr id="baris-kosong">
@@ -193,10 +297,13 @@
 
         var $ = function (id) { return document.getElementById(id); };
         var tbody = $('tbody-audit');
+        var tabel = $('tabel-audit');
         var btn = $('btn-live');
         var dot = $('live-dot');
         var label = $('live-label');
         var waktu = $('live-waktu');
+        var btnDensitas = $('btn-densitas');
+        var labelDensitas = $('densitas-label');
 
         var terbaru = {{ (int) $idTerbaru }};
         var aktif = HALAMAN === 1; // live hanya masuk akal di halaman pertama
@@ -225,21 +332,49 @@
             });
         }
 
+        function tanggalPalingAtas() {
+            var tr = tbody.querySelector('tr[data-tanggal]');
+            return tr ? tr.getAttribute('data-tanggal') : null;
+        }
+
+        function buatPemisahTanggal(tanggal) {
+            var tr = document.createElement('tr');
+            tr.className = 'tanggal-pemisah bg-gray-50/90';
+            var td = document.createElement('td');
+            td.colSpan = 6;
+            td.className = 'px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400';
+            td.textContent = tanggal;
+            tr.appendChild(td);
+            return tr;
+        }
+
         function sisip(html) {
             var kosong = $('baris-kosong');
             if (kosong) kosong.remove();
 
             var tpl = document.createElement('template');
             tpl.innerHTML = html.trim();
-            var baris = Array.prototype.slice.call(tpl.content.querySelectorAll('tr'));
+            var baris = Array.prototype.slice.call(tpl.content.querySelectorAll('tr[data-log-id]'));
+            if (!baris.length) return;
 
             baris.forEach(function (tr) { tr.classList.add('bg-amber-100'); });
+
+            // Kalau baris baru ini dari tanggal yang belum ada pemisahnya di paling atas, sisipkan dulu.
+            var tanggalBaru = baris[0].getAttribute('data-tanggal');
+            if (tanggalBaru && tanggalBaru !== tanggalPalingAtas()) {
+                tbody.insertBefore(buatPemisahTanggal(tanggalBaru), tbody.firstChild);
+            }
+
             tbody.insertBefore(tpl.content, tbody.firstChild);
             setTimeout(function () {
                 baris.forEach(function (tr) { tr.classList.remove('bg-amber-100'); });
             }, 2500);
 
             while (tbody.rows.length > MAKS_BARIS) tbody.deleteRow(-1);
+
+            // Jangan sampai ada pemisah tanggal "yatim" tertinggal sendirian di baris paling bawah.
+            var akhir = tbody.rows[tbody.rows.length - 1];
+            if (akhir && akhir.classList.contains('tanggal-pemisah')) tbody.deleteRow(tbody.rows.length - 1);
         }
 
         function tarik() {
@@ -263,6 +398,23 @@
                 sedang = false;
             });
         }
+
+        function terapkanDensitas(rapat) {
+            tabel.classList.toggle('tampilan-rapat', rapat);
+            labelDensitas.textContent = rapat ? 'Rapat' : 'Nyaman';
+        }
+
+        try {
+            terapkanDensitas(localStorage.getItem('audit_densitas_rapat') === '1');
+        } catch (e) {
+            terapkanDensitas(false);
+        }
+
+        btnDensitas.addEventListener('click', function () {
+            var rapat = !tabel.classList.contains('tampilan-rapat');
+            terapkanDensitas(rapat);
+            try { localStorage.setItem('audit_densitas_rapat', rapat ? '1' : '0'); } catch (e) {}
+        });
 
         if (HALAMAN !== 1) btn.disabled = true;
 

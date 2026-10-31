@@ -20,7 +20,7 @@
     $inisial = strtoupper(mb_substr(trim((string) $log->pelaku) ?: '?', 0, 1));
     $rincian = is_array($log->perubahan) ? $log->perubahan : [];
 @endphp
-<tr data-log-id="{{ $log->id }}" class="align-top transition-colors duration-1000 hover:bg-amber-50/30">
+<tr data-log-id="{{ $log->id }}" data-tanggal="{{ $waktu?->isoFormat('dddd, D MMMM Y') }}" class="align-top transition-colors duration-1000 hover:bg-amber-50/30">
     <td class="whitespace-nowrap px-6 py-4">
         <p class="text-xs font-semibold text-gray-800">{{ $waktu?->translatedFormat('d M Y') }}</p>
         <p class="text-[11px] tabular-nums text-gray-400">{{ $waktu?->format('H:i:s') }}</p>
