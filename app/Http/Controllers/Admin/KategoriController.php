@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Kategori;
 use App\Models\Produk;
+use App\Services\ImageOptimizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class KategoriController extends Controller
 {
@@ -58,7 +60,11 @@ class KategoriController extends Controller
 
         $fotoPath = null;
         if ($request->hasFile('foto')) {
-            $fotoPath = $request->file('foto')->store('kategori', 'public');
+            try {
+                $fotoPath = ImageOptimizer::simpanSebagaiWebp($request->file('foto'), 'kategori');
+            } catch (\RuntimeException $e) {
+                return back()->withInput()->withErrors(['foto' => $e->getMessage()]);
+            }
         }
 
         Kategori::create([
@@ -93,11 +99,17 @@ class KategoriController extends Controller
 
         $fotoPath = $kategori->foto;
         if ($request->hasFile('foto')) {
-            // Hapus foto lama
+            try {
+                $fotoPathBaru = ImageOptimizer::simpanSebagaiWebp($request->file('foto'), 'kategori');
+            } catch (\RuntimeException $e) {
+                return back()->withInput()->withErrors(['foto' => $e->getMessage()]);
+            }
+
+            // Hapus foto lama hanya setelah foto baru berhasil dibuat
             if ($kategori->foto) {
                 \Storage::disk('public')->delete($kategori->foto);
             }
-            $fotoPath = $request->file('foto')->store('kategori', 'public');
+            $fotoPath = $fotoPathBaru;
         }
 
         $kategori->update([
@@ -112,17 +124,46 @@ class KategoriController extends Controller
     }
 
     // 6. Hapus kategori dari database
-    public function destroy($id)
+
+    public function bulkDestroy(Request $request)
     {
-        $kategori = Kategori::withCount('produks')->findOrFail($id);
-        
-        // Proteksi relasi: jangan izinkan hapus kategori yang masih punya produk.
-        if ($kategori->produks_count > 0) {
-            return redirect()->back()->with('error', "Kategori \"{$kategori->nama_kategori}\" tidak bisa dihapus karena masih memiliki {$kategori->produks_count} produk terkait.");
+        $ids = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ], [
+            'ids.required' => 'Pilih minimal satu kategori untuk dihapus.',
+        ])['ids'];
+
+        $kategoris = Kategori::withCount('produks')->whereIn('id', $ids)->get();
+
+        $dihapus = 0;
+        $dilewati = 0;
+
+        foreach ($kategoris as $k) {
+            if ($k->produks_count > 0) {
+                $dilewati++;
+                continue;
+            }
+
+            if ($k->foto) {
+                Storage::disk('public')->delete($k->foto);
+            }
+
+            $k->delete();
+            $dihapus++;
         }
 
-        $kategori->delete();
+        // Semua yang dipilih masih punya produk -> tidak ada yang terhapus
+        if ($dihapus === 0 && $dilewati > 0) {
+            return redirect()->route('admin.kategori.index')
+                ->with('error', 'Kategori tidak dapat dihapus karena masih memiliki produk terkait. Pindahkan atau hapus produknya terlebih dahulu.');
+        }
 
-        return redirect()->route('admin.kategori.index')->with('success', 'Kategori berhasil dihapus.');
+        $pesan = "$dihapus kategori berhasil dihapus.";
+        if ($dilewati > 0) {
+            $pesan .= " $dilewati kategori dilewati karena masih punya produk terkait.";
+        }
+
+        return redirect()->route('admin.kategori.index')->with('success', $pesan);
     }
 }
