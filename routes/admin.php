@@ -36,27 +36,29 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         // 3. Master data
-        // --- Kategori (Diperbaiki agar mengarah ke Controller, bukan redirect) ---
+        // --- Kategori ---
         Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index');
         Route::get('/kategori/tambah', [KategoriController::class, 'create'])->name('kategori.create');
         Route::post('/kategori', [KategoriController::class, 'store'])->name('kategori.store');
         Route::get('/kategori/{id}/edit', [KategoriController::class, 'edit'])->name('kategori.edit');
         Route::put('/kategori/{id}', [KategoriController::class, 'update'])->name('kategori.update');
+        // Hapus massal (checklist). Harus SEBELUM '/kategori/{id}' agar 'bulk-destroy' tidak dianggap sebagai {id}.
+        Route::delete('/kategori/bulk-destroy', [KategoriController::class, 'bulkDestroy'])->name('kategori.bulk-destroy');
         Route::delete('/kategori/{id}', [KategoriController::class, 'destroy'])->name('kategori.destroy');
-        // --- Kategori (Menggunakan rute editan Anda) ---
-        Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori.index');
-        Route::post('/kategori', [KategoriController::class, 'store'])->name('kategori.store');
-        Route::put('/kategori/{id}', [KategoriController::class, 'update'])->name('kategori.update');
-        Route::delete('/kategori/{id}', [KategoriController::class, 'destroy'])->name('kategori.destroy');
-        Route::get('/kategori/tambah', fn () => redirect()->route('admin.kategori.index'));
-        Route::get('/kategori/{id}/edit', fn ($id) => redirect()->route('admin.kategori.index'));
+        // Jaring pengaman: kategori tidak punya halaman detail, jadi GET ke URL ini (mis. salah ketik,
+        // bookmark lama, atau refresh) dikembalikan ke daftar kategori alih-alih error 405.
+        Route::get('/kategori/{id}', fn () => redirect()->route('admin.kategori.index'))->whereNumber('id');
+
         
         // --- Produk (Menggunakan rute baru dari GitHub) ---
         Route::get('/produk', [ProdukController::class, 'index'])->name('produk.index');
+        Route::get('/produk/export', [ProdukController::class, 'export'])->name('produk.export');
         Route::get('/produk/tambah', [ProdukController::class, 'create'])->name('produk.create');
         Route::post('/produk', [ProdukController::class, 'store'])->name('produk.store');
         Route::get('/produk/{id}/edit', [ProdukController::class, 'edit'])->name('produk.edit');
         Route::put('/produk/{id}', [ProdukController::class, 'update'])->name('produk.update');
+        // Hapus massal (checklist). Harus SEBELUM '/produk/{id}' agar 'bulk-destroy' tidak dianggap sebagai {id}.
+        Route::delete('/produk/bulk-destroy', [ProdukController::class, 'bulkDestroy'])->name('produk.bulk-destroy');
         Route::delete('/produk/{id}', [ProdukController::class, 'destroy'])->name('produk.destroy');
         Route::get('/pengguna', fn () => view('placeholder'))->name('pengguna.index');
 
