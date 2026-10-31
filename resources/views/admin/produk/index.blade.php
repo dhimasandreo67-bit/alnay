@@ -40,6 +40,15 @@
             </div>
         @endif
 
+        @if(session('error'))
+            <div class="flex items-center gap-4 bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-2xl shadow-sm animate-fade-up" role="alert">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <p class="text-sm font-semibold">{{ session('error') }}</p>
+            </div>
+        @endif
+
         {{-- Header --}}
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -51,10 +60,10 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button type="button" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-sm hover:bg-gray-50 active:scale-95 transition-all">
+                <a id="linkExport" href="{{ route('admin.produk.export', array_filter($filters)) }}" title="Unduh data produk (mengikuti filter yang aktif) dalam format Excel" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-sm hover:bg-gray-50 active:scale-95 transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
-                    Unduh CSV
-                </button>
+                    Unduh Excel
+                </a>
                 <a href="{{ route('admin.produk.create') }}"
                 class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold py-2.5 px-5 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all duration-200 text-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
@@ -132,17 +141,18 @@
         </div>
 
         {{-- Filter & Search Toolbar --}}
-        <form method="GET" action="{{ route('admin.produk.index') }}"
+        <form method="GET" action="{{ route('admin.produk.index') }}" onsubmit="event.preventDefault()"
               class="bg-panel p-3 rounded-2xl border border-line shadow-sm flex flex-col md:flex-row items-center gap-3">
             <div class="relative w-full md:w-80 group">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-muted group-focus-within:text-gold transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </span>
-                <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Cari busana, kode SKU..."
+                <input type="search" id="cariProduk" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Cari nama, SKU, motif, bahan..."
+                       autocomplete="off" oninput="terapkanFilterProduk()"
                        class="w-full pl-11 pr-4 py-2.5 bg-cream/50 border border-transparent rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all duration-300">
             </div>
 
-            <select name="kategori_id" onchange="this.form.submit()"
+            <select id="filterKategoriProduk" name="kategori_id" onchange="terapkanFilterProduk()"
                     class="w-full md:w-auto px-4 py-2.5 bg-cream/50 border border-transparent rounded-xl text-sm font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all duration-300 cursor-pointer">
                 <option value="">Semua Kategori</option>
                 @foreach($categories as $kategori)
@@ -150,7 +160,7 @@
                 @endforeach
             </select>
 
-            <select name="status" onchange="this.form.submit()"
+            <select id="filterStatusProduk" name="status" onchange="terapkanFilterProduk()"
                     class="w-full md:w-auto px-4 py-2.5 bg-cream/50 border border-transparent rounded-xl text-sm font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-gold/20 focus:border-gold transition-all duration-300 cursor-pointer">
                 <option value="">Semua Status</option>
                 @foreach($opsiStatus as $value => $label)
@@ -160,22 +170,46 @@
 
             <div class="flex-1 flex items-center justify-end gap-3 w-full md:w-auto mt-2 md:mt-0 pr-2">
                 <span class="text-xs text-muted font-medium whitespace-nowrap">
-                    Menampilkan <strong class="text-ink">{{ $produkList->count() }}</strong> dari <strong class="text-ink">{{ $totalKoleksi }}</strong> busana
+                    Menampilkan <strong id="infoJumlah" class="text-ink">{{ $produkList->count() }}</strong> dari <strong class="text-ink">{{ $totalKoleksi }}</strong> busana
                 </span>
-                @if(array_filter($filters))
-                    <a href="{{ route('admin.produk.index') }}" class="text-xs font-bold text-rose-500 hover:text-rose-700 hover:underline transition-all whitespace-nowrap">
-                        ⟲ Reset
-                    </a>
-                @endif
+                <button type="button" id="btnReset" onclick="resetFilterProduk()"
+                        class="hidden text-xs font-bold text-rose-500 hover:text-rose-700 hover:underline transition-all whitespace-nowrap cursor-pointer">
+                    ⟲ Reset
+                </button>
             </div>
         </form>
 
         {{-- Table --}}
         <div class="bg-panel rounded-3xl shadow-sm border border-line overflow-hidden">
+            {{-- Bar hapus massal: muncul saat ada yang dicentang --}}
+            <form id="formBulkDelete" method="POST" action="{{ route('admin.produk.bulk-destroy') }}">
+                @csrf
+                @method('DELETE')
+            </form>
+            <div id="bulkBar" class="hidden items-center justify-between gap-3 px-6 py-3 bg-rose-50 border-b border-rose-100">
+                <span class="text-xs font-bold text-rose-700"><span id="bulkCount">0</span> produk dipilih</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="clearBulk()"
+                        class="px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-700 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="button" onclick="submitBulkDelete()"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-95 transition-all cursor-pointer shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Hapus Terpilih
+                    </button>
+                </div>
+            </div>
+
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-line">
                     <thead class="bg-cream/80">
                         <tr>
+                            <th class="px-6 py-4 w-10">
+                                <input type="checkbox" id="checkAll" onchange="toggleSelectAll(this)" @disabled($produkList->count() === 0)
+                                    class="w-4 h-4 rounded border-gray-300 accent-amber-600 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                    title="Pilih semua">
+                            </th>
                             <th class="px-6 py-4 text-left text-[11px] font-bold text-ink/60 uppercase tracking-wider">Foto & Siluet</th>
                             <th class="px-6 py-4 text-left text-[11px] font-bold text-ink/60 uppercase tracking-wider">Nama & Motif</th>
                             <th class="px-6 py-4 text-left text-[11px] font-bold text-ink/60 uppercase tracking-wider">Kode SKU</th>
@@ -198,7 +232,16 @@
                                     default    => 'bg-gray-50 text-gray-500 border-gray-200',
                                 };
                             @endphp
-                            <tr class="transition-colors duration-200 hover:bg-cream/40 group">
+                            <tr data-cari="{{ \Illuminate\Support\Str::lower(implode(' ', [$produk->nama, $produk->sku, $produk->motif, $produk->bahan, $produk->kategori->nama_kategori ?? ''])) }}"
+                                data-kategori="{{ $produk->kategori_id }}"
+                                data-status="{{ $produk->status }}"
+                                class="transition-colors duration-200 hover:bg-cream/40 group">
+                                <td class="px-6 py-4">
+                                    <input type="checkbox" name="ids[]" value="{{ $produk->id }}" form="formBulkDelete"
+                                        data-nama="{{ $produk->nama }}" onchange="updateBulkBar()"
+                                        class="bulk-check w-4 h-4 rounded border-gray-300 accent-amber-600 cursor-pointer"
+                                        title="Pilih untuk dihapus">
+                                </td>
                                 <td class="px-6 py-4">
                                     <div class="relative aspect-square w-16 h-16 overflow-hidden rounded-xl bg-cream border border-line shadow-sm">
                                         @if($sampul)
@@ -244,18 +287,12 @@
                                            class="p-2 rounded-xl text-ink/50 hover:text-gold hover:bg-gold/10 active:scale-90 transition-all duration-200" title="Edit Produk">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                         </a>
-                                        <form method="POST" action="{{ route('admin.produk.destroy', $produk->id) }}" onsubmit="return confirm('Hapus produk &quot;{{ $produk->nama }}&quot;?');">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="p-2 rounded-xl text-ink/50 hover:text-rose-600 hover:bg-rose-50 active:scale-90 transition-all duration-200" title="Hapus Produk">
-                                                <svg class="bg-red w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                            </button>
-                                        </form>
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-6 py-16 text-center">
+                                <td colspan="9" class="px-6 py-16 text-center">
                                     <div class="flex flex-col items-center justify-center text-muted">
                                         <svg class="w-12 h-12 mb-3 text-line" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
                                         <p class="text-sm font-medium">Belum ada produk di katalog.</p>
@@ -264,9 +301,186 @@
                                 </td>
                             </tr>
                         @endforelse
+
+                        {{-- Muncul saat pencarian tidak menemukan apa pun --}}
+                        <tr id="barisKosongCari" class="hidden">
+                            <td colspan="9" class="px-6 py-16 text-center text-sm font-medium text-muted">
+                                Tidak ada produk yang cocok dengan pencarian.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    {{-- ===================== MODAL KONFIRMASI HAPUS MASSAL ===================== --}}
+    <div id="modalBulkDelete"
+        class="hidden fixed inset-0 z-[1000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div id="modalBulkDeleteBox"
+            class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-rose-100 transform transition-all duration-200 scale-95 opacity-0"
+            onclick="event.stopPropagation()">
+            <div class="flex flex-col items-center text-center">
+                <div class="flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 ring-8 ring-rose-50/60 text-rose-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </div>
+                <h3 class="mt-5 text-lg font-black text-gray-900">Hapus <span id="bulkConfirmCount">0</span> Produk?</h3>
+                <p class="mt-1.5 text-xs text-gray-500 leading-relaxed">
+                    Produk berikut akan dihapus permanen dan <strong class="text-rose-600">tidak dapat dikembalikan</strong>.
+                </p>
+            </div>
+
+            <ul id="bulkConfirmList"
+                class="mt-5 max-h-40 overflow-y-auto space-y-1.5 rounded-2xl border border-gray-100 bg-gray-50/70 p-3 text-left"></ul>
+
+            <div class="mt-6 flex items-center gap-3">
+                <button type="button" onclick="closeBulkConfirm()"
+                    class="flex-1 px-5 py-3 rounded-xl border border-gray-200 bg-white text-gray-700 font-bold text-sm hover:bg-gray-50 active:scale-95 transition-all cursor-pointer">
+                    Batal
+                </button>
+                <button type="button" onclick="confirmBulkDelete()"
+                    class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 text-white font-bold text-sm shadow-lg shadow-rose-500/25 active:scale-95 transition-all cursor-pointer">
+                    Ya, Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function bulkChecks() {
+            // Hanya baris yang sedang tampil (hasil pencarian) yang bisa dipilih
+            return [...document.querySelectorAll('.bulk-check:not(:disabled)')]
+                .filter(c => !c.closest('tr').classList.contains('hidden'));
+        }
+
+        // ===== Pencarian langsung (tanpa reload), seperti katalog kasir =====
+        const EXPORT_URL = @json(route('admin.produk.export'));
+        const JENIS_AKTIF = @json($filters['jenis'] ?? '');
+
+        function terapkanFilterProduk() {
+            const q = (document.getElementById('cariProduk').value || '').trim().toLowerCase();
+            const kat = document.getElementById('filterKategoriProduk').value;
+            const st = document.getElementById('filterStatusProduk').value;
+            const baris = document.querySelectorAll('tr[data-cari]');
+            let n = 0;
+
+            baris.forEach(tr => {
+                const cocok = (!q || tr.dataset.cari.includes(q))
+                    && (kat === '' || tr.dataset.kategori === kat)
+                    && (st === '' || tr.dataset.status === st);
+                tr.classList.toggle('hidden', !cocok);
+
+                if (cocok) {
+                    n++;
+                } else {
+                    // Baris yang tersembunyi tidak boleh ikut terhapus
+                    const cb = tr.querySelector('.bulk-check');
+                    if (cb) cb.checked = false;
+                }
+            });
+
+            document.getElementById('infoJumlah').textContent = n;
+            document.getElementById('barisKosongCari')
+                .classList.toggle('hidden', !(baris.length > 0 && n === 0));
+            document.getElementById('btnReset')
+                .classList.toggle('hidden', !(q || kat || st));
+
+            // Unduhan Excel mengikuti filter yang sedang tampil
+            const params = new URLSearchParams();
+            if (q) params.set('q', document.getElementById('cariProduk').value.trim());
+            if (kat) params.set('kategori_id', kat);
+            if (st) params.set('status', st);
+            if (JENIS_AKTIF) params.set('jenis', JENIS_AKTIF);
+            const qs = params.toString();
+            document.getElementById('linkExport').href = EXPORT_URL + (qs ? '?' + qs : '');
+
+            updateBulkBar();
+        }
+
+        function resetFilterProduk() {
+            document.getElementById('cariProduk').value = '';
+            document.getElementById('filterKategoriProduk').value = '';
+            document.getElementById('filterStatusProduk').value = '';
+            terapkanFilterProduk();
+        }
+
+        document.addEventListener('DOMContentLoaded', terapkanFilterProduk);
+
+        function updateBulkBar() {
+            const checks = bulkChecks();
+            const n = document.querySelectorAll('.bulk-check:checked').length;
+            const bar = document.getElementById('bulkBar');
+            document.getElementById('bulkCount').textContent = n;
+            bar.classList.toggle('hidden', n === 0);
+            bar.classList.toggle('flex', n > 0);
+
+            const all = document.getElementById('checkAll');
+            if (all) {
+                all.checked = checks.length > 0 && n === checks.length;
+                all.indeterminate = n > 0 && n < checks.length;
+            }
+        }
+
+        function toggleSelectAll(src) {
+            bulkChecks().forEach(c => c.checked = src.checked);
+            updateBulkBar();
+        }
+
+        function clearBulk() {
+            bulkChecks().forEach(c => c.checked = false);
+            updateBulkBar();
+        }
+
+        function submitBulkDelete() {
+            const checked = document.querySelectorAll('.bulk-check:checked');
+            if (!checked.length) return;
+
+            document.getElementById('bulkConfirmCount').textContent = checked.length;
+
+            const list = document.getElementById('bulkConfirmList');
+            list.innerHTML = '';
+            checked.forEach(c => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center gap-2 text-xs font-semibold text-gray-700';
+                const dot = document.createElement('span');
+                dot.className = 'h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500';
+                const nama = document.createElement('span');
+                nama.className = 'truncate';
+                nama.textContent = c.dataset.nama || ('Produk #' + c.value);
+                li.append(dot, nama);
+                list.appendChild(li);
+            });
+
+            const box = document.getElementById('modalBulkDeleteBox');
+            document.getElementById('modalBulkDelete').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            requestAnimationFrame(() => {
+                box.classList.remove('scale-95', 'opacity-0');
+                box.classList.add('scale-100', 'opacity-100');
+            });
+        }
+
+        function closeBulkConfirm() {
+            const box = document.getElementById('modalBulkDeleteBox');
+            box.classList.remove('scale-100', 'opacity-100');
+            box.classList.add('scale-95', 'opacity-0');
+            document.getElementById('modalBulkDelete').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function confirmBulkDelete() {
+            document.getElementById('formBulkDelete').submit();
+        }
+
+        document.getElementById('modalBulkDelete')?.addEventListener('click', function(e) {
+            if (e.target === this) closeBulkConfirm();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeBulkConfirm();
+        });
+    </script>
 @endsection
