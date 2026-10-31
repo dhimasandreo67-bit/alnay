@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Kategori;
 use App\Models\Produk;
+use App\Services\ImageOptimizer;
+use App\Support\XlsxSederhana;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -16,30 +19,7 @@ class ProdukController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Produk::with('kategori');
-
-        if ($search = $request->get('q')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%");
-            });
-        }
-
-        if ($kategoriId = $request->get('kategori_id')) {
-            $query->where('kategori_id', $kategoriId);
-        }
-
-        if ($status = $request->get('status')) {
-            $query->where('status', $status);
-        }
-
-        if ($jenis = $request->get('jenis')) {
-            if ($jenis === 'sewa') {
-                $query->where('bisa_disewa', true);
-            } elseif ($jenis === 'jual') {
-                $query->where('dapat_dijual', true);
-            }
-        }
+        $query = $this->terapkanFilter(Produk::with('kategori'), $request);
 
         $produkList = $query->orderByDesc('id')->get();
 
@@ -155,7 +135,11 @@ class ProdukController extends Controller
         $kategori = Kategori::findOrFail($validated['kategori_id']);
 
         // Upload foto (4 slot berurutan: 0=sampul, 1=slot2, 2=slot3, 3=detail)
-        $fotoPaths = $this->uploadFotoSlots($request);
+        try {
+            $fotoPaths = $this->uploadFotoSlots($request);
+        } catch (\RuntimeException $e) {
+            return back()->withInput()->withErrors(['foto' => $e->getMessage()]);
+        }
 
         Produk::create([
             'kategori_id'          => $kategori->id,
@@ -257,7 +241,11 @@ class ProdukController extends Controller
         $kategori = Kategori::findOrFail($validated['kategori_id']);
 
         // Gabungkan foto baru (per slot) dengan foto lama yang tidak diganti
-        $fotoBaru = $this->uploadFotoSlots($request, hapusSlotKosong: false);
+        try {
+            $fotoBaru = $this->uploadFotoSlots($request, hapusSlotKosong: false);
+        } catch (\RuntimeException $e) {
+            return back()->withInput()->withErrors(['foto' => $e->getMessage()]);
+        }
         $fotoLama = array_map(
             fn ($p) => $this->normalizeFotoPath($p),
             $request->input('foto_existing', [])
@@ -328,6 +316,204 @@ class ProdukController extends Controller
     }
 
     /**
+     * Hapus banyak produk sekaligus (checklist di halaman Kelola Produk).
+     * Foto di storage dihapus hanya untuk produk yang berhasil dihapus.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $ids = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ], [
+            'ids.required' => 'Pilih minimal satu produk untuk dihapus.',
+        ])['ids'];
+
+        $dihapus = 0;
+        $gagal   = 0;
+
+        foreach (Produk::whereIn('id', $ids)->get() as $produk) {
+            $foto = (array) $produk->foto_produk;
+
+            try {
+                $produk->delete();
+            } catch (QueryException $e) {
+                // Masih terikat data lain (mis. transaksi/sewa lewat foreign key)
+                $gagal++;
+                continue;
+            }
+
+            foreach ($foto as $path) {
+                if ($path) {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+            $dihapus++;
+        }
+
+        if ($dihapus === 0 && $gagal > 0) {
+            return redirect()
+                ->route('admin.produk.index')
+                ->with('error', 'Produk tidak dapat dihapus karena masih terkait data transaksi atau sewa.');
+        }
+
+        $pesan = "$dihapus produk berhasil dihapus.";
+        if ($gagal > 0) {
+            $pesan .= " $gagal produk dilewati karena masih terkait transaksi atau sewa.";
+        }
+
+        return redirect()->route('admin.produk.index')->with('success', $pesan);
+    }
+
+    /**
+     * Unduh data produk lengkap dalam format Excel (.xlsx).
+     * Mengikuti filter yang sedang aktif di halaman (q, kategori_id, status, jenis).
+     */
+    public function export(Request $request)
+    {
+        $produkList = $this->terapkanFilter(Produk::with('kategori'), $request)
+            ->orderBy('id')
+            ->get();
+
+        $opsiStatus = Produk::opsiStatus();
+
+        $judul = [
+            'No', 'Kode SKU', 'Nama Produk', 'Kategori', 'Deskripsi', 'Bahan', 'Motif',
+            'Warna', 'Ukuran & Stok', 'Berat', 'Jenis Transaksi', 'Harga Sewa', 'DP',
+            'Harga Jual', 'Diskon (%)', 'Denda/Hari Telat', 'Total Stok', 'Status',
+            'Rating', 'Jumlah Rating', 'Tanggal Dibuat',
+        ];
+
+        $xlsx = (new XlsxSederhana('Data Produk'))
+            ->lebarKolom([6, 16, 32, 20, 40, 18, 18, 24, 40, 10, 16, 14, 12, 14, 11, 16, 11, 16, 9, 13, 18])
+            ->aktifkanFilterHeader()
+            ->tambahBaris(array_map(fn ($h) => [$h, XlsxSederhana::S_HEADER], $judul));
+
+        foreach ($produkList as $i => $p) {
+            $zebra = $i % 2 === 1;
+            $teks  = fn ($v) => [$v, $zebra ? XlsxSederhana::S_ZEBRA : 0];
+            $angka = fn ($v) => [
+                ($v === null || $v === '') ? '' : (float) $v,
+                $zebra ? XlsxSederhana::S_NUM_ZEBRA : XlsxSederhana::S_NUM,
+            ];
+
+            $jenis = match (true) {
+                (bool) $p->bisa_disewa && (bool) $p->dapat_dijual => 'Sewa & Jual',
+                (bool) $p->bisa_disewa                            => 'Sewa',
+                (bool) $p->dapat_dijual                           => 'Jual',
+                default                                           => '-',
+            };
+
+            $xlsx->tambahBaris([
+                $angka($i + 1),
+                $teks($p->sku),
+                $teks($p->nama),
+                $teks($p->kategori->nama_kategori ?? '-'),
+                $teks($p->deskripsi),
+                $teks($p->bahan),
+                $teks($p->motif),
+                $teks(implode(', ', $this->keArray($p->warna))),
+                $teks($this->ringkasUkuran($p->ukuran)),
+                $angka($p->berat),
+                $teks($jenis),
+                $angka($p->harga_sewa),
+                $angka($p->dp),
+                $angka($p->harga_jual),
+                $angka($p->diskon_persen),
+                $angka($p->denda_per_hari_telat),
+                $angka($p->stok),
+                $teks($opsiStatus[$p->status] ?? $p->status),
+                $angka($p->rating_rata_rata),
+                $angka($p->jumlah_rating),
+                $teks(optional($p->created_at)->format('d/m/Y H:i')),
+            ]);
+        }
+
+        $path = tempnam(sys_get_temp_dir(), 'produk_');
+
+        try {
+            $xlsx->simpan($path);
+        } catch (\RuntimeException $e) {
+            @unlink($path);
+            return back()->with('error', $e->getMessage());
+        }
+
+        return response()->download(
+            $path,
+            'data-produk-' . now()->format('Ymd-His') . '.xlsx',
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        )->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Terapkan filter pencarian yang sama untuk daftar produk dan unduhan Excel.
+     */
+    protected function terapkanFilter($query, Request $request)
+    {
+        if ($search = $request->get('q')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  ->orWhere('motif', 'like', "%{$search}%")
+                  ->orWhere('bahan', 'like', "%{$search}%")
+                  ->orWhereHas('kategori', fn ($k) => $k->where('nama_kategori', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($kategoriId = $request->get('kategori_id')) {
+            $query->where('kategori_id', $kategoriId);
+        }
+
+        if ($status = $request->get('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($jenis = $request->get('jenis')) {
+            if ($jenis === 'sewa') {
+                $query->where('bisa_disewa', true);
+            } elseif ($jenis === 'jual') {
+                $query->where('dapat_dijual', true);
+            }
+        }
+
+        return $query;
+    }
+
+    /**
+     * Pastikan nilai (array atau string JSON) menjadi array.
+     */
+    protected function keArray($nilai): array
+    {
+        if (is_string($nilai)) {
+            $nilai = json_decode($nilai, true);
+        }
+
+        return is_array($nilai) ? $nilai : [];
+    }
+
+    /**
+     * Ringkas variasi ukuran jadi satu teks, mis. "S: 3 (Merah 2, Biru 1); M: 2".
+     */
+    protected function ringkasUkuran($ukuran): string
+    {
+        $bagian = [];
+
+        foreach ($this->keArray($ukuran) as $u) {
+            $teks = ($u['ukuran'] ?? '-') . ': ' . ($u['stok'] ?? 0);
+
+            if (! empty($u['warna'])) {
+                $warna = collect($u['warna'])
+                    ->map(fn ($w) => ($w['nama'] ?? '-') . ' ' . ($w['stok'] ?? 0))
+                    ->implode(', ');
+                $teks .= " ($warna)";
+            }
+
+            $bagian[] = $teks;
+        }
+
+        return implode('; ', $bagian);
+    }
+
+    /**
      * Rapikan input variasi ukuran menjadi format simpan:
      *   [{ukuran, stok, warna?: [{nama, stok}]}]
      *
@@ -391,7 +577,11 @@ class ProdukController extends Controller
 
         for ($i = 0; $i < 4; $i++) {
             if ($request->hasFile("foto.$i")) {
-                $hasil[$i] = $request->file("foto.$i")->store('produk', 'public');
+                try {
+                    $hasil[$i] = ImageOptimizer::simpanSebagaiWebp($request->file("foto.$i"), 'produk');
+                } catch (\RuntimeException $e) {
+                    throw new \RuntimeException("Foto slot " . ($i + 1) . ": " . $e->getMessage());
+                }
             } elseif (!$hapusSlotKosong) {
                 $hasil[$i] = null;
             }
