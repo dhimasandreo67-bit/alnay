@@ -25,8 +25,10 @@ class ProdukController extends Controller
         $transaksiAktif = Transaksi::whereHas('detail', function ($query) use ($produk) {
                 $query->where('produk_id', $produk->id);
             })
-            ->whereIn('status_pembayaran', ['pending', 'dibayar']) // Sesuaikan status ini dengan database Anda
-            ->whereHas('sewa')
+            ->whereIn('status_pembayaran', ['pending', 'dp', 'dp_dibayar', 'lunas', 'success', 'dibayar'])
+            ->whereHas('sewa', function($q) {
+                $q->whereIn('status', ['aktif', 'pending']); // Hanya sewa yang masih aktif
+            })
             ->with('sewa')
             ->get();
 

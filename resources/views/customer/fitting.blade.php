@@ -142,6 +142,7 @@
             'nama' => auth()->user()->name ?? '',
             'noWa' => auth()->user()->no_hp ?? '',
             'produkDefault' => request('produk', ''),
+            'tanggalMaksimal' => $sewaAktif ? $sewaAktif->tanggal_kembali_rencana : null,
         ];
     @endphp
 
@@ -424,6 +425,7 @@
                     tanggalPenuh: cfg.tanggalPenuh,
                     slotJam: cfg.slotJam,
                     slotTerisi: cfg.slotTerisi,
+                    tanggalMaksimal: cfg.tanggalMaksimal,
 
                     tanggalDipilih: null,
                     jamDipilih: null,
@@ -511,12 +513,21 @@
                         return this.tanggalPenuh.includes(t);
                     },
                     nonaktif(t) {
+                        // Cek apakah melebihi tanggal maksimal (masa sewa habis)
+                        if (this.tanggalMaksimal && t > this.tanggalMaksimal) {
+                            return true;
+                        }
                         return this.lalu(t) || this.penuh(t);
                     },
 
                     kelasTanggal(c) {
                         if (this.tanggalDipilih === c.t)
-                        return 'bg-ink/90 text-gold font-semibold scale-105 shadow-sm';
+                            return 'bg-ink/90 text-gold font-semibold scale-105 shadow-sm';
+                        
+                        // Jika melebihi masa sewa, tampilkan merah pudar (seperti tanggal penuh)
+                        if (this.tanggalMaksimal && c.t > this.tanggalMaksimal)
+                            return 'bg-rose-50 text-rose-400 cursor-not-allowed';
+                        
                         if (c.luar || this.lalu(c.t)) return 'text-ink/25 cursor-default';
                         if (this.penuh(c.t)) return 'bg-rose-50 text-rose-400 cursor-not-allowed';
                         return 'text-ink/60 hover:bg-cream hover:text-ink hover:scale-110 active:scale-95';
@@ -531,7 +542,19 @@
                     },
 
                     jamTerisi(jam) {
-                        return this.slotTerisi.includes(jam);
+                        if (!this.tanggalDipilih) return false;
+                        
+                        // Ambil slot terisi untuk tanggal ini
+                        var slotDiTanggalIni = this.slotTerisi[this.tanggalDipilih];
+                        
+                        // Jika tidak ada slot terisi di tanggal ini, return false
+                        if (!slotDiTanggalIni) return false;
+                        
+                        // Pastikan slotDiTanggalIni adalah array
+                        if (!Array.isArray(slotDiTanggalIni)) return false;
+                        
+                        // Cek apakah jam ada di array
+                        return slotDiTanggalIni.includes(jam);
                     },
 
                     kelasJam(jam) {
