@@ -20,6 +20,7 @@
             'items' => [
                 ['label' => 'Semua Transaksi', 'route' => 'admin.transaksi.index', 'icon' => 'wallet'],
                 ['label' => 'Buat Transaksi Baru', 'route' => 'admin.transaksi.create', 'icon' => 'plus-circle'],
+                ['label' => 'Laporan Pendapatan', 'route' => 'admin.laporan.*', 'icon' => 'file-text'],
             ],
         ],
         [
