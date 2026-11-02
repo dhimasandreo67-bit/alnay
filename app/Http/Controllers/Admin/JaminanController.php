@@ -29,4 +29,16 @@ class JaminanController extends Controller
 
         return view('admin.jaminan.index', compact('jaminanList', 'filter', 'totalPending', 'totalVerified', 'totalDeposit'));
     }
+
+    public function show($id)
+    {
+        $jaminan = \App\Models\JaminanSewa::with([
+            'sewa.transaksi.user',
+            'sewa.transaksi.detail.produk',
+            'sewa.transaksi.pembayaran',
+            'verifikator',
+        ])->findOrFail($id);
+
+        return view('admin.jaminan.show', compact('jaminan'));
+    }
 }
