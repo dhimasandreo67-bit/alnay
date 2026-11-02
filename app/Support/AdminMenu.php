@@ -26,6 +26,7 @@ class AdminMenu
             'produk'       => ['label' => 'Kelola Produk',         'group' => 'Master Data'],
             'pengguna'     => ['label' => 'Pengguna / Pelanggan',  'group' => 'Master Data'],
             'transaksi'    => ['label' => 'Transaksi',             'group' => 'Transaksi'],
+            'laporan'      => ['label' => 'Laporan Pendapatan',    'group' => 'Transaksi'],
             'sewa'         => ['label' => 'Sewa',                  'group' => 'Transaksi'],
             'jaminan'      => ['label' => 'Jaminan',               'group' => 'Transaksi'],
             'refund'       => ['label' => 'Refund',                'group' => 'Layanan Atelier'],
