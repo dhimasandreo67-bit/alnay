@@ -145,6 +145,7 @@
                         <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Pelanggan</th>
                         <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Produk</th>
                         <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Metode Jaminan</th>
+                        <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">KTP</th>
                         <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase">Deposit</th>
                         <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase">Status</th>
                         <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase">Aksi</th>
@@ -153,7 +154,7 @@
                 <tbody class="divide-y divide-gray-100/80">
                     @forelse($jaminanList as $j)
                         @php
-                            $namaPelanggan = $j->sewa->transaksi->user->name ?? 'User';
+                            $namaPelanggan = $j->sewa?->nama_pelanggan ?? 'User';
                             $inisial = strtoupper(mb_substr(trim($namaPelanggan) ?: '?', 0, 1));
                         @endphp
                         <tr class="hover:bg-amber-50/30 transition-colors">
@@ -161,8 +162,8 @@
                                 <div class="flex items-center gap-3">
                                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
                                     <div class="min-w-0">
-                                        <p class="font-bold text-gray-900 truncate">{{ $namaPelanggan }}</p>
-                                        <p class="text-xs text-gray-500">{{ $j->sewa->transaksi->user->no_hp ?? '-' }}</p>
+                                        <p class="font-bold text-gray-900 truncate">{{ $namaPelanggan }}@if ($j->sewa?->is_tamu) <span class="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gray-500">Tamu</span>@endif</p>
+                                        <p class="text-xs text-gray-500">{{ $j->sewa?->no_hp_pelanggan ?: '-' }}</p>
                                     </div>
                                 </div>
                             </td>
@@ -177,6 +178,15 @@
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-violet-100 text-violet-700 border-violet-200">Digital (Upload)</span>
                                 @endif
                             </td>
+                            <td class="px-6 py-4">
+                                @if($j->foto_ktp)
+                                    <a href="{{ route('admin.jaminan.show', $j->id) }}" class="block h-10 w-16 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 hover:border-amber-400 transition-colors" title="Lihat detail KTP">
+                                        <img src="{{ asset('storage/' . $j->foto_ktp) }}" alt="Foto KTP" loading="lazy" class="h-full w-full object-cover">
+                                    </a>
+                                @else
+                                    <span class="text-xs text-gray-400">{{ $j->metode_jaminan === 'ktp_tatap_muka' ? 'Disimpan fisik' : 'Belum ada foto' }}</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 text-right font-bold text-gray-900 tabular-nums">
                                 Rp {{ number_format($j->jumlah_deposit, 0, ',', '.') }}
                             </td>
@@ -188,9 +198,9 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('admin.sewa.show', $j->sewa_id) }}"
+                                <a href="{{ route('admin.jaminan.show', $j->id) }}"
                                    class="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold px-3 py-1.5 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all text-xs">
-                                    Cek Jaminan
+                                    Detail
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
                                     </svg>
@@ -199,7 +209,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">Belum ada data jaminan.</td>
+                            <td colspan="7" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">Belum ada data jaminan.</td>
                         </tr>
                     @endforelse
                 </tbody>
