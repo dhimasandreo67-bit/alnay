@@ -49,6 +49,38 @@
             </div>
         @endif
 
+        @php
+            // Ambang batas "stok hampir habis". Belum ada kolom khusus di tabel produk,
+            // jadi dipakai angka tetap dulu — gampang diubah di sini kalau mau disesuaikan.
+            $batasStokMenipis = 3;
+            $produkStokHabis = $produkList->where('stok', '<=', 0);
+            $produkStokMenipis = $produkList->whereBetween('stok', [1, $batasStokMenipis]);
+            $produkPerluRestock = $produkStokHabis->merge($produkStokMenipis);
+        @endphp
+
+        @if($produkPerluRestock->isNotEmpty())
+            <div class="flex items-start gap-4 bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-2xl shadow-sm animate-fade-up" role="alert">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <div class="text-sm">
+                    <p class="font-bold">Perhatian stok produk</p>
+                    <p class="mt-0.5">
+                        @if($produkStokHabis->isNotEmpty())
+                            <strong class="text-rose-700">{{ $produkStokHabis->count() }} produk stok habis</strong>
+                        @endif
+                        @if($produkStokHabis->isNotEmpty() && $produkStokMenipis->isNotEmpty()) &middot; @endif
+                        @if($produkStokMenipis->isNotEmpty())
+                            <strong class="text-amber-700">{{ $produkStokMenipis->count() }} produk hampir habis</strong> (≤ {{ $batasStokMenipis }} unit)
+                        @endif
+                    </p>
+                    <p class="mt-1 text-xs text-amber-800/70">
+                        {{ $produkPerluRestock->pluck('nama')->take(5)->implode(', ') }}@if($produkPerluRestock->count() > 5), dan {{ $produkPerluRestock->count() - 5 }} lainnya @endif
+                    </p>
+                </div>
+            </div>
+        @endif
+
         {{-- Header --}}
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -231,11 +263,14 @@
                                     'rusak'    => 'bg-rose-50 text-rose-700 border-rose-200',
                                     default    => 'bg-gray-50 text-gray-500 border-gray-200',
                                 };
+                                $stokHabis = $produk->stok <= 0;
+                                $stokMenipis = !$stokHabis && $produk->stok <= $batasStokMenipis;
+                                $rowStokClass = $stokHabis ? 'bg-rose-50/50 hover:bg-rose-50/80' : ($stokMenipis ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-cream/40');
                             @endphp
                             <tr data-cari="{{ \Illuminate\Support\Str::lower(implode(' ', [$produk->nama, $produk->sku, $produk->motif, $produk->bahan, $produk->kategori->nama_kategori ?? ''])) }}"
                                 data-kategori="{{ $produk->kategori_id }}"
                                 data-status="{{ $produk->status }}"
-                                class="transition-colors duration-200 hover:bg-cream/40 group">
+                                class="transition-colors duration-200 group {{ $rowStokClass }}">
                                 <td class="px-6 py-4">
                                     <input type="checkbox" name="ids[]" value="{{ $produk->id }}" form="formBulkDelete"
                                         data-nama="{{ $produk->nama }}" onchange="updateBulkBar()"
@@ -274,7 +309,22 @@
                                         <p class="text-ink/70 mt-1 font-medium">Jual: {{ $produk->harga_jual ? 'Rp ' . number_format($produk->harga_jual, 0, ',', '.') : '-' }}</p>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-sm font-black text-ink">{{ $produk->stok }} <span class="text-xs font-normal text-muted">unit</span></td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm font-black text-ink">{{ $produk->stok }} <span class="text-xs font-normal text-muted">unit</span></span>
+                                        @if($stokHabis)
+                                            <span class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200 animate-pulse" title="Stok produk ini kosong">
+                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                                Habis
+                                            </span>
+                                        @elseif($stokMenipis)
+                                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200" title="Sisa stok {{ $batasStokMenipis }} unit atau kurang">
+                                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                                Hampir Habis
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
                                 <td class="px-6 py-4">
                                     <span class="inline-flex items-center gap-1.5 border rounded-lg px-2.5 py-1 text-[11px] font-bold {{ $statusClass }}">
                                         <span class="w-1.5 h-1.5 rounded-full bg-current opacity-70"></span>
