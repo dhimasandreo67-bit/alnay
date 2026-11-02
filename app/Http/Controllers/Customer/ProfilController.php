@@ -13,7 +13,7 @@ class ProfilController extends Controller
 {
     public function edit()
     {
-        return view('customer.profil', [
+        return view('customer.profil', [ 
             'user' => Auth::user()
         ]);
     }
@@ -31,7 +31,14 @@ class ProfilController extends Controller
             'kota_kabupaten' => ['nullable', 'string'],
             'kecamatan' => ['nullable', 'string'],
             'kode_pos' => ['nullable', 'string', 'max:10'],
-            'foto_profil' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'], // Maks 2MB
+
+            // ==== KOLOM BARU (untuk ongkir) ====
+            'provinsi_nama' => ['nullable', 'string', 'max:100'],
+            'kota_id' => ['nullable', 'integer'],
+            'kota_nama' => ['nullable', 'string', 'max:100'],
+            // ===================================
+
+            'foto_profil' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ], [
             'name.required' => 'Nama lengkap wajib diisi.',
             'email.required' => 'Email wajib diisi.',
@@ -43,15 +50,18 @@ class ProfilController extends Controller
 
         // Handle upload foto profil
         if ($request->hasFile('foto_profil')) {
-            // Hapus foto lama jika ada
             if ($user->foto_profil && Storage::disk('public')->exists($user->foto_profil)) {
                 Storage::disk('public')->delete($user->foto_profil);
             }
 
-            // Simpan foto baru
             $path = $request->file('foto_profil')->store('profil', 'public');
             $validated['foto_profil'] = $path;
         }
+
+        // ==== SIMPAN KOLOM BARU ====
+        $validated['provinsi_nama'] = $request->input('provinsi_nama');
+        $validated['kota_id'] = $request->input('kota_id');
+        $validated['kota_nama'] = $request->input('kota_nama');
 
         $user->update($validated);
 

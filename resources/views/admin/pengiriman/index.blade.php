@@ -29,7 +29,8 @@
 
         {{-- Flash messages --}}
         @if (session('success'))
-            <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl shadow-sm" role="alert">
+            <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl shadow-sm"
+                role="alert">
                 <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
@@ -40,7 +41,8 @@
         @endif
 
         @if (session('error'))
-            <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl shadow-sm" role="alert">
+            <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl shadow-sm"
+                role="alert">
                 <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
@@ -63,10 +65,12 @@
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
 
             {{-- Card 1: Menunggu Dikirim (Amber) --}}
-            <div class="group group-shine relative overflow-hidden rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10">
+            <div
+                class="group group-shine relative overflow-hidden rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold uppercase tracking-wider text-amber-800/80">Menunggu Dikirim</span>
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-md shadow-amber-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <div
+                        class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-md shadow-amber-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -74,17 +78,20 @@
                     </div>
                 </div>
                 <div class="mt-3 flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold tracking-tight text-amber-950 tabular-nums">{{ $totalMenunggu }}</span>
+                    <span
+                        class="text-3xl font-extrabold tracking-tight text-amber-950 tabular-nums">{{ $totalMenunggu }}</span>
                     <span class="text-sm font-bold text-amber-800/60">Pesanan</span>
                 </div>
                 <p class="mt-2 text-xs font-medium text-amber-700/80">Perlu segera diproses</p>
             </div>
 
             {{-- Card 2: Sedang Dikirim (Sky) --}}
-            <div class="group group-shine relative overflow-hidden rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50/80 via-white to-sky-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-500/10">
+            <div
+                class="group group-shine relative overflow-hidden rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50/80 via-white to-sky-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-500/10">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold uppercase tracking-wider text-sky-800/80">Sedang Dikirim</span>
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-blue-500 text-white shadow-md shadow-sky-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                    <div
+                        class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-blue-500 text-white shadow-md shadow-sky-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
@@ -92,20 +99,24 @@
                     </div>
                 </div>
                 <div class="mt-3 flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold tracking-tight text-sky-950 tabular-nums">{{ $totalDikirim }}</span>
+                    <span
+                        class="text-3xl font-extrabold tracking-tight text-sky-950 tabular-nums">{{ $totalDikirim }}</span>
                     <span class="text-sm font-bold text-sky-800/60">Pesanan</span>
                 </div>
-                <div class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-sky-700 bg-sky-100/70 px-2.5 py-1 rounded-lg">
+                <div
+                    class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-sky-700 bg-sky-100/70 px-2.5 py-1 rounded-lg">
                     <span class="h-2 w-2 rounded-full bg-sky-500 animate-pulse"></span>
                     <span>Dalam perjalanan</span>
                 </div>
             </div>
 
             {{-- Card 3: Diterima (Emerald) --}}
-            <div class="group group-shine relative overflow-hidden rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
+            <div
+                class="group group-shine relative overflow-hidden rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold uppercase tracking-wider text-emerald-800/80">Diterima</span>
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <div
+                        class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -113,10 +124,12 @@
                     </div>
                 </div>
                 <div class="mt-3 flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold tracking-tight text-emerald-950 tabular-nums">{{ $totalDiterima }}</span>
+                    <span
+                        class="text-3xl font-extrabold tracking-tight text-emerald-950 tabular-nums">{{ $totalDiterima }}</span>
                     <span class="text-sm font-bold text-emerald-800/60">Pesanan</span>
                 </div>
-                <div class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-lg">
+                <div
+                    class="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-lg">
                     <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span>Sudah sampai</span>
                 </div>
@@ -158,106 +171,135 @@
         {{-- Tabel Pengiriman --}}
         <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="min-w-full text-left text-sm divide-y divide-gray-100">
+                <table class="w-full text-left text-sm table-fixed">
                     <thead class="bg-gray-50/80">
                         <tr>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Kode Transaksi</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Pelanggan</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Alamat Tujuan</th>
-                            <th class="px-6 py-4 text-center text-[11px] font-bold text-gray-400 uppercase">Status</th>
-                            <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase">Aksi</th>
+                            <th class="px-4 py-4 w-1/4 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                Transaksi & Pelanggan</th>
+                            <th class="px-4 py-4 w-1/5 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Alamat
+                            </th>
+                            <th class="px-4 py-4 w-[15%] text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                Ongkir</th>
+                            <th
+                                class="px-4 py-4 w-[10%] text-center text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                Status</th>
+                            <th
+                                class="px-4 py-4 w-[30%] text-right text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100/80">
                         @forelse($pengirimanList as $p)
                             @php
-                                $namaPelanggan = $p->transaksi->user->name ?? '-';
+                                $namaPelanggan = $p->transaksi?->user?->name ?? '-';
                                 $inisial = strtoupper(mb_substr(trim($namaPelanggan) ?: '?', 0, 1));
                             @endphp
                             <tr class="hover:bg-amber-50/30 transition-colors">
-                                <td class="px-6 py-4">
-                                    <p class="font-bold text-gray-900">{{ $p->transaksi->kode_transaksi ?? '-' }}</p>
-                                    <p class="text-xs text-gray-500">
-                                        {{ $p->transaksi->detail->first()->produk->nama ?? 'Produk' }}</p>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
+                                {{-- Kolom 1: Gabungan Kode & Pelanggan --}}
+                                <td class="px-4 py-4">
+                                    <p class="font-bold text-gray-900 text-sm">{{ $p->transaksi?->kode_transaksi ?? '-' }}
+                                    </p>
+                                    <p class="text-[11px] text-gray-400 mb-2">
+                                        {{ $p->transaksi?->detail?->first()?->produk?->nama ?? 'Produk' }}</p>
+
+                                    <div class="flex items-center gap-2 mt-1">
+                                        @if($p->transaksi?->user?->foto_profil)
+                                            <img src="{{ asset('storage/' . $p->transaksi->user->foto_profil) }}" class="h-7 w-7 shrink-0 rounded-lg object-cover border border-gray-200">
+                                        @else
+                                            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
+                                        @endif
                                         <div class="min-w-0">
-                                            <p class="font-bold text-gray-900 truncate">{{ $namaPelanggan }}</p>
-                                            <p class="text-xs text-gray-500">{{ $p->transaksi->user->no_hp ?? '-' }}</p>
+                                            <p class="text-xs font-bold text-gray-800 truncate">{{ $namaPelanggan }}</p>
+                                            <p class="text-[10px] text-gray-500">{{ $p->transaksi?->user?->no_hp ?? '-' }}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-xs text-gray-600">
-                                    {{ $p->kota_tujuan ?? '-' }}, {{ $p->provinsi_tujuan ?? '-' }}
-                                    <br><span class="text-gray-400">{{ Str::limit($p->alamat_tujuan, 40) }}</span>
+
+                                {{-- Kolom 2: Alamat --}}
+                                <td class="px-4 py-4 text-xs text-gray-600">
+                                    <p class="font-semibold text-gray-800">{{ $p->kota_tujuan ?? '-' }},
+                                        {{ $p->provinsi_tujuan ?? '-' }}</p>
+                                    <span
+                                        class="text-gray-400 text-[11px] leading-tight block mt-1">{{ Str::limit($p->alamat_tujuan, 35) }}</span>
                                 </td>
-                                <td class="px-6 py-4 text-center">
-                                    @if ($p->status_kirim === 'diterima')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-emerald-100 text-emerald-700 border-emerald-200">Diterima</span>
-                                    @elseif($p->status_kirim === 'dikirim')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-sky-100 text-sky-700 border-sky-200">Dikirim</span>
-                                    @else
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-amber-100 text-amber-700 border-amber-200">Menunggu</span>
+
+                                {{-- Kolom 3: Ongkir --}}
+                                <td class="px-4 py-4 text-left">
+                                    <p class="text-sm font-bold text-gray-800">Rp
+                                        {{ number_format($p->biaya_kirim ?? 0, 0, ',', '.') }}</p>
+                                    @if ($p->layanan_ongkir)
+                                        <span
+                                            class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{{ strtoupper($p->kurir ?? '') }}
+                                            {{ $p->layanan_ongkir }}</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-right">
+
+                                {{-- Kolom 4: Status --}}
+                                <td class="px-4 py-4 text-center">
+                                    @if ($p->status_kirim === 'diterima')
+                                        <span
+                                            class="inline-flex px-2 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-emerald-100 text-emerald-700 border-emerald-200">Diterima</span>
+                                    @elseif($p->status_kirim === 'dikirim')
+                                        <span
+                                            class="inline-flex px-2 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-sky-100 text-sky-700 border-sky-200">Dikirim</span>
+                                    @else
+                                        <span
+                                            class="inline-flex px-2 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-amber-100 text-amber-700 border-amber-200">Menunggu</span>
+                                    @endif
+                                </td>
+
+                                {{-- Kolom 5: Aksi (Form Vertikal) --}}
+                                <td class="px-4 py-4 text-right">
                                     @if ($p->status_kirim === 'menunggu')
-                                        {{-- Form Kirim Barang --}}
-                                        <form action="{{ route('admin.pengiriman.update-status', $p->id) }}" method="POST" class="flex flex-col gap-1.5 items-end">
+                                        <form action="{{ route('admin.pengiriman.update-status', $p->id) }}"
+                                            method="POST" class="flex flex-col gap-2 items-end ml-auto w-48">
                                             @csrf @method('PATCH')
                                             <input type="hidden" name="status_kirim" value="dikirim">
-                                            <div class="flex gap-1.5">
-                                                <input type="text" name="kurir" placeholder="Kurir (JNE, dll)" required
-                                                    class="px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg w-24 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all">
-                                                <input type="text" name="no_resi" placeholder="No. Resi" required
-                                                    class="px-2.5 py-1.5 text-xs border border-gray-200 rounded-lg w-28 bg-gray-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all">
-                                            </div>
+                                            <select name="kurir" required
+                                                class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-sky-500">
+                                                <option value="">Pilih Kurir</option>
+                                                @foreach (['jne' => 'JNE', 'jnt' => 'JNT', 'sicepat' => 'SiCepat', 'pos' => 'POS', 'tiki' => 'TIKI'] as $val => $label)
+                                                    <option value="{{ $val }}" @selected(old('kurir', $p->kurir) === $val)>
+                                                        {{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                            <input type="text" name="layanan_ongkir"
+                                                value="{{ old('layanan_ongkir', $p->layanan_ongkir ?? '') }}"
+                                                placeholder="Layanan (REG, EZ)" required
+                                                class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg">
+                                            <input type="text" name="no_resi" placeholder="No. Resi" required
+                                                class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg">
                                             <button type="submit"
-                                                class="inline-flex items-center justify-center gap-1.5 w-full px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-700 hover:to-sky-600 shadow-lg shadow-sky-500/20 active:scale-95 transition-all">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1"/>
-                                                </svg>
-                                                Kirim
-                                            </button>
+                                                class="w-full py-1.5 rounded-lg text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 transition-all">Kirim</button>
                                         </form>
-
                                     @elseif($p->status_kirim === 'dikirim')
-                                        {{-- Info Kurir & Tombol Tandai Diterima --}}
                                         <div class="text-right">
-                                            <p class="text-xs font-bold text-gray-800">{{ $p->kurir ?? '-' }} &middot; {{ $p->no_resi ?? '-' }}</p>
-                                            <form action="{{ route('admin.pengiriman.update-status', $p->id) }}" method="POST" class="inline mt-1.5">
+                                            <p class="text-xs font-bold text-gray-800 mb-1">
+                                                {{ strtoupper($p->kurir ?? '-') }} @if ($p->layanan_ongkir)
+                                                    {{ $p->layanan_ongkir }}
+                                                @endif &middot; {{ $p->no_resi ?? '-' }}
+                                            </p>
+                                            <form action="{{ route('admin.pengiriman.update-status', $p->id) }}"
+                                                method="POST" class="inline">
                                                 @csrf @method('PATCH')
                                                 <input type="hidden" name="status_kirim" value="diterima">
                                                 <button type="submit"
-                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                    Tandai Diterima
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all">
+                                                    ✓ Tandai Diterima
                                                 </button>
                                             </form>
                                         </div>
-
                                     @else
-                                        {{-- Status Diterima & Tombol Batalkan Konfirmasi --}}
                                         <div class="text-right">
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-emerald-100 text-emerald-700 border-emerald-200 mb-1.5">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                                                </svg>
-                                                Diterima
-                                            </span>
-                                            <form action="{{ route('admin.pengiriman.batalkan-terima', $p->id) }}" method="POST" class="inline"
-                                                  onsubmit="return confirm('Batalkan konfirmasi penerimaan? Status akan kembali ke Dikirim.')">
+                                            <span
+                                                class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wider bg-emerald-100 text-emerald-700 border-emerald-200 mb-1">Diterima</span>
+                                            <form action="{{ route('admin.pengiriman.batalkan-terima', $p->id) }}"
+                                                method="POST" class="block mt-1"
+                                                onsubmit="return confirm('Batalkan konfirmasi penerimaan?')">
                                                 @csrf @method('PATCH')
-                                                <button type="submit" class="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 hover:text-rose-700 hover:underline active:scale-95 transition-all">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                    Batalkan Konfirmasi
-                                                </button>
+                                                <button type="submit"
+                                                    class="text-[10px] font-bold text-rose-600 hover:text-rose-700 hover:underline">Batalkan
+                                                    Konfirmasi</button>
                                             </form>
                                         </div>
                                     @endif
@@ -265,7 +307,8 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">Belum ada data pengiriman.</td>
+                                <td colspan="5" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">Belum
+                                    ada data pengiriman.</td>
                             </tr>
                         @endforelse
                     </tbody>

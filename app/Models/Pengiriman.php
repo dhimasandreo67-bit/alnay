@@ -16,6 +16,7 @@ class Pengiriman extends Model
         'kode_pos_tujuan',
         'alamat_tujuan',
         'kurir',
+        'layanan_ongkir',
         'no_resi',
         'biaya_kirim',
         'status_kirim',

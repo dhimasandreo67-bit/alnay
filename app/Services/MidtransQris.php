@@ -48,14 +48,14 @@ class MidtransQris
             ->first();
     }
 
-        public function nominal(Transaksi $t): int
-        {
-            $tagihan = $this->tagihan($t);
-            $produk = $t->detail->first()->produk ?? null;
-            $dpProduk = $produk->dp ?? 0;
+    public function nominal(Transaksi $t): int
+    {
+        $tagihan = $this->tagihan($t);
+        $produk = $t->detail->first()->produk ?? null;
+        $dpProduk = $produk->dp ?? 0;
 
-            return (int) ($tagihan->jumlah ?? $dpProduk ?? $t->total);
-        }
+        return (int) ($tagihan->jumlah ?? $dpProduk ?? $t->total);
+    }
 
     private function key(Transaksi $t): string
     {
@@ -138,7 +138,7 @@ class MidtransQris
                 Log::error('QRIS: Midtrans tidak mengembalikan QR', ['order_id' => $orderId, 'respons' => $res]);
                 throw new \RuntimeException(
                     'Midtrans tidak mengembalikan QR (' . ($res->status_code ?? '?') . ': ' . ($res->status_message ?? 'tanpa pesan')
-                    . '). Pastikan QRIS/GoPay sudah aktif di akun Midtrans sandbox Anda.'
+                        . '). Pastikan QRIS/GoPay sudah aktif di akun Midtrans sandbox Anda.'
                 );
             }
 
@@ -227,6 +227,20 @@ class MidtransQris
                 'metode' => $type ?: 'qris',
                 'tanggal_bayar' => now(),
             ]);
+
+            // ==== KURANGI STOK PRODUK (Hanya untuk transaksi BELI) ====
+            if ($t->jenis === 'beli') {
+                foreach ($t->detail as $detail) {
+                    $produk = $detail->produk;
+                    if ($produk) {
+                        $produk->update([
+                            'stok' => max(0, $produk->stok - $detail->jumlah)
+                        ]);
+                    }
+                }
+            }
+            // ==========================================================
+
             Cache::forget($this->key($t));
         } elseif (in_array($status, ['expire', 'cancel', 'deny', 'failure'], true)) {
             $t->update(['status_pembayaran' => 'gagal']);
@@ -269,8 +283,10 @@ class MidtransQris
         $status = (string) $request->transaction_status;
 
         // Nominal harus sama dengan tagihan sebelum dianggap lunas.
-        if (in_array($status, ['settlement', 'capture'], true)
-            && (int) round((float) $request->gross_amount) !== $this->nominal($t)) {
+        if (
+            in_array($status, ['settlement', 'capture'], true)
+            && (int) round((float) $request->gross_amount) !== $this->nominal($t)
+        ) {
             Log::warning('QRIS webhook: nominal tidak cocok', ['order_id' => $request->order_id]);
 
             return $ok;

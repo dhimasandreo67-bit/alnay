@@ -186,6 +186,12 @@
                                     class="w-full px-4 py-2.5 rounded-md border border-line bg-cream text-sm text-ink focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all duration-300 hover:border-gold/50 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                                     <option value="">Pilih Kota/Kabupaten</option>
                                 </select>
+                                <input type="hidden" name="kota_id" id="inputKotaId"
+                                    value="{{ old('kota_id', $user->kota_id) }}">
+                                <input type="hidden" name="kota_nama" id="inputKotaNama"
+                                    value="{{ old('kota_nama', $user->kota_nama) }}">
+                                <input type="hidden" name="provinsi_nama" id="inputProvinsiNama"
+                                    value="{{ old('provinsi_nama', $user->provinsi_nama) }}">
                                 <div class="absolute right-3 top-[34px] pointer-events-none text-muted">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
                                         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -199,11 +205,9 @@
                             <div class="relative group">
                                 <label
                                     class="block text-xs font-semibold text-ink mb-1.5 transition-colors group-focus-within:text-gold">Kecamatan</label>
-                                <select id="selectKecamatan" name="kecamatan" disabled
-                                    @click="if(!document.getElementById('selectKota').value) { $dispatch('notify', { message: 'Pilih kota/kabupaten terlebih dahulu.' }); document.getElementById('selectKota').focus(); }"
-                                    class="w-full px-4 py-2.5 rounded-md border border-line bg-cream text-sm text-ink focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all duration-300 hover:border-gold/50 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                                    <option value="">Pilih Kecamatan</option>
-                                </select>
+                                <input type="text" name="kecamatan" value="{{ old('kecamatan', $user->kecamatan) }}"
+                                    placeholder="Ketik nama kecamatan..."
+                                    class="w-full px-4 py-2.5 rounded-md border border-line bg-cream text-sm text-ink focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all duration-300 hover:border-gold/50">
                                 <div class="absolute right-3 top-[34px] pointer-events-none text-muted">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
                                         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -276,13 +280,11 @@
                 async init() {
                     const selProv = document.getElementById('selectProvinsi');
                     const selKota = document.getElementById('selectKota');
-                    const selKec = document.getElementById('selectKecamatan');
 
                     const loadCities = async (provName, selected = null) => {
                         this.cities = [];
                         this.districts = [];
                         fill(selKota, [], 'Pilih Kota/Kabupaten');
-                        fill(selKec, [], 'Pilih Kecamatan');
 
                         const prov = this.provinces.find(p => same(p.name, provName));
                         if (!prov) return;
@@ -296,18 +298,7 @@
                     };
 
                     const loadDistricts = async (cityName, selected = null) => {
-                        this.districts = [];
-                        fill(selKec, [], 'Pilih Kecamatan');
-
-                        const city = this.cities.find(c => same(c.name, cityName));
-                        if (!city) return;
-
-                        try {
-                            this.districts = await getList(`/api/wilayah/districts/${idOf(city)}`);
-                            fill(selKec, this.districts, 'Pilih Kecamatan', selected);
-                        } catch (err) {
-                            console.error('Gagal fetch kecamatan:', err);
-                        }
+                        // Kecamatan sekarang input teks manual, tidak perlu load dari API.
                     };
 
                     try {
@@ -318,14 +309,22 @@
                     }
                     fill(selProv, this.provinces, 'Pilih Provinsi', saved.provinsi);
 
-                    selProv.addEventListener('change', (e) => loadCities(e.target.value));
-                    selKota.addEventListener('change', (e) => loadDistricts(e.target.value));
-
+                    selProv.addEventListener('change', (e) => {
+                        const selectedProv = this.provinces.find(p => same(p.name, e.target.value));
+                        if (selectedProv) {
+                            document.getElementById('inputProvinsiNama').value = selectedProv.name;
+                        }
+                        loadCities(e.target.value);
+                    });
+                    selKota.addEventListener('change', (e) => {
+                        const selectedCity = this.cities.find(c => same(c.name, e.target.value));
+                        if (selectedCity) {
+                            document.getElementById('inputKotaId').value = selectedCity.id;
+                            document.getElementById('inputKotaNama').value = selectedCity.name;
+                        }
+                    });
                     if (saved.provinsi) {
                         await loadCities(saved.provinsi, saved.kota);
-                        if (saved.kota) {
-                            await loadDistricts(saved.kota, saved.kecamatan);
-                        }
                     }
                 }
             }

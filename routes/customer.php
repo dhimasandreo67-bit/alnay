@@ -7,6 +7,7 @@ use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\FittingController;
 use App\Http\Controllers\SewaController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\OngkirController;
 
 // Grup Khusus Halaman Akun (Prefix: /akun)
 Route::middleware('auth:web')->prefix('akun')->name('akun.')->group(function () {
@@ -67,6 +68,9 @@ Route::middleware('auth:web')->group(function () {
 
         // --- KONFIRMASI PENERIMAAN PENGIRIMAN ---
     Route::patch('/akun/pengiriman/{id}/terima', [App\Http\Controllers\Customer\AkunController::class, 'terimaPengiriman'])->name('akun.pengiriman.terima');
+
+    Route::get('/ongkir/tujuan', [OngkirController::class, 'tujuan'])->name('ongkir.tujuan');
+    Route::post('/ongkir/hitung', [OngkirController::class, 'hitung'])->name('ongkir.hitung');
 
 });
 

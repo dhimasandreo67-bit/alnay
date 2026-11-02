@@ -58,7 +58,7 @@ class SewaController extends Controller
 
         // Rumus: Harga 1 hari pertama + (sisa hari * denda per hari)
         $totalSewa = $hargaSewa + (max(0, $durasi - 1) * $dendaPerHari);
-        
+
         // Ambil config dari config/alnay.php
         $deposit = config('alnay.deposit_ktp', 200000);
         $dp = $produk->dp ?? 0;
@@ -66,7 +66,13 @@ class SewaController extends Controller
         $total = $totalSewa; // Total sebelum deposit/DP
 
         return view('customer.sewa-checkout', compact(
-            'produk', 'sewaData', 'totalSewa', 'deposit', 'dp', 'durasi', 'total'
+            'produk',
+            'sewaData',
+            'totalSewa',
+            'deposit',
+            'dp',
+            'durasi',
+            'total'
         ));
     }
 
@@ -83,6 +89,13 @@ class SewaController extends Controller
             'durasi' => ['required', 'integer', 'min:1'],
             'total_sewa' => ['required', 'numeric'],
         ]);
+
+        // ==== VALIDASI STOK ====
+        $produk = Produk::findOrFail($validated['produk_id']);
+        if ($produk->stok <= 0) {
+            return back()->withErrors(['stok' => 'Maaf, produk ini sedang tidak tersedia.']);
+        }
+        // =========================
 
         session(['sewa_data' => $validated]);
 
@@ -116,15 +129,23 @@ class SewaController extends Controller
         // 2. Hitung Ulang Biaya (Server-Side)
         $produk = Produk::findOrFail($sewaData['produk_id']);
         $durasi = $sewaData['durasi'];
+
+        // ==== VALIDASI STOK ====
+        if ($produk->stok <= 0) {
+            session()->forget('sewa_data');
+            return redirect()->route('produk.detail', ['sku' => $produk->sku])
+                ->withErrors(['stok' => 'Maaf, produk ini sedang tidak tersedia. Silakan pilih produk lain.']);
+        }
+        // =========================
         $hargaSewa = $produk->harga_sewa;
         $dendaPerHari = $produk->denda_per_hari_telat;
-        
-        $totalSewa = $hargaSewa + (max(0, $durasi - 1) * $dendaPerHari);
-        
-        $deposit = $validated['metode_ktp'] === 'digital' ? config('alnay.deposit_ktp', 200000) : 0;
-        $dp = $produk->dp ?? 0; 
 
-         $totalDibayarSekarang = $dp + $deposit;
+        $totalSewa = $hargaSewa + (max(0, $durasi - 1) * $dendaPerHari);
+
+        $deposit = $validated['metode_ktp'] === 'digital' ? config('alnay.deposit_ktp', 200000) : 0;
+        $dp = $produk->dp ?? 0;
+
+        $totalDibayarSekarang = $dp + $deposit;
 
         // 3. Proses Upload Foto KTP (Jika Digital)
         $fotoKtpPath = null;
@@ -220,18 +241,18 @@ class SewaController extends Controller
         $produk = $transaksi->detail->first()->produk;
         $total = $transaksi->total;
         $dp = $transaksi->pembayaran->where('jenis_bayar', 'dp')->sum('jumlah');
-        
+
         // Ambil data deposit dari relasi JaminanSewa (pastikan relasi di model Sewa sudah diset)
         $deposit = $transaksi->sewa->jaminan->jumlah_deposit ?? 0;
 
         return view('customer.sewa-konfirmasi', compact('transaksi', 'produk', 'total', 'dp', 'deposit'));
     }
 
-        public function charge($id)
+    public function charge($id)
     {
         try {
             $transaksi = Transaksi::findOrFail($id);
-            
+
             // Panggil Service MidtransQris yang baru
             $qrData = app(\App\Services\MidtransQris::class)->qr($transaksi);
 
@@ -243,34 +264,33 @@ class SewaController extends Controller
                 'qr_url' => $qrData['qr_url'] ?? null,
                 'expires_in' => $qrData['expires_in'] ?? 0,
             ]);
-
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
-        public function cekStatus($id)
+    public function cekStatus($id)
     {
         try {
             $transaksi = Transaksi::findOrFail($id);
             $midtrans = app(\App\Services\MidtransQris::class);
-            
+
             // Sinkronisasi status dari Midtrans ke database
             $status = $midtrans->sync($transaksi);
-            
+
             return response()->json(['status' => $status]);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 
-        /**
+    /**
      * Tampilkan halaman Keranjang Sewa.
      */
     public function keranjangIndex()
     {
         $keranjangSewa = session()->get('keranjang_sewa', []);
-        
+
         // Hitung total keseluruhan
         $totalKeseluruhan = collect($keranjangSewa)->sum('total_sewa');
 
@@ -305,7 +325,7 @@ class SewaController extends Controller
         $keranjangSewa[$itemId] = [
             'produk_id' => $produk->id,
             'nama' => $produk->nama,
-            'foto_produk' => $produk->foto_produk, 
+            'foto_produk' => $produk->foto_produk,
             'ukuran' => $request->ukuran,
             'tanggal_ambil' => $request->tanggal_ambil,
             'tanggal_kembali' => $request->tanggal_kembali,
@@ -321,7 +341,7 @@ class SewaController extends Controller
         return redirect()->route('sewa.keranjang.index')->with('success', 'Produk berhasil ditambahkan ke Keranjang Sewa!');
     }
 
-        public function show($id)
+    public function show($id)
     {
         $sewa = Sewa::with(['transaksi.user', 'transaksi.detail.produk', 'jaminan'])
             ->findOrFail($id);

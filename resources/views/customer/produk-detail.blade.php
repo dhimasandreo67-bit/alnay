@@ -450,10 +450,15 @@
                                     <input type="hidden" name="produk_id" value="{{ $produk->id }}">
                                     <input type="hidden" name="qty" :value="jumlah">
                                     <input type="hidden" name="varian" value="Emas Klasik">
-                                    <button type="submit"
-                                        class="pd-shine w-full h-[46px] rounded-lg bg-gold text-white text-[13px] font-semibold tracking-wide hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 active:translate-y-0 active:scale-[0.98] transition-all duration-300">
-                                        Beli Sekarang (<span x-text="formatRupiah(totalBeli)"></span>)
-                                    </button>
+                                    @if ($produk->stok > 0)
+                                        <button type="submit" class="pd-shine w-full h-[46px] rounded-lg bg-gold text-white text-[13px] font-semibold tracking-wide hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 active:translate-y-0 active:scale-[0.98] transition-all duration-300">
+                                            Beli Sekarang (<span x-text="formatRupiah(totalBeli)"></span>)
+                                        </button>
+                                    @else
+                                        <button type="button" disabled class="w-full h-[46px] rounded-lg bg-gray-200 text-gray-400 text-[13px] font-semibold cursor-not-allowed">
+                                            Stok Habis
+                                        </button>
+                                    @endif
                                 </form>
                             </div>
                         @endif

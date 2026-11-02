@@ -111,25 +111,27 @@
                 $tblOutline = $tbl . ' border border-gold text-gold bg-white hover:bg-gold hover:text-white';
             @endphp
 
-            <div class="relative z-20 grid {{ $bisaSewa && $bisaBeli ? 'grid-cols-2' : 'grid-cols-1' }} gap-1.5">
-                @if ($bisaSewa)
-                    <a href="{{ route('produk.detail', ['sku' => $p->sku]) }}"
-                        class="{{ $bisaBeli ? $tblOutline : $tblEmas }}">
-                        Sewa
-                    </a>
-                @endif
-                @if ($bisaBeli)
-                    <a href="{{ route('produk.detail', ['sku' => $p->sku, 'mode' => 'beli']) }}"
-                        class="{{ $tblEmas }}">
-                        Beli
-                    </a>
-                @endif
-                @unless ($bisaSewa || $bisaBeli)
-                    <a href="{{ route('produk.detail', ['sku' => $p->sku]) }}" class="{{ $tblOutline }}">
-                        Lihat Detail
-                    </a>
-                @endunless
-            </div>
+            @php
+    $stokHabis = ($p->stok ?? 0) <= 0;
+    $tblDisabled = 'inline-flex items-center justify-center px-2 sm:px-3 py-2 rounded-lg text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider bg-gray-200 text-gray-400 cursor-not-allowed min-h-[40px] sm:min-h-[36px]';
+@endphp
+
+<div class="relative z-20 grid {{ $bisaSewa && $bisaBeli ? 'grid-cols-2' : 'grid-cols-1' }} gap-1.5">
+    @if ($stokHabis)
+        {{-- Jika stok habis, tampilkan satu tombol abu-abu --}}
+        <span class="{{ $tblDisabled }}">Stok Habis</span>
+    @else
+        @if ($bisaSewa)
+            <a href="{{ route('produk.detail', ['sku' => $p->sku]) }}" class="{{ $bisaBeli ? $tblOutline : $tblEmas }}">Sewa</a>
+        @endif
+        @if ($bisaBeli)
+            <a href="{{ route('produk.detail', ['sku' => $p->sku, 'mode' => 'beli']) }}" class="{{ $tblEmas }}">Beli</a>
+        @endif
+        @unless ($bisaSewa || $bisaBeli)
+            <a href="{{ route('produk.detail', ['sku' => $p->sku]) }}" class="{{ $tblOutline }}">Lihat Detail</a>
+        @endunless
+    @endif
+</div>
         </div>
     </div>
 </article>

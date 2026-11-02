@@ -3,58 +3,30 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use App\Models\RajaOngkirKota;
+use App\Models\RajaOngkirProvinsi;
 
 class WilayahController extends Controller
 {
-    private string $baseUrl;
-    private string $apiKey;
-
-    public function __construct()
-    {
-        $this->baseUrl = config('rajaongkir.base_url', 'https://rajaongkir.komerce.id/api');
-        $this->apiKey = config('rajaongkir.api_key') ?? env('RAJAONGKIR_API_KEY');
-    }
-
     public function provinces()
     {
-        return $this->proxy('/destination/province');
+        return RajaOngkirProvinsi::select('province_id as id', 'province as name')
+            ->orderBy('province')
+            ->get();
     }
 
     public function cities($provinceId)
     {
-        return $this->proxy("/destination/city/{$provinceId}");
+        return RajaOngkirKota::where('province_id', $provinceId)
+            ->select('city_id as id', 'city_name as name', 'type', 'postal_code')
+            ->orderBy('city_name')
+            ->get();
     }
 
     public function districts($cityId)
     {
-        return $this->proxy("/destination/district/{$cityId}");
-    }
-
-    private function proxy(string $endpoint)
-    {
-        try {
-            $response = Http::withHeaders([
-                'key' => $this->apiKey,
-            ])->timeout(10)->get($this->baseUrl . $endpoint);
-
-            if ($response->failed()) {
-                Log::error('RajaOngkir error', [
-                    'endpoint' => $endpoint,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-                return response()->json(['error' => 'API RajaOngkir gagal'], 500);
-            }
-
-            return response()->json($response->json('data') ?? []);
-        } catch (\Exception $e) {
-            Log::error('RajaOngkir exception', [
-                'endpoint' => $endpoint,
-                'message' => $e->getMessage(),
-            ]);
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        // Komerce tidak punya data kecamatan.
+        // Untuk sementara, kembalikan array kosong.
+        return [];
     }
 }

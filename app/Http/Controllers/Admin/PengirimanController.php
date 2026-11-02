@@ -53,12 +53,14 @@ class PengirimanController extends Controller
         if ($request->status_kirim === 'dikirim') {
             $request->validate([
                 'kurir' => 'required|string|max:50',
+                'layanan_ongkir' => 'required|string|max:30',
                 'no_resi' => 'required|string|max:100',
             ]);
             $data['kurir'] = $request->kurir;
+            $data['layanan_ongkir'] = $request->layanan_ongkir;
             $data['no_resi'] = $request->no_resi;
         }
-        
+                
         $pengiriman->update($data);
 
         return back()->with('success', 'Status pengiriman berhasil diperbarui!');

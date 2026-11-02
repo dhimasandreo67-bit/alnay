@@ -18,7 +18,7 @@ class User extends Authenticatable
      */
     public const ROLE_STAF = ['owner', 'admin', 'superadmin', 'super_admin'];
 
-    protected $fillable = [
+        protected $fillable = [
         'name',
         'email',
         'password',
@@ -34,7 +34,14 @@ class User extends Authenticatable
         'alamat',
         'foto_profil',
         'status_aktif',
-    ];  
+
+        // ==== TAMBAHKAN 4 BARIS INI ====
+        'provinsi_id',
+        'provinsi_nama',
+        'kota_id',
+        'kota_nama',
+        // ==============================
+    ];
 
     protected $hidden = [
         'password',

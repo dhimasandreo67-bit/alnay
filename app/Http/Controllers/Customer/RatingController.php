@@ -34,6 +34,7 @@ class RatingController extends Controller
             'tanggal' => now()->toDateString(),
         ]);
 
-        return redirect()->route('akun.pesanan.index')->with('success', 'Terima kasih atas ulasan Anda!');
+        return redirect()->route('akun.pesanan.detail', $detail->transaksi_id)
+                 ->with('success', 'Terima kasih atas ulasan Anda!');
     }
 }
