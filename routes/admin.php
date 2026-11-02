@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ReservasiFittingController;
 use App\Http\Controllers\Admin\RatingController;
 use App\Http\Controllers\Admin\PenggunaController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\LaporanController;
 /*
 |--------------------------------------------------------------------------
 | Area Admin
@@ -78,10 +79,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/transaksi/{id}/lunasi', [TransaksiController::class, 'lunasi'])->name('transaksi.lunasi');
         Route::patch('/transaksi/{id}/selesaikan-sewa', [TransaksiController::class, 'selesaikanSewa'])->name('transaksi.selesai-sewa');
 
+        // 4b. Laporan pendapatan (kasir + online)
+        Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
+        Route::get('/laporan/export', [LaporanController::class, 'export'])->name('laporan.export');
+
         // 5. Sewa & jaminan
         Route::get('/sewa', [App\Http\Controllers\Admin\SewaController::class, 'index'])->name('sewa.index');
         Route::get('/sewa/{id}', [App\Http\Controllers\Admin\SewaController::class, 'show'])->name('sewa.show');
         Route::get('/jaminan', [App\Http\Controllers\Admin\JaminanController::class, 'index'])->name('jaminan.index');
+        Route::get('/jaminan/{id}', [App\Http\Controllers\Admin\JaminanController::class, 'show'])->name('jaminan.show');
 
         // 6. Layanan atelier
         Route::get('/refund', [App\Http\Controllers\Admin\RefundController::class, 'index'])->name('refund.index');
