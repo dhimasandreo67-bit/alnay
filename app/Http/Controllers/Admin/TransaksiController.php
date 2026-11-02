@@ -344,12 +344,15 @@ class TransaksiController extends Controller
             }
 
             if ($validated['jenis'] === 'sewa') {
-                (new Sewa())->forceFill([
-                    'transaksi_id' => $transaksi->id,
+                // Buat data sewa + jaminan sekaligus supaya langsung muncul di
+                // halaman Kelola Sewa dan Verifikasi Jaminan (nama & no. HP tamu
+                // ikut terbaca lewat transaksi.nama_tamu / no_hp_tamu).
+                Sewa::buatDariTransaksi($transaksi, [
                     'tanggal_pinjam' => $validated['tanggal_pinjam'],
                     'tanggal_kembali_rencana' => $validated['tanggal_kembali_rencana'],
-                    'status' => 'aktif',
-                ])->save();
+                    'metode_jaminan' => 'ktp_tatap_muka',
+                    'jumlah_deposit' => 0,
+                ]);
             }
 
             (new Pembayaran())->forceFill([
@@ -476,17 +479,50 @@ class TransaksiController extends Controller
     }
 
     // Fungsi untuk menyelesaikan masa sewa (baju sudah dikembalikan)
+    // Stok produk yang terpotong saat transaksi kasir dikembalikan di sini,
+    // sesuai produk, ukuran, warna, dan jumlah yang disewa.
     public function selesaikanSewa($id)
     {
-        $transaksi = Transaksi::with('sewa')->findOrFail($id);
+        $transaksi = Transaksi::with(['sewa', 'detail'])->findOrFail($id);
 
-        if ($transaksi->sewa) {
-            $transaksi->sewa->update([
+        $sudahSelesai = false;
+        $stokDikembalikan = false;
+
+        DB::transaction(function () use ($transaksi, &$sudahSelesai, &$stokDikembalikan) {
+            if (! $transaksi->sewa) {
+                return;
+            }
+
+            // Kunci baris sewa supaya klik ganda / dua admin sekaligus
+            // tidak mengembalikan stok dua kali.
+            $sewa = Sewa::lockForUpdate()->find($transaksi->sewa->id);
+
+            if (! $sewa || strtolower((string) $sewa->status) === 'selesai') {
+                $sudahSelesai = true;
+
+                return;
+            }
+
+            // Stok hanya terpotong oleh transaksi kasir (lihat store()),
+            // jadi hanya transaksi kasir yang stoknya dikembalikan.
+            if (($transaksi->channel ?? null) === 'kasir') {
+                $this->kembalikanStok($transaksi);
+                $stokDikembalikan = true;
+            }
+
+            $sewa->update([
                 'status' => 'selesai',
                 'tanggal_kembali_aktual' => now()->toDateString(),
             ]);
+        });
+
+        if ($sudahSelesai) {
+            return redirect()->back()->with('error', 'Sewa ini sudah diselesaikan sebelumnya, stok tidak diubah lagi.');
         }
 
-        return redirect()->back()->with('success', 'Masa sewa telah berhasil diselesaikan.');
+        return redirect()->back()->with(
+            'success',
+            'Masa sewa telah berhasil diselesaikan.' . ($stokDikembalikan ? ' Stok produk sudah dikembalikan.' : '')
+        );
     }
 }
