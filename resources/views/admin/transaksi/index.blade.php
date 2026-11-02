@@ -192,7 +192,7 @@
                             $jumlahProduk = $items->count();
                             $totalQty = (int) $items->sum('jumlah');
                             $pertama = $items->first();
-                            $namaPelanggan = $t->user->name ?? $t->nama_tamu ?? '-';
+                            $namaPelanggan = $t->nama_pelanggan;
                         @endphp
 
                         {{-- Baris utama: 1 transaksi = 1 baris --}}
