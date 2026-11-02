@@ -26,12 +26,43 @@
         ];
         $maxChart = max(1, max(array_column($chart, 'value')));
 
+        // Format rupiah ringkas & adaptif: rb (ribu) / jt (juta) / M (milyar).
+        // Dipakai supaya nominal kecil tidak tampil "0,0jt".
+        $formatRupiahRingkas = function ($nilai) {
+            $nilai = (float) $nilai;
+
+            if ($nilai >= 1_000_000_000) {
+                return number_format($nilai / 1_000_000_000, 1, ',', '.') . ' M';
+            }
+            if ($nilai >= 1_000_000) {
+                return number_format($nilai / 1_000_000, 1, ',', '.') . ' jt';
+            }
+            if ($nilai >= 1_000) {
+                return number_format($nilai / 1_000, 1, ',', '.') . ' rb';
+            }
+
+            return number_format($nilai, 0, ',', '.');
+        };
+
         $transactions ??= [
             ['kode' => 'SWA-2026-0912', 'pelanggan' => 'Perrell Brown', 'inisial' => 'PB', 'detail' => 'Fitting Final · 3 item', 'jenis' => 'Sewa', 'kanal' => 'Online', 'status' => 'DP 50%', 'statusTone' => 'rose', 'total' => 4700000],
             ['kode' => 'BEL-2026-0805', 'pelanggan' => 'Raditya A.', 'inisial' => 'RA', 'detail' => 'Beskap & Aksesoris', 'jenis' => 'Beli', 'kanal' => 'Walk In', 'status' => 'Lunas', 'statusTone' => 'green', 'total' => 2500000],
             ['kode' => 'BEL-2026-0804', 'pelanggan' => 'Fathia M.', 'inisial' => 'FM', 'detail' => 'Gaun Pengantin Custom', 'jenis' => 'Beli', 'kanal' => 'Online', 'status' => 'DP 50%', 'statusTone' => 'rose', 'total' => 9545000],
             ['kode' => 'SWA-2026-0911', 'pelanggan' => 'Dian S.', 'inisial' => 'DS', 'detail' => 'Kebaya Brokat Premium', 'jenis' => 'Sewa', 'kanal' => 'Walk In', 'status' => 'Lunas', 'statusTone' => 'green', 'total' => 3200000],
         ];
+
+        $actionQueue ??= [
+            ['key' => 'jaminan', 'title' => 'Verifikasi jaminan sewa', 'desc' => '4 jaminan KTP / deposit pending', 'count' => 4, 'route' => '#'],
+            ['key' => 'refund', 'title' => 'Refund diproses', 'desc' => '2 pengajuan pembatalan', 'count' => 2, 'route' => '#'],
+            ['key' => 'retur', 'title' => 'Return pengecekan', 'desc' => '1 gaun baru tiba di studio', 'count' => 1, 'route' => '#'],
+            ['key' => 'fitting', 'title' => 'Reservasi fitting baru', 'desc' => '3 jadwal butuh konfirmasi', 'count' => 3, 'route' => '#'],
+        ];
+        $antreanTotal ??= collect($actionQueue)->sum('count');
+
+        $stockAlerts ??= collect([
+            ['nama' => 'Jas Beskap Beludru Jawa', 'sku' => '-', 'status' => 'dicuci', 'label' => 'Dicuci'],
+            ['nama' => 'Gaun Merah Maroon Pengantin', 'sku' => '-', 'status' => 'rusak', 'label' => 'Rusak'],
+        ]);
     @endphp
 
     {{-- Custom Keyframe Styles untuk Animasi Halus --}}
@@ -123,7 +154,7 @@
             </div>
             <div class="mt-3">
                 <span class="text-2xl sm:text-3xl font-extrabold tracking-tight text-emerald-950">
-                    Rp {{ number_format($stats['pendapatan_bulan_ini'] / 1_000_000, 1, ',', '.') }}jt
+                    Rp {{ $formatRupiahRingkas($stats['pendapatan_bulan_ini']) }}
                 </span>
             </div>
             <p class="mt-2 text-xs text-emerald-800/60">Target bulanan: 85% tercapai</p>
@@ -295,68 +326,40 @@
                     </div>
                     <span class="relative flex items-center">
                         <span class="animate-ping absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-rose-400 opacity-75"></span>
-                        <span class="rounded-full bg-rose-100 px-3 py-1 text-xs font-extrabold text-rose-700">10 antrean</span>
+                        <span class="rounded-full bg-rose-100 px-3 py-1 text-xs font-extrabold text-rose-700">{{ $antreanTotal }} antrean</span>
                     </span>
                 </div>
 
                 <div class="mt-5 space-y-3">
-                    
-                    {{-- Item 1 --}}
-                    <a href="{{ \Illuminate\Support\Facades\Route::has('admin.jaminan.index') ? route('admin.jaminan.index') : '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-rose-200 hover:bg-rose-50/40 hover:shadow-sm hover:-translate-x-0.5">
-                        <div class="flex items-center gap-3">
-                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600 transition-transform group-hover:scale-110">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                            </div>
-                            <div>
-                                <h3 class="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-rose-950">Verifikasi jaminan sewa</h3>
-                                <p class="text-xs text-gray-500">4 jaminan KTP / deposit pending</p>
-                            </div>
-                        </div>
-                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-rose-200/60 text-xs font-bold text-rose-800">4</span>
-                    </a>
+    @php
+        $tindakanStyle = [
+            'jaminan' => ['icon' => 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', 'tone' => 'rose'],
+            'refund'  => ['icon' => 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6', 'tone' => 'amber'],
+            'retur'   => ['icon' => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', 'tone' => 'amber'],
+            'fitting' => ['icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', 'tone' => 'sky'],
+        ];
+        $toneClass = [
+            'rose'  => ['bg-rose-100 text-rose-600', 'hover:border-rose-200 hover:bg-rose-50/40', 'group-hover:text-rose-950', 'bg-rose-200/60 text-rose-800'],
+            'amber' => ['bg-amber-100 text-amber-700', 'hover:border-amber-200 hover:bg-amber-50/40', 'group-hover:text-amber-950', 'bg-amber-200/60 text-amber-800'],
+            'sky'   => ['bg-sky-100 text-sky-700', 'hover:border-sky-200 hover:bg-sky-50/40', 'group-hover:text-sky-950', 'bg-sky-200/60 text-sky-800'],
+        ];
+    @endphp
 
-                    {{-- Item 2 --}}
-                    <a href="{{ \Illuminate\Support\Facades\Route::has('admin.refund.index') ? route('admin.refund.index') : '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-amber-200 hover:bg-amber-50/40 hover:shadow-sm hover:-translate-x-0.5">
-                        <div class="flex items-center gap-3">
-                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 transition-transform group-hover:scale-110">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                            </div>
-                            <div>
-                                <h3 class="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-amber-950">Refund diproses</h3>
-                                <p class="text-xs text-gray-500">2 pengajuan pembatalan</p>
-                            </div>
-                        </div>
-                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-amber-200/60 text-xs font-bold text-amber-800">2</span>
-                    </a>
-
-                    {{-- Item 3 --}}
-                    <a href="{{ \Illuminate\Support\Facades\Route::has('admin.refund.index') ? route('admin.refund.index') : '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-amber-200 hover:bg-amber-50/40 hover:shadow-sm hover:-translate-x-0.5">
-                        <div class="flex items-center gap-3">
-                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 transition-transform group-hover:scale-110">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                            </div>
-                            <div>
-                                <h3 class="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-amber-950">Return pengecekan</h3>
-                                <p class="text-xs text-gray-500">1 gaun baru tiba di studio</p>
-                            </div>
-                        </div>
-                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-amber-200/60 text-xs font-bold text-amber-800">1</span>
-                    </a>
-
-                    {{-- Item 4 --}}
-                    <a href="{{ \Illuminate\Support\Facades\Route::has('admin.fitting.index') ? route('admin.fitting.index') : '#' }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 hover:border-sky-200 hover:bg-sky-50/40 hover:shadow-sm hover:-translate-x-0.5">
-                        <div class="flex items-center gap-3">
-                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700 transition-transform group-hover:scale-110">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            </div>
-                            <div>
-                                <h3 class="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-sky-950">Reservasi fitting baru</h3>
-                                <p class="text-xs text-gray-500">3 jadwal butuh konfirmasi</p>
-                            </div>
-                        </div>
-                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-sky-200/60 text-xs font-bold text-sky-800">3</span>
-                    </a>
-
+    @foreach ($actionQueue as $item)
+        @php [$iconBg, $hoverBg, $hoverText, $badgeBg] = $toneClass[$tindakanStyle[$item['key']]['tone']]; @endphp
+        <a href="{{ $item['route'] }}" class="group flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/50 p-3.5 transition-all duration-200 {{ $hoverBg }} hover:shadow-sm hover:-translate-x-0.5">
+            <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $iconBg }} transition-transform group-hover:scale-110">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tindakanStyle[$item['key']]['icon'] }}"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-xs sm:text-sm font-bold text-gray-900 {{ $hoverText }}">{{ $item['title'] }}</h3>
+                    <p class="text-xs text-gray-500">{{ $item['desc'] }}</p>
+                </div>
+            </div>
+            <span class="flex h-6 w-6 items-center justify-center rounded-full {{ $badgeBg }} text-xs font-bold">{{ $item['count'] }}</span>
+        </a>
+    @endforeach
                 </div>
             </div>
 
@@ -367,37 +370,33 @@
                         <h2 class="font-display text-lg font-bold text-gray-900">Stok Perlu Perhatian</h2>
                         <p class="mt-0.5 text-xs text-gray-500">Pemeliharaan &amp; perbaikan busana</p>
                     </div>
-                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800">2 busana</span>
+                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800">{{ $stockAlerts->count() }} busana</span>
                 </div>
 
                 <div class="mt-5 space-y-3">
-                    
-                    {{-- Alert 1: Laundry --}}
-                    <div class="group relative overflow-hidden rounded-xl border-l-4 border-amber-500 bg-gradient-to-r from-amber-50/80 to-white p-4 transition-all hover:shadow-md">
-                        <div class="flex items-start justify-between gap-2">
-                            <h3 class="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-amber-900 transition-colors">Jas Beskap Beludru Jawa</h3>
-                            <span class="rounded-md bg-amber-200/60 px-2 py-0.5 text-[10px] font-bold text-amber-900 shrink-0">Dry Cleaning</span>
+                    @forelse ($stockAlerts as $alert)
+                        @php
+                            $isRusak = $alert['status'] === 'rusak';
+                            $border = $isRusak ? 'border-rose-500' : 'border-amber-500';
+                            $grad = $isRusak ? 'from-rose-50/80' : 'from-amber-50/80';
+                            $badge = $isRusak ? 'bg-rose-200/60 text-rose-900' : 'bg-amber-200/60 text-amber-900';
+                            $linkColor = $isRusak ? 'text-rose-700 hover:text-rose-900' : 'text-amber-700 hover:text-amber-900';
+                            $titleHover = $isRusak ? 'group-hover:text-rose-900' : 'group-hover:text-amber-900';
+                        @endphp
+                        <div class="group relative overflow-hidden rounded-xl border-l-4 {{ $border }} bg-gradient-to-r {{ $grad }} to-white p-4 transition-all hover:shadow-md">
+                            <div class="flex items-start justify-between gap-2">
+                                <h3 class="text-xs sm:text-sm font-bold text-gray-900 {{ $titleHover }} transition-colors">{{ $alert['nama'] }}</h3>
+                                <span class="rounded-md {{ $badge }} px-2 py-0.5 text-[10px] font-bold shrink-0">{{ $alert['label'] }}</span>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-600">SKU: {{ $alert['sku'] }}</p>
+                            <a href="{{ \Illuminate\Support\Facades\Route::has('admin.produk.index') ? route('admin.produk.index') : '#' }}" class="mt-3 inline-flex items-center gap-1 text-xs font-extrabold {{ $linkColor }} transition-colors">
+                                <span>Lihat di Kelola Produk</span>
+                                <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </a>
                         </div>
-                        <p class="mt-1 text-xs text-gray-600">Sedang di vendor laundry sejak 3 hari lalu</p>
-                        <a href="#" class="mt-3 inline-flex items-center gap-1 text-xs font-extrabold text-amber-700 hover:text-amber-900 transition-colors">
-                            <span>Hubungi vendor</span>
-                            <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                        </a>
-                    </div>
-
-                    {{-- Alert 2: Repair --}}
-                    <div class="group relative overflow-hidden rounded-xl border-l-4 border-rose-500 bg-gradient-to-r from-rose-50/80 to-white p-4 transition-all hover:shadow-md">
-                        <div class="flex items-start justify-between gap-2">
-                            <h3 class="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-rose-900 transition-colors">Gaun Merah Maroon Pengantin</h3>
-                            <span class="rounded-md bg-rose-200/60 px-2 py-0.5 text-[10px] font-bold text-rose-900 shrink-0">Perlu Repair</span>
-                        </div>
-                        <p class="mt-1 text-xs text-gray-600">Payet bordir lepas di bagian bahu kanan</p>
-                        <a href="#" class="mt-3 inline-flex items-center gap-1 text-xs font-extrabold text-rose-700 hover:text-rose-900 transition-colors">
-                            <span>Kirim ke penjahit atelier</span>
-                            <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                        </a>
-                    </div>
-
+                    @empty
+                        <p class="text-sm text-gray-400">Tidak ada busana yang perlu perhatian saat ini.</p>
+                    @endforelse
                 </div>
             </div>
 

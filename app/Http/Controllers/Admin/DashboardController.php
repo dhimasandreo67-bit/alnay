@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\JaminanSewa;
+use App\Models\Produk;
 use App\Models\Refund;
+use App\Models\ReservasiFitting;
 use App\Models\Sewa;
 use App\Models\Transaksi;
 use Illuminate\Http\Request;
@@ -25,11 +27,6 @@ class DashboardController extends Controller
                 ->count(),
             'refund_pending'       => Refund::where('status', 'pending')->count(),
             'refund_saldo'         => Refund::where('status', 'pending')->sum('jumlah'),
-            // TODO: filter ->where('status_pembayaran', 'lunas') dihapus sementara.
-            // Tabel `transaksi` tidak punya kolom status_pembayaran — status lunas/DP
-            // sepertinya disimpan di tabel `pembayaran` (lihat relasi Transaksi::pembayaran()).
-            // Kalau mau menghitung hanya transaksi yang lunas, query ini perlu join/whereHas
-            // ke tabel pembayaran, bukan where langsung di transaksi.
             'pendapatan_bulan_ini' => Transaksi::whereMonth('created_at', $today->month)
                 ->whereYear('created_at', $today->year)
                 ->sum('total'),
@@ -50,9 +47,6 @@ class DashboardController extends Controller
             ->take(6)
             ->get()
             ->map(function (Transaksi $trx) {
-                // Transaksi kasir dengan customer_type "tamu" tidak punya user_id
-                // (lihat TransaksiController::store()), jadi $trx->user bisa null.
-                // Fallback ke nama_tamu, baru ke 'Tamu' kalau dua-duanya kosong.
                 $nama = $trx->user->name ?? $trx->nama_tamu ?? 'Tamu';
 
                 return [
@@ -68,10 +62,65 @@ class DashboardController extends Controller
                 ];
             })->toArray();
 
-        $notifCount = JaminanSewa::where('status_verifikasi', 'pending')->count()
-            + Refund::where('status', 'pending')->count();
+        // ======================= PERLU TINDAKAN =======================
+        $jaminanPending  = JaminanSewa::where('status_verifikasi', 'pending')->count();
+        $refundPending   = Refund::where('status', 'pending')->count();
+        $returPengecekan = Sewa::where('status', 'selesai')->doesntHave('pengecekan')->count();
+        $fittingPending  = ReservasiFitting::where('status', 'pending')->count();
 
-        return view('admin.dashboard', compact('stats', 'chart', 'transactions', 'notifCount'));
+        $actionQueue = [
+            [
+                'key'   => 'jaminan',
+                'title' => 'Verifikasi jaminan sewa',
+                'desc'  => $jaminanPending . ' jaminan KTP / deposit pending',
+                'count' => $jaminanPending,
+                'route' => \Illuminate\Support\Facades\Route::has('admin.jaminan.index') ? route('admin.jaminan.index') : '#',
+            ],
+            [
+                'key'   => 'refund',
+                'title' => 'Refund diproses',
+                'desc'  => $refundPending . ' pengajuan pembatalan',
+                'count' => $refundPending,
+                'route' => \Illuminate\Support\Facades\Route::has('admin.refund.index') ? route('admin.refund.index') : '#',
+            ],
+            [
+                'key'   => 'retur',
+                'title' => 'Return pengecekan',
+                'desc'  => $returPengecekan . ' gaun baru tiba di studio',
+                'count' => $returPengecekan,
+                'route' => \Illuminate\Support\Facades\Route::has('admin.sewa.index') ? route('admin.sewa.index', ['status' => 'dikembalikan']) : '#',
+            ],
+            [
+                'key'   => 'fitting',
+                'title' => 'Reservasi fitting baru',
+                'desc'  => $fittingPending . ' jadwal butuh konfirmasi',
+                'count' => $fittingPending,
+                'route' => \Illuminate\Support\Facades\Route::has('admin.fitting.index') ? route('admin.fitting.index') : '#',
+            ],
+        ];
+
+        $antreanTotal = collect($actionQueue)->sum('count');
+
+        // ======================= STOK PERLU PERHATIAN =======================
+        $stockAlerts = Produk::whereIn('status', ['dicuci', 'rusak'])
+            ->latest('updated_at')
+            ->take(5)
+            ->get()
+            ->map(function (Produk $p) {
+                return [
+                    'nama'   => $p->nama,
+                    'sku'    => $p->sku,
+                    'status' => $p->status, // 'dicuci' | 'rusak'
+                    'label'  => \App\Support\ProdukStatus::label($p->status, (bool) $p->dapat_dijual),
+                ];
+            });
+
+        $notifCount = $jaminanPending + $refundPending;
+
+        return view('admin.dashboard', compact(
+            'stats', 'chart', 'transactions', 'notifCount',
+            'actionQueue', 'antreanTotal', 'stockAlerts'
+        ));
     }
 
     private function trendLabel(Carbon $today): string
