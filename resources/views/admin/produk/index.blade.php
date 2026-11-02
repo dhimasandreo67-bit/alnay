@@ -29,7 +29,7 @@
         }
     </style>
 
-    <div class="p-8 space-y-8 animate-fade-up">
+    <div class="p-4 lg:p-6 space-y-8 animate-fade-up">
 
         @if(session('success'))
             <div class="flex items-center gap-4 bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl shadow-sm animate-fade-up" role="alert">
@@ -234,22 +234,22 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-line">
+                <table class="w-full text-[13px] divide-y divide-line">
                     <thead class="bg-cream/80">
                         <tr>
-                            <th class="px-6 py-4 w-10">
+                            <th class="px-3 py-3 w-8">
                                 <input type="checkbox" id="checkAll" onchange="toggleSelectAll(this)" @disabled($produkList->count() === 0)
                                     class="w-4 h-4 rounded border-gray-300 accent-amber-600 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                                     title="Pilih semua">
                             </th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-ink/60 uppercase tracking-wider">Foto & Siluet</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-ink/60 uppercase tracking-wider">Nama & Motif</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-ink/60 uppercase tracking-wider">Kode SKU</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-ink/60 uppercase tracking-wider">Kategori</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-ink/60 uppercase tracking-wider">Tarif Sewa & Jual</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-ink/60 uppercase tracking-wider">Stok</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-ink/60 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-4 text-right text-[11px] font-bold text-ink/60 uppercase tracking-wider">Aksi</th>
+                            <th class="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold text-ink/60 uppercase tracking-wide">Foto & Siluet</th>
+                            <th class="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold text-ink/60 uppercase tracking-wide">Nama & Motif</th>
+                            <th class="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold text-ink/60 uppercase tracking-wide">Kode SKU</th>
+                            <th class="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold text-ink/60 uppercase tracking-wide">Kategori</th>
+                            <th class="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold text-ink/60 uppercase tracking-wide">Tarif Sewa & Jual</th>
+                            <th class="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold text-ink/60 uppercase tracking-wide">Stok</th>
+                            <th class="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold text-ink/60 uppercase tracking-wide">Status</th>
+                            <th class="whitespace-nowrap px-3 py-3 text-right text-[10px] font-bold text-ink/60 uppercase tracking-wide">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-line/50 bg-panel">
@@ -271,14 +271,14 @@
                                 data-kategori="{{ $produk->kategori_id }}"
                                 data-status="{{ $produk->status }}"
                                 class="transition-colors duration-200 group {{ $rowStokClass }}">
-                                <td class="px-6 py-4">
+                                <td class="px-3 py-3">
                                     <input type="checkbox" name="ids[]" value="{{ $produk->id }}" form="formBulkDelete"
                                         data-nama="{{ $produk->nama }}" onchange="updateBulkBar()"
                                         class="bulk-check w-4 h-4 rounded border-gray-300 accent-amber-600 cursor-pointer"
                                         title="Pilih untuk dihapus">
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="relative aspect-square w-16 h-16 overflow-hidden rounded-xl bg-cream border border-line shadow-sm">
+                                <td class="px-3 py-3">
+                                    <div class="relative aspect-square w-12 h-12 overflow-hidden rounded-xl bg-cream border border-line shadow-sm">
                                         @if($sampul)
                                             <img src="{{ $sampul }}" alt="{{ $produk->nama }}" loading="lazy"
                                                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
@@ -289,19 +289,19 @@
                                         @endif
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 max-w-[200px]">
+                                <td class="px-3 py-3 min-w-[140px]">
                                     <p class="text-sm font-bold text-ink group-hover:text-gold transition-colors duration-300">{{ $produk->nama }}</p>
                                     @if($produk->motif)
                                         <p class="text-xs text-muted mt-0.5">{{ $produk->motif }}</p>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-block bg-cream border border-line rounded-lg px-2.5 py-1 text-[11px] font-mono font-bold text-ink/80">{{ $produk->sku }}</span>
+                                <td class="px-3 py-3">
+                                    <span class="inline-block whitespace-nowrap bg-cream border border-line rounded-lg px-2 py-0.5 text-[10px] font-mono font-bold text-ink/80">{{ $produk->sku }}</span>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-block bg-ink/5 text-ink rounded-full px-3 py-1 text-xs font-semibold">{{ $produk->kategori->nama_kategori ?? '-' }}</span>
+                                <td class="px-3 py-3">
+                                    <span class="inline-block whitespace-nowrap bg-ink/5 text-ink rounded-full px-2.5 py-0.5 text-[11px] font-semibold">{{ $produk->kategori->nama_kategori ?? '-' }}</span>
                                 </td>
-                                <td class="px-6 py-4 text-xs">
+                                <td class="px-3 py-3 text-[11px] whitespace-nowrap">
                                     @if($produk->bisa_disewa && $produk->harga_sewa)
                                         <p class="font-bold text-gold">Sewa: Rp {{ number_format($produk->harga_sewa, 0, ',', '.') }}<span class="text-muted font-normal">/3hr</span></p>
                                     @endif
@@ -309,32 +309,32 @@
                                         <p class="text-ink/70 mt-1 font-medium">Jual: {{ $produk->harga_jual ? 'Rp ' . number_format($produk->harga_jual, 0, ',', '.') : '-' }}</p>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-sm font-black text-ink">{{ $produk->stok }} <span class="text-xs font-normal text-muted">unit</span></span>
+                                <td class="px-3 py-3">
+                                    <div class="flex flex-col items-start gap-1 whitespace-nowrap">
+                                        <span class="text-xs font-black text-ink">{{ $produk->stok }} <span class="text-xs font-normal text-muted">unit</span></span>
                                         @if($stokHabis)
-                                            <span class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200 animate-pulse" title="Stok produk ini kosong">
+                                            <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-bold text-rose-700 border border-rose-200 animate-pulse" title="Stok produk ini kosong">
                                                 <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                                 Habis
                                             </span>
                                         @elseif($stokMenipis)
-                                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200" title="Sisa stok {{ $batasStokMenipis }} unit atau kurang">
+                                            <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-700 border border-amber-200" title="Sisa stok {{ $batasStokMenipis }} unit atau kurang">
                                                 <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                                 Hampir Habis
                                             </span>
                                         @endif
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex items-center gap-1.5 border rounded-lg px-2.5 py-1 text-[11px] font-bold {{ $statusClass }}">
+                                <td class="px-3 py-3">
+                                    <span class="inline-flex items-center gap-1.5 whitespace-nowrap border rounded-lg px-2 py-0.5 text-[10px] font-bold {{ $statusClass }}">
                                         <span class="w-1.5 h-1.5 rounded-full bg-current opacity-70"></span>
                                         {{ $opsiStatus[$produk->status] ?? $produk->status }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-3 py-3">
                                     <div class="flex items-center justify-end gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
                                         <a href="{{ route('admin.produk.edit', $produk->id) }}"
-                                           class="p-2 rounded-xl text-ink/50 hover:text-gold hover:bg-gold/10 active:scale-90 transition-all duration-200" title="Edit Produk">
+                                           class="p-1.5 rounded-xl text-ink/50 hover:text-gold hover:bg-gold/10 active:scale-90 transition-all duration-200" title="Edit Produk">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                         </a>
                                     </div>
