@@ -197,7 +197,7 @@
                 <tbody class="divide-y divide-gray-100/80">
                     @forelse($daftarSewa as $sewa)
                         @php
-                            $namaPelanggan = $sewa->transaksi->user->name ?? 'Pelanggan';
+                            $namaPelanggan = $sewa->nama_pelanggan;
                             $inisial = strtoupper(mb_substr(trim($namaPelanggan) ?: '?', 0, 1));
                         @endphp
                         <tr class="hover:bg-amber-50/30 transition-colors">
@@ -210,8 +210,8 @@
                                 <div class="flex items-center gap-3">
                                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
                                     <div class="min-w-0">
-                                        <p class="font-bold text-gray-900 truncate">{{ $namaPelanggan }}</p>
-                                        <p class="text-xs text-gray-500">{{ $sewa->transaksi->user->no_hp ?? '-' }}</p>
+                                        <p class="font-bold text-gray-900 truncate">{{ $namaPelanggan }}@if ($sewa->is_tamu) <span class="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gray-500">Tamu</span>@endif</p>
+                                        <p class="text-xs text-gray-500">{{ $sewa->no_hp_pelanggan ?: '-' }}</p>
                                     </div>
                                 </div>
                             </td>
