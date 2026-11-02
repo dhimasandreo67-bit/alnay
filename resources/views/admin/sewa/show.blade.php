@@ -3,7 +3,7 @@
 @section('title', 'Detail Sewa Busana')
 
 @section('content')
-    <div class="space-y-6" x-data="{ tab: '{{ session('active_tab', 'ringkasan') }}', modeJaminan: 'fisik' }">
+    <div class="space-y-6" x-data="{ tab: '{{ session('active_tab', 'ringkasan') }}', modeJaminan: '{{ ($sewa->jaminan->metode_jaminan ?? 'ktp_tatap_muka') === 'ktp_tatap_muka' ? 'fisik' : 'digital' }}' }">
 
         {{-- Header --}}
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -30,7 +30,7 @@
                 <a href="{{ route('admin.sewa.index') }}"
                     class="px-4 py-2 bg-white border border-line rounded-lg text-sm font-semibold hover:bg-gray-50">&larr;
                     Kembali</a>
-                <a href="https://wa.me/{{ $sewa->transaksi->user->no_hp ?? '' }}" target="_blank"
+                <a href="https://wa.me/{{ $sewa->no_wa }}" target="_blank"
                     class="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-semibold hover:bg-emerald-100">Hubungi
                     Pelanggan via WA</a>
                 <button class="px-4 py-2 bg-ink text-white rounded-lg text-sm font-semibold hover:bg-gray-800">Cetak Berita
@@ -68,8 +68,8 @@
             </div>
             <div class="bg-white p-5 rounded-2xl border border-line shadow-sm">
                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">Pelanggan</p>
-                <h3 class="text-lg font-bold text-ink">{{ $sewa->transaksi->user->name ?? '-' }}</h3>
-                <p class="text-xs text-gray-500 mt-1">{{ $sewa->transaksi->user->no_hp ?? '-' }}</p>
+                <h3 class="text-lg font-bold text-ink">{{ $sewa->nama_pelanggan }}@if ($sewa->is_tamu) <span class="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gray-500">Tamu</span>@endif</h3>
+                <p class="text-xs text-gray-500 mt-1">{{ $sewa->no_hp_pelanggan ?: '-' }}</p>
             </div>
             <div class="bg-white p-5 rounded-2xl border border-line shadow-sm {{ $isTerlambat ? 'border-rose-200' : '' }}">
                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">Jadwal Pengembalian</p>
@@ -84,7 +84,7 @@
             <div class="bg-white p-5 rounded-2xl border border-line shadow-sm">
                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2">Total Denda Ditagih</p>
                 <h3 class="text-lg font-bold text-rose-600">Rp {{ number_format($totalDenda ?? 0, 0, ',', '.') }}</h3>
-                <p class="text-xs text-gray-500 mt-1">{{ $sewa->denda->where('status_bayar', 'belum_lunas')->count() }}
+                <p class="text-xs text-gray-500 mt-1">{{ $sewa->denda->where('status', 'belum_lunas')->count() }}
                     tagihan aktif</p>
             </div>
         </div>
@@ -132,7 +132,25 @@
                                 }
 
                                 $namaKategori = $produk->kategori->nama_kategori ?? 'Busana Adat';
-                                $ukuranList = $produk->ukuran ?? [];
+                                // Normalisasi ukuran: bisa berupa string, array biasa, atau array of array
+                                // (mis. [{"ukuran":"M","stok":2}]) -> jadikan daftar teks sederhana.
+                                $ukuranRaw = $produk->ukuran ?? [];
+                                if (is_string($ukuranRaw)) {
+                                    $decoded = json_decode($ukuranRaw, true);
+                                    $ukuranRaw = is_array($decoded) ? $decoded : array_map('trim', explode(',', $ukuranRaw));
+                                }
+                                $ukuranList = collect(is_array($ukuranRaw) ? $ukuranRaw : [])
+                                    ->map(function ($u) {
+                                        if (is_array($u)) {
+                                            return $u['ukuran'] ?? $u['size'] ?? $u['nama'] ?? $u['label']
+                                                ?? collect($u)->filter(fn($v) => is_scalar($v))->first();
+                                        }
+                                        return is_scalar($u) ? $u : null;
+                                    })
+                                    ->filter(fn($u) => $u !== null && $u !== '')
+                                    ->unique()
+                                    ->values()
+                                    ->all();
                                 $hargaJual = $produk->harga_jual ?? 0;
                             @endphp
                             <div class="w-32 h-40 rounded-lg bg-gray-200 overflow-hidden shrink-0">
@@ -156,7 +174,7 @@
                                     <div>
                                         <p class="text-[10px] text-gray-400 uppercase">Ukuran Tersedia</p>
                                         <p class="text-sm font-semibold">
-                                            {{ is_array($ukuranList) && count($ukuranList) > 0 ? implode(', ', $ukuranList) : 'All Size' }}
+                                            {{ count($ukuranList) > 0 ? implode(', ', $ukuranList) : 'All Size' }}
                                         </p>
                                     </div>
                                     <div>
@@ -235,9 +253,7 @@
                         <h2 class="text-lg font-bold text-ink flex items-center gap-2">
                             <span class="w-2.5 h-2.5 rounded-full bg-gold"></span> Verifikasi Jaminan Fisik di Studio
                         </h2>
-                        <span
-                            class="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-bold">Menunggu
-                            Verifikasi Bankras</span>
+                        @if (($sewa->jaminan->status_verifikasi ?? \'\') === \'verified\')<span class="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-bold">Terverifikasi</span>@else<span class="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-bold">Menunggu Verifikasi Bankras</span>@endif
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -258,14 +274,14 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-gray-600 mb-1">NOMOR NIK KTP</label>
-                                    <input type="text" name="no_ktp" value="{{ $sewa->jaminan->no_ktp ?? '' }}"
+                                    <input type="text" name="no_ktp" value="{{ $sewa->jaminan->nomor_ktp ?? '' }}"
                                         class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
                                         placeholder="3273..." required>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-gray-600 mb-1">NAMA SESUAI KTP</label>
                                     <input type="text" name="nama_sesuai_ktp"
-                                        value="{{ $sewa->jaminan->nama_sesuai_ktp ?? '' }}"
+                                        value="{{ $sewa->jaminan->nama_ktp ?? '' }}"
                                         class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
                                         placeholder="Nama Lengkap" required>
                                 </div>
@@ -299,9 +315,7 @@
                         <h2 class="text-lg font-bold text-ink flex items-center gap-2">
                             <span class="w-2.5 h-2.5 rounded-full bg-gold"></span> Verifikasi Jaminan Digital / Non-Fisik
                         </h2>
-                        <span
-                            class="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-bold">Menunggu
-                            Verifikasi Admin</span>
+                        @if (($sewa->jaminan->status_verifikasi ?? \'\') === \'verified\')<span class="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-bold">Terverifikasi</span>@else<span class="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-bold">Menunggu Verifikasi Admin</span>@endif
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -344,7 +358,7 @@
 
                                 <div>
                                     <label class="block text-xs font-bold text-gray-600 mb-1">NOMOR NIK KTP</label>
-                                    <input type="text" name="no_ktp" value="{{ $sewa->jaminan->no_ktp ?? '' }}"
+                                    <input type="text" name="no_ktp" value="{{ $sewa->jaminan->nomor_ktp ?? '' }}"
                                         class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
                                         placeholder="3273..." required>
                                 </div>
@@ -352,7 +366,7 @@
                                 <div>
                                     <label class="block text-xs font-bold text-gray-600 mb-1">NAMA SESUAI KTP</label>
                                     <input type="text" name="nama_sesuai_ktp"
-                                        value="{{ $sewa->jaminan->nama_sesuai_ktp ?? '' }}"
+                                        value="{{ $sewa->jaminan->nama_ktp ?? '' }}"
                                         class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
                                         placeholder="Nama Lengkap" required>
                                 </div>
@@ -589,7 +603,7 @@
                                     <td class="px-6 py-4 text-right font-bold text-rose-600">Rp
                                         {{ number_format($denda->jumlah, 0, ',', '.') }}</td>
                                     <td class="px-6 py-4 text-center">
-                                        @if ($denda->status_bayar === 'lunas')
+                                        @if ($denda->status === 'lunas')
                                             <span
                                                 class="px-2 py-1 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded text-[10px] font-bold">LUNAS</span>
                                         @else
@@ -599,7 +613,7 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 text-right">
-                                        @if ($denda->status_bayar !== 'lunas')
+                                        @if ($denda->status !== 'lunas')
                                             <form action="{{ route('admin.sewa.lunasi-denda', $denda->id) }}"
                                                 method="POST" class="inline">
                                                 @csrf
@@ -638,7 +652,7 @@
                     <div class="text-right shrink-0">
                         <p class="text-xs text-gray-500 mb-1">STATUS PENCAIRAN:</p>
                         <p class="text-sm font-bold text-ink mb-3">
-                            {{ $sewa->jaminan->status_pengembalian_deposit === 'dikembalikan' ? 'Selesai Dikembalikan' : 'Menunggu Otorisasi QC Selesai' }}
+                            {{ ($sewa->jaminan->status_pengembalian_deposit ?? '') === 'dikembalikan' ? 'Selesai Dikembalikan' : 'Menunggu Otorisasi QC Selesai' }}
                         </p>
 
                         <form action="{{ route('admin.sewa.kembalikan-deposit', $sewa->id) }}" method="POST">
