@@ -49,7 +49,7 @@ class SewaController extends Controller
         $sewa = Sewa::with(['transaksi.user', 'transaksi.detail.produk', 'jaminan', 'pengecekan', 'denda'])
             ->findOrFail($id);
 
-        $totalDenda = $sewa->denda->where('status_bayar', 'belum_lunas')->sum('jumlah');
+        $totalDenda = $sewa->denda->where('status', 'belum_lunas')->sum('jumlah');
 
         // --- BUAT DATA TIMELINE DINAMIS ---
         $timeline = [];
@@ -93,15 +93,21 @@ class SewaController extends Controller
             'nama_sesuai_ktp' => 'required|string',
         ]);
 
-        if ($sewa->jaminan) {
-            $sewa->jaminan->update([
-                'no_ktp' => $request->no_ktp,
-                'nama_sesuai_ktp' => $request->nama_sesuai_ktp,
-                'status_verifikasi' => 'verified',
-                'diverifikasi_oleh' => auth('admin')->id(),
-                'tanggal_verifikasi' => now(),
-            ]);
-        }
+        // Pakai jaminan yang ada; kalau belum ada (data lama), buat dulu.
+        $jaminan = $sewa->jaminan ?? $sewa->jaminan()->make([
+            'metode_jaminan' => 'ktp_tatap_muka',
+            'jumlah_deposit' => 0,
+            'status_pengembalian_deposit' => 'belum',
+        ]);
+
+        // Kolom di tabel: nomor_ktp & nama_ktp (input form: no_ktp & nama_sesuai_ktp)
+        $jaminan->fill([
+            'nomor_ktp' => $request->no_ktp,
+            'nama_ktp' => $request->nama_sesuai_ktp,
+            'status_verifikasi' => 'verified',
+            'diverifikasi_oleh' => auth('admin')->id(),
+            'tanggal_verifikasi' => now(),
+        ])->save();
 
         return back()->with('success', 'Jaminan fisik berhasil diverifikasi!');
     }
@@ -157,7 +163,7 @@ class SewaController extends Controller
         $sewa->denda()->create([
             'jenis' => $request->jenis,
             'jumlah' => $request->jumlah,
-            'status_bayar' => 'belum_lunas',
+            'status' => 'belum_lunas',
         ]);
 
         return back()->with('success', 'Denda berhasil ditambahkan!');
@@ -166,7 +172,7 @@ class SewaController extends Controller
     public function lunasiDenda($id)
     {
         $denda = Denda::findOrFail($id);
-        $denda->update(['status_bayar' => 'lunas']);
+        $denda->update(['status' => 'lunas']);
 
         return back()->with('success', 'Denda berhasil dilunasi!');
     }
