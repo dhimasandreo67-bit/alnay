@@ -302,11 +302,45 @@
                                     <span class="inline-block whitespace-nowrap bg-ink/5 text-ink rounded-full px-2.5 py-0.5 text-[11px] font-semibold">{{ $produk->kategori->nama_kategori ?? '-' }}</span>
                                 </td>
                                 <td class="px-3 py-3 text-[11px] whitespace-nowrap">
+                                    @php
+                                        // Harga setelah diskon, dihitung dengan rumus yang sama
+                                        // dengan preview di form Tambah/Edit Produk (hargaSewa * (1 - diskon/100)),
+                                        // supaya angka yang tampil di sini selalu sesuai dengan yang di-preview saat input.
+                                        $diskonProduk = (float) ($produk->diskon_persen ?? 0);
+                                        $sewaFinal = $produk->harga_sewa ? $produk->harga_sewa * (1 - $diskonProduk / 100) : null;
+                                        $jualFinal = $produk->harga_jual ? $produk->harga_jual * (1 - $diskonProduk / 100) : null;
+                                    @endphp
                                     @if($produk->bisa_disewa && $produk->harga_sewa)
-                                        <p class="font-bold text-gold">Sewa: Rp {{ number_format($produk->harga_sewa, 0, ',', '.') }}<span class="text-muted font-normal">/3hr</span></p>
+                                        <p class="font-bold text-gold">
+                                            Sewa:
+                                            @if($diskonProduk > 0)
+                                                <span class="line-through text-muted font-normal">Rp {{ number_format($produk->harga_sewa, 0, ',', '.') }}</span>
+                                                Rp {{ number_format($sewaFinal, 0, ',', '.') }}
+                                            @else
+                                                Rp {{ number_format($produk->harga_sewa, 0, ',', '.') }}
+                                            @endif
+                                            <span class="text-muted font-normal">/3hr</span>
+                                        </p>
                                     @endif
                                     @if($produk->dapat_dijual)
-                                        <p class="text-ink/70 mt-1 font-medium">Jual: {{ $produk->harga_jual ? 'Rp ' . number_format($produk->harga_jual, 0, ',', '.') : '-' }}</p>
+                                        <p class="text-ink/70 mt-1 font-medium">
+                                            Jual:
+                                            @if($produk->harga_jual)
+                                                @if($diskonProduk > 0)
+                                                    <span class="line-through text-muted font-normal">Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</span>
+                                                    <span class="font-bold text-gold">Rp {{ number_format($jualFinal, 0, ',', '.') }}</span>
+                                                @else
+                                                    Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}
+                                                @endif
+                                            @else
+                                                -
+                                            @endif
+                                        </p>
+                                    @endif
+                                    @if($diskonProduk > 0)
+                                        <span class="inline-flex items-center gap-1 mt-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold text-rose-700 border border-rose-200">
+                                            -{{ rtrim(rtrim(number_format($diskonProduk, 1, ',', '.'), '0'), ',') }}%
+                                        </span>
                                     @endif
                                 </td>
                                 <td class="px-3 py-3">
