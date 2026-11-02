@@ -365,7 +365,7 @@ Partial form produk, dipakai oleh create.blade.php dan edit.blade.php.
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 <div class="space-y-2" x-show="ukuranVariasi.length === 0">
                     <label class="block text-xs font-bold uppercase tracking-wider text-ink/70">Stok (unit) <span class="text-rose-500">*</span></label>
                     <input type="number" step="1" min="0" name="stok" x-model.number="stok" :required="ukuranVariasi.length === 0" placeholder="1"
@@ -384,6 +384,17 @@ Partial form produk, dipakai oleh create.blade.php dan edit.blade.php.
                                class="input-elegant w-full pl-12 pr-4 py-3 bg-cream/40 border border-line rounded-xl text-sm focus:bg-white focus:outline-none font-semibold text-ink">
                         <input type="hidden" name="denda_per_hari_telat" :value="dendaPerHari">
                     </div>
+                    <p class="text-[10px] text-muted">Denda kalau pelanggan telat mengembalikan.</p>
+                </div>
+                <div class="space-y-2" x-show="bisaDisewa" x-transition>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-ink/70">Biaya Perpanjangan / hari</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-sm font-bold text-ink/50 pointer-events-none">Rp</span>
+                        <input type="text" inputmode="numeric" :value="formatNumber(perpanjanganPerHari)" @input="perpanjanganPerHari = parseNumber($event.target.value)" placeholder="30.000"
+                               class="input-elegant w-full pl-12 pr-4 py-3 bg-cream/40 border border-line rounded-xl text-sm focus:bg-white focus:outline-none font-semibold text-ink">
+                        <input type="hidden" name="harga_perpanjangan_per_hari" :value="perpanjanganPerHari">
+                    </div>
+                    <p class="text-[10px] text-muted">Tarif tambahan per hari kalau pelanggan minta <em>memperpanjang</em> masa sewa (beda dari denda telat).</p>
                 </div>
                 <div class="space-y-2">
                     <label class="block text-xs font-bold uppercase tracking-wider text-ink/70">Diskon (%)</label>
@@ -477,6 +488,7 @@ document.addEventListener('alpine:init', () => {
         hargaJual: initial.hargaJual ?? null,
         stok: initial.stok ?? null,
         dendaPerHari: initial.dendaPerHari ?? null,
+        perpanjanganPerHari: initial.perpanjanganPerHari ?? null,
         diskon: initial.diskon ?? 0,
         existingFoto: initial.existingFoto || {},
         previews: Object.assign({}, initial.previewFoto || {}),
