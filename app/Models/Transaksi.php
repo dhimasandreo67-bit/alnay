@@ -18,6 +18,9 @@ class Transaksi extends Model
         'status_pembayaran',
         'catatan',
         'reservasi_fitting_id',
+        'channel',
+        'nama_tamu',
+        'no_hp_tamu',
     ];
 
     protected function casts(): array   
@@ -31,6 +34,28 @@ class Transaksi extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Data pelanggan (satu sumber untuk Transaksi, Sewa, dan Jaminan)
+    |--------------------------------------------------------------------------
+    | Pelanggan terdaftar -> dari relasi user
+    | Pelanggan tamu      -> dari kolom nama_tamu / no_hp_tamu
+    */
+    public function getIsTamuAttribute(): bool
+    {
+        return $this->user === null;
+    }
+
+    public function getNamaPelangganAttribute(): string
+    {
+        return $this->user?->name ?: ($this->nama_tamu ?: '-');
+    }
+
+    public function getNoHpPelangganAttribute(): ?string
+    {
+        return $this->user?->no_hp ?: ($this->no_hp_tamu ?: null);
     }
 
     public function detail()
