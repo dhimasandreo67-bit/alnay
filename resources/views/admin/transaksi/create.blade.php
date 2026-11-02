@@ -160,7 +160,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('admin.transaksi.store') }}" id="form-kasir" class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start" novalidate>
+    <form method="POST" action="{{ route('admin.transaksi.store') }}" id="form-kasir" class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start" enctype="multipart/form-data" novalidate>
         @csrf
 
         {{-- ================= KOLOM KIRI ================= --}}
@@ -203,6 +203,29 @@
                         </div>
                     </div>
                     <p id="info-durasi" class="mt-2 text-xs font-semibold text-amber-700"></p>
+
+                    {{-- Upload KTP penyewa (jaminan) --}}
+                    <div class="mt-4 rounded-2xl border border-dashed border-amber-300 bg-amber-50/40 p-4">
+                        <label for="foto_ktp" class="text-xs font-bold text-gray-700">Foto KTP Penyewa <span class="text-rose-600">*</span></label>
+                        <p class="mt-0.5 text-[11px] text-gray-500">Wajib untuk penyewaan. Format JPG, PNG, atau WEBP, maksimal 2 MB.</p>
+                        <input type="file" id="foto_ktp" name="foto_ktp" accept="image/jpeg,image/png,image/webp"
+                               class="mt-2 block w-full text-xs text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-100 file:px-3 file:py-2 file:text-xs file:font-bold file:text-amber-700 hover:file:bg-amber-200">
+                        <div id="preview-ktp" class="hidden mt-3 items-center gap-3">
+                            <img id="preview-ktp-img" src="" alt="Pratinjau KTP" class="h-20 w-32 rounded-lg border border-gray-200 object-cover bg-white">
+                            <button type="button" id="hapus-ktp" class="text-xs font-bold text-rose-600 hover:text-rose-700">Hapus foto</button>
+                        </div>
+                        <p id="error-ktp" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
+                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="nomor_ktp" class="text-xs font-bold text-gray-500">NIK (opsional)</label>
+                                <input type="text" id="nomor_ktp" name="nomor_ktp" value="{{ old('nomor_ktp') }}" inputmode="numeric" maxlength="16" placeholder="16 digit NIK" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+                            </div>
+                            <div>
+                                <label for="nama_ktp" class="text-xs font-bold text-gray-500">Nama Sesuai KTP (opsional)</label>
+                                <input type="text" id="nama_ktp" name="nama_ktp" value="{{ old('nama_ktp') }}" maxlength="100" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -297,7 +320,7 @@
                         </select>
                     </div>
                     <div id="box-jumlah-dp" class="hidden">
-                        <label for="jumlah_dp" class="text-xs font-bold text-gray-500">Jumlah DP (Rp)</label>
+                        <label for="jumlah_dp" class="text-xs font-bold text-gray-500">Jumlah DP (Rp) <span id="ket-dp-otomatis" class="hidden font-normal text-gray-400">- otomatis</span></label>
                         <input type="number" id="jumlah_dp" name="jumlah_dp" min="1" value="{{ old('jumlah_dp') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
                     </div>
                     <div>
@@ -310,6 +333,9 @@
                         </select>
                     </div>
                 </div>
+                <p id="info-dp-sewa" class="hidden mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 ring-1 ring-amber-100">
+                    Penyewaan dibayar dengan DP terlebih dahulu. Sisa pembayaran dilunasi saat pelanggan mengembalikan barang sewa.
+                </p>
                 <div class="mt-4">
                     <label for="catatan" class="text-xs font-bold text-gray-500">Catatan (opsional)</label>
                     <textarea name="catatan" id="catatan" rows="2" maxlength="255" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all" placeholder="Contoh: pelanggan minta penyesuaian ukuran, ambil jam 3 sore">{{ old('catatan') }}</textarea>
@@ -352,15 +378,15 @@
                         <span>Jumlah barang</span><span id="sum-qty" class="font-bold text-gray-800">0</span>
                     </div>
                     <div class="flex items-end justify-between pt-2 border-t border-amber-200/60">
-                        <span class="text-[10px] uppercase tracking-wider text-gray-400">Total</span>
+                        <span id="label-total" class="text-[10px] uppercase tracking-wider text-gray-400">Total</span>
                         <span id="total-display" class="text-2xl font-black tabular-nums text-gray-900">Rp 0</span>
                     </div>
                     <div id="sum-bayar" class="hidden space-y-1 pt-1">
                         <div class="flex items-center justify-between text-xs text-gray-500">
-                            <span>Dibayar sekarang</span><span id="sum-dibayar" class="font-bold text-emerald-700 tabular-nums">Rp 0</span>
+                            <span id="label-dibayar">Dibayar sekarang</span><span id="sum-dibayar" class="font-bold text-emerald-700 tabular-nums">Rp 0</span>
                         </div>
                         <div class="flex items-center justify-between text-xs text-gray-500">
-                            <span>Sisa tagihan</span><span id="sum-sisa" class="font-bold text-rose-600 tabular-nums">Rp 0</span>
+                            <span id="label-sisa">Sisa tagihan</span><span id="sum-sisa" class="font-bold text-rose-600 tabular-nums">Rp 0</span>
                         </div>
                     </div>
                 </div>
@@ -405,6 +431,14 @@
     const hargaDasar = (p, j) => (j === 'sewa' ? p.harga_sewa : p.harga_jual);
     const hargaFinal = (p, j) => { const d = hargaDasar(p, j); return d - (d * p.diskon_persen / 100); };
     const punyaUkuran = (p) => p.ukuran.length > 0;
+    // Penyewaan: yang ditampilkan & ditagih di kasir adalah harga DP, sisanya dilunasi saat barang kembali.
+    // Kalau DP produk belum diisi (0), dipakai 50% dari harga sewa setelah diskon.
+    const dpItem = (p) => {
+        const penuh = hargaFinal(p, 'sewa');
+        return p.dp > 0 ? Math.min(p.dp, penuh) : Math.round(penuh / 2);
+    };
+    const sisaItem = (p) => Math.max(0, hargaFinal(p, 'sewa') - dpItem(p));
+    const hargaTampil = (p, j) => (j === 'sewa' ? dpItem(p) : hargaFinal(p, j));
 
     function barisUkuran(p, ukuran) { return p.ukuran.find((x) => x.ukuran === ukuran) || null; }
     function rincianWarna(p, ukuran) {
@@ -432,7 +466,47 @@
     }
 
     function cocokJenis(p, j) { return j === 'sewa' ? p.bisa_disewa : p.dapat_dijual; }
-    function bisaDipilih(p) { return p.stok > 0 && !STATUS_BLOKIR.includes(p.status); }
+
+    // ================= STOK REAL-TIME (memperhitungkan isi keranjang) =================
+    // Kunci varian: stok dilacak per-ukuran saja kalau produk tidak punya rincian warna per ukuran,
+    // atau per ukuran+warna kalau rinciannya ada. Ini harus sama persis dengan logika stokUntuk().
+    function kunciVarian(p, ukuran, warna) {
+        if (!punyaUkuran(p)) return '';
+        return punyaRincianWarna(p, ukuran) ? (ukuran + '|' + warna) : ukuran;
+    }
+
+    // Total qty varian ini yang sudah "terpakai" di baris keranjang lain (selain baris excludeIdx).
+    function terpakaiDiCart(p, ukuran, warna, excludeIdx) {
+        const kunci = kunciVarian(p, ukuran, warna);
+        return state.cart.reduce((sum, r, i) => {
+            if (i === excludeIdx) return sum;
+            if (r.produk_id !== p.id) return sum;
+            if (kunciVarian(p, r.ukuran, r.warna) !== kunci) return sum;
+            return sum + (r.qty || 0);
+        }, 0);
+    }
+
+    // Sisa stok varian ini setelah dikurangi yang sudah dipakai di baris keranjang lain.
+    // excludeIdx: indeks baris keranjang yang sedang dihitung ulang (supaya tidak menghitung dirinya sendiri sebagai "terpakai").
+    function sisaStok(p, ukuran, warna, excludeIdx) {
+        return Math.max(0, stokUntuk(p, ukuran, warna) - terpakaiDiCart(p, ukuran, warna, excludeIdx));
+    }
+
+    // Apakah ukuran tertentu masih punya sisa stok (di salah satu warnanya, kalau ada rincian warna)?
+    function sisaUkuranTersedia(p, ukuranNama, excludeIdx) {
+        const r = rincianWarna(p, ukuranNama);
+        if (r.length) return r.some((w) => sisaStok(p, ukuranNama, w.nama, excludeIdx) > 0);
+        return sisaStok(p, ukuranNama, '', excludeIdx) > 0;
+    }
+
+    // Apakah produk ini MASIH punya minimal satu kombinasi ukuran/warna yang sisa stoknya > 0?
+    // Dipakai untuk menentukan aktif/tidaknya tombol "+ Tambah" di katalog.
+    function adaStokTersisa(p) {
+        if (!punyaUkuran(p)) return sisaStok(p, '', '') > 0;
+        return p.ukuran.some((v) => sisaUkuranTersedia(p, v.ukuran));
+    }
+
+    function bisaDipilih(p) { return adaStokTersisa(p) && !STATUS_BLOKIR.includes(p.status); }
 
     function warnaHex(nama) {
         const n = String(nama || '').trim().toLowerCase();
@@ -465,9 +539,10 @@
 
     function kartuProduk(p, j) {
         const ok = bisaDipilih(p);
-        const final = hargaFinal(p, j);
+        const final = hargaTampil(p, j);
         const dasar = hargaDasar(p, j);
         const diskon = p.diskon_persen > 0;
+        const sewa = j === 'sewa';
         const foto = p.foto
             ? '<img src="' + esc(p.foto) + '" alt="' + esc(p.nama) + '" loading="lazy" class="h-full w-full object-cover">'
             : ikonFoto;
@@ -484,7 +559,7 @@
 
         const meta = [p.bahan, p.motif].filter(Boolean).map(esc).join(' &middot; ');
         const badgeStatus = !ok
-            ? '<span class="absolute left-2 top-2 rounded-full bg-gray-900/80 px-2 py-0.5 text-[10px] font-bold text-white">' + (p.stok <= 0 ? 'Stok habis' : esc(p.status)) + '</span>'
+            ? '<span class="absolute left-2 top-2 rounded-full bg-gray-900/80 px-2 py-0.5 text-[10px] font-bold text-white">' + (!adaStokTersisa(p) ? 'Stok habis' : esc(p.status)) + '</span>'
             : (diskon ? '<span class="absolute left-2 top-2 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white">-' + p.diskon_persen + '%</span>' : '');
 
         return '<article class="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-500/10 ' + (ok ? '' : 'opacity-60') + '">'
@@ -495,8 +570,11 @@
             + '<p class="mt-0.5 text-[10px] text-gray-400">' + esc(p.sku || '-') + (p.kategori ? ' &middot; ' + esc(p.kategori) : '') + '</p></div>'
             + (meta ? '<p class="text-[11px] text-gray-500">' + meta + '</p>' : '')
             + ukuran + warna
-            + '<div class="mt-auto pt-1"><p class="text-sm font-black tabular-nums text-gray-900">' + rupiah(final) + '</p>'
-            + (diskon ? '<p class="text-[10px] tabular-nums text-gray-400 line-through">' + rupiah(dasar) + '</p>' : '')
+            + '<div class="mt-auto pt-1">' + (j === 'sewa' ? '<p class="text-[10px] font-bold uppercase tracking-wider text-amber-700">DP Sewa</p>' : '') + '<p class="text-sm font-black tabular-nums text-gray-900">' + rupiah(final) + '</p>'
+            + (sewa
+                ? '<p class="mt-0.5 text-[10px] tabular-nums text-gray-500">Harga penuh <span class="font-bold text-gray-700">' + rupiah(hargaFinal(p, 'sewa')) + '</span>'
+                    + (diskon ? ' <span class="text-gray-400 line-through">' + rupiah(dasar) + '</span>' : '') + '</p>'
+                : (diskon ? '<p class="text-[10px] tabular-nums text-gray-400 line-through">' + rupiah(dasar) + '</p>' : ''))
             + '</div>'
             + '<button type="button" data-tambah="' + p.id + '" ' + (ok ? '' : 'disabled') + ' class="mt-1 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 ring-1 ring-amber-200 transition-all hover:bg-amber-100 active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:ring-gray-200">+ Tambah</button>'
             + '</div></article>';
@@ -518,22 +596,39 @@
     // ================= KERANJANG =================
     function tambahKeKeranjang(id) {
         const p = pById(id);
-        if (!p || !bisaDipilih(p)) return;
+        if (!p || !bisaDipilih(p)) return; // tombol harusnya sudah disabled, ini jaga-jaga saja
 
         let ukuran = '';
-        if (p.ukuran.length === 1) ukuran = p.ukuran[0].ukuran;
-
-        // Kalau ukuran sudah pasti dan warnanya cuma satu, pilih otomatis
         let warna = '';
+
+        if (p.ukuran.length === 1) {
+            ukuran = p.ukuran[0].ukuran;
+        } else if (p.ukuran.length > 1) {
+            // Pilih otomatis ukuran PERTAMA yang masih ada sisa stoknya (bukan ukuran pertama apa adanya),
+            // supaya kalau ukuran lain sudah habis dipakai di keranjang, sistem lompat ke ukuran yang masih tersedia.
+            const calon = p.ukuran.find((v) => sisaUkuranTersedia(p, v.ukuran));
+            if (calon) ukuran = calon.ukuran;
+        }
+
         if (ukuran) {
             const r = rincianWarna(p, ukuran);
-            if (r.length === 1) warna = r[0].nama;
+            if (r.length === 1) {
+                warna = r[0].nama;
+            } else if (r.length > 1) {
+                // Pilih warna pertama yang masih ada sisa stoknya
+                const w = r.find((x) => sisaStok(p, ukuran, x.nama) > 0);
+                if (w) warna = w.nama;
+            }
         }
 
         const ada = state.cart.find((r) => r.produk_id === p.id && r.ukuran === ukuran && r.warna === warna);
         if (ada) {
-            ada.qty = Math.min(ada.qty + 1, Math.max(1, stokUntuk(p, ada.ukuran, ada.warna)));
+            const idx = state.cart.indexOf(ada);
+            const sisa = sisaStok(p, ada.ukuran, ada.warna, idx); // batas maksimum baris ini (sudah tidak termasuk dirinya sendiri)
+            if (ada.qty < sisa) ada.qty += 1;
+            // kalau ada.qty sudah >= sisa, berarti varian ini sudah penuh dipakai -> tidak ditambah lagi
         } else {
+            if (sisaStok(p, ukuran, warna) <= 0) return; // varian pilihan ini sudah habis, jangan buat baris baru
             state.cart.push({ produk_id: p.id, ukuran: ukuran, warna: warna, qty: 1 });
         }
         renderCart();
@@ -542,9 +637,11 @@
     function barisCart(r, idx, j) {
         const p = pById(r.produk_id);
         if (!p) return '';
-        const final = hargaFinal(p, j);
+        const final = hargaTampil(p, j);
         const dasar = hargaDasar(p, j);
-        const stokMaks = Math.max(1, stokUntuk(p, r.ukuran, r.warna));
+        const tampilDiskon = j !== 'sewa' && p.diskon_persen > 0;
+        // Batas qty baris ini = sisa stok varian setelah dikurangi baris keranjang LAIN (bukan dirinya sendiri)
+        const stokMaks = Math.max(1, sisaStok(p, r.ukuran, r.warna, idx));
         const perluUkuran = punyaUkuran(p) && !r.ukuran;
         const rinci = punyaRincianWarna(p, r.ukuran);
         const perluWarna = rinci && !r.warna;
@@ -558,7 +655,12 @@
             ? '<div><label class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Ukuran</label>'
               + '<select name="items[' + idx + '][ukuran]" data-f="ukuran" class="mt-0.5 w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all ' + (perluUkuran ? 'border-rose-300 bg-rose-50' : 'border-gray-200') + '">'
               + '<option value="">Pilih ukuran</option>'
-              + p.ukuran.map((v) => '<option value="' + esc(v.ukuran) + '" ' + (v.stok <= 0 ? 'disabled' : '') + ' ' + (v.ukuran === r.ukuran ? 'selected' : '') + '>' + esc(v.ukuran) + ' (stok ' + v.stok + ')</option>').join('')
+              + p.ukuran.map((v) => {
+                    // Ukuran yang sedang dipakai baris ini selalu boleh dipilih (dihitung via stokMaks di atas);
+                    // ukuran lain baru dicek sisanya tanpa mengecualikan baris ini (karena baris ini belum memakainya).
+                    const tersedia = v.ukuran === r.ukuran ? true : sisaUkuranTersedia(p, v.ukuran, idx);
+                    return '<option value="' + esc(v.ukuran) + '" ' + (tersedia ? '' : 'disabled') + ' ' + (v.ukuran === r.ukuran ? 'selected' : '') + '>' + esc(v.ukuran) + ' (stok ' + v.stok + ')</option>';
+                }).join('')
               + '</select></div>'
             : '<input type="hidden" name="items[' + idx + '][ukuran]" value="">';
 
@@ -566,8 +668,11 @@
             ? '<div><label class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Warna</label>'
               + '<select name="items[' + idx + '][warna]" data-f="warna" class="mt-0.5 w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all ' + (perluWarna ? 'border-rose-300 bg-rose-50' : 'border-gray-200') + '">'
               + '<option value="">' + (rinci ? 'Pilih warna' : 'Sesuai produk') + '</option>'
-              + daftar.map((w) => '<option value="' + esc(w.nama) + '" ' + (rinci && w.stok <= 0 ? 'disabled' : '') + ' ' + (w.nama === r.warna ? 'selected' : '') + '>'
-                    + esc(w.nama) + (w.stok !== null ? ' (stok ' + w.stok + ')' : '') + '</option>').join('')
+              + daftar.map((w) => {
+                    const tersedia = w.nama === r.warna ? true : (!rinci || sisaStok(p, r.ukuran, w.nama, idx) > 0);
+                    return '<option value="' + esc(w.nama) + '" ' + (tersedia ? '' : 'disabled') + ' ' + (w.nama === r.warna ? 'selected' : '') + '>'
+                        + esc(w.nama) + (w.stok !== null ? ' (stok ' + w.stok + ')' : '') + '</option>';
+                }).join('')
               + '</select></div>'
             : '<input type="hidden" name="items[' + idx + '][warna]" value="">';
 
@@ -576,13 +681,12 @@
         if (p.motif) info.push('Motif: ' + esc(p.motif));
         if (p.berat) info.push(p.berat + ' kg');
         if (j === 'sewa') {
-            if (p.dp > 0) info.push('DP ' + rupiah(p.dp));
             if (p.denda > 0) info.push('Denda telat ' + rupiah(p.denda) + '/hari');
         }
 
         const bermasalah = perluUkuran || perluWarna;
-        const sisaStok = (r.ukuran || !punyaUkuran(p)) && (!rinci || r.warna)
-            ? '<p class="mt-1.5 text-[11px] font-semibold text-gray-500">Sisa stok pilihan ini: <span class="tabular-nums text-gray-800">' + stokUntuk(p, r.ukuran, r.warna) + '</span></p>'
+        const sisaStokInfo = (r.ukuran || !punyaUkuran(p)) && (!rinci || r.warna)
+            ? '<p class="mt-1.5 text-[11px] font-semibold text-gray-500">Sisa stok pilihan ini: <span class="tabular-nums text-gray-800">' + stokMaks + '</span></p>'
             : '';
 
         return '<div data-idx="' + idx + '" class="rounded-2xl border ' + (bermasalah ? 'border-rose-200' : 'border-gray-100') + ' bg-gray-50/50 p-3">'
@@ -591,13 +695,13 @@
             + '<div class="flex h-16 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">' + foto + '</div>'
             + '<div class="min-w-0 flex-1"><p class="truncate text-sm font-bold text-gray-900">' + esc(p.nama) + '</p>'
             + '<p class="text-[10px] text-gray-400">' + esc(p.sku || '-') + (p.kategori ? ' &middot; ' + esc(p.kategori) : '') + '</p>'
-            + '<p class="mt-0.5 text-xs text-gray-600 tabular-nums">' + rupiah(final) + (p.diskon_persen > 0 ? ' <span class="text-gray-400 line-through">' + rupiah(dasar) + '</span>' : '') + '</p></div>'
+            + '<p class="mt-0.5 text-xs text-gray-600 tabular-nums">' + (j === 'sewa' ? 'DP ' : '') + rupiah(final) + (tampilDiskon ? ' <span class="text-gray-400 line-through">' + rupiah(dasar) + '</span>' : '') + '</p></div>'
             + '<button type="button" data-act="hapus" aria-label="Hapus ' + esc(p.nama) + '" class="h-7 w-7 shrink-0 rounded-lg text-gray-400 transition hover:bg-rose-50 hover:text-rose-600">&times;</button>'
             + '</div>'
             + '<div class="mt-3 grid grid-cols-2 gap-2">' + selUkuran + selWarna + '</div>'
             + (perluUkuran ? '<p class="mt-1.5 text-[11px] font-semibold text-rose-600">Pilih ukuran dulu agar stok tercatat benar.</p>' : '')
             + (!perluUkuran && perluWarna ? '<p class="mt-1.5 text-[11px] font-semibold text-rose-600">Pilih warna agar stok kombinasi ukuran dan warna tercatat benar.</p>' : '')
-            + sisaStok
+            + sisaStokInfo
             + (info.length ? '<p class="mt-2 text-[10px] leading-relaxed text-gray-400">' + info.join(' &middot; ') + '</p>' : '')
             + '<div class="mt-3 flex items-center justify-between">'
             + '<div class="inline-flex items-center rounded-lg border border-gray-200 bg-white">'
@@ -605,21 +709,25 @@
             + '<input type="number" name="items[' + idx + '][qty]" data-f="qty" value="' + r.qty + '" min="1" max="' + stokMaks + '" class="h-8 w-12 border-x border-gray-200 text-center text-xs font-bold tabular-nums focus:outline-none">'
             + '<button type="button" data-act="tambah" aria-label="Tambah" class="h-8 w-8 text-sm font-bold text-gray-500 hover:text-amber-600 transition-colors">+</button>'
             + '</div>'
-            + '<div class="text-right"><p class="text-[10px] uppercase tracking-wider text-gray-400">Subtotal</p><p class="text-sm font-black tabular-nums text-gray-900">' + rupiah(final * r.qty) + '</p></div>'
+            + '<div class="text-right"><p class="text-[10px] uppercase tracking-wider text-gray-400">' + (j === 'sewa' ? 'Subtotal DP' : 'Subtotal') + '</p><p class="text-sm font-black tabular-nums text-gray-900">' + rupiah(final * r.qty) + '</p></div>'
             + '</div></div>';
     }
 
     function hitungRingkasan() {
         const j = jenisAktif();
-        let total = 0, qty = 0, dpSaran = 0;
+        // total = nilai transaksi penuh (dikirim ke server); totalDp & sisaSewa hanya bermakna untuk sewa
+        let total = 0, qty = 0, totalDp = 0, sisaSewa = 0;
         state.cart.forEach((r) => {
             const p = pById(r.produk_id);
             if (!p) return;
             total += hargaFinal(p, j) * r.qty;
             qty += r.qty;
-            dpSaran += p.dp * r.qty;
+            if (j === 'sewa') {
+                totalDp += dpItem(p) * r.qty;
+                sisaSewa += sisaItem(p) * r.qty;
+            }
         });
-        return { total, qty, dpSaran };
+        return { total, qty, totalDp, sisaSewa };
     }
 
     function renderCart() {
@@ -627,35 +735,54 @@
         el('cart').innerHTML = state.cart.map((r, i) => barisCart(r, i, j)).join('');
         el('cart-kosong').classList.toggle('hidden', state.cart.length > 0);
         el('badge-item').textContent = state.cart.length + ' item';
+        renderKatalog(); // refresh tombol "+ Tambah": nonaktif kalau semua varian produk sudah penuh dipakai di keranjang
         updateRingkasan();
     }
 
     function updateRingkasan() {
         const j = jenisAktif();
-        const { total, qty, dpSaran } = hitungRingkasan();
-        el('sum-jenis').textContent = j === 'sewa' ? 'Penyewaan' : 'Pembelian';
+        const sewa = j === 'sewa';
+        const { total, qty, totalDp, sisaSewa } = hitungRingkasan();
+        el('sum-jenis').textContent = sewa ? 'Penyewaan' : 'Pembelian';
         el('sum-qty').textContent = qty;
-        el('total-display').textContent = rupiah(total);
 
-        const isDp = el('status_pembayaran').value === 'dp';
         const inputDp = el('jumlah_dp');
-        if (isDp && !state.dpManual) {
-            let saran = j === 'sewa' ? dpSaran : 0;
-            if (saran <= 0 || saran >= total) saran = total > 0 ? Math.floor(total / 2) : 0;
-            inputDp.value = saran > 0 ? Math.round(saran) : '';
+        let dibayar, sisa;
+
+        if (sewa) {
+            // Sewa: total yang tampil = total DP; DP otomatis dan terkunci
+            el('total-display').textContent = rupiah(totalDp);
+            el('label-total').textContent = 'Total DP';
+            el('label-dibayar').textContent = 'DP dibayar sekarang';
+            el('label-sisa').textContent = 'Sisa (dilunasi saat barang kembali)';
+            inputDp.value = totalDp > 0 ? Math.round(totalDp) : '';
+            dibayar = totalDp;
+            sisa = sisaSewa;
+            el('sum-bayar').classList.toggle('hidden', state.cart.length === 0);
+        } else {
+            el('total-display').textContent = rupiah(total);
+            el('label-total').textContent = 'Total';
+            el('label-dibayar').textContent = 'Dibayar sekarang';
+            el('label-sisa').textContent = 'Sisa tagihan';
+            const isDp = el('status_pembayaran').value === 'dp';
+            if (isDp && !state.dpManual) {
+                const saran = total > 0 ? Math.floor(total / 2) : 0;
+                inputDp.value = saran > 0 ? Math.round(saran) : '';
+            }
+            dibayar = isDp ? (parseFloat(inputDp.value) || 0) : total;
+            sisa = Math.max(0, total - dibayar);
+            el('sum-bayar').classList.toggle('hidden', !isDp);
         }
 
-        const dibayar = isDp ? (parseFloat(inputDp.value) || 0) : total;
-        el('sum-bayar').classList.toggle('hidden', !isDp);
         el('sum-dibayar').textContent = rupiah(dibayar);
-        el('sum-sisa').textContent = rupiah(Math.max(0, total - dibayar));
+        el('sum-sisa').textContent = rupiah(sisa);
     }
 
     // Update kecil tanpa re-render penuh saat qty diketik (menjaga fokus input)
     function sinkronQty(idx, nilai) {
         const r = state.cart[idx];
         const p = pById(r.produk_id);
-        const maks = Math.max(1, stokUntuk(p, r.ukuran, r.warna));
+        const maks = Math.max(1, sisaStok(p, r.ukuran, r.warna, idx));
         r.qty = Math.min(Math.max(1, parseInt(nilai, 10) || 1), maks);
     }
 
@@ -713,9 +840,23 @@
         out.textContent = hari < 0 ? 'Tanggal kembali tidak boleh sebelum tanggal ambil.' : 'Lama sewa: ' + (hari + 1) + ' hari (' + hari + ' malam)';
     }
 
+    // Sewa: status dikunci ke DP (opsi Lunas dinonaktifkan), jumlah DP otomatis dari harga DP produk
+    function aturPembayaranSewa(sewa) {
+        const status = el('status_pembayaran');
+        const dp = el('jumlah_dp');
+        status.querySelector('option[value="lunas"]').disabled = sewa;
+        if (sewa) status.value = 'dp';
+        dp.readOnly = sewa;
+        dp.classList.toggle('bg-gray-100', sewa);
+        el('ket-dp-otomatis').classList.toggle('hidden', !sewa);
+        el('info-dp-sewa').classList.toggle('hidden', !sewa);
+        toggleDp();
+    }
+
     function ubahJenis() {
         const sewa = jenisAktif() === 'sewa';
         el('box-tanggal-sewa').classList.toggle('hidden', !sewa);
+        aturPembayaranSewa(sewa);
 
         // Buang item yang tidak boleh untuk jenis ini, lalu render ulang harga
         state.cart = state.cart.filter((r) => { const p = pById(r.produk_id); return p && cocokJenis(p, jenisAktif()); });
@@ -773,10 +914,36 @@
     el('status_pembayaran').addEventListener('change', toggleDp);
     el('jumlah_dp').addEventListener('input', () => { state.dpManual = true; updateRingkasan(); });
 
+    // ================= UPLOAD KTP =================
+    const KTP_MAKS = 2 * 1024 * 1024;
+    function resetKtp() {
+        el('foto_ktp').value = '';
+        el('preview-ktp').classList.add('hidden');
+        el('preview-ktp').classList.remove('flex');
+        el('error-ktp').classList.add('hidden');
+    }
+    el('foto_ktp').addEventListener('change', (e) => {
+        const f = e.target.files[0];
+        const err = el('error-ktp');
+        if (!f) { resetKtp(); return; }
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
+            resetKtp(); err.textContent = 'Format harus JPG, PNG, atau WEBP.'; err.classList.remove('hidden'); return;
+        }
+        if (f.size > KTP_MAKS) {
+            resetKtp(); err.textContent = 'Ukuran foto KTP maksimal 2 MB.'; err.classList.remove('hidden'); return;
+        }
+        err.classList.add('hidden');
+        el('preview-ktp-img').src = URL.createObjectURL(f);
+        el('preview-ktp').classList.remove('hidden');
+        el('preview-ktp').classList.add('flex');
+    });
+    el('hapus-ktp').addEventListener('click', resetKtp);
+
     // ================= VALIDASI SEBELUM KIRIM =================
     el('form-kasir').addEventListener('submit', (e) => {
         const err = [];
         const { total } = hitungRingkasan();
+        const sewaAktif = jenisAktif() === 'sewa';
 
         if (!state.cart.length) err.push('Tambahkan minimal satu produk ke keranjang.');
         state.cart.forEach((r) => {
@@ -789,13 +956,16 @@
             const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
             if (!a || !b) err.push('Isi tanggal ambil dan tanggal kembali.');
             else if (b < a) err.push('Tanggal kembali tidak boleh sebelum tanggal ambil.');
+            if (!el('foto_ktp').files.length) err.push('Upload foto KTP penyewa.');
+            const nik = el('nomor_ktp').value.trim();
+            if (nik && !/^\d{16}$/.test(nik)) err.push('NIK harus 16 digit angka.');
         }
 
         const tipe = document.querySelector('input[name="customer_type"]:checked').value;
         if (tipe === 'terdaftar' && !el('select-user').value) err.push('Pilih pelanggan terdaftar.');
         if (tipe === 'tamu' && (!el('nama_tamu').value.trim() || !el('no_hp_tamu').value.trim())) err.push('Isi nama dan nomor WhatsApp tamu.');
 
-        if (el('status_pembayaran').value === 'dp') {
+        if (!sewaAktif && el('status_pembayaran').value === 'dp') {
             const dp = parseFloat(el('jumlah_dp').value) || 0;
             if (dp <= 0) err.push('Isi jumlah DP.');
             else if (dp >= total) err.push('Jumlah DP harus lebih kecil dari total. Pilih status Lunas jika dibayar penuh.');
