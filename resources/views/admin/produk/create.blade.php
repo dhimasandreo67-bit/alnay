@@ -61,6 +61,7 @@
             'hargaJual'       => old('harga_jual'),
             'stok'            => old('stok', 1),
             'dendaPerHari'    => old('denda_per_hari_telat', 50000),
+            'perpanjanganPerHari' => old('harga_perpanjangan_per_hari', 30000),
             'diskon'          => old('diskon_persen', 0),
             'existingFoto'    => [null, null, null, null],
             'ratingRataRata'  => 0,

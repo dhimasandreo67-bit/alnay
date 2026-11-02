@@ -90,6 +90,7 @@
             'hargaJual'       => (int) old('harga_jual', $produk->harga_jual),
             'stok'            => old('stok', $produk->stok),
             'dendaPerHari'    => (int) old('denda_per_hari_telat', $produk->denda_per_hari_telat),
+            'perpanjanganPerHari' => (int) old('harga_perpanjangan_per_hari', $produk->harga_perpanjangan_per_hari ?? 0),
             'diskon'          => old('diskon_persen', $produk->diskon_persen),
             
             'existingFoto'    => array_pad(array_slice((array) ($produk->foto_produk ?? []), 0, 4), 4, null),
