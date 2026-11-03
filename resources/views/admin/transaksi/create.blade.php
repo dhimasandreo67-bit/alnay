@@ -215,16 +215,15 @@
                             <button type="button" id="hapus-ktp" class="text-xs font-bold text-rose-600 hover:text-rose-700">Hapus foto</button>
                         </div>
                         <p id="error-ktp" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
-                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label for="nomor_ktp" class="text-xs font-bold text-gray-500">NIK (opsional)</label>
-                                <input type="text" id="nomor_ktp" name="nomor_ktp" value="{{ old('nomor_ktp') }}" inputmode="numeric" maxlength="16" placeholder="16 digit NIK" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
-                            </div>
-                            <div>
-                                <label for="nama_ktp" class="text-xs font-bold text-gray-500">Nama Sesuai KTP (opsional)</label>
-                                <input type="text" id="nama_ktp" name="nama_ktp" value="{{ old('nama_ktp') }}" maxlength="100" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
-                            </div>
-                        </div>
+                        {{-- Cukup centang: NIK & nama di KTP sudah dicocokkan kasir dengan pelanggan --}}
+                        <label for="ktp_sesuai" class="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-white p-3">
+                            <input type="checkbox" id="ktp_sesuai" name="ktp_sesuai" value="1" @checked(old('ktp_sesuai')) class="mt-0.5 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                            <span>
+                                <span class="block text-xs font-bold text-gray-800">NIK & nama di KTP sudah sesuai dengan penyewa <span class="text-rose-600">*</span></span>
+                                <span class="mt-0.5 block text-[11px] text-gray-500">Cocokkan KTP asli dengan pelanggan. Jaminan otomatis tercatat <b>terverifikasi</b> di Kelola Sewa.</span>
+                            </span>
+                        </label>
+                        <p id="error-ktp-sesuai" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
                     </div>
                 </div>
             </section>
@@ -957,8 +956,7 @@
             if (!a || !b) err.push('Isi tanggal ambil dan tanggal kembali.');
             else if (b < a) err.push('Tanggal kembali tidak boleh sebelum tanggal ambil.');
             if (!el('foto_ktp').files.length) err.push('Upload foto KTP penyewa.');
-            const nik = el('nomor_ktp').value.trim();
-            if (nik && !/^\d{16}$/.test(nik)) err.push('NIK harus 16 digit angka.');
+            if (!el('ktp_sesuai').checked) err.push('Centang konfirmasi bahwa NIK & nama di KTP sudah sesuai dengan penyewa.');
         }
 
         const tipe = document.querySelector('input[name="customer_type"]:checked').value;
