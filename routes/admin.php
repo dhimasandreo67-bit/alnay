@@ -86,8 +86,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // 5. Sewa & jaminan
         Route::get('/sewa', [App\Http\Controllers\Admin\SewaController::class, 'index'])->name('sewa.index');
         Route::get('/sewa/{id}', [App\Http\Controllers\Admin\SewaController::class, 'show'])->name('sewa.show');
-        Route::get('/jaminan', [App\Http\Controllers\Admin\JaminanController::class, 'index'])->name('jaminan.index');
-        Route::get('/jaminan/{id}', [App\Http\Controllers\Admin\JaminanController::class, 'show'])->name('jaminan.show');
+        // Halaman Jaminan sudah digabung menjadi tab "Jaminan" di Data Sewa (admin.sewa.show).
+        // Route lama dipertahankan sebagai redirect saja, biar link/bookmark lama tetap jalan.
+        Route::get('/jaminan', fn () => redirect()->route('admin.sewa.index'))->name('jaminan.index');
+        Route::get('/jaminan/{id}', function ($id) {
+            $sewaId = \App\Models\JaminanSewa::findOrFail($id)->sewa_id;
+            return redirect()->route('admin.sewa.show', $sewaId)->with('active_tab', 'jaminan');
+        })->name('jaminan.show');
 
         // 6. Layanan atelier
         Route::get('/refund', [App\Http\Controllers\Admin\RefundController::class, 'index'])->name('refund.index');
