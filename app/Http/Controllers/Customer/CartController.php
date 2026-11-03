@@ -6,34 +6,55 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Produk;
 
-class CartController extends Controller
+class CartController extends Controller     
 {
-    public function index()
+        public function index()
     {
         $cartItems = session('cart', []);
 
-        // Bersihkan session dari data yang tidak valid (Array kosong, bukan string, dll)
+        // Bersihkan session
         $validItems = [];
         foreach ($cartItems as $key => $item) {
             if (is_string($key) && is_array($item) && isset($item['id'], $item['harga'], $item['qty'])) {
                 $validItems[$key] = $item;
             }
         }
-        
-        // Jika ada data rusak yang dibersihkan, simpan kembali session yang sudah bersih
         if (count($validItems) !== count($cartItems)) {
             session(['cart' => $validItems]);
         }
         $cartItems = $validItems;
 
         $subtotal = collect($cartItems)->sum(fn($item) => $item['harga'] * $item['qty']);
-        $ongkir = $subtotal > 0 ? 15000 : 0;
+        
+        // ==== AMBIL ONGKIR REAL-TIME DARI API (SAMA SEPERTI CHECKOUT) ====
+        $ongkir = 0;
+        $user = auth()->user();
+
+        if ($subtotal > 0 && $user && $user->kota_id) {
+            try {
+                // Hitung berat total (asumsi berat default 1000 gram per item jika tidak ada)
+                $beratTotal = collect($cartItems)->sum(fn($item) => (isset($item['berat']) ? $item['berat'] : 1000) * $item['qty']);
+                
+                $service = app(\App\Services\RajaOngkir::class);
+                $hasil = $service->hitungOngkir($user->kota_id, $beratTotal, 'jne'); // Default JNE
+                
+                if (!empty($hasil)) {
+                    $termurah = collect($hasil)->sortBy('cost')->first();
+                    $ongkir = $termurah['cost'] ?? 0;
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Ongkir error di keranjang: ' . $e->getMessage());
+                $ongkir = 0; // Fallback jika API error
+            }
+        }
+        // =================================================================
+
         $total = $subtotal + $ongkir;
 
         return view('customer.cart', compact('cartItems', 'subtotal', 'ongkir', 'total'));
     }
 
-    public function add(Request $request)
+        public function add(Request $request)
     {
         $request->validate([
             'produk_id' => 'required|exists:produk,id',
@@ -47,7 +68,6 @@ class CartController extends Controller
         $produk = Produk::findOrFail($request->produk_id);
         $harga = $request->mode === 'sewa' ? $produk->harga_sewa : $produk->harga_jual;
         
-        // Kunci unik: ID produk - Mode - Ukuran
         $cartKey = $produk->id . '-' . $request->mode . '-' . ($request->ukuran ?? 'all');
         $cart = session('cart', []);
 
@@ -68,7 +88,8 @@ class CartController extends Controller
         }
 
         session(['cart' => $cart]);
-        return redirect()->route('keranjang.index')->with('success', 'Produk berhasil ditambahkan!');
+        
+        return redirect()->back()->with('success', 'Produk berhasil ditambahkan ke keranjang!');
     }
 
     public function updateQuantity(Request $request, $id)

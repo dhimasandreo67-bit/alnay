@@ -61,6 +61,8 @@ Route::middleware('auth:web')->group(function () {
         // --- KERANJANG SEWA ---
     Route::get('/sewa/keranjang', [SewaController::class, 'keranjangIndex'])->name('sewa.keranjang.index');
     Route::post('/sewa/keranjang/tambah', [SewaController::class, 'tambahKeKeranjang'])->name('sewa.keranjang.tambah');
+    Route::delete('/sewa/keranjang/hapus/{id}', [SewaController::class, 'hapusKeranjang'])->name('sewa.keranjang.hapus');
+    Route::post('/sewa/keranjang/hapus-pilihan', [SewaController::class, 'hapusPilihanKeranjang'])->name('sewa.keranjang.hapusPilihan');
 
         // --- RATING ---
     Route::get('/rating/{detail_id}/create', [App\Http\Controllers\Customer\RatingController::class, 'create'])->name('rating.create');

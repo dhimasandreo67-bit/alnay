@@ -135,4 +135,10 @@ class Produk extends Model
     {
         return $this->rating()->count();
     }
+
+        // Relasi untuk menghitung produk terlaris (Best Seller)
+    public function detailTransaksi()
+    {
+        return $this->hasMany(DetailTransaksi::class, 'produk_id');
+    }
 }

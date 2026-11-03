@@ -60,19 +60,30 @@
                 class="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 rounded-full border border-line bg-cream text-base placeholder:text-muted focus:outline-none focus:border-gold">
         </form>
 
-        {{-- Aksi kanan --}}
+                {{-- Aksi kanan --}}
         <div class="flex items-center gap-0.5 sm:gap-2 shrink-0 ml-auto">
 
-            {{-- Keranjang --}}
+            {{-- Keranjang (Gabungan Beli & Sewa) --}}
             <a href="{{ route('keranjang.index') }}"
                 class="relative inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2 rounded-lg text-ink hover:bg-cream transition-colors"
                 aria-label="Keranjang">
                 <x-icon name="cart" :size="20" />
                 <span class="hidden sm:inline text-sm font-medium">Keranjang</span>
-                @if (isset($cartCount) && $cartCount > 0)
-                    <span
-                        class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
-                        {{ $cartCount }}
+                
+                {{-- Hitung Total dari Keranjang Beli + Keranjang Sewa --}}
+                @php
+                    $totalKeranjang = 0;
+                    if (isset($cartCount) && $cartCount > 0) {
+                        $totalKeranjang += $cartCount;
+                    }
+                    if (session()->has('keranjang_sewa')) {
+                        $totalKeranjang += count(session('keranjang_sewa'));
+                    }
+                @endphp
+
+                @if ($totalKeranjang > 0)
+                    <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
+                        {{ $totalKeranjang }}
                     </span>
                 @endif
             </a>

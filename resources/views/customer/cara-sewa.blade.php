@@ -12,7 +12,6 @@
 
     /* === PAKSA LAYOUT AGAR TIDAK MEPET === */
     * { box-sizing: border-box !important; }
-    
     body { overflow-x: clip; }
 
     .max-w-6xl, .max-w-4xl {
@@ -98,13 +97,16 @@
         padding: 2rem !important;
         background: white !important;
         border-radius: 1rem !important;
-        border: 2px solid #e5e7eb !important;
-        transition: all 0.3s ease !important;
+        border: 1px solid #e5e7eb !important;
+        transition: all 0.4s ease !important;
+        position: relative;
+        overflow: hidden;
     }
 
     .method-card:hover {
-        transform: translateY(-5px) !important;
-        box-shadow: 0 15px 30px rgba(201, 154, 50, 0.15) !important;
+        transform: translateY(-8px) !important;
+        box-shadow: 0 20px 40px -10px rgba(201, 154, 50, 0.2) !important;
+        border-color: #c99a32 !important;
     }
 
     /* Timeline step */
@@ -112,6 +114,11 @@
         text-align: center !important;
         position: relative !important;
         z-index: 1 !important;
+        transition: all 0.3s ease;
+    }
+    
+    .timeline-step:hover {
+        transform: translateY(-5px);
     }
 
     .timeline-step .step-number {
@@ -126,14 +133,20 @@
         align-items: center !important;
         justify-content: center !important;
         margin: 0 auto 1rem auto !important;
-        box-shadow: 0 4px 12px rgba(201, 154, 50, 0.3) !important;
+        box-shadow: 0 4px 15px rgba(201, 154, 50, 0.4) !important;
+        transition: all 0.3s ease;
+    }
+    
+    .timeline-step:hover .step-number {
+        transform: scale(1.15);
+        box-shadow: 0 0 20px rgba(201, 154, 50, 0.6);
     }
 
     /* Fade-up animation */
     .fade-up {
         opacity: 0;
-        transform: translateY(30px);
-        transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateY(40px);
+        transition: all 1s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     .fade-up.visible {
         opacity: 1;
@@ -146,8 +159,29 @@
         background: linear-gradient(90deg, #c99a32, #e6c877);
         margin: 0 auto;
     }
-</style>
 
+    /* Efek Tombol Premium */
+    .btn-premium {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .btn-premium:hover {
+        box-shadow: 0 10px 25px rgba(201, 154, 50, 0.4);
+    }
+    .btn-premium::before {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%;
+        width: 50%; height: 100%;
+        background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+        transform: skewX(-25deg);
+        transition: all 0.7s ease;
+    }
+    .btn-premium:hover::before {
+        left: 150%;
+    }
+</style>
 
 {{-- ============================================================
      1. HERO SECTION
@@ -228,9 +262,9 @@
 
         <div class="method-grid">
             {{-- Card 1: Ambil di Studio --}}
-            <div class="fade-up method-card">
+            <div class="fade-up method-card group">
                 <div class="flex items-center gap-4 mb-6">
-                    <div class="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #fbf6e9;">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:rotate-6" style="background-color: #fbf6e9;">
                         <svg class="w-8 h-8" style="color: #c99a32;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -272,23 +306,32 @@
                     </div>
                 </div>
 
-                <div class="p-4 rounded-lg mb-6" style="background-color: #fbf6e9;">
-                    <p class="text-xs font-semibold mb-2" style="color: #15233d;">📍 Lokasi Studio:</p>
+                <div class="p-4 rounded-xl mb-6 border" style="background-color: #fbf6e9; border-color: rgba(201, 154, 50, 0.2);">
+                    <p class="text-xs font-bold mb-1 flex items-center gap-1.5" style="color: #15233d;">
+                        <svg class="w-4 h-4" style="color: #c99a32;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Lokasi Studio:
+                    </p>
                     <p class="text-xs" style="color: #6b7280;">Jl. Terusan Rajabasa No.11, Bandar Lampung</p>
-                    <p class="text-xs mt-2 font-semibold" style="color: #c99a32;">🕐 Senin - Minggu, 09:00 - 20:00 WIB</p>
+                    <p class="text-xs mt-2 font-bold flex items-center gap-1.5" style="color: #c99a32;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Senin - Minggu, 09:00 - 20:00 WIB
+                    </p>
                 </div>
 
                 <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank"
-                   class="block w-full py-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider text-white transition-all hover:opacity-90" 
+                   class="btn-premium block w-full py-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider text-white transition-all" 
                    style="background-color: #c99a32;">
-                    📅 Booking Jadwal Fitting
+                    <div class="flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        Booking Jadwal Fitting
+                    </div>
                 </a>
             </div>
 
             {{-- Card 2: Kirim ke Alamat --}}
-            <div class="fade-up method-card">
+            <div class="fade-up method-card group" style="transition-delay: 150ms;">
                 <div class="flex items-center gap-4 mb-6">
-                    <div class="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #fbf6e9;">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:-rotate-6" style="background-color: #fbf6e9;">
                         <svg class="w-8 h-8" style="color: #c99a32;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
                         </svg>
@@ -329,16 +372,25 @@
                     </div>
                 </div>
 
-                <div class="p-4 rounded-lg mb-6" style="background-color: #fbf6e9;">
-                    <p class="text-xs font-semibold mb-2" style="color: #15233d;">📦 Ongkos Kirim:</p>
+                <div class="p-4 rounded-xl mb-6 border" style="background-color: #fbf6e9; border-color: rgba(201, 154, 50, 0.2);">
+                    <p class="text-xs font-bold mb-1 flex items-center gap-1.5" style="color: #15233d;">
+                        <svg class="w-4 h-4" style="color: #c99a32;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        Ongkos Kirim:
+                    </p>
                     <p class="text-xs" style="color: #6b7280;">Estimasi Rp 50.000 - 150.000 (tergantung lokasi)</p>
-                    <p class="text-xs mt-2 font-semibold" style="color: #c99a32;">⚡ Express tersedia untuk mendesak</p>
+                    <p class="text-xs mt-2 font-bold flex items-center gap-1.5" style="color: #c99a32;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Express tersedia untuk mendesak
+                    </p>
                 </div>
 
                 <a href="{{ route('koleksi.index') }}" 
-                   class="block w-full py-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider text-white transition-all hover:opacity-90" 
+                   class="btn-premium block w-full py-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider text-white transition-all" 
                    style="background-color: #c99a32;">
-                     Mulai Sewa Sekarang
+                    <div class="flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Mulai Sewa Sekarang
+                    </div>
                 </a>
             </div>
         </div>
@@ -362,9 +414,9 @@
 
         <div class="method-grid">
             {{-- Beli & Ambil di Toko --}}
-            <div class="fade-up method-card">
+            <div class="fade-up method-card group">
                 <div class="flex items-center gap-4 mb-6">
-                    <div class="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #fbf6e9;">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:rotate-6" style="background-color: #fbf6e9;">
                         <svg class="w-8 h-8" style="color: #c99a32;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
@@ -414,22 +466,28 @@
                     </div>
                 </div>
 
-                <div class="p-4 rounded-lg mb-6" style="background-color: #fbf6e9;">
-                    <p class="text-xs font-semibold mb-2" style="color: #15233d;">✨ Keunggulan:</p>
+                <div class="p-4 rounded-xl mb-6 border" style="background-color: #fbf6e9; border-color: rgba(201, 154, 50, 0.2);">
+                    <p class="text-xs font-bold mb-1 flex items-center gap-1.5" style="color: #15233d;">
+                        <svg class="w-4 h-4" style="color: #c99a32;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                        Keunggulan:
+                    </p>
                     <p class="text-xs" style="color: #6b7280;">Custom bespoke, garansi fitting ulang hingga pas sempurna</p>
                 </div>
 
                 <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank"
-                   class="block w-full py-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider text-white transition-all hover:opacity-90" 
+                   class="btn-premium block w-full py-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider text-white transition-all" 
                    style="background-color: #c99a32;">
-                    💬 Konsultasi Custom Bespoke
+                    <div class="flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        Konsultasi Custom Bespoke
+                    </div>
                 </a>
             </div>
 
             {{-- Beli & Kirim ke Rumah --}}
-            <div class="fade-up method-card">
+            <div class="fade-up method-card group" style="transition-delay: 150ms;">
                 <div class="flex items-center gap-4 mb-6">
-                    <div class="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #fbf6e9;">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:-rotate-6" style="background-color: #fbf6e9;">
                         <svg class="w-8 h-8" style="color: #c99a32;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                         </svg>
@@ -479,21 +537,26 @@
                     </div>
                 </div>
 
-                <div class="p-4 rounded-lg mb-6" style="background-color: #fbf6e9;">
-                    <p class="text-xs font-semibold mb-2" style="color: #15233d;">🎁 Bonus:</p>
+                <div class="p-4 rounded-xl mb-6 border" style="background-color: #fbf6e9; border-color: rgba(201, 154, 50, 0.2);">
+                    <p class="text-xs font-bold mb-1 flex items-center gap-1.5" style="color: #15233d;">
+                        <svg class="w-4 h-4" style="color: #c99a32;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        Bonus:
+                    </p>
                     <p class="text-xs" style="color: #6b7280;">Garment bag premium + sertifikat keaslian</p>
                 </div>
 
                 <a href="{{ route('koleksi.index') }}" 
-                   class="block w-full py-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider text-white transition-all hover:opacity-90" 
+                   class="btn-premium block w-full py-3 rounded-lg text-center text-sm font-bold uppercase tracking-wider text-white transition-all" 
                    style="background-color: #c99a32;">
-                    🛍️ Belanja Sekarang
+                    <div class="flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Belanja Sekarang
+                    </div>
                 </a>
             </div>
         </div>
     </div>
 </section>
-
 
 {{-- ============================================================
      5. KEBIJAKAN PENTING
@@ -540,7 +603,6 @@
     </div>
 </section>
 
-
 {{-- ============================================================
      6. CALL TO ACTION
      ============================================================ --}}
@@ -561,7 +623,7 @@
         
         <div class="flex flex-col sm:flex-row justify-center gap-4">
             <a href="{{ route('koleksi.index') }}" 
-               class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg text-sm font-bold uppercase tracking-wider text-white transition-all hover:scale-105" 
+               class="btn-premium inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg text-sm font-bold uppercase tracking-wider text-white transition-all" 
                style="background-color: #c99a32;">
                 Jelajahi Koleksi Sekarang
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -569,9 +631,12 @@
                 </svg>
             </a>
             <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank"
-               class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg text-sm font-bold uppercase tracking-wider text-white border transition-all hover:bg-white/10" 
+               class="btn-premium inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg text-sm font-bold uppercase tracking-wider text-white border transition-all hover:bg-white/10" 
                style="border-color: rgba(255,255,255,0.3);">
-                💬 Tanya CS via WhatsApp
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                Tanya CS via WhatsApp
             </a>
         </div>
     </div>

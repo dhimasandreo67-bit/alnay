@@ -100,9 +100,6 @@
                     ? 'border-[#c99a32] text-[#c99a32]' 
                     : 'border-transparent text-gray-400 hover:text-gray-700' }}">
                     Keranjang Sewa
-                    @if(session()->has('keranjang_sewa') && count(session('keranjang_sewa')) > 0)
-                        <span class="bg-[#fbf6e9] text-[#a37b2a] text-[10px] px-2 py-0.5 rounded-full">{{ count(session('keranjang_sewa')) }}</span>
-                    @endif
                 </a>
             </div>
 
@@ -213,9 +210,12 @@
             <div class="rounded-2xl border bg-white p-6 shadow-sm lg:sticky lg:top-24" style="border-color: #f0ece2;">
                 <h2 class="font-display mb-6 text-xl font-bold" style="color: #15233d;">Ringkasan Pembelian</h2>
                 <div class="mb-3 flex items-center justify-between"><span class="text-sm text-gray-500">Subtotal ({{ count($cartItems) }} Produk)</span><span class="text-sm font-bold tabular-nums" style="color: #15233d;">Rp {{ number_format($subtotal, 0, ',', '.') }}</span></div>
-                <div class="mb-4 flex items-center justify-between"><div class="flex items-center gap-1.5"><span class="text-sm text-gray-500">Pengiriman Kurir Aman</span><span class="text-xs text-gray-400" title="Ongkos kirim dengan kurir terpercaya">ⓘ</span></div><span class="text-sm font-bold tabular-nums" style="color: #15233d;">Rp {{ number_format($ongkir, 0, ',', '.') }}</span></div>
+                
                 <div class="my-5 border-t border-dashed" style="border-color: #e5e0d3;"></div>
-                <div class="mb-6 flex items-end justify-between"><span class="text-base font-bold" style="color: #15233d;">Grand Total</span><span class="text-2xl font-bold tabular-nums" style="color: #c99a32;">Rp {{ number_format($total, 0, ',', '.') }}</span></div>
+                <div class="mb-6 flex items-end justify-between">
+                    <span class="text-base font-bold" style="color: #15233d;">Total Harga Barang</span>
+                    <span class="text-2xl font-bold tabular-nums" style="color: #c99a32;">Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
+                </div>
                 <div class="mb-6 flex items-start gap-2.5 rounded-xl px-3.5 py-3" style="background-color: #faf6ea;"><svg class="mt-0.5 h-4 w-4 shrink-0" style="color: #c99a32;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg><p class="text-xs leading-relaxed text-gray-600">Tanpa biaya deposit jaminan sewa (barang menjadi hak milik).</p></div>
                 <a href="{{ route('checkout.index') }}" class="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0" style="background-color: #c99a32;">Lanjut ke Pembayaran <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg></a>
                 {{-- Tombol Lanjut Berbelanja Lama Dihapus --}}

@@ -888,7 +888,7 @@
                 <p class="text-sm font-medium inline-flex items-center gap-1.5" style="color: var(--muted);">
                     Kepuasan
                     <svg class="ico" style="color: var(--gold);" aria-hidden="true"><use href="#i-star" /></svg>
-                    4.97 dari 1.800+ Acara
+                    {{ number_format($rataRata ?? 0, 2, ',', '.') }} dari {{ number_format($totalTransaksi ?? 0, 0, ',', '.') }}+ Pesanan
                 </p>
                 <a href="{{ route('testimoni') }}" class="link-more">
                     Lihat Semua Testimoni <svg class="ico" aria-hidden="true"><use href="#i-arrow" /></svg>
@@ -898,32 +898,71 @@
 
         @if (count($testimoni) > 0)
             <div class="stagger grid grid-cols-1 gap-6 md:grid-cols-3">
-                @foreach ($testimoni as $t)
+                                                @foreach ($testimoni as $t)
                     @php
                         $inisial = strtoupper(mb_substr($t['nama'], 0, 2));
                     @endphp
 
-                    <div class="reveal card-soft relative p-5 sm:p-6 md:p-7 flex flex-col">
-                        <span class="quote-mark" aria-hidden="true">“</span>
+                    {{-- Kartu Testimoni --}}
+                    <div class="reveal card-soft relative overflow-hidden group flex flex-col justify-between p-5 sm:p-6 md:p-7">
+                        
+                                                {{-- KOLOM KANAN: Area Gambar --}}
+                        @if(!empty($t['foto']))
+                            <div class="absolute top-0 right-0 bottom-0 w-[55%] z-0">
+                                
+                                {{-- Gambar dengan Masking Lembut (Memudar mulai dari 40% ke kiri) --}}
+                                <div class="absolute inset-0 overflow-hidden" 
+                                     style="-webkit-mask-image: linear-gradient(to left, black 40%, transparent 95%); mask-image: linear-gradient(to left, black 40%, transparent 95%);">
+                                    <img src="{{ $t['foto'] }}" alt="Produk" 
+                                         class="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105">
+                                </div>
+                                
+                            </div>
+                        @endif
 
-                        <div class="stars" role="img" aria-label="Rating {{ $t['bintang'] }} dari 5">
-                            @for ($i = 1; $i <= 5; $i++)
-                                <svg class="ico {{ $i <= $t['bintang'] ? 'on' : 'off' }}" aria-hidden="true"><use href="#i-star" /></svg>
-                            @endfor
+                                                {{-- KOLOM KIRI: Teks & Profil --}}
+                        <div class="relative z-20 w-full md:w-[60%] pointer-events-none flex flex-col justify-between h-full">
+                            
+                            <div>
+                                {{-- Bintang --}}
+                                <div class="stars" role="img" aria-label="Rating {{ $t['bintang'] }} dari 5">
+                                    @for ($i = 1; $i <= 5; $i++)
+                                        <svg class="ico {{ $i <= $t['bintang'] ? 'on' : 'off' }}" aria-hidden="true"><use href="#i-star" /></svg>
+                                    @endfor
+                                </div>
+
+                                {{-- Teks Ulasan --}}
+                                <p class="mt-3 text-[13px] sm:text-sm leading-relaxed italic text-gray-700 line-clamp-3">"{{ $t['teks'] }}"</p>
+                            </div>
+
+                            {{-- Profil User --}}
+                            <div class="mt-5 pt-4 flex items-center gap-3">
+                                
+                                {{-- BAGIAN INI DIUBAH: Menampilkan Foto jika ada, Inisial jika tidak --}}
+                                <div class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold shadow-sm overflow-hidden" 
+                                     style="background-color: var(--gold-bg); color: var(--gold);">
+                                     
+                                    {{-- Huruf Inisial (Selalu ada sebagai background) --}}
+                                    {{ $inisial }}
+                                    
+                                    {{-- Foto User (Menimpa inisial jika ada) --}}
+                                    @if(!empty($t['foto_user']))
+                                        @php
+                                            $fotoUser = \Illuminate\Support\Str::startsWith($t['foto_user'], ['http://', 'https://']) 
+                                                ? $t['foto_user'] 
+                                                : asset('storage/' . $t['foto_user']);
+                                        @endphp
+                                        <img src="{{ $fotoUser }}" alt="{{ $t['nama'] }}" class="absolute inset-0 w-full h-full object-cover">
+                                    @endif
+                                </div>
+
+                                <div class="min-w-0">
+                                    <p class="text-[13px] font-bold truncate" style="color: var(--ink);">{{ $t['nama'] }}</p>
+                                    <p class="text-[10px] mt-0.5 text-gray-500 truncate">{{ $t['konteks'] }}</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <p class="mt-4 text-sm leading-relaxed italic flex-1" style="color: #4b5563;">"{{ $t['teks'] }}"</p>
-
-                        <div class="mt-6 flex items-center gap-3.5">
-                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-                                style="background-color: var(--gold-bg); color: var(--gold);">
-                                {{ $inisial }}
-                            </div>
-                            <div class="min-w-0">
-                                <p class="text-sm font-bold truncate" style="color: var(--ink);">{{ $t['nama'] }}</p>
-                                <p class="text-xs mt-0.5" style="color: #9ca3af;">{{ $t['konteks'] }}</p>
-                            </div>
-                        </div>
                     </div>
                 @endforeach
             </div>

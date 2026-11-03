@@ -28,6 +28,18 @@
                 animation: none;
             }
         }
+
+                /* Custom scrollbar untuk filter warna */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(201, 154, 50, 0.3);
+            border-radius: 10px;
+        }
     </style>
 
     <div class="bg-[#FBFAF7] min-h-screen py-8 md:py-12 font-sans">
@@ -77,6 +89,8 @@
 
                         {{-- ISI FORM FILTER --}}
                         <form method="GET" action="{{ route('koleksi.index') }}" class="space-y-5">
+
+                            <input type="hidden" name="search" value="{{ request('search') }}">
 
                             {{-- Jenis Transaksi --}}
                             <div>
@@ -151,31 +165,49 @@
 
                             <hr class="border-line/30">
 
-                            {{-- Warna --}}
+                                                        {{-- Warna --}}
                             <div>
                                 <p class="text-[11px] font-semibold text-ink/80 mb-2.5">Warna</p>
-                                <div class="flex flex-wrap gap-2">
-                                    @php
-                                        $warnaOpsi = [
-                                            'Hitam' => 'bg-[#1a1a1a]',
-                                            'Maroon' => 'bg-[#6b1c2a]',
-                                            'Gold' => 'bg-[#c99a32]',
-                                            'Cream' => 'bg-[#f5e6c8]',
-                                            'Hijau' => 'bg-[#2a5c3f]',
-                                            'Coklat' => 'bg-[#5c3a21]',
-                                        ];
-                                    @endphp
-                                    @foreach ($warnaOpsi as $w => $class)
-                                        <label class="cursor-pointer group">
-                                            <input type="radio" name="warna" value="{{ $w }}"
-                                                class="peer sr-only" {{ request('warna') === $w ? 'checked' : '' }}>
-                                            <span
-                                                class="block w-7 h-7 rounded-full {{ $class }} ring-2 ring-offset-2 ring-transparent transition-all duration-200
-                                                     peer-checked:ring-gold group-hover:scale-110 group-hover:ring-gold/40
-                                                     {{ request('warna') === $w ? 'ring-gold scale-110' : '' }}"
-                                                title="{{ $w }}"></span>
+                                
+                                {{-- Tampilan Horizontal (Berjejer ke samping) --}}
+                                <div class="flex flex-wrap gap-2.5 max-h-[70px] overflow-y-auto custom-scrollbar pr-1 pb-1 pt-1">
+                                    
+                                    @forelse ($warnaList as $w)
+                                        @php
+                                            // Menerjemahkan nama warna dari Admin menjadi kode HEX CSS
+                                            $wLower = strtolower(trim($w));
+                                            $hex = '#d1d5db'; // Warna default abu-abu jika tidak dikenali
+
+                                            if (str_contains($wLower, 'hitam')) $hex = '#1a1a1a';
+                                            elseif (str_contains($wLower, 'maroon') || str_contains($wLower, 'merah')) $hex = '#6b1c2a';
+                                            elseif (str_contains($wLower, 'gold') || str_contains($wLower, 'emas') || str_contains($wLower, 'kuning')) $hex = '#c99a32';
+                                            elseif (str_contains($wLower, 'cream') || str_contains($wLower, 'krem') || str_contains($wLower, 'putih')) $hex = '#f5e6c8';
+                                            elseif (str_contains($wLower, 'hijau') || str_contains($wLower, 'green')) $hex = '#2a5c3f';
+                                            elseif (str_contains($wLower, 'coklat') || str_contains($wLower, 'brown')) $hex = '#5c3a21';
+                                            elseif (str_contains($wLower, 'biru') || str_contains($wLower, 'blue') || str_contains($wLower, 'navy')) $hex = '#1e3a8a';
+                                            elseif (str_contains($wLower, 'pink') || str_contains($wLower, 'rose')) $hex = '#f472b6';
+                                            elseif (str_contains($wLower, 'ungu') || str_contains($wLower, 'purple')) $hex = '#7e22ce';
+                                            elseif (str_contains($wLower, 'abu') || str_contains($wLower, 'grey') || str_contains($wLower, 'silver')) $hex = '#9ca3af';
+                                        @endphp
+
+                                        <label class="cursor-pointer group relative">
+                                            <input type="radio" name="warna" value="{{ $w }}" class="peer sr-only" {{ request('warna') === $w ? 'checked' : '' }}>
+                                            
+                                            {{-- Bulatan Warna --}}
+                                            <span class="block w-7 h-7 rounded-full border border-black/10 shadow-sm transition-all duration-200
+                                                         peer-checked:ring-2 peer-checked:ring-gold peer-checked:ring-offset-2 peer-checked:scale-110
+                                                         group-hover:scale-110 group-hover:shadow-md"
+                                                style="background-color: {{ $hex }};">
+                                            </span>
+                                            
+                                            {{-- Tooltip Teks (Hanya muncul saat di-hover) --}}
+                                            <span class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] font-medium px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                                {{ $w }}
+                                            </span>
                                         </label>
-                                    @endforeach
+                                    @empty
+                                        <p class="text-xs text-ink/40">Belum ada variasi warna.</p>
+                                    @endforelse
                                 </div>
                             </div>
 
