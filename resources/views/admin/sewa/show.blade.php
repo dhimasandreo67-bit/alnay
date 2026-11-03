@@ -3,7 +3,7 @@
 @section('title', 'Detail Sewa Busana')
 
 @section('content')
-    <div class="space-y-6" x-data="{ tab: '{{ session('active_tab', 'ringkasan') }}', modeJaminan: '{{ ($sewa->jaminan->metode_jaminan ?? 'ktp_tatap_muka') === 'ktp_tatap_muka' ? 'fisik' : 'digital' }}' }">
+    <div class="space-y-6" x-data="{ tab: '{{ session('active_tab', 'ringkasan') }}' }">
 
         {{-- Header --}}
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -23,10 +23,10 @@
                 @endphp
                 <span
                     class="inline-block mt-2 px-3 py-1 rounded-md text-xs font-bold {{ $isTerlambat ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700' }}">
-                    {{ $isTerlambat ? 'TERLAMBAT & MENUNGGU QC PELUNASAN' : 'SEDANG DISEWA' }}
+                    {{ $isTerlambat ? 'TERLAMBAT — BELUM DIKEMBALIKAN' : 'SEDANG DISEWA' }}
                 </span>
             </div>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.sewa.index') }}"
                     class="px-4 py-2 bg-white border border-line rounded-lg text-sm font-semibold hover:bg-gray-50">&larr;
                     Kembali</a>
@@ -35,29 +35,120 @@
                     Pelanggan via WA</a>
                 <button class="px-4 py-2 bg-ink text-white rounded-lg text-sm font-semibold hover:bg-gray-800">Cetak Berita
                     Acara</button>
-
-                {{-- TOMBOL TANDAI SELESAI --}}
-                @if ($sewa->status === 'aktif')
-                    <form action="{{ route('admin.sewa.ubah-status', $sewa->id) }}" method="POST" class="inline">
-                        @csrf @method('PATCH')
-                        <input type="hidden" name="status" value="selesai">
-                        <button type="submit"
-                            class="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-semibold hover:bg-rose-700"
-                            onclick="return confirm('Tandai sewa ini sebagai selesai/dikembalikan?')">
-                            Tandai Selesai
-                        </button>
-                    </form>
-                @endif
             </div>
         </div>
 
-        {{-- Notifikasi Success --}}
+        {{-- Notifikasi --}}
         @if (session('success'))
             <div
                 class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-semibold flex items-center gap-2">
                 <i class="fas fa-check-circle"></i> {{ session('success') }}
             </div>
         @endif
+        @if (session('error'))
+            <div
+                class="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm font-semibold flex items-center gap-2">
+                <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+            </div>
+        @endif
+
+        {{-- Alur Pengembalian Barang --}}
+        @php
+            $flowDiterima = $sewa->status === 'selesai';
+            $jumlahDendaBelumLunas = $sewa->denda->where('status', 'belum_lunas')->count();
+            $flowDenda = $flowDiterima && $jumlahDendaBelumLunas === 0;
+            $flowDeposit = ($sewa->jaminan->status_pengembalian_deposit ?? null) === 'dikembalikan';
+
+            $flowSteps = [
+                1 => ['label' => 'Sewa Berjalan', 'desc' => 'Busana di tangan pelanggan.', 'done' => true],
+                2 => ['label' => 'Barang Kembali & QC', 'desc' => 'Terima busana, cek kondisi.', 'done' => $flowDiterima],
+                3 => ['label' => 'Denda Diselesaikan', 'desc' => 'Semua denda sudah lunas.', 'done' => $flowDenda],
+                4 => ['label' => 'Deposit Dikembalikan', 'desc' => 'Deposit cair ke pelanggan.', 'done' => $flowDeposit],
+            ];
+            $flowCurrent = collect($flowSteps)->first(fn ($s) => !$s['done'], end($flowSteps));
+            $flowCurrentNum = array_search($flowCurrent, $flowSteps, true);
+            $flowSelesaiSemua = $flowDiterima && $flowDenda && $flowDeposit;
+        @endphp
+        <div class="bg-white rounded-2xl border border-line shadow-sm p-5">
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-sm font-bold text-ink flex items-center gap-2">
+                    <i class="fas fa-route text-gold"></i> Alur Pengembalian Barang
+                </h2>
+                @unless ($flowSelesaiSemua)
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tahap {{ $flowCurrentNum }} dari 4</span>
+                @else
+                    <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Tuntas</span>
+                @endunless
+            </div>
+
+            {{-- Baris Step --}}
+            <div class="flex items-start overflow-x-auto pb-1">
+                @foreach ($flowSteps as $num => $step)
+                    <div class="flex items-center {{ $num < 4 ? 'flex-1 min-w-[150px]' : 'min-w-[150px]' }}">
+                        <div class="flex flex-col items-center text-center w-full px-1">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold border-2
+                                        {{ $step['done']
+                                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                                            : ($num === $flowCurrentNum ? 'bg-amber-50 border-amber-500 text-amber-600' : 'bg-gray-50 border-line text-gray-400') }}">
+                                @if ($step['done'])
+                                    <i class="fas fa-check text-[10px]"></i>
+                                @else
+                                    {{ $num }}
+                                @endif
+                            </div>
+                            <p class="mt-2 text-xs font-bold whitespace-nowrap {{ $step['done'] ? 'text-emerald-700' : ($num === $flowCurrentNum ? 'text-amber-700' : 'text-gray-400') }}">
+                                {{ $step['label'] }}
+                            </p>
+                            <p class="mt-0.5 text-[10px] text-gray-400 max-w-[140px]">{{ $step['desc'] }}</p>
+                        </div>
+                    </div>
+                    @if ($num < 4)
+                        <div class="mt-4 h-0.5 flex-1 min-w-[24px] {{ $step['done'] ? 'bg-emerald-400' : 'bg-line' }}"></div>
+                    @endif
+                @endforeach
+            </div>
+
+            {{-- CTA kontekstual sesuai tahap sekarang --}}
+            <div class="mt-5 pt-4 border-t border-line">
+                @if (!$flowDiterima)
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <p class="text-xs text-gray-500">Busana masih di tangan pelanggan. Tandai sudah kembali begitu diterima di studio.</p>
+                        <form action="{{ route('admin.sewa.ubah-status', $sewa->id) }}" method="POST">
+                            @csrf @method('PATCH')
+                            <input type="hidden" name="status" value="selesai">
+                            <button type="submit"
+                                class="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-bold hover:bg-rose-700 whitespace-nowrap"
+                                onclick="return confirm('Tandai barang sudah diterima kembali dari pelanggan?')">
+                                <i class="fas fa-box-open mr-1"></i> Tandai Barang Diterima Kembali
+                            </button>
+                        </form>
+                    </div>
+                @elseif (!$flowDenda)
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <p class="text-xs text-amber-700">
+                            <i class="fas fa-triangle-exclamation mr-1"></i>
+                            Masih ada {{ $jumlahDendaBelumLunas }} denda yang belum lunas. Lunasi dulu sebelum deposit bisa dikembalikan.
+                        </p>
+                        <button type="button" @click="tab = 'denda'"
+                            class="px-4 py-2 bg-ink text-white rounded-lg text-sm font-bold hover:bg-gray-800 whitespace-nowrap">
+                            Urus di Tab Denda &rarr;
+                        </button>
+                    </div>
+                @elseif (!$flowDeposit)
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <p class="text-xs text-gray-500">Barang sudah kembali dan denda sudah beres. Deposit siap dikembalikan ke pelanggan.</p>
+                        <button type="button" @click="tab = 'denda'"
+                            class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 whitespace-nowrap">
+                            <i class="fas fa-money-bill-wave mr-1"></i> Kembalikan Deposit &rarr;
+                        </button>
+                    </div>
+                @else
+                    <p class="text-xs text-emerald-700 font-semibold flex items-center gap-2">
+                        <i class="fas fa-circle-check"></i> Seluruh proses pengembalian untuk sewa ini sudah tuntas.
+                    </p>
+                @endif
+            </div>
+        </div>
 
         {{-- Kartu Ringkasan Atas --}}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -90,26 +181,32 @@
         </div>
 
         {{-- Navigasi Tab --}}
-        <div class="flex items-center gap-8 border-b border-line px-2">
+        <div class="flex items-center gap-5 sm:gap-8 border-b border-line px-2 overflow-x-auto no-scrollbar">
             <button @click="tab = 'ringkasan'"
                 :class="tab === 'ringkasan' ? 'border-gold text-ink' : 'border-transparent text-gray-500 hover:text-ink'"
-                class="pb-3 text-sm font-bold border-b-2 flex items-center gap-2">
+                class="pb-3 text-sm font-bold border-b-2 flex items-center gap-2 whitespace-nowrap shrink-0">
                 <i class="fas fa-box"></i> Ringkasan Busana & Alur
             </button>
             <button @click="tab = 'jaminan'"
                 :class="tab === 'jaminan' ? 'border-gold text-ink' : 'border-transparent text-gray-500 hover:text-ink'"
-                class="pb-3 text-sm font-bold border-b-2 flex items-center gap-2">
+                class="pb-3 text-sm font-bold border-b-2 flex items-center gap-2 whitespace-nowrap shrink-0">
                 <i class="fas fa-shield-alt"></i> Verifikasi Jaminan Sewa
             </button>
             <button @click="tab = 'qc'"
                 :class="tab === 'qc' ? 'border-gold text-ink' : 'border-transparent text-gray-500 hover:text-ink'"
-                class="pb-3 text-sm font-bold border-b-2 flex items-center gap-2">
+                class="pb-3 text-sm font-bold border-b-2 flex items-center gap-2 whitespace-nowrap shrink-0">
                 <i class="fas fa-clipboard-check"></i> Pengecekan Barang (QC)
+                @if ($flowDiterima && !$flowSelesaiSemua)
+                    <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                @endif
             </button>
             <button @click="tab = 'denda'"
                 :class="tab === 'denda' ? 'border-gold text-ink' : 'border-transparent text-gray-500 hover:text-ink'"
-                class="pb-3 text-sm font-bold border-b-2 flex items-center gap-2">
+                class="pb-3 text-sm font-bold border-b-2 flex items-center gap-2 whitespace-nowrap shrink-0">
                 <i class="fas fa-file-invoice-dollar"></i> Kelola Denda & Settlement
+                @if ($flowDiterima && !$flowDenda)
+                    <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+                @endif
             </button>
         </div>
 
@@ -228,165 +325,246 @@
 
             {{-- TAB 2: JAMINAN --}}
             <div x-show="tab === 'jaminan'" x-cloak x-transition.opacity>
-                {{-- Mode Simulasi --}}
-                <div
-                    class="mb-6 p-4 bg-gray-50 rounded-xl border border-line flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div>
-                        <h3 class="font-bold text-sm text-ink">MODE SIMULASI DATA METODE JAMINAN</h3>
-                        <p class="text-xs text-gray-500">Pilih kondisi metode jaminan untuk menampilkan antarmuka
-                            kondisional.</p>
-                    </div>
-                    <div class="flex bg-white rounded-lg border border-line p-1">
-                        <button @click="modeJaminan = 'fisik'"
-                            :class="modeJaminan === 'fisik' ? 'bg-ink text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'"
-                            class="px-4 py-2 text-xs font-bold rounded-md transition-all">METODE: FISIK (STUDIO)</button>
-                        <button @click="modeJaminan = 'digital'"
-                            :class="modeJaminan === 'digital' ? 'bg-ink text-white shadow-sm' : 'text-gray-500 hover:bg-gray-50'"
-                            class="px-4 py-2 text-xs font-bold rounded-md transition-all">METODE: NON-FISIK
-                            (DIGITAL)</button>
-                    </div>
-                </div>
+                @php
+                    $jaminan = $sewa->jaminan;
+                    $isFisik = ($jaminan->metode_jaminan ?? 'ktp_tatap_muka') === 'ktp_tatap_muka';
+                    $verified = ($jaminan->status_verifikasi ?? null) === 'verified';
+                    $nikJaminan = (string) ($jaminan->nomor_ktp ?? '');
+                    $nikMask = $nikJaminan !== ''
+                        ? substr($nikJaminan, 0, 4) . str_repeat('•', max(0, strlen($nikJaminan) - 8)) . substr($nikJaminan, -4)
+                        : '-';
+                    $fmtTanggalBayar = fn ($v) => $v ? \Carbon\Carbon::parse($v)->translatedFormat('d M Y, H:i') . ' WIB' : '-';
 
-                {{-- KONTEN: FISIK --}}
-                <div x-show="modeJaminan === 'fisik'" x-transition.opacity class="border border-line rounded-xl p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-lg font-bold text-ink flex items-center gap-2">
-                            <span class="w-2.5 h-2.5 rounded-full bg-gold"></span> Verifikasi Jaminan Fisik di Studio
-                        </h2>
-                        @if (($sewa->jaminan->status_verifikasi ?? \'\') === \'verified\')<span class="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-bold">Terverifikasi</span>@else<span class="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-bold">Menunggu Verifikasi Bankras</span>@endif
-                    </div>
+                    $semuaBayar = $sewa->transaksi->pembayaran ?? collect();
+                    $bayarBerhasil = $semuaBayar->filter(fn ($p) => in_array(strtolower((string) $p->status_midtrans), ['success', 'settlement', 'capture'], true));
+                    $dpList = $bayarBerhasil->where('jenis_bayar', 'dp');
+                    $dpDibayar = (float) $dpList->sum('jumlah');
+                    $dpPertama = $dpList->sortBy('tanggal_bayar')->first();
+                    $totalBayarJaminan = (float) $bayarBerhasil->sum('jumlah');
+                    $totalTrxJaminan = (float) ($sewa->transaksi->total ?? 0);
+                    $sisaTagihanJaminan = max(0, $totalTrxJaminan - $totalBayarJaminan);
+                    $persenDp = $totalTrxJaminan > 0 ? round($dpDibayar / $totalTrxJaminan * 100) : 0;
+                @endphp
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {{-- Form Verifikasi --}}
-                        <form action="{{ route('admin.sewa.verifikasi-jaminan', $sewa->id) }}" method="POST" class="space-y-4">
-                            @csrf
-                            <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg flex gap-3">
-                                <input type="checkbox" checked
-                                    class="mt-1 w-4 h-4 text-gold rounded border-gray-300 focus:ring-gold">
-                                <div>
-                                    <p class="text-sm font-bold text-ink">KTP asli penyewa sudah dicocokkan tatap muka
-                                        langsung di kasir studio</p>
-                                    <p class="text-xs text-gray-500 mt-1">Admin kasir telah memastikan kesesuaian fisik
-                                        pemegang KTP asli dengan pemilik transaksi rental.</p>
-                                </div>
-                            </div>
+                <div class="space-y-6" x-data="{ zoom: false, lihatNik: false, nik: @js($nikJaminan !== '' ? $nikJaminan : '-'), masked: @js($nikMask) }"
+                     @keydown.escape.window="zoom = false">
 
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">NOMOR NIK KTP</label>
-                                    <input type="text" name="no_ktp" value="{{ $sewa->jaminan->nomor_ktp ?? '' }}"
-                                        class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
-                                        placeholder="3273..." required>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">NAMA SESUAI KTP</label>
-                                    <input type="text" name="nama_sesuai_ktp"
-                                        value="{{ $sewa->jaminan->nama_ktp ?? '' }}"
-                                        class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
-                                        placeholder="Nama Lengkap" required>
-                                </div>
-                            </div>
-
-                            <button type="submit"
-                                class="w-full py-3 bg-ink text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
-                                <i class="fas fa-check-circle"></i> Simpan & Verifikasi Jaminan Fisik
-                            </button>
-                        </form>
-
-                        {{-- Protap Penyimpanan --}}
-                        <div class="bg-amber-50/50 border border-amber-100 rounded-lg p-5">
-                            <h4 class="text-xs font-bold text-amber-800 uppercase mb-3">Protap Penyimpanan Jaminan</h4>
-                            <p class="text-xs text-amber-700 leading-relaxed mb-4">KTP fisik hanya disimpan selama masa
-                                penyewaan berlangsung dan wajib disimpan dalam amplop berkode identitas transaksi di Slot
-                                B-04.</p>
-                            <ul class="space-y-2 text-xs text-amber-700">
-                                <li class="flex items-start gap-2"><i class="fas fa-check mt-0.5"></i> Dicek keaslian
-                                    hologram e-KTP</li>
-                                <li class="flex items-start gap-2"><i class="fas fa-check mt-0.5"></i> Bebas denda sebelum
-                                    KTP dilepas</li>
-                            </ul>
+                    {{-- Status strip --}}
+                    <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-line">
+                        <div class="flex flex-wrap items-center gap-2">
+                            @if ($verified)
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-emerald-100 text-emerald-700 border-emerald-200">Terverifikasi</span>
+                            @else
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-amber-100 text-amber-700 border-amber-200">Menunggu Verifikasi</span>
+                            @endif
+                            @if ($isFisik)
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-sky-100 text-sky-700 border-sky-200">Fisik (KTP Tatap Muka)</span>
+                            @else
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-violet-100 text-violet-700 border-violet-200">Digital (Upload)</span>
+                            @endif
+                            @if ($isTerlambat)
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider bg-rose-100 text-rose-700 border-rose-200">Sewa Terlambat</span>
+                            @endif
                         </div>
-                    </div>
-                </div>
-
-                {{-- KONTEN: DIGITAL --}}
-                <div x-show="modeJaminan === 'digital'" x-transition.opacity class="border border-line rounded-xl p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-lg font-bold text-ink flex items-center gap-2">
-                            <span class="w-2.5 h-2.5 rounded-full bg-gold"></span> Verifikasi Jaminan Digital / Non-Fisik
-                        </h2>
-                        @if (($sewa->jaminan->status_verifikasi ?? \'\') === \'verified\')<span class="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-xs font-bold">Terverifikasi</span>@else<span class="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-xs font-bold">Menunggu Verifikasi Admin</span>@endif
+                        @if ($jaminan && $jaminan->foto_ktp)
+                            <button type="button" @click="zoom = true" class="text-xs font-bold text-gold hover:underline">Perbesar Foto KTP</button>
+                        @endif
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {{-- Foto KTP --}}
-                        <div class="lg:col-span-2 space-y-3">
-                            <div class="flex items-center justify-between">
-                                <label class="text-xs font-bold text-gray-600">FOTO KTP UPLOAD PELANGGAN</label>
-                                <button class="text-xs font-semibold text-gold hover:underline">Perbesar / Zoom Foto
-                                    KTP</button>
-                            </div>
-                            <div
-                                class="w-full h-64 bg-gray-100 rounded-lg border border-line flex items-center justify-center overflow-hidden">
-                                @if ($sewa->jaminan && $sewa->jaminan->foto_ktp)
-                                    <img src="{{ asset('storage/' . $sewa->jaminan->foto_ktp) }}"
-                                        class="w-full h-full object-contain">
-                                @else
-                                    <div class="text-gray-400 text-sm flex flex-col items-center">
-                                        <i class="fas fa-id-card text-4xl mb-2 text-gray-300"></i>
-                                        Belum ada foto KTP
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+                        {{-- Kolom kiri: status, KTP, verifikasi --}}
+                        <div class="lg:col-span-2 space-y-6">
+                            @php $adaFoto = $jaminan && $jaminan->foto_ktp; @endphp
+
+                            {{-- Satu pesan status yang jelas --}}
+                            @if ($verified)
+                                <div class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                                    <i class="fas fa-circle-check mt-0.5 text-emerald-600"></i>
+                                    <div>
+                                        <p class="text-sm font-bold text-emerald-800">Jaminan sudah terverifikasi</p>
+                                        <p class="mt-0.5 text-xs text-emerald-700">
+                                            Dicek oleh {{ $jaminan->verifikator->name ?? 'admin' }} &middot; {{ $fmtTanggalBayar($jaminan->tanggal_verifikasi) }}.
+                                            Tidak ada tindakan lagi di tab ini.
+                                        </p>
                                     </div>
-                                @endif
+                                </div>
+                            @else
+                                <div class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                    <i class="fas fa-hourglass-half mt-0.5 text-amber-600"></i>
+                                    <div>
+                                        <p class="text-sm font-bold text-amber-800">Menunggu verifikasi</p>
+                                        <p class="mt-0.5 text-xs text-amber-700">Cocokkan KTP dengan penyewa, lalu centang konfirmasi di bawah.</p>
+                                    </div>
+                                </div>
+                            @endif
+
+                            {{-- Progres 3 langkah --}}
+                            <ol class="grid grid-cols-3 gap-2 text-center text-[11px] font-bold">
+                                <li class="rounded-lg border px-2 py-2 {{ $adaFoto ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-400' }}">
+                                    1. Foto KTP {{ $adaFoto ? 'diterima' : 'belum ada' }}
+                                </li>
+                                <li class="rounded-lg border px-2 py-2 {{ $verified ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700' }}">
+                                    2. Data dicocokkan
+                                </li>
+                                <li class="rounded-lg border px-2 py-2 {{ $verified ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-400' }}">
+                                    3. Terverifikasi
+                                </li>
+                            </ol>
+
+                            {{-- KTP & identitas --}}
+                            <div class="border border-line rounded-xl p-6">
+                                <h3 class="font-bold text-ink mb-4 text-sm flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-gold"></span> KTP Penyewa
+                                </h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div class="w-full h-56 bg-gray-50 rounded-xl border border-line flex items-center justify-center overflow-hidden">
+                                        @if ($adaFoto)
+                                            <img src="{{ asset('storage/' . $jaminan->foto_ktp) }}" alt="Foto KTP"
+                                                 class="w-full h-full object-contain cursor-zoom-in" @click="zoom = true">
+                                        @else
+                                            <div class="text-center px-4 text-gray-400">
+                                                <i class="fas fa-id-card text-4xl mb-2 text-gray-300"></i>
+                                                <p class="text-sm font-semibold">{{ $isFisik ? 'KTP fisik disimpan di studio' : 'Belum ada foto KTP' }}</p>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <dl class="space-y-4 text-sm">
+                                        <div>
+                                            <dt class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Nama Penyewa</dt>
+                                            <dd class="mt-1 font-bold text-ink">{{ $sewa->nama_pelanggan }}</dd>
+                                        </div>
+                                        @if ($nikJaminan !== '')
+                                            <div>
+                                                <dt class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Nomor NIK</dt>
+                                                <dd class="mt-1 flex items-center gap-2">
+                                                    <span class="font-mono font-bold text-ink tracking-wide" x-text="lihatNik ? nik : masked"></span>
+                                                    <button type="button" @click="lihatNik = !lihatNik" class="text-[11px] font-bold text-gold hover:underline" x-text="lihatNik ? 'Sembunyikan' : 'Tampilkan'"></button>
+                                                </dd>
+                                            </div>
+                                        @endif
+                                        <div>
+                                            <dt class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Metode Jaminan</dt>
+                                            <dd class="mt-1 font-semibold text-ink">{{ $isFisik ? 'KTP tatap muka' : 'Upload digital' }}</dd>
+                                        </div>
+                                    </dl>
+                                </div>
                             </div>
+
+                            {{-- Form verifikasi: hanya satu centang --}}
+                            @unless ($verified)
+                                <form action="{{ route('admin.sewa.verifikasi-jaminan', $sewa->id) }}" method="POST"
+                                      class="border border-line rounded-xl p-6 space-y-4" x-data="{ ok: false }">
+                                    @csrf
+                                    <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                        <input type="checkbox" name="konfirmasi_sesuai" value="1" x-model="ok"
+                                               class="mt-1 w-4 h-4 text-gold rounded border-gray-300 focus:ring-gold">
+                                        <span>
+                                            <span class="block text-sm font-bold text-ink">Nama & NIK di KTP sudah sesuai dengan {{ $sewa->nama_pelanggan }}</span>
+                                            <span class="mt-1 block text-xs text-gray-500">
+                                                {{ $adaFoto ? 'Bandingkan dengan foto KTP di atas' : 'Cocokkan dengan KTP fisik yang disimpan di studio' }}{{ $isFisik ? ' dan KTP asli saat serah terima.' : '.' }}
+                                            </span>
+                                        </span>
+                                    </label>
+                                    @error('konfirmasi_sesuai')
+                                        <p class="text-xs font-semibold text-rose-600">{{ $message }}</p>
+                                    @enderror
+                                    <button type="submit" :disabled="!ok"
+                                            class="w-full py-3 bg-ink text-white rounded-lg text-sm font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-40">
+                                        <i class="fas fa-check-circle"></i> Verifikasi Jaminan
+                                    </button>
+                                </form>
+                            @endunless
                         </div>
 
-                        {{-- Form Input NIK & Nama --}}
-                        <div class="space-y-4">
-                            <div class="bg-amber-50 rounded-xl p-5 border border-amber-100 text-center">
-                                <p class="text-xs font-bold text-amber-800 uppercase mb-1">Jumlah Deposit Yang Sudah
-                                    Dibayar</p>
-                                <h3 class="text-2xl font-bold text-ink">Rp
-                                    {{ number_format($sewa->jaminan->jumlah_deposit ?? 0, 0, ',', '.') }}</h3>
-                                <p class="text-xs text-amber-700 mt-1 flex items-center justify-center gap-1"><i
-                                        class="fas fa-shield-alt"></i> via Midtrans - Status: Tertahan</p>
+                        {{-- Kolom kanan: DP & Deposit --}}
+                        <div class="space-y-6">
+                            <div class="bg-white rounded-xl border border-line p-6">
+                                <h3 class="text-sm font-bold text-ink flex items-center gap-2 mb-4">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> DP di Awal Sewa
+                                </h3>
+                                @if ($dpDibayar > 0)
+                                    <p class="text-3xl font-extrabold tracking-tight text-ink tabular-nums">Rp {{ number_format($dpDibayar, 0, ',', '.') }}</p>
+                                    <p class="text-xs text-gray-500 mt-1">{{ $persenDp }}% dari total transaksi</p>
+                                    <div class="mt-3 h-2 rounded-full bg-gray-100 overflow-hidden">
+                                        <div class="h-full rounded-full bg-gradient-to-r from-sky-500 to-blue-500" style="width: {{ min(100, $persenDp) }}%"></div>
+                                    </div>
+                                    <dl class="mt-4 space-y-2 text-xs">
+                                        <div class="flex justify-between gap-3"><dt class="text-gray-400">Metode</dt><dd class="font-semibold text-gray-800 uppercase">{{ $dpPertama->metode ?? '-' }}</dd></div>
+                                        <div class="flex justify-between gap-3"><dt class="text-gray-400">Dibayar</dt><dd class="font-semibold text-gray-800 text-right">{{ $fmtTanggalBayar($dpPertama->tanggal_bayar ?? null) }}</dd></div>
+                                    </dl>
+                                @else
+                                    <p class="text-sm font-semibold text-gray-600">Tidak ada DP.</p>
+                                    <p class="text-xs text-gray-400 mt-1">
+                                        {{ $totalBayarJaminan >= $totalTrxJaminan && $totalTrxJaminan > 0 ? 'Transaksi ini dibayar lunas di awal.' : 'Belum ada pembayaran DP yang berhasil.' }}
+                                    </p>
+                                @endif
+                                <div class="mt-4 pt-4 border-t border-line space-y-2 text-xs">
+                                    <div class="flex justify-between"><span class="text-gray-400">Total dibayar</span><span class="font-bold text-emerald-700 tabular-nums">Rp {{ number_format($totalBayarJaminan, 0, ',', '.') }}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-400">Sisa tagihan</span><span class="font-bold {{ $sisaTagihanJaminan > 0 ? 'text-rose-600' : 'text-gray-700' }} tabular-nums">Rp {{ number_format($sisaTagihanJaminan, 0, ',', '.') }}</span></div>
+                                </div>
                             </div>
 
-                            <form action="{{ route('admin.sewa.verifikasi-jaminan', $sewa->id) }}" method="POST"
-                                class="space-y-4 bg-gray-50 p-4 rounded-xl border border-line">
-                                @csrf
-                                <p class="text-xs font-bold text-gray-600 mb-2">INPUT DATA KTP (Cocokkan dengan foto)</p>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">NOMOR NIK KTP</label>
-                                    <input type="text" name="no_ktp" value="{{ $sewa->jaminan->nomor_ktp ?? '' }}"
-                                        class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
-                                        placeholder="3273..." required>
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">NAMA SESUAI KTP</label>
-                                    <input type="text" name="nama_sesuai_ktp"
-                                        value="{{ $sewa->jaminan->nama_ktp ?? '' }}"
-                                        class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:border-gold focus:ring-1 focus:ring-gold outline-none"
-                                        placeholder="Nama Lengkap" required>
-                                </div>
-
-                                <button type="submit"
-                                    class="w-full py-3 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2">
-                                    <i class="fas fa-check-circle"></i> Terima & Verifikasi KTP
-                                </button>
-                            </form>
-
-                            {{-- Tombol Tolak --}}
-                            <form action="#" method="POST" onsubmit="return confirm('Tolak KTP ini?')">
-                                @csrf
-                                <button type="submit"
-                                    class="w-full py-2.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-xs font-bold hover:bg-rose-100 transition">
-                                    Tolak KTP (Minta Upload Ulang)
-                                </button>
-                            </form>
+                            <div class="bg-sky-50/60 rounded-xl border border-sky-100 p-6">
+                                <h3 class="text-sm font-bold text-sky-900 flex items-center gap-2 mb-3">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> Deposit Jaminan
+                                </h3>
+                                <p class="text-2xl font-extrabold tracking-tight text-sky-950 tabular-nums">Rp {{ number_format((float) ($jaminan->jumlah_deposit ?? 0), 0, ',', '.') }}</p>
+                                <p class="mt-2 text-xs font-semibold {{ ($jaminan->status_pengembalian_deposit ?? '') === 'dikembalikan' ? 'text-emerald-700' : 'text-sky-700' }}">
+                                    {{ ($jaminan->status_pengembalian_deposit ?? '') === 'dikembalikan' ? 'Sudah dikembalikan' : 'Masih tertahan' }}
+                                </p>
+                                <p class="mt-2 text-[11px] text-sky-700/70">Pencairan deposit dikelola di tab "Kelola Denda & Settlement".</p>
+                            </div>
                         </div>
                     </div>
+
+                    {{-- Riwayat pembayaran transaksi --}}
+                    <div class="bg-white rounded-xl border border-line overflow-hidden">
+                        <div class="px-6 py-4 border-b border-line">
+                            <h3 class="text-sm font-bold text-ink">Riwayat Pembayaran Transaksi</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-left text-sm divide-y divide-line">
+                                <thead class="bg-gray-50/80">
+                                    <tr>
+                                        <th class="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase">Jenis</th>
+                                        <th class="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase">Metode</th>
+                                        <th class="px-6 py-3 text-[11px] font-bold text-gray-400 uppercase">Tanggal</th>
+                                        <th class="px-6 py-3 text-right text-[11px] font-bold text-gray-400 uppercase">Jumlah</th>
+                                        <th class="px-6 py-3 text-center text-[11px] font-bold text-gray-400 uppercase">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-line/80">
+                                    @forelse ($semuaBayar->sortBy('tanggal_bayar') as $p)
+                                        @php $bayarOk = in_array(strtolower((string) $p->status_midtrans), ['success', 'settlement', 'capture'], true); @endphp
+                                        <tr>
+                                            <td class="px-6 py-3 font-bold text-ink uppercase">{{ $p->jenis_bayar }}</td>
+                                            <td class="px-6 py-3 text-gray-600 uppercase">{{ $p->metode ?? '-' }}</td>
+                                            <td class="px-6 py-3 text-gray-600">{{ $fmtTanggalBayar($p->tanggal_bayar) }}</td>
+                                            <td class="px-6 py-3 text-right font-bold tabular-nums text-ink">Rp {{ number_format($p->jumlah, 0, ',', '.') }}</td>
+                                            <td class="px-6 py-3 text-center">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider {{ $bayarOk ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-500 border-gray-200' }}">
+                                                    {{ $p->status_midtrans ?? '-' }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="5" class="px-6 py-10 text-center text-gray-400 text-sm">Belum ada riwayat pembayaran.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {{-- Zoom foto KTP --}}
+                    @if ($jaminan && $jaminan->foto_ktp)
+                        <div x-show="zoom" x-cloak x-transition.opacity
+                             class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
+                             @click="zoom = false" role="dialog" aria-label="Foto KTP diperbesar">
+                            <img src="{{ asset('storage/' . $jaminan->foto_ktp) }}" alt="Foto KTP" class="max-h-full max-w-full rounded-xl shadow-2xl" @click.stop>
+                            <button type="button" @click="zoom = false" class="absolute right-6 top-6 h-9 w-9 rounded-full bg-white/90 text-gray-700 text-xl font-bold hover:bg-white" aria-label="Tutup">&times;</button>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -648,18 +826,36 @@
                             Deposit selalu dikembalikan utuh 100% (Rp
                             {{ number_format($sewa->jaminan->jumlah_deposit ?? 0, 0, ',', '.') }}) tanpa memotong denda.
                         </p>
+                        @if (!$flowDeposit && (!$flowDiterima || !$flowDenda))
+                            <ul class="mt-3 space-y-1 text-xs text-amber-700">
+                                @unless ($flowDiterima)
+                                    <li class="flex items-center gap-1.5"><i class="fas fa-circle-exclamation"></i> Barang belum ditandai kembali (lihat tab Ringkasan).</li>
+                                @endunless
+                                @if ($flowDiterima && !$flowDenda)
+                                    <li class="flex items-center gap-1.5"><i class="fas fa-circle-exclamation"></i> Masih ada {{ $jumlahDendaBelumLunas }} denda belum lunas di atas.</li>
+                                @endif
+                            </ul>
+                        @endif
                     </div>
                     <div class="text-right shrink-0">
                         <p class="text-xs text-gray-500 mb-1">STATUS PENCAIRAN:</p>
-                        <p class="text-sm font-bold text-ink mb-3">
-                            {{ ($sewa->jaminan->status_pengembalian_deposit ?? '') === 'dikembalikan' ? 'Selesai Dikembalikan' : 'Menunggu Otorisasi QC Selesai' }}
+                        <p class="text-sm font-bold mb-3 {{ $flowDeposit ? 'text-emerald-700' : 'text-ink' }}">
+                            @if ($flowDeposit)
+                                Selesai Dikembalikan
+                            @elseif (!$flowDiterima)
+                                Menunggu Barang Kembali
+                            @elseif (!$flowDenda)
+                                Menunggu Denda Lunas
+                            @else
+                                Siap Dikembalikan
+                            @endif
                         </p>
 
                         <form action="{{ route('admin.sewa.kembalikan-deposit', $sewa->id) }}" method="POST">
                             @csrf
                             <button type="submit"
-                                class="px-5 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition flex items-center gap-2 shadow-sm"
-                                {{ ($sewa->jaminan->status_pengembalian_deposit ?? '') === 'dikembalikan' ? 'disabled' : '' }}>
+                                class="px-5 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition flex items-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
+                                {{ !($flowDiterima && $flowDenda && !$flowDeposit) ? 'disabled' : '' }}>
                                 <i class="fas fa-money-bill-wave"></i> Kembalikan Deposit Penuh
                             </button>
                         </form>
