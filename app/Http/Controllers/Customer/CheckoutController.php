@@ -3,39 +3,46 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\DetailTransaksi;
+use App\Models\Pembayaran;
+use App\Models\Transaksi;
+use App\Models\Pengiriman;
+use App\Services\RajaOngkir;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Transaksi;
-use App\Models\DetailTransaksi;
-use App\Models\Sewa;
-use App\Models\Pembayaran;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class CheckoutController extends Controller
 {
     public function index()
     {
-        // Ambil data keranjang dari session (sesuaikan dengan struktur session keranjang Anda)
-        // Asumsi: session('cart') berisi array id_produk => ['qty' => x, 'harga' => y, 'nama' => z, 'foto' => w, 'is_sewa' => bool]
         $cartItems = session('cart', []);
-        
         if (empty($cartItems)) {
             return redirect()->route('keranjang.index')->with('error', 'Keranjang Anda kosong.');
         }
 
-        $total = array_reduce($cartItems, function($carry, $item) {
-            return $carry + ($item['harga'] * $item['qty']);
-        }, 0);
+        $total = array_reduce($cartItems, fn($c, $i) => $c + ($i['harga'] * $i['qty']), 0);
+        $user = auth()->user();
 
-        return view('customer.checkout', compact('cartItems', 'total'));
+        return view('customer.checkout', compact('cartItems', 'total', 'user'));
     }
 
-            public function store(Request $request)
+    public function store(Request $request, RajaOngkir $ro)
     {
         $request->validate([
             'metode_penerimaan' => 'required|in:ambil,kirim',
-            'metode_bayar' => 'required|in:qris,va,ewallet',
-            'alamat' => 'required_if:metode_penerimaan,kirim|nullable|string',
+            'metode_bayar'      => 'required|in:qris,va,ewallet',
+            'nama_penerima'     => 'required_if:metode_penerimaan,kirim|nullable|string|max:100',
+            'no_wa'             => 'required_if:metode_penerimaan,kirim|nullable|string|max:20',
+            'alamat'            => 'required_if:metode_penerimaan,kirim|nullable|string|max:500',
+            'tujuan_id'         => 'required_if:metode_penerimaan,kirim|nullable|integer',
+            'tujuan_label'      => 'nullable|string|max:255',
+            'kurir'             => 'required_if:metode_penerimaan,kirim|nullable|string|max:20',
+            'layanan'           => 'required_if:metode_penerimaan,kirim|nullable|string|max:50',
+        ], [
+            'tujuan_id.required_if' => 'Pilih kelurahan/kecamatan tujuan pengiriman.',
+            'kurir.required_if'     => 'Pilih layanan pengiriman.',
+            'layanan.required_if'   => 'Pilih layanan pengiriman.',
         ]);
 
         $cartItems = session('cart', []);
@@ -43,47 +50,88 @@ class CheckoutController extends Controller
             return redirect()->route('keranjang.index')->with('error', 'Keranjang kosong.');
         }
 
-        $total = array_reduce($cartItems, function($carry, $item) {
-            return $carry + ($item['harga'] * $item['qty']);
-        }, 0);
+        $subtotal = array_reduce($cartItems, fn($c, $i) => $c + ($i['harga'] * $i['qty']), 0);
+        $ongkir    = 0;
+        $infoKirim = 'Ambil di studio';
 
-        // 1. Buat Transaksi
-        $transaksi = Transaksi::create([
-            'kode_transaksi' => 'ALN-BLI-' . strtoupper(substr(uniqid(), -8)),
-            'user_id' => Auth::id(),
-            'jenis' => 'beli',
-            'kanal' => 'online',
-            'tanggal' => now()->toDateString(),
-            'total' => $total,
-            'status_pembayaran' => 'pending',
-            'catatan' => $request->metode_penerimaan === 'kirim' ? 'Kirim ke: ' . $request->alamat : 'Ambil di studio',
-        ]);
+        if ($request->metode_penerimaan === 'kirim') {
+            try {
+                $berat = $ro->beratKeranjang($cartItems);
+                $opsi  = $ro->hitungOngkir((int) $request->tujuan_id, $berat, strtolower($request->kurir));
+            } catch (\Throwable $e) {
+                \Log::warning('Checkout: hitung ongkir gagal', ['error' => $e->getMessage()]);
+                return back()->withInput()->with('error', 'Gagal menghitung ongkir. Coba lagi sebentar.');
+            }
 
-        // 2. Simpan Detail Transaksi
-                // 2. Simpan Detail Transaksi
-        foreach ($cartItems as $id => $item) {
-            DetailTransaksi::create([
-                'transaksi_id' => $transaksi->id,
-                'produk_id' => $item['id'],
-                'jumlah' => $item['qty'],
-                'harga_satuan' => $item['harga'],
-            ]);
+            $dipilih = collect($opsi)->first(fn($o) => strcasecmp($o['layanan'], $request->layanan) === 0);
+
+            if (! $dipilih) {
+                return back()->withInput()->with('error', 'Layanan pengiriman yang dipilih tidak tersedia.');
+            }
+
+            $ongkir    = (int) $dipilih['biaya'];
+            $infoKirim = 'Kirim ke: ' . $request->alamat
+                . ' | Penerima: ' . $request->nama_penerima
+                . ' | WA: ' . $request->no_wa
+                . ' | Tujuan: ' . ($request->tujuan_label ?: $request->tujuan_id)
+                . ' | ' . strtoupper($dipilih['kurir']) . ' ' . $dipilih['layanan']
+                . ' (est. ' . $dipilih['etd'] . ')'
+                . ' | Berat: ' . $berat . ' gr'
+                . ' | Ongkir: Rp ' . number_format($ongkir, 0, ',', '.');
         }
 
-        // 3. Buat Tagihan Pembayaran
-        Pembayaran::create([
-            'transaksi_id' => $transaksi->id,
-            'jenis_bayar' => 'lunas',
-            'jumlah' => $total,
-            'metode' => $request->metode_bayar,
-            'status_midtrans' => 'pending',
-            'tanggal_bayar' => now(),
-        ]);
+        $total = $subtotal + $ongkir;
 
-        // 4. Hapus Keranjang
+        $transaksi = DB::transaction(function () use ($request, $cartItems, $total, $infoKirim, $ongkir) {
+            $transaksi = Transaksi::create([
+                'kode_transaksi'    => 'ALN-BLI-' . strtoupper(substr(uniqid(), -8)),
+                'user_id'           => Auth::id(),
+                'jenis'             => 'beli',
+                'kanal'             => 'online',
+                'tanggal'           => now()->toDateString(),
+                'total'             => $total,
+                'status_pembayaran' => 'pending',
+                'catatan'           => $infoKirim,
+            ]);
+
+            foreach ($cartItems as $item) {
+                DetailTransaksi::create([
+                    'transaksi_id' => $transaksi->id,
+                    'produk_id'    => $item['id'],
+                    'jumlah'       => $item['qty'],
+                    'harga_satuan' => $item['harga'],
+                ]);
+            }
+
+            Pembayaran::create([
+                'transaksi_id'    => $transaksi->id,
+                'jenis_bayar'     => 'lunas',
+                'jumlah'          => $total,
+                'metode'          => $request->metode_bayar,
+                'status_midtrans' => 'pending',
+                'tanggal_bayar'   => now(),
+            ]);
+
+            if ($request->metode_penerimaan === 'kirim') {
+                Pengiriman::create([
+                    'transaksi_id'     => $transaksi->id,
+                    'provinsi_tujuan'  => auth()->user()->provinsi_nama ?? '-',
+                    'kota_tujuan'      => auth()->user()->kota_nama ?? '-',
+                    'kecamatan_tujuan' => $request->tujuan_label ?? '-',
+                    'kode_pos_tujuan'  => auth()->user()->kode_pos ?? null,
+                    'alamat_tujuan'    => $request->alamat,
+                    'status_kirim'     => 'menunggu',
+                    'kurir'            => $request->kurir,
+                    'layanan_ongkir'   => $request->layanan,
+                    'biaya_kirim'      => $ongkir,
+                ]);
+            }
+
+            return $transaksi;
+        });
+
         session()->forget('cart');
 
-        // 5. Arahkan ke Halaman Konfirmasi Pembayaran (Menggunakan halaman Sewa yg sudah ada)
         return redirect()->route('sewa.konfirmasi', $transaksi->id);
     }
 }

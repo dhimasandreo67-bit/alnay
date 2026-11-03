@@ -10,69 +10,72 @@ use Illuminate\Support\Facades\Http;
 class SinkronRajaOngkir extends Command
 {
     protected $signature = 'rajaongkir:sync';
-    protected $description = 'Sinkronisasi data provinsi & kota dari API RajaOngkir ke database';
+    protected $description = 'Sinkronisasi provinsi & kota dari API RajaOngkir (Komerce) ke database';
+
+    private function client()
+    {
+        $base = rtrim(config('rajaongkir.base_url'), '/');
+        if (! str_ends_with($base, '/v1')) {
+            $base .= '/v1';
+        }
+
+        return Http::withHeaders(['Key' => config('rajaongkir.api_key')])
+            ->acceptJson()
+            ->timeout(60)
+            ->retry(3, 3000)
+            ->baseUrl($base);
+    }
 
     public function handle()
     {
-        $apiKey = config('services.rajaongkir.api_key');
-        $url = config('services.rajaongkir.url');
-
-        if (!$apiKey) {
+        if (! config('rajaongkir.api_key')) {
             $this->error('RAJAONGKIR_API_KEY belum diisi di .env');
             return 1;
         }
 
         $this->info('Mengambil data provinsi...');
-        $response = Http::withHeaders(['key' => $apiKey])
-        ->timeout(60)
-        ->retry(3, 3000)
-        ->get($url . '/province');
+        $res = $this->client()->get('destination/province');
 
-        if ($response->failed()) {
-            $this->error('Gagal mengambil data provinsi: ' . $response->body());
+        if ($res->failed()) {
+            $this->error('Gagal mengambil provinsi: ' . $res->body());
             return 1;
         }
 
-        $provinsiList = $response->json('rajaongkir.results') ?? [];
-        $countProvinsi = 0;
-
-        foreach ($provinsiList as $p) {
+        $provinsi = $res->json('data') ?? [];
+        foreach ($provinsi as $p) {
             RajaOngkirProvinsi::updateOrCreate(
-                ['province_id' => $p['province_id']],
-                ['province' => $p['province']]
+                ['province_id' => $p['id']],
+                ['province' => $p['name']]
             );
-            $countProvinsi++;
         }
-        $this->info("Berhasil sinkron {$countProvinsi} provinsi.");
+        $this->info('Berhasil sinkron ' . count($provinsi) . ' provinsi.');
 
-        $this->info('Mengambil data kota...');
-        $response = Http::withHeaders(['key' => $apiKey])
-        ->timeout(60)
-        ->retry(3, 3000)
-        ->get($url . '/city');
+        $this->info('Mengambil data kota per provinsi...');
+        $totalKota = 0;
 
-        if ($response->failed()) {
-            $this->error('Gagal mengambil data kota: ' . $response->body());
-            return 1;
+        foreach ($provinsi as $p) {
+            $res = $this->client()->get('destination/city/' . $p['id']);
+
+            if ($res->failed()) {
+                $this->warn("Lewati {$p['name']}: " . $res->status() . ' ' . $res->body());
+                continue;
+            }
+
+            foreach ($res->json('data') ?? [] as $k) {
+                RajaOngkirKota::updateOrCreate(
+                    ['city_id' => $k['id']],
+                    [
+                        'province_id' => $p['id'],
+                        'type'        => '-',
+                        'city_name'   => $k['name'],
+                        'postal_code' => $k['zip_code'] ?? null,
+                    ]
+                );
+                $totalKota++;
+            }
         }
 
-        $kotaList = $response->json('rajaongkir.results') ?? [];
-        $countKota = 0;
-
-        foreach ($kotaList as $k) {
-            RajaOngkirKota::updateOrCreate(
-                ['city_id' => $k['city_id']],
-                [
-                    'province_id' => $k['province_id'],
-                    'type' => $k['type'],
-                    'city_name' => $k['city_name'],
-                    'postal_code' => $k['postal_code'] ?? null,
-                ]
-            );
-            $countKota++;
-        }
-        $this->info("Berhasil sinkron {$countKota} kota.");
-
+        $this->info("Berhasil sinkron {$totalKota} kota.");
         $this->info('Selesai!');
         return 0;
     }

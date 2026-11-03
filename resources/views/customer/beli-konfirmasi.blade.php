@@ -90,11 +90,13 @@
                         <div class="space-y-2 text-[11px] mb-4">
                             <div class="flex justify-between">
                                 <span class="text-ink/50">Subtotal</span>
-                                <span class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($transaksi->total - ($transaksi->pengiriman->ongkir ?? 0), 0, ',', '.') }}</span>
+                                {{-- Perbaikan: pakai biaya_kirim, bukan ongkir --}}
+                                <span class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($transaksi->total - ($transaksi->pengiriman->biaya_kirim ?? 0), 0, ',', '.') }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-ink/50">Ongkos kirim</span>
-                                <span class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($transaksi->pengiriman->ongkir ?? 0, 0, ',', '.') }}</span>
+                                {{-- Perbaikan: pakai biaya_kirim --}}
+                                <span class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($transaksi->pengiriman->biaya_kirim ?? 0, 0, ',', '.') }}</span>
                             </div>
                         </div>
 

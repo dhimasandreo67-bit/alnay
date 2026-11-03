@@ -21,17 +21,35 @@ class OngkirController extends Controller
     {
         $data = $request->validate([
             'tujuan_id' => ['required', 'integer'],
-            'berat'     => ['required', 'integer', 'min:1', 'max:50000'], // gram
-            'kurir'     => ['nullable', 'string', 'max:50'],
         ]);
 
+        $cart = session('cart', []);
+        if (empty($cart)) {
+            return response()->json(['message' => 'Keranjang kosong.'], 422);
+        }
+
         try {
-            return response()->json(
-                $ro->hitungOngkir($data['tujuan_id'], $data['berat'], $data['kurir'] ?? 'jne')
-            );
+            $berat = $ro->beratKeranjang($cart);
+            $opsi  = $ro->hitungSemuaKurir($data['tujuan_id'], $berat);
+
+            if (empty($opsi)) {
+                return response()->json(['message' => 'Tidak ada layanan pengiriman untuk tujuan ini.'], 422);
+            }
+
+            return response()->json(['berat' => $berat, 'opsi' => $opsi]);
         } catch (\Throwable $e) {
             \Log::warning('RajaOngkir hitung gagal', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Gagal menghitung ongkir. Coba lagi.'], 503);
+        }
+    }
+
+    public function kecamatan(int $kotaId, RajaOngkir $ro)
+    {
+        try {
+            return response()->json($ro->daftarKecamatan($kotaId));
+        } catch (\Throwable $e) {
+            \Log::warning('Kecamatan gagal dimuat', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Daftar kecamatan tidak tersedia.'], 503);
         }
     }
 }

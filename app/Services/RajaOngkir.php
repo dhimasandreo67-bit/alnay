@@ -2,11 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\Produk;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class RajaOngkir
 {
+    /** Kurir yang ditampilkan di checkout. */
+    public const KURIR = ['jne', 'sicepat', 'jnt'];
+
     private function client()
     {
         $base = rtrim(config('rajaongkir.base_url'), '/');
@@ -14,21 +18,19 @@ class RajaOngkir
             $base .= '/v1';
         }
 
-        $key = config('rajaongkir.api_key');
-
-        return Http::withHeaders([
-                'Key'       => $key,   // RajaOngkir-style
-                'x-api-key' => $key,   // Komerce-style
-            ])
+        return Http::withHeaders(['Key' => config('rajaongkir.api_key')])
             ->acceptJson()
             ->timeout(config('rajaongkir.timeout', 10))
             ->baseUrl($base);
     }
 
+    /** Cari kelurahan/kecamatan tujuan dari teks yang diketik pembeli. */
     public function cariTujuan(string $kata): array
     {
         $kata = trim($kata);
-        if (mb_strlen($kata) < 3) return [];
+        if (mb_strlen($kata) < 3) {
+            return [];
+        }
 
         return Cache::remember('ro-tujuan-' . md5(mb_strtolower($kata)), now()->addDay(), function () use ($kata) {
             $res = $this->client()->get('destination/domestic-destination', [
@@ -47,6 +49,24 @@ class RajaOngkir
         });
     }
 
+    /** Daftar kecamatan dalam satu kota (untuk dropdown profil). */
+    public function daftarKecamatan(int $kotaId): array
+    {
+        return Cache::remember("ro-kecamatan-{$kotaId}", now()->addDays(30), function () use ($kotaId) {
+            $res = $this->client()->get("destination/district/{$kotaId}");
+
+            if (! $res->successful()) {
+                throw new \RuntimeException('Gagal memuat kecamatan: ' . $res->json('meta.message'));
+            }
+
+            return collect($res->json('data') ?? [])
+                ->map(fn ($d) => ['id' => (int) $d['id'], 'name' => $d['name']])
+                ->values()
+                ->all();
+        });
+    }
+
+    /** Hitung ongkir satu kurir. $beratGram dalam gram. */
     public function hitungOngkir(int $tujuanId, int $beratGram, string $kurir = 'jne'): array
     {
         $beratGram = max(1, $beratGram);
@@ -67,17 +87,58 @@ class RajaOngkir
             }
 
             return collect($res->json('data') ?? [])
+                // Trucking (JTR*) hanya masuk akal untuk barang berat (>= 10 kg).
                 ->reject(fn ($r) => $beratGram < 10000 && str_starts_with(strtoupper($r['service']), 'JTR'))
                 ->map(fn ($r) => [
-                    'service'     => $r['service'],
-                    'description' => $r['description'],
-                    'cost'        => (int) $r['cost'],
-                    'etd'         => $r['etd'] ?? null,
-                    'courier'     => $r['code'],
+                    'kurir'     => strtolower($r['code']),
+                    'nama'      => $r['name'],
+                    'layanan'   => $r['service'],
+                    'deskripsi' => $r['description'],
+                    'biaya'     => (int) $r['cost'],
+                    'etd'       => $r['etd'] ?? null,
                 ])
-                ->sortBy('cost')
+                ->sortBy('biaya')
                 ->values()
                 ->all();
         });
+    }
+
+    /** Hitung semua kurir di KURIR, urut dari termurah. Kurir yang gagal dilewati. */
+    public function hitungSemuaKurir(int $tujuanId, int $beratGram): array
+    {
+        $semua = [];
+
+        foreach (self::KURIR as $kurir) {
+            try {
+                $semua = array_merge($semua, $this->hitungOngkir($tujuanId, $beratGram, $kurir));
+            } catch (\Throwable $e) {
+                \Log::warning('Ongkir kurir gagal', ['kurir' => $kurir, 'error' => $e->getMessage()]);
+            }
+        }
+
+        usort($semua, fn ($a, $b) => $a['biaya'] <=> $b['biaya']);
+
+        return $semua;
+    }
+
+    /**
+     * Total berat keranjang (gram), dihitung dari database produk, bukan dari browser.
+     * Produk tanpa berat dianggap 1000 gram.
+     */
+    public function beratKeranjang(array $cartItems): int
+    {
+        $ids   = collect($cartItems)->pluck('id')->filter()->unique()->all();
+        $berat = Produk::whereIn('id', $ids)->pluck('berat', 'id');
+
+        $total = 0;
+        foreach ($cartItems as $item) {
+            $gram = (int) round((float) ($berat[$item['id'] ?? 0] ?? 0));
+            if ($gram <= 0) {
+                $gram = 1000;
+            }
+            $total += $gram * max(1, (int) ($item['qty'] ?? 1));
+        }
+
+        return max(1, $total + (int) config('rajaongkir.base_weight', 0));
     }
 }

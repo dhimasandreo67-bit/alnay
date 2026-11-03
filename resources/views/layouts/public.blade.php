@@ -59,30 +59,10 @@
     </script>
 
     <script>
-        // 1. Simpan posisi scroll TEPAT SEBELUM halaman di-refresh
-        window.addEventListener('beforeunload', function() {
-            sessionStorage.setItem('scrollPosition', window.scrollY);
-        });
-
-        // 2. Kembalikan posisi dan TAMPILKAN halaman
-        window.addEventListener('DOMContentLoaded', function() {
-            const scrollPos = sessionStorage.getItem('scrollPosition');
-            
-            // Matikan animasi smooth sementara
-            document.documentElement.style.scrollBehavior = 'auto';
-            
-            if (scrollPos) {
-                window.scrollTo(0, parseInt(scrollPos));
-                sessionStorage.removeItem('scrollPosition');
-            }
-            
-            // MUNCULKAN HALAMAN SETELAH POSISI DIATUR (Hilangkan class preload)
-            document.body.classList.remove('preload');
-            
-            setTimeout(() => {
-                document.documentElement.style.scrollBehavior = 'smooth';
-            }, 10);
-        });
-    </script>
+    // Munculkan halaman setelah HTML selesai dimuat (hapus class preload)
+    window.addEventListener('DOMContentLoaded', function() {
+        document.body.classList.remove('preload');
+    });
+</script>
 </body>
 </html>

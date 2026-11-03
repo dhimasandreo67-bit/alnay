@@ -404,34 +404,36 @@
         </div>
     </div>
 
-    {{-- MODAL KONFIRMASI TERIMA BARANG --}}
-<div id="modalTerimaBarang" class="hidden fixed inset-0 z-[100] items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-        <div class="p-6 text-center">
-            <div class="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
-                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
+        {{-- MODAL KONFIRMASI TERIMA BARANG --}}
+    @if ($transaksi->pengiriman)
+    <div id="modalTerimaBarang" class="hidden fixed inset-0 z-[100] items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div class="p-6 text-center">
+                <div class="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3 class="font-display text-lg font-bold text-gray-900 mb-2">Konfirmasi Terima Barang</h3>
+                <p class="text-sm text-gray-500 leading-relaxed">Apakah Anda yakin barang sudah diterima dengan baik?</p>
             </div>
-            <h3 class="font-display text-lg font-bold text-gray-900 mb-2">Konfirmasi Terima Barang</h3>
-            <p class="text-sm text-gray-500 leading-relaxed">Apakah Anda yakin barang sudah diterima dengan baik?</p>
-        </div>
-        <div class="p-4 bg-gray-50 border-t border-gray-100 flex gap-2">
-            <button type="button" onclick="tutupModalTerima()"
-                class="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-100 transition-colors">
-                Batal
-            </button>
-            <form action="{{ route('akun.pengiriman.terima', $transaksi->pengiriman->id) }}" method="POST" class="flex-1">
-                @csrf
-                @method('PATCH')
-                <button type="submit"
-                    class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-md shadow-emerald-500/20">
-                    Ya, Terima
+            <div class="p-4 bg-gray-50 border-t border-gray-100 flex gap-2">
+                <button type="button" onclick="tutupModalTerima()"
+                    class="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-100 transition-colors">
+                    Batal
                 </button>
-            </form>
+                <form action="{{ route('akun.pengiriman.terima', $transaksi->pengiriman->id) }}" method="POST" class="flex-1">
+                    @csrf
+                    @method('PATCH')
+                    <button type="submit"
+                        class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-md shadow-emerald-500/20">
+                        Ya, Terima
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
-</div>
+    @endif
 
 <script>
     function bukaModalTerima() {

@@ -9,10 +9,12 @@ use App\Models\Pembayaran;
 use App\Models\Pengiriman;
 use App\Services\RajaOngkir;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class BeliController extends Controller
 {
+    /** Hanya dipakai untuk menampilkan pesanan lama yang belum menyimpan biaya kirim. */
     private const ONGKIR_DEFAULT = 45000;
 
     public function checkout(Request $request)
@@ -29,7 +31,6 @@ class BeliController extends Controller
         if (empty($user->alamat)) $dataKurang[] = 'Alamat Lengkap';
         if (empty($user->provinsi_nama)) $dataKurang[] = 'Provinsi';
         if (empty($user->kota_nama)) $dataKurang[] = 'Kota/Kabupaten';
-        if (empty($user->kota_id)) $dataKurang[] = 'Kota (Kode RajaOngkir)';
         if (empty($user->kecamatan)) $dataKurang[] = 'Kecamatan';
         if (empty($user->kode_pos)) $dataKurang[] = 'Kode Pos';
 
@@ -58,39 +59,48 @@ class BeliController extends Controller
                 ->withErrors(['stok' => 'Stok tidak mencukupi. Tersedia: ' . $produk->stok . ' unit.']);
         }
 
-        $varian = $beliData['varian'] ?? 'Emas Klasik';
+        $varian   = $beliData['varian'] ?? 'Emas Klasik';
         $subtotal = $produk->harga_jual * $qty;
 
-        // ==== HITUNG ONGKIR REAL-TIME (KOMERCE) ====
-        $ongkir = self::ONGKIR_DEFAULT;
+        // Ongkir belum dihitung di sini: pembeli memilih tujuan dulu di halaman checkout,
+        // lalu daftar layanan diambil lewat route beli.ongkir.
+        $ongkir       = 0;
         $daftarOngkir = [];
-
-        try {
-            $beratGram = max(1000, (int) ($produk->berat ?? 1000) * $qty);
-            $destinationId = $user->kota_id ?? 31517; // fallback Sleman
-
-            $service = app(RajaOngkir::class);
-
-            $jne     = $service->hitungOngkir($destinationId, $beratGram, 'jne');
-            $jnt     = $service->hitungOngkir($destinationId, $beratGram, 'jnt');
-            $sicepat = $service->hitungOngkir($destinationId, $beratGram, 'sicepat');
-
-            $daftarOngkir = array_merge($jne, $jnt, $sicepat);
-
-            if (!empty($daftarOngkir)) {
-                $termurah = collect($daftarOngkir)->sortBy('cost')->first();
-                $ongkir = $termurah['cost'] ?? self::ONGKIR_DEFAULT;
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Ongkir error di checkout: ' . $e->getMessage());
-        }
-        // ==========================================
-
-        $total = $subtotal + $ongkir;
+        $total        = $subtotal;
 
         return view('customer.beli-checkout', compact(
             'produk', 'beliData', 'qty', 'varian', 'subtotal', 'ongkir', 'total', 'user', 'daftarOngkir'
         ));
+    }
+
+    /** POST /beli/ongkir  -> daftar layanan untuk tujuan terpilih (berat dihitung di server). */
+    public function ongkir(Request $request, RajaOngkir $ro)
+    {
+        $data = $request->validate([
+            'tujuan_id' => ['required', 'integer'],
+        ]);
+
+        $beliData = session('beli_data');
+        if (!$beliData) {
+            return response()->json(['message' => 'Data pembelian tidak ditemukan.'], 422);
+        }
+
+        $produk = Produk::findOrFail($beliData['produk_id']);
+        $qty    = (int) ($beliData['qty'] ?? 1);
+
+        try {
+            $berat = $ro->beratKeranjang([['id' => $produk->id, 'qty' => $qty]]);
+            $opsi  = $ro->hitungSemuaKurir((int) $data['tujuan_id'], $berat);
+
+            if (empty($opsi)) {
+                return response()->json(['message' => 'Tidak ada layanan pengiriman untuk tujuan ini.'], 422);
+            }
+
+            return response()->json(['berat' => $berat, 'opsi' => $opsi]);
+        } catch (\Throwable $e) {
+            Log::warning('Ongkir beli gagal: ' . $e->getMessage());
+            return response()->json(['message' => 'Gagal menghitung ongkir. Coba lagi.'], 503);
+        }
     }
 
     public function simpanSession(Request $request)
@@ -106,16 +116,22 @@ class BeliController extends Controller
         return redirect()->route('beli.checkout');
     }
 
-    public function store(Request $request)
+    public function store(Request $request, RajaOngkir $ro)
     {
         $validated = $request->validate([
-            'nama_penerima' => ['required', 'string', 'max:100'],
-            'no_wa' => ['required', 'string', 'max:20'],
-            'alamat' => ['required', 'string'],
-            'catatan' => ['nullable', 'string'],
-            'metode_bayar' => ['required', 'in:qris,va,ewallet'],
-            'kurir' => ['nullable', 'string', 'max:20'],
-            'layanan_ongkir' => ['nullable', 'string', 'max:20'],
+            'nama_penerima'  => ['required', 'string', 'max:100'],
+            'no_wa'          => ['required', 'string', 'max:20'],
+            'alamat'         => ['required', 'string', 'max:500'],
+            'catatan'        => ['nullable', 'string'],
+            'metode_bayar'   => ['required', 'in:qris,va,ewallet'],
+            'tujuan_id'      => ['required', 'integer'],
+            'tujuan_label'   => ['nullable', 'string', 'max:255'],
+            'kurir'          => ['required', 'string', 'max:20'],
+            'layanan_ongkir' => ['required', 'string', 'max:20'],
+        ], [
+            'tujuan_id.required'      => 'Pilih kelurahan/kecamatan tujuan pengiriman.',
+            'kurir.required'          => 'Pilih kurir dan layanan pengiriman.',
+            'layanan_ongkir.required' => 'Pilih kurir dan layanan pengiriman.',
         ]);
 
         $beliData = session('beli_data');
@@ -125,7 +141,7 @@ class BeliController extends Controller
         }
 
         $produk = Produk::findOrFail($beliData['produk_id']);
-        $qty = $beliData['qty'] ?? 1;
+        $qty    = (int) ($beliData['qty'] ?? 1);
 
         // ==== VALIDASI STOK FINAL ====
         if ($produk->stok <= 0) {
@@ -140,77 +156,77 @@ class BeliController extends Controller
 
         $subtotal = $produk->harga_jual * $qty;
 
-        // ==== HITUNG ONGKIR FINAL (SERVER-SIDE) ====
-        $ongkir = self::ONGKIR_DEFAULT;
-
+        // ==== HITUNG ULANG ONGKIR DI SERVER (angka dari browser tidak dipercaya) ====
         try {
-            $beratGram = max(1000, (int) ($produk->berat ?? 1000) * $qty);
-            $destinationId = auth()->user()->kota_id ?? 31517;
-
-            $kurirDipilih = $validated['kurir'] ?? 'jne';
-            $layananDipilih = $validated['layanan_ongkir'] ?? null;
-
-            $service = app(RajaOngkir::class);
-            $hasil = $service->hitungOngkir($destinationId, $beratGram, $kurirDipilih);
-
-            if (!empty($hasil)) {
-                if ($layananDipilih) {
-                    $match = collect($hasil)->firstWhere('service', $layananDipilih);
-                    $ongkir = $match['cost'] ?? collect($hasil)->sortBy('cost')->first()['cost'];
-                } else {
-                    $ongkir = collect($hasil)->sortBy('cost')->first()['cost'];
-                }
-            }
+            $berat = $ro->beratKeranjang([['id' => $produk->id, 'qty' => $qty]]);
+            $opsi  = $ro->hitungOngkir(
+                (int) $validated['tujuan_id'],
+                $berat,
+                strtolower($validated['kurir'])
+            );
         } catch (\Throwable $e) {
             Log::warning('Ongkir error saat store: ' . $e->getMessage());
+            return back()->withInput()
+                ->withErrors(['kurir' => 'Gagal menghitung ongkir. Coba lagi sebentar.']);
         }
-        // ==========================================
 
-        $total = $subtotal + $ongkir;
+        $dipilih = collect($opsi)->first(
+            fn ($o) => strcasecmp($o['layanan'], $validated['layanan_ongkir']) === 0
+        );
 
-        // Simpan transaksi
-        $transaksi = Transaksi::create([
-            'kode_transaksi' => 'ALN-BL-' . strtoupper(substr(uniqid(), -8)),
-            'user_id' => auth()->id(),
-            'jenis' => 'beli',
-            'kanal' => 'online',
-            'tanggal' => now()->toDateString(),
-            'total' => $total,
-            'status_pembayaran' => 'pending',
-            'catatan' => $validated['catatan'] ?? null,
-        ]);
+        if (!$dipilih) {
+            return back()->withInput()
+                ->withErrors(['kurir' => 'Layanan pengiriman yang dipilih tidak tersedia. Pilih ulang.']);
+        }
 
-        // Simpan detail
-        DetailTransaksi::create([
-            'transaksi_id' => $transaksi->id,
-            'produk_id' => $produk->id,
-            'jumlah' => $qty,
-            'harga_satuan' => $produk->harga_jual,
-        ]);
+        $ongkir = (int) $dipilih['biaya'];
+        $total  = $subtotal + $ongkir;
 
-        // Simpan pembayaran
-        Pembayaran::create([
-            'transaksi_id' => $transaksi->id,
-            'jenis_bayar' => 'lunas',
-            'jumlah' => $total,
-            'metode' => $validated['metode_bayar'],
-            'status_midtrans' => 'pending',
-            'tanggal_bayar' => now(),
-        ]);
+        $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih) {
+            $transaksi = Transaksi::create([
+                'kode_transaksi'    => 'ALN-BL-' . strtoupper(substr(uniqid(), -8)),
+                'user_id'           => auth()->id(),
+                'jenis'             => 'beli',
+                'kanal'             => 'online',
+                'tanggal'           => now()->toDateString(),
+                'total'             => $total,
+                'status_pembayaran' => 'pending',
+                'catatan'           => $validated['catatan'] ?? null,
+            ]);
 
-        // Simpan pengiriman (dengan ongkir dinamis)
-        Pengiriman::create([
-            'transaksi_id' => $transaksi->id,
-            'provinsi_tujuan' => auth()->user()->provinsi_nama ?? '-',
-            'kota_tujuan' => auth()->user()->kota_nama ?? '-',
-            'kecamatan_tujuan' => auth()->user()->kecamatan ?? '-',
-            'kode_pos_tujuan' => auth()->user()->kode_pos ?? null,
-            'alamat_tujuan' => $validated['alamat'],
-            'status_kirim' => 'menunggu',
-            'kurir' => $validated['kurir'] ?? null,
-            'layanan_ongkir' => $validated['layanan_ongkir'] ?? null,
-            'biaya_kirim' => $ongkir,
-        ]);
+            DetailTransaksi::create([
+                'transaksi_id' => $transaksi->id,
+                'produk_id'    => $produk->id,
+                'jumlah'       => $qty,
+                'harga_satuan' => $produk->harga_jual,
+            ]);
+
+            Pembayaran::create([
+                'transaksi_id'    => $transaksi->id,
+                'jenis_bayar'     => 'lunas',
+                'jumlah'          => $total,
+                'metode'          => $validated['metode_bayar'],
+                'status_midtrans' => 'pending',
+                'tanggal_bayar'   => now(),
+            ]);
+
+            $tujuan = $validated['tujuan_label'] ?? null;
+
+            Pengiriman::create([
+                'transaksi_id'     => $transaksi->id,
+                'provinsi_tujuan'  => auth()->user()->provinsi_nama ?? '-',
+                'kota_tujuan'      => auth()->user()->kota_nama ?? '-',
+                'kecamatan_tujuan' => auth()->user()->kecamatan ?? '-',
+                'kode_pos_tujuan'  => auth()->user()->kode_pos ?? null,
+                'alamat_tujuan'    => $validated['alamat'] . ($tujuan ? ' | Tujuan: ' . $tujuan : ''),
+                'status_kirim'     => 'menunggu',
+                'kurir'            => $dipilih['kurir'],
+                'layanan_ongkir'   => $dipilih['layanan'],
+                'biaya_kirim'      => $ongkir,
+            ]);
+
+            return $transaksi;
+        });
 
         session()->forget('beli_data');
 
@@ -224,12 +240,12 @@ class BeliController extends Controller
             ->where('user_id', auth()->id())
             ->findOrFail($id);
 
-        $produk = $transaksi->detail->first()->produk;
-        $qty = $transaksi->detail->first()->jumlah;
-        $varian = 'Emas Klasik';
+        $produk   = $transaksi->detail->first()->produk;
+        $qty      = $transaksi->detail->first()->jumlah;
+        $varian   = 'Emas Klasik';
         $subtotal = $transaksi->detail->first()->harga_satuan * $qty;
-        $ongkir = $transaksi->pengiriman->biaya_kirim ?? self::ONGKIR_DEFAULT;
-        $total = $transaksi->total;
+        $ongkir   = $transaksi->pengiriman->biaya_kirim ?? self::ONGKIR_DEFAULT;
+        $total    = $transaksi->total;
 
         return view('customer.beli-konfirmasi', compact(
             'transaksi', 'produk', 'qty', 'varian', 'subtotal', 'ongkir', 'total'

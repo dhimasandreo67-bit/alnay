@@ -70,7 +70,7 @@ class Transaksi extends Model
 
     public function pengiriman()
     {
-        return $this->hasOne(Pengiriman::class);
+        return $this->hasOne(Pengiriman::class, 'transaksi_id');
     }
 
     public function sewa()

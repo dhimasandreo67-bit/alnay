@@ -29,4 +29,11 @@ class WilayahController extends Controller
         // Untuk sementara, kembalikan array kosong.
         return [];
     }
+
+        public function kecamatan($cityId)
+    {
+        // Karena API Komerce tidak punya data kecamatan, kita return array kosong.
+        // Nanti di JavaScript, jika kosong, akan otomatis berubah jadi input teks.
+        return [];
+    }
 }

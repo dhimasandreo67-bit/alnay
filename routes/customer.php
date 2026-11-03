@@ -74,6 +74,10 @@ Route::middleware('auth:web')->group(function () {
     Route::get('/ongkir/tujuan', [OngkirController::class, 'tujuan'])->name('ongkir.tujuan');
     Route::post('/ongkir/hitung', [OngkirController::class, 'hitung'])->name('ongkir.hitung');
 
+    Route::get('/akun/wilayah/kecamatan/{kotaId}', [OngkirController::class, 'kecamatan'])
+        ->whereNumber('kotaId')
+        ->name('akun.wilayah.kecamatan');
+
 });
 
 // Webhook Midtrans

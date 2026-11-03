@@ -251,41 +251,26 @@
                                     <input type="text" name="catatan" x-model="catatan"
                                         class="w-full px-3 py-2.5 rounded-md border border-line/60 bg-white text-[13px] text-ink/85 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 hover:border-gold/60 transition-all">
                                 </div>
-                                {{-- Pilih Kurir & Ongkir --}}
+                                                                {{-- Tujuan, Kurir & Ongkir --}}
                                 <div class="mt-4">
+                                    <div class="relative mb-4">
+                                        <label class="block text-xs font-medium text-ink/70 mb-1">Kelurahan / Kecamatan Tujuan</label>
+                                        <input type="text" id="q-tujuan" autocomplete="off"
+                                            value="{{ old('tujuan_label', $user->kecamatan) }}"
+                                            placeholder="Ketik minimal 3 huruf, lalu pilih dari daftar"
+                                            class="w-full px-3 py-2.5 rounded-md border border-line/60 bg-white text-[13px] text-ink/85 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 hover:border-gold/60 transition-all">
+                                        <div id="hasil-tujuan"
+                                            class="hidden absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-line/60 bg-white shadow-lg"></div>
+                                        <p id="info-tujuan" class="mt-1 text-[11px] text-ink/50"></p>
+                                    </div>
+
                                     <label class="block text-xs font-medium text-ink/70 mb-2">Pilih Kurir & Layanan</label>
+                                    <div id="opsi-ongkir" class="space-y-2">
+                                        <p class="text-xs text-ink/55">Pilih tujuan terlebih dahulu.</p>
+                                    </div>
 
-                                    @if (!empty($daftarOngkir))
-                                        <div class="space-y-2">
-                                            @foreach ($daftarOngkir as $i => $o)
-                                                <label class="cursor-pointer block">
-                                                    <input type="radio" name="layanan_ongkir" value="{{ $o['service'] }}"
-                                                        data-kurir="{{ $o['courier'] }}" data-cost="{{ $o['cost'] }}"
-                                                        data-label="{{ strtoupper($o['courier']) }} {{ $o['service'] }}"
-                                                        class="peer sr-only ongkir-radio" @checked($i === 0)
-                                                        onchange="updateTotalOngkir(this)">
-                                                    <div
-                                                        class="flex items-center justify-between gap-3 p-3 rounded-lg border border-line/60
-                                    peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all">
-                                                        <div>
-                                                            <p class="text-[13px] font-semibold text-ink/85">
-                                                                {{ strtoupper($o['courier']) }} - {{ $o['service'] }}
-                                                            </p>
-                                                            <p class="text-[11px] text-ink/55">{{ $o['description'] }} (est. {{ $o['etd'] ?: '-' }})</p>
-                                                        </div>
-                                                        <span class="text-[13px] font-bold text-ink tabular-nums">
-                                                            Rp {{ number_format($o['cost'], 0, ',', '.') }}
-                                                        </span>
-                                                    </div>
-                                                </label>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <p class="text-xs text-rose-600">Ongkir tidak tersedia saat ini. Silakan coba lagi
-                                            nanti.</p>
-                                    @endif
-
-                                    {{-- Kirim kurir & layanan ke backend --}}
+                                    <input type="hidden" name="tujuan_id" id="in-tujuan-id" value="">
+                                    <input type="hidden" name="tujuan_label" id="in-tujuan-label" value="">
                                     <input type="hidden" name="kurir" id="inputKurir" value="">
                                 </div>
                             </div>
@@ -452,91 +437,217 @@
             </div>
         </div>
 
-        <script>
-            document.addEventListener('alpine:init', () => {
-                Alpine.data('checkoutBeli', (cfg) => {
-                    return {
-                        metodeBayar: cfg.bayar,
-                        namaPenerima: cfg.nama,
-                        noWa: cfg.wa,
-                        alamat: cfg.alamat,
-                        catatan: cfg.catatan,
-                        setuju: cfg.setuju,
+                <script>
+            (function () {
+                const SUBTOTAL   = {{ (int) $subtotal }};
+                const URL_TUJUAN = "{{ route('ongkir.tujuan') }}";
+                const URL_HITUNG = "{{ route('beli.ongkir') }}";
+                const TOKEN      = document.querySelector('input[name="_token"]').value;
 
-                        errorMetode: '',
-                        getar: false,
-                        sedangKirim: false,
+                const $ = id => document.getElementById(id);
+                const rupiah = n => 'Rp ' + new Intl.NumberFormat('id-ID').format(n);
 
-                        tampilError(pesan) {
-                            this.errorMetode = pesan;
-                            this.getar = false;
-                            this.$nextTick(() => {
-                                this.getar = true;
-                                setTimeout(() => {
-                                    this.getar = false;
-                                }, 500);
-                                if (this.$refs.errorBox) {
-                                    this.$refs.errorBox.scrollIntoView({
-                                        behavior: 'smooth',
-                                        block: 'center'
-                                    });
-                                }
-                            });
-                            return false;
-                        },
+                let timer = null;
 
-                        validasi() {
-                            const kurirTerpilih = document.getElementById('inputKurir').value;
-                            if (!this.metodeBayar) return this.tampilError('Pilih metode pembayaran.');
-                            if (!kurirTerpilih) return this.tampilError('Pilih kurir pengiriman terlebih dahulu.');
-                            if (!this.namaPenerima.trim()) return this.tampilError(
-                                'Nama penerima wajib diisi.');
-                            if (!this.noWa.trim()) return this.tampilError('No. WhatsApp wajib diisi.');
-                            if (!this.alamat.trim()) return this.tampilError('Alamat lengkap wajib diisi.');
-                            if (!this.setuju) return this.tampilError(
-                                'Centang persetujuan syarat & ketentuan pembelian.');
-
-                            this.errorMetode = '';
-                            return true;
-                        },
-
-                        kirim() {
-                            if (this.sedangKirim) return;
-                            if (!this.validasi()) return;
-                            this.sedangKirim = true;
-                            this.$refs.formCheckout.submit();
-                        },
-                    };
-                });
-            });
-        </script>
-
-        <script>
-            const SUBTOTAL = {{ $subtotal }};
-
-            function updateTotalOngkir(el) {
-                const cost = parseInt(el.dataset.cost) || 0;
-                const kurir = el.dataset.kurir || '';
-                const label = el.dataset.label || 'Ongkir';
-                const total = SUBTOTAL + cost;
-
-                document.getElementById('labelNamaOngkir').textContent = 'Ongkos Kirim (' + label + ')';
-                document.getElementById('labelOngkir').textContent = 'Rp ' + cost.toLocaleString('id-ID');
-                document.getElementById('labelTotal').textContent = 'Rp ' + total.toLocaleString('id-ID');
-                document.getElementById('labelTotalBayar').textContent = 'Rp ' + total.toLocaleString('id-ID');
-                document.getElementById('labelTotalBayarMobile').textContent = 'Rp ' + total.toLocaleString('id-ID');
-                document.getElementById('inputKurir').value = kurir;
-            }
-
-            // Set nilai awal saat halaman dimuat
-            document.addEventListener('DOMContentLoaded', function() {
-                const first = document.querySelector('.ongkir-radio:checked') || document.querySelector(
-                '.ongkir-radio');
-                if (first) {
-                    first.checked = true;
-                    updateTotalOngkir(first);
+                function setHarga(ongkir, label) {
+                    const total = SUBTOTAL + ongkir;
+                    $('labelNamaOngkir').textContent = label ? 'Ongkos Kirim (' + label + ')' : 'Ongkos Kirim';
+                    $('labelOngkir').textContent = label ? rupiah(ongkir) : 'Belum dipilih';
+                    ['labelTotal', 'labelTotalBayar', 'labelTotalBayarMobile'].forEach(id => {
+                        $(id).textContent = rupiah(total);
+                    });
                 }
-            });
+
+                function resetLayanan() {
+                    $('inputKurir').value = '';
+                    setHarga(0, '');
+                }
+
+                function resetTujuan() {
+                    $('in-tujuan-id').value = '';
+                    $('in-tujuan-label').value = '';
+                    $('info-tujuan').textContent = '';
+                    pesanOpsi('Pilih tujuan terlebih dahulu.');
+                    resetLayanan();
+                }
+
+                function pesanOpsi(teks) {
+                    const p = document.createElement('p');
+                    p.className = 'text-xs text-ink/55';
+                    p.textContent = teks;
+                    $('opsi-ongkir').replaceChildren(p);
+                }
+
+                async function cariTujuan(q) {
+                    try {
+                        const res = await fetch(URL_TUJUAN + '?q=' + encodeURIComponent(q), {
+                            headers: { 'Accept': 'application/json' },
+                        });
+                        const data = await res.json();
+                        renderHasil(Array.isArray(data) ? data : []);
+                    } catch (e) {
+                        $('info-tujuan').textContent = 'Gagal mencari tujuan. Coba lagi.';
+                    }
+                }
+
+                function renderHasil(list) {
+                    const box = $('hasil-tujuan');
+                    box.replaceChildren();
+
+                    if (!list.length) {
+                        const p = document.createElement('p');
+                        p.className = 'px-3 py-2 text-xs text-ink/55';
+                        p.textContent = 'Tujuan tidak ditemukan.';
+                        box.appendChild(p);
+                    }
+
+                    list.forEach(t => {
+                        const b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = 'block w-full text-left px-3 py-2 text-xs text-ink/80 hover:bg-gold/10 border-b border-line/30 last:border-0';
+                        b.textContent = t.label;
+                        b.addEventListener('click', () => pilihTujuan(t));
+                        box.appendChild(b);
+                    });
+
+                    box.classList.remove('hidden');
+                }
+
+                function pilihTujuan(t) {
+                    $('in-tujuan-id').value = t.id;
+                    $('in-tujuan-label').value = t.label;
+                    $('q-tujuan').value = t.label;
+                    $('hasil-tujuan').classList.add('hidden');
+                    $('info-tujuan').textContent = 'Tujuan dipilih.';
+                    hitungOngkir(t.id);
+                }
+
+                async function hitungOngkir(tujuanId) {
+                    resetLayanan();
+                    pesanOpsi('Menghitung ongkir...');
+
+                    try {
+                        const res = await fetch(URL_HITUNG, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': TOKEN,
+                            },
+                            body: JSON.stringify({ tujuan_id: tujuanId }),
+                        });
+                        const data = await res.json();
+
+                        if (!res.ok) {
+                            pesanOpsi(data.message || 'Gagal menghitung ongkir.');
+                            return;
+                        }
+
+                        renderOpsi(data.opsi || []);
+                    } catch (e) {
+                        pesanOpsi('Gagal menghitung ongkir. Coba lagi.');
+                    }
+                }
+
+                function renderOpsi(list) {
+                    const wrap = $('opsi-ongkir');
+                    wrap.replaceChildren();
+
+                    list.forEach(o => {
+                        const label = document.createElement('label');
+                        label.className = 'cursor-pointer block';
+
+                        const input = document.createElement('input');
+                        input.type = 'radio';
+                        input.name = 'layanan_ongkir';
+                        input.value = o.layanan;
+                        input.className = 'peer sr-only';
+                        input.addEventListener('change', () => {
+                            $('inputKurir').value = o.kurir;
+                            setHarga(o.biaya, o.kurir.toUpperCase() + ' ' + o.layanan);
+                        });
+
+                        const card = document.createElement('div');
+                        card.className = 'flex items-center justify-between gap-3 p-3 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all';
+
+                        const info = document.createElement('div');
+                        const nama = document.createElement('p');
+                        nama.className = 'text-[13px] font-semibold text-ink/85';
+                        nama.textContent = o.kurir.toUpperCase() + ' - ' + o.layanan;
+                        const est = document.createElement('p');
+                        est.className = 'text-[11px] text-ink/55';
+                        est.textContent = (o.deskripsi || '') + ' (est. ' + (o.etd || '-') + ')';
+                        info.append(nama, est);
+
+                        const harga = document.createElement('span');
+                        harga.className = 'text-[13px] font-bold text-ink tabular-nums';
+                        harga.textContent = rupiah(o.biaya);
+
+                        card.append(info, harga);
+                        label.append(input, card);
+                        wrap.appendChild(label);
+                    });
+                }
+
+                $('q-tujuan').addEventListener('input', function () {
+                    resetTujuan();
+                    clearTimeout(timer);
+
+                    const q = this.value.trim();
+                    if (q.length < 3) {
+                        $('hasil-tujuan').classList.add('hidden');
+                        return;
+                    }
+                    timer = setTimeout(() => cariTujuan(q), 350);
+                });
+
+                document.addEventListener('click', e => {
+                    if (!$('hasil-tujuan').contains(e.target) && e.target !== $('q-tujuan')) {
+                        $('hasil-tujuan').classList.add('hidden');
+                    }
+                });
+
+                // Keadaan awal: ongkir belum dipilih; cari otomatis dari kecamatan di profil.
+                document.addEventListener('DOMContentLoaded', function () {
+                    setHarga(0, '');
+                    const awal = $('q-tujuan').value.trim();
+                    if (awal.length >= 3) cariTujuan(awal);
+                });
+            })();
         </script>
+
+        <script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('checkoutBeli', (cfg) => {
+            return {
+                // State dari PHP
+                metodeBayar: cfg.bayar,
+                namaPenerima: cfg.nama,
+                noWa: cfg.wa,
+                alamat: cfg.alamat,
+                catatan: cfg.catatan,
+                setuju: cfg.setuju,
+                total: cfg.total,
+                
+                // State UI
+                sedangKirim: false,
+                errorMetode: '',
+                getar: false,
+
+                // Fungsi Kirim
+                kirim() {
+                    if (!this.setuju) {
+                        this.errorMetode = 'Centang syarat & ketentuan.';
+                        this.getar = true;
+                        setTimeout(() => this.getar = false, 500);
+                        return;
+                    }
+                    this.sedangKirim = true;
+                    this.$refs.formCheckout.submit();
+                }
+            };
+        });
+    });
+</script>
 
     @endsection

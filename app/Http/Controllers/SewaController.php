@@ -178,7 +178,7 @@ class SewaController extends Controller
         }
 
         // 3. Simpan Pembayaran
-        $dp = array_sum(array_map(fn($i) => $i->dp, $items));
+        $dp = array_sum(array_map(fn($i) => $i->dp ?? 0, $items));
         Pembayaran::create([
             'transaksi_id' => $transaksi->id,
             'jenis_bayar' => 'dp',

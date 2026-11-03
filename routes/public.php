@@ -46,8 +46,12 @@ Route::post('/reservasi-fitting/{id}/cancel', [FittingController::class, 'cancel
 // Alur Beli
 Route::post('/beli/simpan', [BeliController::class, 'simpanSession'])->name('beli.simpan');
 Route::get('/beli/checkout', [BeliController::class, 'checkout'])->name('beli.checkout');
-Route::post('/beli/checkout', [BeliController::class, 'store'])->name('beli.store');
-Route::get('/beli/konfirmasi/{id}', [BeliController::class, 'konfirmasi'])->name('beli.konfirmasi');
+
+Route::middleware('auth:web')->group(function () {
+    Route::post('/beli/checkout', [BeliController::class, 'store'])->name('beli.store');
+    Route::post('/beli/ongkir', [BeliController::class, 'ongkir'])->name('beli.ongkir');
+    Route::get('/beli/konfirmasi/{id}', [BeliController::class, 'konfirmasi'])->name('beli.konfirmasi');
+});
 
 // Event — TAUTAN KELUAR ke sistem terpisah (event.alnay.id)
 Route::get('/event', function () {
