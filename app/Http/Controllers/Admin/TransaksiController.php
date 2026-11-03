@@ -164,6 +164,7 @@ class TransaksiController extends Controller
             // Jaminan sewa: foto KTP + centang kecocokan NIK & nama (tanpa input manual)
             'foto_ktp' => 'required_if:jenis,sewa|nullable|image|mimes:jpeg,png,webp|max:2048',
             'ktp_sesuai' => 'accepted_if:jenis,sewa',
+            'jumlah_deposit' => 'required_if:jenis,sewa|nullable|numeric|min:1',
 
             'status_pembayaran' => 'required|in:lunas,dp',
             'jumlah_dp' => 'required_if:status_pembayaran,dp|nullable|numeric|min:1',
@@ -172,6 +173,7 @@ class TransaksiController extends Controller
         ], [
             'foto_ktp.required_if' => 'Upload foto KTP penyewa.',
             'ktp_sesuai.accepted_if' => 'Centang konfirmasi bahwa NIK & nama di KTP sudah sesuai dengan penyewa.',
+            'jumlah_deposit.required_if' => 'Isi jumlah deposit jaminan.',
         ]);
 
         // Helper: hitung harga final 1 unit produk sesuai jenis transaksi (beli/sewa) + diskon
@@ -374,7 +376,7 @@ class TransaksiController extends Controller
                     'tanggal_pinjam' => $validated['tanggal_pinjam'],
                     'tanggal_kembali_rencana' => $validated['tanggal_kembali_rencana'],
                     'metode_jaminan' => 'ktp_tatap_muka',
-                    'jumlah_deposit' => 0,
+                    'jumlah_deposit' => $validated['jumlah_deposit'] ?? 0,
                     'foto_ktp' => $fotoKtpPath,
                     'nama_ktp' => $transaksi->nama_pelanggan,
                     'terverifikasi_oleh' => auth('admin')->id(),
