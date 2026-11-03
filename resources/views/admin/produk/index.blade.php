@@ -53,8 +53,9 @@
             // Ambang batas "stok hampir habis". Belum ada kolom khusus di tabel produk,
             // jadi dipakai angka tetap dulu — gampang diubah di sini kalau mau disesuaikan.
             $batasStokMenipis = 3;
-            $produkStokHabis = $produkList->where('stok', '<=', 0);
-            $produkStokMenipis = $produkList->whereBetween('stok', [1, $batasStokMenipis]);
+            // Produk dijual & disewa punya dua stok terpisah -> pakai yang paling sedikit.
+            $produkStokHabis = $produkList->filter(fn ($p) => $p->stokTerendah() <= 0);
+            $produkStokMenipis = $produkList->filter(fn ($p) => $p->stokTerendah() >= 1 && $p->stokTerendah() <= $batasStokMenipis);
             $produkPerluRestock = $produkStokHabis->merge($produkStokMenipis);
         @endphp
 
@@ -263,8 +264,8 @@
                                     'rusak'    => 'bg-rose-50 text-rose-700 border-rose-200',
                                     default    => 'bg-gray-50 text-gray-500 border-gray-200',
                                 };
-                                $stokHabis = $produk->stok <= 0;
-                                $stokMenipis = !$stokHabis && $produk->stok <= $batasStokMenipis;
+                                $stokHabis = $produk->stokTerendah() <= 0;
+                                $stokMenipis = !$stokHabis && $produk->stokTerendah() <= $batasStokMenipis;
                                 $rowStokClass = $stokHabis ? 'bg-rose-50/50 hover:bg-rose-50/80' : ($stokMenipis ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-cream/40');
                             @endphp
                             <tr data-cari="{{ \Illuminate\Support\Str::lower(implode(' ', [$produk->nama, $produk->sku, $produk->motif, $produk->bahan, $produk->kategori->nama_kategori ?? ''])) }}"
@@ -303,32 +304,37 @@
                                 </td>
                                 <td class="px-3 py-3 text-[11px] whitespace-nowrap">
                                     @php
-                                        // Harga setelah diskon, dihitung dengan rumus yang sama
-                                        // dengan preview di form Tambah/Edit Produk (hargaSewa * (1 - diskon/100)),
-                                        // supaya angka yang tampil di sini selalu sesuai dengan yang di-preview saat input.
-                                        $diskonProduk = (float) ($produk->diskon_persen ?? 0);
-                                        $sewaFinal = $produk->harga_sewa ? $produk->harga_sewa * (1 - $diskonProduk / 100) : null;
-                                        $jualFinal = $produk->harga_jual ? $produk->harga_jual * (1 - $diskonProduk / 100) : null;
+                                        // Diskon sewa dan jual dipisah. Rumus sama dengan preview di form:
+                                        // harga * (1 - diskon/100).
+                                        $diskonSewa = (float) ($produk->diskon_sewa_persen ?? 0);
+                                        $diskonJual = (float) ($produk->diskon_jual_persen ?? 0);
+                                        $sewaFinal = $produk->harga_sewa ? $produk->harga_sewa * (1 - $diskonSewa / 100) : null;
+                                        $jualFinal = $produk->harga_jual ? $produk->harga_jual * (1 - $diskonJual / 100) : null;
+                                        $fmtPersen = fn ($d) => rtrim(rtrim(number_format($d, 1, ',', '.'), '0'), ',');
                                     @endphp
                                     @if($produk->bisa_disewa && $produk->harga_sewa)
                                         <p class="font-bold text-gold">
                                             Sewa:
-                                            @if($diskonProduk > 0)
+                                            @if($diskonSewa > 0)
                                                 <span class="line-through text-muted font-normal">Rp {{ number_format($produk->harga_sewa, 0, ',', '.') }}</span>
                                                 Rp {{ number_format($sewaFinal, 0, ',', '.') }}
                                             @else
                                                 Rp {{ number_format($produk->harga_sewa, 0, ',', '.') }}
                                             @endif
                                             <span class="text-muted font-normal">/3hr</span>
+                                            @if($diskonSewa > 0)
+                                                <span class="inline-flex items-center ml-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold text-rose-700 border border-rose-200">-{{ $fmtPersen($diskonSewa) }}%</span>
+                                            @endif
                                         </p>
                                     @endif
                                     @if($produk->dapat_dijual)
                                         <p class="text-ink/70 mt-1 font-medium">
                                             Jual:
                                             @if($produk->harga_jual)
-                                                @if($diskonProduk > 0)
+                                                @if($diskonJual > 0)
                                                     <span class="line-through text-muted font-normal">Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</span>
                                                     <span class="font-bold text-gold">Rp {{ number_format($jualFinal, 0, ',', '.') }}</span>
+                                                    <span class="inline-flex items-center ml-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold text-rose-700 border border-rose-200">-{{ $fmtPersen($diskonJual) }}%</span>
                                                 @else
                                                     Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}
                                                 @endif
@@ -337,15 +343,21 @@
                                             @endif
                                         </p>
                                     @endif
-                                    @if($diskonProduk > 0)
-                                        <span class="inline-flex items-center gap-1 mt-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold text-rose-700 border border-rose-200">
-                                            -{{ rtrim(rtrim(number_format($diskonProduk, 1, ',', '.'), '0'), ',') }}%
-                                        </span>
-                                    @endif
                                 </td>
                                 <td class="px-3 py-3">
                                     <div class="flex flex-col items-start gap-1 whitespace-nowrap">
-                                        <span class="text-xs font-black text-ink">{{ $produk->stok }} <span class="text-xs font-normal text-muted">unit</span></span>
+                                        @if($produk->pisahStok())
+                                            <span class="text-xs font-black text-ink">
+                                                <span class="text-[10px] font-bold uppercase text-emerald-600">Jual</span> {{ $produk->stokUntuk('jual') }}
+                                                <span class="text-xs font-normal text-muted">unit</span>
+                                            </span>
+                                            <span class="text-xs font-black text-ink">
+                                                <span class="text-[10px] font-bold uppercase text-sky-600">Sewa</span> {{ $produk->stokUntuk('sewa') }}
+                                                <span class="text-xs font-normal text-muted">unit</span>
+                                            </span>
+                                        @else
+                                            <span class="text-xs font-black text-ink">{{ $produk->stok }} <span class="text-xs font-normal text-muted">unit</span></span>
+                                        @endif
                                         @if($stokHabis)
                                             <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-bold text-rose-700 border border-rose-200 animate-pulse" title="Stok produk ini kosong">
                                                 <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
