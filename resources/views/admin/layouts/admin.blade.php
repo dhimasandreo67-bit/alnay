@@ -10,6 +10,14 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <style>
+    /* Wajib ada supaya x-cloak benar-benar menyembunyikan elemen sebelum Alpine siap.
+       Tanpa rule ini, elemen ber-atribut x-cloak (mis. modal zoom foto KTP yang
+       fixed inset-0) akan sempat kelihatan sekilas (flash) saat halaman baru dimuat,
+       sebelum Alpine.js selesai inisialisasi dan menyembunyikannya lewat x-show. */
+    [x-cloak] {
+        display: none !important;
+    }
+
     /* Custom Scrollbar untuk Modal */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;

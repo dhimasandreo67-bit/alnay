@@ -46,6 +46,23 @@
 
 <div class="p-6 space-y-6 transition-all duration-500 animate-fade-in">
 
+    @if (session('success'))
+        <div class="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 shadow-sm" role="alert">
+            <svg class="h-5 w-5 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if (session('error') || $errors->any())
+        <div class="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800 shadow-sm" role="alert">
+            <svg class="mt-0.5 h-5 w-5 shrink-0 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div class="space-y-0.5">
+                @if (session('error')) <p>{{ session('error') }}</p> @endif
+                @foreach ($errors->all() as $pesan) <p>{{ $pesan }}</p> @endforeach
+            </div>
+        </div>
+    @endif
+
     <style>
         .group-shine {
             position: relative;
@@ -68,22 +85,31 @@
             left: 130%;
         }
 
-        /* Area tabel bisa scroll sendiri dengan header yang tetap terlihat, penting saat log banyak. */
+        /*
+         * Area tabel scroll sendiri, header tetap di atas.
+         * Background WAJIB solid: kalau transparan, baris yang ter-scroll tembus ke bawah header.
+         * --tinggi-header diisi lewat JS (tinggi asli thead) supaya pemisah tanggal
+         * menempel tepat di bawah header, tidak menimpanya.
+         */
         #scroll-audit {
             max-height: 70vh;
+            --tinggi-header: 49px;
         }
 
         #scroll-audit thead th {
             position: sticky;
             top: 0;
-            z-index: 10;
+            z-index: 20;
+            background-color: #f9fafb;
+            box-shadow: inset 0 -1px 0 #e5e7eb;
         }
 
-        /* Pemisah tanggal ikut "menempel" tepat di bawah header saat discroll. */
         #tbody-audit tr.tanggal-pemisah td {
             position: sticky;
-            top: 41px;
-            z-index: 5;
+            top: var(--tinggi-header);
+            z-index: 10;
+            background-color: #f3f4f6;
+            box-shadow: inset 0 -1px 0 #e5e7eb;
         }
 
         /* Mode tampilan rapat: kurangi jarak vertikal tiap baris. */
@@ -110,6 +136,11 @@
                     class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-500 shadow-sm transition-all hover:border-amber-200 hover:text-amber-700 active:scale-95">
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 <span id="densitas-label">Nyaman</span>
+            </button>
+            <button type="button" id="btn-bersihkan"
+                    class="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-600 shadow-sm transition-all hover:border-rose-300 hover:bg-rose-50 active:scale-95">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Bersihkan Log
             </button>
             <button type="button" id="btn-live"
                     class="group-shine relative inline-flex items-center gap-2 overflow-hidden rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white px-4 py-2 text-xs font-bold text-amber-800 shadow-sm transition-all hover:from-amber-100 hover:to-amber-50 hover:shadow-md hover:shadow-amber-500/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60">
@@ -245,11 +276,36 @@
 
     {{-- Tabel --}}
     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+        {{-- Form hapus terpilih (id log diisi lewat JS saat dikirim) --}}
+        <form id="form-hapus-terpilih" method="POST" action="{{ route('admin.audit.hapus-terpilih') }}">
+            @csrf
+            @method('DELETE')
+            @foreach ($filterJs as $k => $v)
+                @if (filled($v)) <input type="hidden" name="{{ $k }}" value="{{ $v }}"> @endif
+            @endforeach
+        </form>
+        <div id="bulk-bar" class="hidden items-center justify-between gap-3 border-b border-rose-100 bg-rose-50 px-6 py-3">
+            <span class="text-xs font-bold text-rose-700"><span id="bulk-jumlah">0</span> log dipilih</span>
+            <div class="flex items-center gap-2">
+                <button type="button" id="bulk-batal"
+                        class="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 transition-all hover:bg-gray-50 active:scale-95">Batal</button>
+                <button type="button" id="bulk-hapus"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-rose-700 active:scale-95">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    Hapus Terpilih
+                </button>
+            </div>
+        </div>
+
         <div id="scroll-audit" class="overflow-auto">
             <table id="tabel-audit" class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gray-50/80">
                     <tr>
-                        <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Waktu</th>
+                        <th class="w-10 px-4 py-4">
+                            <input type="checkbox" id="cek-semua" aria-label="Pilih semua log di halaman ini"
+                                   class="h-4 w-4 cursor-pointer rounded border-gray-300 accent-amber-600">
+                        </th>
+                        <th class="px-4 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Waktu</th>
                         <th class="px-4 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Pelaku</th>
                         <th class="px-4 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Aksi</th>
                         <th class="px-4 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Modul</th>
@@ -264,7 +320,7 @@
                         @endphp
                         @if ($tanggalLog && $tanggalLog !== $tanggalBerjalan)
                             <tr class="tanggal-pemisah bg-gray-50/90">
-                                <td colspan="6" class="px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                                <td colspan="7" class="px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">
                                     {{ $tanggalLog }}
                                 </td>
                             </tr>
@@ -273,7 +329,7 @@
                         @include('admin.audit._baris', ['log' => $log])
                     @empty
                         <tr id="baris-kosong">
-                            <td colspan="6" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
+                            <td colspan="7" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
                                 {{ $adaFilter ? 'Tidak ada aktivitas yang cocok dengan filter ini.' : 'Belum ada aktivitas tercatat.' }}
                             </td>
                         </tr>
@@ -284,6 +340,79 @@
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
             {{ $logs->links() }}
         </div>
+    </div>
+</div>
+
+{{-- ===================== MODAL BERSIHKAN LOG ===================== --}}
+<div id="modal-bersihkan" class="fixed inset-0 z-[1000] hidden items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+    <div id="modal-bersihkan-box" class="w-full max-w-lg scale-95 transform rounded-3xl border border-rose-100 bg-white p-6 opacity-0 shadow-2xl transition-all duration-200 sm:p-8">
+        <div class="flex items-start gap-4">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 ring-4 ring-rose-50/60">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-black text-gray-900">Bersihkan Audit Log</h3>
+                <p class="mt-1 text-xs leading-relaxed text-gray-500">Log yang dihapus <strong class="text-rose-600">tidak dapat dikembalikan</strong>. Pilih cakupan yang ingin dibersihkan.</p>
+            </div>
+        </div>
+
+        <form id="form-bersihkan" method="POST" action="{{ route('admin.audit.bersihkan') }}" class="mt-6 space-y-3">
+            @csrf
+            @method('DELETE')
+            @foreach ($filterJs as $k => $v)
+                @if (filled($v)) <input type="hidden" name="{{ $k }}" value="{{ $v }}"> @endif
+            @endforeach
+
+            {{-- Berdasarkan umur --}}
+            <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-gray-200 p-4 transition-colors hover:border-amber-300 has-[:checked]:border-amber-400 has-[:checked]:bg-amber-50/40">
+                <input type="radio" name="mode" value="umur" checked class="mt-0.5 h-4 w-4 accent-amber-600">
+                <div class="flex-1">
+                    <p class="text-xs font-bold text-gray-800">Log yang sudah lama</p>
+                    <p class="mt-0.5 text-[11px] text-gray-500">Disarankan untuk perawatan rutin. Log terbaru tetap aman.</p>
+                    <select name="hari" id="bersihkan-hari" class="mt-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20">
+                        @foreach ($batasHari as $h => $namaHari)
+                            <option value="{{ $h }}" data-jumlah="{{ $hitungUmur[$h] ?? 0 }}" {{ $h === 90 ? 'selected' : '' }}>Lebih lama dari {{ $namaHari }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </label>
+
+            {{-- Sesuai filter --}}
+            <label class="flex items-start gap-3 rounded-2xl border border-gray-200 p-4 transition-colors has-[:checked]:border-amber-400 has-[:checked]:bg-amber-50/40 {{ $adaFilter ? 'cursor-pointer hover:border-amber-300' : 'cursor-not-allowed opacity-50' }}">
+                <input type="radio" name="mode" value="filter" {{ $adaFilter ? '' : 'disabled' }} class="mt-0.5 h-4 w-4 accent-amber-600">
+                <div>
+                    <p class="text-xs font-bold text-gray-800">Semua yang cocok dengan filter saat ini
+                        @if ($adaFilter)<span class="font-semibold text-gray-400">({{ number_format($logs->total(), 0, ',', '.') }} log)</span>@endif
+                    </p>
+                    <p class="mt-0.5 text-[11px] text-gray-500">{{ $adaFilter ? 'Misalnya hapus semua log "Gagal masuk" atau satu modul saja.' : 'Terapkan filter di atas dulu untuk memakai opsi ini.' }}</p>
+                </div>
+            </label>
+
+            {{-- Semua --}}
+            <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-gray-200 p-4 transition-colors hover:border-rose-300 has-[:checked]:border-rose-400 has-[:checked]:bg-rose-50/50">
+                <input type="radio" name="mode" value="semua" class="mt-0.5 h-4 w-4 accent-rose-600">
+                <div class="flex-1">
+                    <p class="text-xs font-bold text-gray-800">Seluruh log <span class="font-semibold text-gray-400">({{ number_format($totalSemua, 0, ',', '.') }} log)</span></p>
+                    <p class="mt-0.5 text-[11px] text-gray-500">Mengosongkan seluruh riwayat aktivitas.</p>
+                    <div id="bersihkan-konfirmasi" class="mt-2 hidden">
+                        <label class="text-[11px] font-bold text-rose-600">Ketik <span class="rounded bg-rose-100 px-1">HAPUS</span> untuk melanjutkan</label>
+                        <input type="text" name="konfirmasi" id="bersihkan-konfirmasi-input" autocomplete="off"
+                               class="mt-1 w-full rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20">
+                    </div>
+                </div>
+            </label>
+
+            <p id="bersihkan-ringkas" class="px-1 pt-1 text-xs font-bold text-rose-600"></p>
+
+            <div class="flex items-center gap-3 pt-2">
+                <button type="button" id="bersihkan-batal"
+                        class="flex-1 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-700 transition-all hover:bg-gray-50 active:scale-95">Batal</button>
+                <button type="submit" id="bersihkan-ya"
+                        class="flex-1 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-rose-500/25 transition-all hover:from-rose-700 hover:to-rose-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50">
+                    Ya, Hapus
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -304,6 +433,14 @@
         var waktu = $('live-waktu');
         var btnDensitas = $('btn-densitas');
         var labelDensitas = $('densitas-label');
+
+        var JUMLAH_FILTER = {{ (int) $logs->total() }};
+        var JUMLAH_SEMUA = {{ (int) $totalSemua }};
+
+        var scrollEl = $('scroll-audit');
+        var cekSemua = $('cek-semua');
+        var bulkBar = $('bulk-bar');
+        var bulkJumlah = $('bulk-jumlah');
 
         var terbaru = {{ (int) $idTerbaru }};
         var aktif = HALAMAN === 1; // live hanya masuk akal di halaman pertama
@@ -332,6 +469,119 @@
             });
         }
 
+        // Pemisah tanggal harus menempel tepat di bawah header, jadi tinggi header diukur dari DOM.
+        function ukurHeader() {
+            var th = tabel.tHead;
+            if (th && th.offsetHeight) scrollEl.style.setProperty('--tinggi-header', th.offsetHeight + 'px');
+        }
+
+        // ----- Pilih & hapus banyak -----
+        function daftarCek() {
+            return Array.prototype.slice.call(tbody.querySelectorAll('.cek-log'));
+        }
+
+        function perbaruiBulk() {
+            var list = daftarCek();
+            var n = list.filter(function (c) { return c.checked; }).length;
+            bulkJumlah.textContent = n;
+            bulkBar.classList.toggle('hidden', n === 0);
+            bulkBar.classList.toggle('flex', n > 0);
+            cekSemua.checked = list.length > 0 && n === list.length;
+            cekSemua.indeterminate = n > 0 && n < list.length;
+        }
+
+        tbody.addEventListener('change', function (e) {
+            if (e.target.classList && e.target.classList.contains('cek-log')) perbaruiBulk();
+        });
+
+        cekSemua.addEventListener('change', function () {
+            daftarCek().forEach(function (c) { c.checked = cekSemua.checked; });
+            perbaruiBulk();
+        });
+
+        $('bulk-batal').addEventListener('click', function () {
+            daftarCek().forEach(function (c) { c.checked = false; });
+            perbaruiBulk();
+        });
+
+        $('bulk-hapus').addEventListener('click', function () {
+            var ids = daftarCek().filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
+            if (!ids.length) return;
+            if (!confirm('Hapus ' + ids.length + ' log terpilih? Tindakan ini tidak bisa dibatalkan.')) return;
+
+            var f = $('form-hapus-terpilih');
+            Array.prototype.slice.call(f.querySelectorAll('input[name="ids[]"]')).forEach(function (i) { i.remove(); });
+            ids.forEach(function (id) {
+                var i = document.createElement('input');
+                i.type = 'hidden';
+                i.name = 'ids[]';
+                i.value = id;
+                f.appendChild(i);
+            });
+            f.submit();
+        });
+
+        // ----- Modal Bersihkan Log -----
+        var modal = $('modal-bersihkan');
+        var modalBox = $('modal-bersihkan-box');
+        var selectHari = $('bersihkan-hari');
+        var boxKonfirmasi = $('bersihkan-konfirmasi');
+        var inputKonfirmasi = $('bersihkan-konfirmasi-input');
+        var ringkas = $('bersihkan-ringkas');
+        var btnYa = $('bersihkan-ya');
+
+        function modeTerpilih() {
+            var r = document.querySelector('#form-bersihkan input[name="mode"]:checked');
+            return r ? r.value : 'umur';
+        }
+
+        function segarkanModal() {
+            var mode = modeTerpilih();
+            var jumlah = 0;
+
+            if (mode === 'umur') {
+                jumlah = parseInt(selectHari.options[selectHari.selectedIndex].getAttribute('data-jumlah'), 10) || 0;
+            } else if (mode === 'filter') {
+                jumlah = JUMLAH_FILTER;
+            } else {
+                jumlah = JUMLAH_SEMUA;
+            }
+
+            boxKonfirmasi.classList.toggle('hidden', mode !== 'semua');
+            ringkas.textContent = jumlah > 0
+                ? jumlah.toLocaleString('id-ID') + ' log akan dihapus permanen.'
+                : 'Tidak ada log yang cocok untuk dihapus.';
+
+            var konfirmasiOk = mode !== 'semua' || inputKonfirmasi.value.trim().toUpperCase() === 'HAPUS';
+            btnYa.disabled = !(jumlah > 0 && konfirmasiOk);
+        }
+
+        function bukaModal() {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            segarkanModal();
+            requestAnimationFrame(function () {
+                modalBox.classList.remove('scale-95', 'opacity-0');
+                modalBox.classList.add('scale-100', 'opacity-100');
+            });
+        }
+
+        function tutupModal() {
+            modalBox.classList.remove('scale-100', 'opacity-100');
+            modalBox.classList.add('scale-95', 'opacity-0');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+
+        $('btn-bersihkan').addEventListener('click', bukaModal);
+        $('bersihkan-batal').addEventListener('click', tutupModal);
+        modal.addEventListener('click', function (e) { if (e.target === modal) tutupModal(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') tutupModal(); });
+        $('form-bersihkan').addEventListener('change', segarkanModal);
+        inputKonfirmasi.addEventListener('input', segarkanModal);
+
         function tanggalPalingAtas() {
             var tr = tbody.querySelector('tr[data-tanggal]');
             return tr ? tr.getAttribute('data-tanggal') : null;
@@ -341,7 +591,7 @@
             var tr = document.createElement('tr');
             tr.className = 'tanggal-pemisah bg-gray-50/90';
             var td = document.createElement('td');
-            td.colSpan = 6;
+            td.colSpan = 7;
             td.className = 'px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400';
             td.textContent = tanggal;
             tr.appendChild(td);
@@ -375,6 +625,8 @@
             // Jangan sampai ada pemisah tanggal "yatim" tertinggal sendirian di baris paling bawah.
             var akhir = tbody.rows[tbody.rows.length - 1];
             if (akhir && akhir.classList.contains('tanggal-pemisah')) tbody.deleteRow(tbody.rows.length - 1);
+
+            perbaruiBulk();
         }
 
         function tarik() {
@@ -427,6 +679,9 @@
         document.addEventListener('visibilitychange', function () { if (!document.hidden) tarik(); });
 
         tampil();
+        ukurHeader();
+        window.addEventListener('load', ukurHeader);
+        window.addEventListener('resize', ukurHeader);
         setInterval(tarik, INTERVAL);
     })();
 </script>

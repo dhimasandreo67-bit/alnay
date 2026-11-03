@@ -347,6 +347,7 @@
                 @endphp
 
                 <div class="space-y-6" x-data="{ zoom: false, lihatNik: false, nik: @js($nikJaminan !== '' ? $nikJaminan : '-'), masked: @js($nikMask) }"
+                     x-init="$watch('tab', () => zoom = false)"
                      @keydown.escape.window="zoom = false">
 
                     {{-- Status strip --}}
@@ -559,9 +560,10 @@
                     {{-- Zoom foto KTP --}}
                     @if ($jaminan && $jaminan->foto_ktp)
                         <div x-show="zoom" x-cloak x-transition.opacity
+                             x-effect="document.body.style.overflow = zoom ? 'hidden' : ''"
                              class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
                              @click="zoom = false" role="dialog" aria-label="Foto KTP diperbesar">
-                            <img src="{{ asset('storage/' . $jaminan->foto_ktp) }}" alt="Foto KTP" class="max-h-full max-w-full rounded-xl shadow-2xl" @click.stop>
+                            <img src="{{ asset('storage/' . $jaminan->foto_ktp) }}" alt="Foto KTP" class="max-h-[90vh] max-w-[90vw] object-contain rounded-xl shadow-2xl" @click.stop>
                             <button type="button" @click="zoom = false" class="absolute right-6 top-6 h-9 w-9 rounded-full bg-white/90 text-gray-700 text-xl font-bold hover:bg-white" aria-label="Tutup">&times;</button>
                         </div>
                     @endif

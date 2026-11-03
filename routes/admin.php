@@ -105,6 +105,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 // 7. Sistem
                 Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit.index');
                 Route::get('/audit-log/feed', [AuditLogController::class, 'feed'])->name('audit.feed');
+                Route::delete('audit-log/terpilih', [AuditLogController::class, 'hapusTerpilih'])->name('audit.hapus-terpilih');
+                Route::delete('audit-log/bersihkan', [AuditLogController::class, 'bersihkan'])->name('audit.bersihkan');
 
                 Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
                 Route::get('/transaksi/{id}', [TransaksiController::class, 'show'])->name('transaksi.show');
