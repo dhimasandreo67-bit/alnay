@@ -3,6 +3,21 @@
 @section('title', 'Detail Sewa Busana')
 
 @section('content')
+    @php
+        // Daftar jenis kerusakan + denda default (bisa diedit admin per-kasus sebelum disimpan).
+        // TODO: pindahkan ke tabel master / config kalau daftar ini mulai sering berubah.
+        $daftarKerusakan = [
+            ['label' => 'Noda ringan (masih bisa dibersihkan)', 'default' => 50000, 'tingkat' => 'ringan'],
+            ['label' => 'Kancing / hook lepas', 'default' => 25000, 'tingkat' => 'ringan'],
+            ['label' => 'Noda berat / permanen', 'default' => 150000, 'tingkat' => 'sedang'],
+            ['label' => 'Jahitan lepas / robek kecil', 'default' => 100000, 'tingkat' => 'sedang'],
+            ['label' => 'Resleting rusak', 'default' => 75000, 'tingkat' => 'sedang'],
+            ['label' => 'Payet / manik-manik lepas (banyak)', 'default' => 125000, 'tingkat' => 'sedang'],
+            ['label' => 'Robek besar / sobek parah', 'default' => 350000, 'tingkat' => 'berat'],
+            ['label' => 'Aksesoris hilang', 'default' => 200000, 'tingkat' => 'berat'],
+            ['label' => 'Rusak total (tidak bisa disewakan lagi)', 'default' => 500000, 'tingkat' => 'berat'],
+        ];
+    @endphp
     <div class="space-y-6" x-data="{ tab: '{{ session('active_tab', 'ringkasan') }}' }">
 
         {{-- Header --}}
@@ -609,6 +624,46 @@
                                 <label class="block text-xs font-bold text-gray-600 mb-1">FOTO BUKTI (Opsional)</label>
                                 <input type="file" name="foto_bukti" accept="image/*"
                                     class="w-full px-3 py-2 border border-line rounded-lg text-sm focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gold/10 file:text-gold hover:file:bg-gold/20">
+                            </div>
+
+                            {{-- Checklist kerusakan: centang kalau ada, kosongkan kalau mulus --}}
+                            <div x-data="{ terpilih: {} }">
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-xs font-bold text-gray-600">KERUSAKAN DITEMUKAN (opsional)</label>
+                                    <span class="text-[10px] text-gray-400">Kosongkan kalau busana mulus</span>
+                                </div>
+                                <p class="text-[11px] text-gray-500 mb-2">
+                                    Centang jenis kerusakan yang ditemukan. Nominal denda sudah terisi default, tapi bisa diubah sebelum simpan. Denda yang dicentang otomatis masuk ke tab "Kelola Denda".
+                                </p>
+
+                                @foreach (['ringan' => 'Kerusakan Ringan', 'sedang' => 'Kerusakan Sedang', 'berat' => 'Kerusakan Berat'] as $tingkat => $judulTingkat)
+                                    @php $itemTingkat = collect($daftarKerusakan)->filter(fn ($k) => $k['tingkat'] === $tingkat)->values(); @endphp
+                                    @if ($itemTingkat->isNotEmpty())
+                                        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mt-3 mb-1.5">{{ $judulTingkat }}</p>
+                                        <div class="space-y-2">
+                                            @foreach ($itemTingkat as $k)
+                                                @php $idx = $loop->parent->index . '-' . $loop->index; @endphp
+                                                <label class="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-line hover:bg-gray-50 transition-colors cursor-pointer"
+                                                       :class="terpilih['k{{ $idx }}'] ? 'border-rose-300 bg-rose-50/40' : ''">
+                                                    <span class="flex items-center gap-2 text-sm text-ink">
+                                                        <input type="checkbox" name="kerusakan[{{ $idx }}][pakai]" value="1"
+                                                               x-model="terpilih['k{{ $idx }}']"
+                                                               class="h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500">
+                                                        <input type="hidden" name="kerusakan[{{ $idx }}][label]" value="{{ $k['label'] }}">
+                                                        {{ $k['label'] }}
+                                                    </span>
+                                                    <span class="flex items-center gap-1 text-xs font-bold text-gray-600 shrink-0">
+                                                        Rp
+                                                        <input type="number" name="kerusakan[{{ $idx }}][jumlah]"
+                                                               value="{{ $k['default'] }}" min="0" step="5000"
+                                                               :disabled="!terpilih['k{{ $idx }}']"
+                                                               class="w-24 px-2 py-1 border border-line rounded text-right text-xs focus:border-gold focus:ring-1 focus:ring-gold outline-none disabled:bg-gray-100 disabled:text-gray-400">
+                                                    </span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                @endforeach
                             </div>
 
                             <button type="submit"
