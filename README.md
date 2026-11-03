@@ -55,7 +55,14 @@ git add .<br>
 git commit -m "feat: deskripsi singkat"<br>
 git push -u origin fitur/nama-tugas-anda<br><br>
 
-client ID : 576630417596-13k8tknkcuov9ff28es07pcc63vgap2i.apps.googleusercontent.com<br>
-client secret : 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<br>
+GOOGLE_CLIENT_ID=388401030455-n39vooe3p3up0p79m2m28dmlv3s312su.apps.googleusercontent.com<br>
+GOOGLE_CLIENT_SECRET=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<br>
+GOOGLE_REDIRECT_URI=http://127.0.0.1:8001/auth/google/callback<br><br>
+
+# Komerce (bukan RajaOngkir)<br>
+RAJAONGKIR_API_KEY=XNpBewL1cd95f5152dba5971hYdR5ZnI<br>
+RAJAONGKIR_BASE_URL=https://rajaongkir.komerce.id/api<br>
+RAJAONGKIR_ORIGIN=73924<br>
+RAJAONGKIR_ORIGIN_LABEL="Kemiling Raya, Bandar Lampung"<br>
 
 
