@@ -21,8 +21,9 @@
         return asset('storage/' . ltrim($f, '/'));
     };
 
-    $produkJs = $produks->map(function ($p) use ($fotoUrl) {
-        $ukuran = collect($p->ukuran ?? [])->map(function ($v) {
+    // Satu set stok (ukuran + warna + stok) dalam bentuk yang dibaca JS kasir
+    $bangunSet = function (array $ukuranRaw, array $warnaRaw, int $stok) {
+        $ukuran = collect($ukuranRaw)->map(function ($v) {
             return [
                 'ukuran' => (string) ($v['ukuran'] ?? ''),
                 'stok'   => (int) ($v['stok'] ?? 0),
@@ -33,10 +34,19 @@
             ];
         })->values();
 
-        $warna = collect((array) ($p->warna ?? []))
+        $warna = collect($warnaRaw)
             ->filter(fn ($w) => is_scalar($w) && $w !== '')
             ->map(fn ($w) => (string) $w)
             ->values();
+
+        return ['ukuran' => $ukuran, 'warna' => $warna, 'stok' => $stok];
+    };
+
+    $produkJs = $produks->map(function ($p) use ($fotoUrl, $bangunSet) {
+        // Produk dijual & disewa punya stok terpisah: set 'beli' dan set 'sewa'.
+        // Produk satu jenis: kedua set sama (memakai kolom lama).
+        $setBeli = $bangunSet($p->ukuranUntuk('jual'), $p->warnaUntuk('jual'), $p->stokUntuk('jual'));
+        $setSewa = $bangunSet($p->ukuranUntuk('sewa'), $p->warnaUntuk('sewa'), $p->stokUntuk('sewa'));
 
         return [
             'id'            => $p->id,
@@ -48,12 +58,13 @@
             'bahan'         => $p->bahan,
             'motif'         => $p->motif,
             'berat'         => $p->berat !== null ? (float) $p->berat : null,
-            'warna'         => $warna,
-            'ukuran'        => $ukuran,
+            'warna'         => $setBeli['warna'],
+            'ukuran'        => $setBeli['ukuran'],
+            'set'           => ['beli' => $setBeli, 'sewa' => $setSewa],
             'harga_jual'    => (float) $p->harga_jual,
             'harga_sewa'    => (float) $p->harga_sewa,
             'dp'            => (float) $p->dp,
-            'stok'          => (int) $p->stok,
+            'stok'          => $setBeli['stok'],
             'status'        => $p->status,
             'bisa_disewa'   => (bool) $p->bisa_disewa,
             'dapat_dijual'  => (bool) $p->dapat_dijual,
@@ -429,6 +440,16 @@
     const jenisAktif = () => (el('radio-sewa').checked ? 'sewa' : 'beli');
     const hargaDasar = (p, j) => (j === 'sewa' ? p.harga_sewa : p.harga_jual);
     const hargaFinal = (p, j) => { const d = hargaDasar(p, j); return d - (d * p.diskon_persen / 100); };
+    // Ukuran, warna, dan stok mengikuti jenis transaksi: produk dijual & disewa punya stok terpisah.
+    function terapkanSet(j) {
+        const kunci = j === 'sewa' ? 'sewa' : 'beli';
+        PRODUK.forEach((p) => {
+            const s = p.set[kunci];
+            p.ukuran = s.ukuran;
+            p.warna = s.warna;
+            p.stok = s.stok;
+        });
+    }
     const punyaUkuran = (p) => p.ukuran.length > 0;
     // Penyewaan: yang ditampilkan & ditagih di kasir adalah harga DP, sisanya dilunasi saat barang kembali.
     // Kalau DP produk belum diisi (0), dipakai 50% dari harga sewa setelah diskon.
@@ -857,8 +878,16 @@
         el('box-tanggal-sewa').classList.toggle('hidden', !sewa);
         aturPembayaranSewa(sewa);
 
-        // Buang item yang tidak boleh untuk jenis ini, lalu render ulang harga
+        // Ganti set stok sesuai jenis (beli/sewa), lalu buang item yang tidak boleh untuk jenis ini
+        terapkanSet(jenisAktif());
         state.cart = state.cart.filter((r) => { const p = pById(r.produk_id); return p && cocokJenis(p, jenisAktif()); });
+        // Ukuran/warna/jumlah item bisa tidak ada di set stok yang baru -> reset yang tidak cocok
+        state.cart.forEach((r, idx) => {
+            const p = pById(r.produk_id);
+            if (r.ukuran && !barisUkuran(p, r.ukuran)) r.ukuran = '';
+            if (r.warna && !daftarWarna(p, r.ukuran).some((w) => w.nama === r.warna)) r.warna = '';
+            r.qty = Math.max(1, Math.min(r.qty, sisaStok(p, r.ukuran, r.warna, idx) || 1));
+        });
         state.dpManual = false;
         renderKatalog();
         renderCart();
