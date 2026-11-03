@@ -335,6 +335,15 @@
                         </p>
                     @endif
 
+                    {{-- Deposit jaminan --}}
+                    <div class="mt-4 flex items-center justify-between rounded-2xl bg-gradient-to-br from-amber-50 to-white px-4 py-3 ring-1 ring-amber-100">
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-amber-700/70">Deposit Jaminan</p>
+                            <p class="mt-0.5 text-[11px] text-gray-400">Dikembalikan 100% saat barang kembali &amp; denda lunas.</p>
+                        </div>
+                        <p class="shrink-0 text-lg font-black tabular-nums text-gray-900">{{ $rp($jam->jumlah_deposit ?? 0) }}</p>
+                    </div>
+
                     <a href="{{ route('admin.sewa.show', $sewa->id) }}"
                        class="mt-4 inline-flex text-xs font-bold text-amber-600 hover:text-amber-700">
                         Buka di Kelola Sewa &rarr;
