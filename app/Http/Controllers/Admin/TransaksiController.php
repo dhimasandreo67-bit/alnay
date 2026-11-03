@@ -97,7 +97,7 @@ class TransaksiController extends Controller
 
     public function show($id)
     {
-        $transaksi = Transaksi::with(['user', 'detail.produk', 'sewa', 'pembayaran', 'pengiriman'])
+        $transaksi = Transaksi::with(['user', 'detail.produk', 'sewa.jaminan.verifikator', 'pembayaran', 'pengiriman'])
             ->findOrFail($id);
 
         return view('admin.transaksi.show', compact('transaksi'));
@@ -112,7 +112,7 @@ class TransaksiController extends Controller
             ->select(
                 'id', 'kategori_id', 'sku', 'nama', 'foto_produk', 'bahan', 'motif',
                 'warna', 'ukuran', 'berat', 'harga_jual', 'harga_sewa', 'dp',
-                'stok', 'status', 'bisa_disewa', 'dapat_dijual', 'diskon_persen',
+                'stok', 'stok_sewa', 'warna_sewa', 'ukuran_sewa', 'status', 'bisa_disewa', 'dapat_dijual', 'diskon_persen', 'diskon_sewa_persen', 'diskon_jual_persen',
                 'denda_per_hari_telat'
             )
             ->where(function ($q) {
@@ -161,24 +161,43 @@ class TransaksiController extends Controller
             'tanggal_pinjam' => 'required_if:jenis,sewa|nullable|date',
             'tanggal_kembali_rencana' => 'required_if:jenis,sewa|nullable|date|after_or_equal:tanggal_pinjam',
 
+            // Jaminan sewa: foto KTP + centang kecocokan NIK & nama (tanpa input manual)
+            'foto_ktp' => 'required_if:jenis,sewa|nullable|image|mimes:jpeg,png,webp|max:2048',
+            'ktp_sesuai' => 'accepted_if:jenis,sewa',
+
             'status_pembayaran' => 'required|in:lunas,dp',
             'jumlah_dp' => 'required_if:status_pembayaran,dp|nullable|numeric|min:1',
             'metode_bayar' => 'required|in:tunai,qris,debit,transfer',
             'catatan' => 'nullable|string|max:255',
+        ], [
+            'foto_ktp.required_if' => 'Upload foto KTP penyewa.',
+            'ktp_sesuai.accepted_if' => 'Centang konfirmasi bahwa NIK & nama di KTP sudah sesuai dengan penyewa.',
         ]);
 
         // Helper: hitung harga final 1 unit produk sesuai jenis transaksi (beli/sewa) + diskon
         $hargaUnit = function (Produk $produk, string $jenis): float {
             $hargaDasar = $jenis === 'sewa' ? $produk->harga_sewa : $produk->harga_jual;
             $hargaDasar = (float) ($hargaDasar ?? 0);
-            $diskon = (float) ($produk->diskon_persen ?? 0);
+            // Diskon sewa dan jual dipisah
+            $diskon = (float) ($jenis === 'sewa'
+                ? ($produk->diskon_sewa_persen ?? 0)
+                : ($produk->diskon_jual_persen ?? 0));
 
             return $hargaDasar - ($hargaDasar * $diskon / 100);
         };
 
         $gagal = fn (string $pesan) => throw ValidationException::withMessages(['items' => $pesan]);
 
-        $transaksi = DB::transaction(function () use ($validated, $hargaUnit, $gagal) {
+        // Foto KTP disimpan di luar DB transaction (operasi storage, bukan query DB).
+        $fotoKtpPath = null;
+        if ($validated['jenis'] === 'sewa' && $request->hasFile('foto_ktp')) {
+            $fotoKtpPath = $request->file('foto_ktp')->store('jaminan', 'public');
+        }
+
+        $transaksi = DB::transaction(function () use ($validated, $hargaUnit, $gagal, $fotoKtpPath) {
+            // Produk dijual & disewa punya stok terpisah: pilih set stok sesuai jenis transaksi.
+            $jenisStok = $validated['jenis'] === 'sewa' ? 'sewa' : 'jual';
+
             $produkIds = collect($validated['items'])->pluck('produk_id')->unique();
 
             // lockForUpdate: dua kasir tidak bisa menjual stok yang sama bersamaan
@@ -199,7 +218,7 @@ class TransaksiController extends Controller
             $kebutuhan = [];
             foreach ($validated['items'] as $item) {
                 $produk = $produkMap[$item['produk_id']];
-                $varian = collect($produk->ukuran ?? [])->values();
+                $varian = collect($produk->ukuranUntuk($jenisStok))->values();
                 $ukuran = $item['ukuran'] ?? null;
                 $warna = $item['warna'] ?? null;
                 $barisUkuran = null;
@@ -230,7 +249,7 @@ class TransaksiController extends Controller
 
                     $kebutuhan[$produk->id]['warna'][$ukuran][$warna] = ($kebutuhan[$produk->id]['warna'][$ukuran][$warna] ?? 0) + $item['qty'];
                 } else {
-                    $daftarWarna = (array) ($produk->warna ?? []);
+                    $daftarWarna = $produk->warnaUntuk($jenisStok);
                     if ($warna && ! empty($daftarWarna) && ! in_array($warna, $daftarWarna, true)) {
                         $gagal("Warna {$warna} tidak tersedia pada produk \"{$produk->nama}\".");
                     }
@@ -242,7 +261,7 @@ class TransaksiController extends Controller
             // Cek stok (total, per ukuran, dan per kombinasi ukuran + warna)
             foreach ($kebutuhan as $produkId => $k) {
                 $produk = $produkMap[$produkId];
-                $varian = collect($produk->ukuran ?? [])->keyBy('ukuran');
+                $varian = collect($produk->ukuranUntuk($jenisStok))->keyBy('ukuran');
 
                 foreach ($k['ukuran'] ?? [] as $uk => $qty) {
                     $stokUkuran = (int) ($varian[$uk]['stok'] ?? 0);
@@ -261,8 +280,8 @@ class TransaksiController extends Controller
                     }
                 }
 
-                if ($k['total'] > (int) $produk->stok) {
-                    $gagal("Stok \"{$produk->nama}\" tinggal {$produk->stok}, diminta {$k['total']}.");
+                if ($k['total'] > $produk->stokUntuk($jenisStok)) {
+                    $gagal("Stok \"{$produk->nama}\" tinggal {$produk->stokUntuk($jenisStok)}, diminta {$k['total']}.");
                 }
             }
 
@@ -314,9 +333,10 @@ class TransaksiController extends Controller
             // Kurangi stok sekali per produk (total + per ukuran + per warna)
             foreach ($kebutuhan as $produkId => $k) {
                 $produk = $produkMap[$produkId];
+                $kol = $produk->kolomStok($jenisStok);
 
                 if (! empty($k['ukuran'])) {
-                    $varian = collect($produk->ukuran)->map(function ($v) use ($k) {
+                    $varian = collect($produk->ukuranUntuk($jenisStok))->map(function ($v) use ($k) {
                         $uk = $v['ukuran'] ?? null;
 
                         if (! empty($v['warna'])) {
@@ -334,10 +354,10 @@ class TransaksiController extends Controller
                         return $v;
                     })->values()->all();
 
-                    $produk->ukuran = $varian;
-                    $produk->stok = collect($varian)->sum('stok');
+                    $produk->{$kol['ukuran']} = $varian;
+                    $produk->{$kol['stok']} = collect($varian)->sum('stok');
                 } else {
-                    $produk->stok = (int) $produk->stok - $k['total'];
+                    $produk->{$kol['stok']} = $produk->stokUntuk($jenisStok) - $k['total'];
                 }
 
                 $produk->save();
@@ -345,13 +365,19 @@ class TransaksiController extends Controller
 
             if ($validated['jenis'] === 'sewa') {
                 // Buat data sewa + jaminan sekaligus supaya langsung muncul di
-                // halaman Kelola Sewa dan Verifikasi Jaminan (nama & no. HP tamu
+                // halaman Kelola Sewa dan tab Jaminan (nama & no. HP tamu
                 // ikut terbaca lewat transaksi.nama_tamu / no_hp_tamu).
+                // Foto KTP disimpan di jaminan. Kecocokan NIK & nama cukup dicentang
+                // kasir (ktp_sesuai), jadi jaminan langsung tercatat terverifikasi
+                // dan tidak perlu diverifikasi ulang di Kelola Sewa.
                 Sewa::buatDariTransaksi($transaksi, [
                     'tanggal_pinjam' => $validated['tanggal_pinjam'],
                     'tanggal_kembali_rencana' => $validated['tanggal_kembali_rencana'],
                     'metode_jaminan' => 'ktp_tatap_muka',
                     'jumlah_deposit' => 0,
+                    'foto_ktp' => $fotoKtpPath,
+                    'nama_ktp' => $transaksi->nama_pelanggan,
+                    'terverifikasi_oleh' => auth('admin')->id(),
                 ]);
             }
 
@@ -410,6 +436,9 @@ class TransaksiController extends Controller
      */
     protected function kembalikanStok(Transaksi $transaksi): void
     {
+        // Stok dikembalikan ke set yang tadi dipotong: set sewa untuk transaksi sewa, selain itu set jual.
+        $jenisStok = $transaksi->jenis === 'sewa' ? 'sewa' : 'jual';
+
         $produkMap = Produk::whereIn('id', $transaksi->detail->pluck('produk_id')->filter()->unique())
             ->lockForUpdate()
             ->get()
@@ -421,7 +450,8 @@ class TransaksiController extends Controller
                 continue; // produk sudah dihapus
             }
 
-            $varian = collect($produk->ukuran ?? [])->values();
+            $kol = $produk->kolomStok($jenisStok);
+            $varian = collect($produk->ukuranUntuk($jenisStok))->values();
             $punyaVarian = $d->ukuran && $varian->contains(fn ($v) => ($v['ukuran'] ?? null) === $d->ukuran);
 
             if ($punyaVarian) {
@@ -452,10 +482,10 @@ class TransaksiController extends Controller
                     return $v;
                 })->values();
 
-                $produk->ukuran = $varian->all();
-                $produk->stok = (int) $varian->sum('stok');
+                $produk->{$kol['ukuran']} = $varian->all();
+                $produk->{$kol['stok']} = (int) $varian->sum('stok');
             } else {
-                $produk->stok = (int) $produk->stok + (int) $d->jumlah;
+                $produk->{$kol['stok']} = $produk->stokUntuk($jenisStok) + (int) $d->jumlah;
             }
         }
 
