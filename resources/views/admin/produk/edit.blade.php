@@ -3,7 +3,8 @@
 @section('title', 'Edit Produk')
 
 @php
-    $ukuranVariasiAwal = collect($produk->ukuran ?? [])->map(function ($item) {
+    // Ubah JSON variasi ukuran dari database ke bentuk yang dibaca form
+    $petaUkuran = fn ($data) => collect($data ?? [])->map(function ($item) {
         if (! is_array($item)) {
             return ['ukuran' => $item, 'stok' => 0, 'warna' => []];
         }
@@ -17,6 +18,9 @@
             ])->values()->all(),
         ];
     })->values()->all();
+
+    // Set sewa hanya terisi kalau produk dijual DAN disewa; selain itu mulai kosong.
+    $punyaSetSewa = $produk->pisahStok();
 @endphp
 
 @section('content')
@@ -66,7 +70,7 @@
         </form>
     </div>
 
-        @include('admin.produk._form', [
+    @include('admin.produk._form', [
         'actionUrl'   => route('admin.produk.update', $produk->id),
         'method'      => 'PUT',
         'submitLabel' => 'Simpan Perubahan',
@@ -81,17 +85,26 @@
             'bahan'           => old('bahan', $produk->bahan),
             'motif'           => old('motif', $produk->motif),
             'berat'           => old('berat', $produk->berat),
-            'warna'           => old('warna', $produk->warna ?? []),
-            'ukuranVariasi'   => old('ukuran', $ukuranVariasiAwal),
+            // Set stok: utama = penjualan (atau satu-satunya), sewa = penyewaan (kalau dijual & disewa)
+            'setUtama'        => [
+                'warna'         => old('warna', $produk->warna ?? []),
+                'ukuranVariasi' => old('ukuran', $petaUkuran($produk->ukuran)),
+                'stok'          => old('stok', $produk->stok),
+            ],
+            'setSewa'         => [
+                'warna'         => old('warna_sewa', $punyaSetSewa ? ($produk->warna_sewa ?? []) : []),
+                'ukuranVariasi' => old('ukuran_sewa', $punyaSetSewa ? $petaUkuran($produk->ukuran_sewa) : []),
+                'stok'          => old('stok_sewa', $punyaSetSewa ? $produk->stok_sewa : 0),
+            ],
             
-            // TAMBAHKAN (int) DI BAWAH INI:
+            // Harga dicast (int) supaya tidak tampil sebagai desimal "350000.00"
             'hargaSewa'       => (int) old('harga_sewa', $produk->harga_sewa),
             'dp'              => (int) old('dp', $produk->dp),
             'hargaJual'       => (int) old('harga_jual', $produk->harga_jual),
-            'stok'            => old('stok', $produk->stok),
             'dendaPerHari'    => (int) old('denda_per_hari_telat', $produk->denda_per_hari_telat),
             'perpanjanganPerHari' => (int) old('harga_perpanjangan_per_hari', $produk->harga_perpanjangan_per_hari ?? 0),
-            'diskon'          => old('diskon_persen', $produk->diskon_persen),
+            'diskonSewa'      => (float) old('diskon_sewa_persen', $produk->diskon_sewa_persen ?? $produk->diskon_persen ?? 0),
+            'diskonJual'      => (float) old('diskon_jual_persen', $produk->diskon_jual_persen ?? $produk->diskon_persen ?? 0),
             
             'existingFoto'    => array_pad(array_slice((array) ($produk->foto_produk ?? []), 0, 4), 4, null),
             'previewFoto'     => [
