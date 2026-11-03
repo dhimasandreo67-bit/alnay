@@ -235,6 +235,16 @@
                             </span>
                         </label>
                         <p id="error-ktp-sesuai" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
+
+                        {{-- Deposit jaminan (satu paket dengan KTP) --}}
+                        <div class="mt-4 pt-4 border-t border-amber-200">
+                            <label for="jumlah_deposit" class="text-xs font-bold text-gray-700">Jumlah Deposit Jaminan (Rp) <span class="text-rose-600">*</span></label>
+                            <p class="mt-0.5 text-[11px] text-gray-500">Deposit dititipkan pelanggan bersama KTP, dan dikembalikan 100% saat barang sudah kembali &amp; tidak ada denda tertunda.</p>
+                            <input type="number" id="jumlah_deposit" name="jumlah_deposit" min="1" step="1000"
+                                   value="{{ old('jumlah_deposit') }}" placeholder="Contoh: 200000"
+                                   class="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+                            <p id="error-deposit" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -986,6 +996,16 @@
             else if (b < a) err.push('Tanggal kembali tidak boleh sebelum tanggal ambil.');
             if (!el('foto_ktp').files.length) err.push('Upload foto KTP penyewa.');
             if (!el('ktp_sesuai').checked) err.push('Centang konfirmasi bahwa NIK & nama di KTP sudah sesuai dengan penyewa.');
+
+            const deposit = parseFloat(el('jumlah_deposit').value) || 0;
+            const errDeposit = el('error-deposit');
+            if (deposit <= 0) {
+                err.push('Isi jumlah deposit jaminan.');
+                errDeposit.textContent = 'Jumlah deposit wajib diisi.';
+                errDeposit.classList.remove('hidden');
+            } else {
+                errDeposit.classList.add('hidden');
+            }
         }
 
         const tipe = document.querySelector('input[name="customer_type"]:checked').value;
