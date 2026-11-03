@@ -153,6 +153,14 @@ class SewaController extends Controller
             'tahap' => 'required|string',
             'catatan' => 'required|string',
             'foto_bukti' => 'nullable|image|max:2048', // Opsional, max 2MB
+
+            // Checklist kerusakan: item yang TIDAK dicentang tidak mengirim 'pakai' maupun
+            // 'jumlah' sama sekali (input-nya disabled di frontend), jadi rule-nya dibuat
+            // longgar di sini -- pengecekan "dicentang atau tidak" dilakukan manual di bawah.
+            'kerusakan' => 'nullable|array',
+            'kerusakan.*.label' => 'nullable|string',
+            'kerusakan.*.jumlah' => 'nullable|numeric|min:0',
+            'kerusakan.*.pakai' => 'nullable|in:1',
         ]);
 
         $fotoPath = null;
@@ -167,7 +175,28 @@ class SewaController extends Controller
             'foto_bukti' => $fotoPath,
         ]);
 
-        return back()->with('success', 'Catatan QC berhasil disimpan!')->with('active_tab', 'qc');
+        // Kerusakan yang dicentang otomatis jadi baris denda baru (tab Kelola Denda).
+        $jumlahDendaBaru = 0;
+        foreach ($request->input('kerusakan', []) as $item) {
+            if (empty($item['pakai'])) {
+                continue; // Tidak dicentang -> diabaikan.
+            }
+
+            $sewa->denda()->create([
+                'jenis' => $item['label'] ?? 'Kerusakan Busana',
+                'jumlah' => (float) ($item['jumlah'] ?? 0),
+                'status' => 'belum_lunas',
+            ]);
+
+            $jumlahDendaBaru++;
+        }
+
+        $pesan = 'Catatan QC berhasil disimpan!';
+        if ($jumlahDendaBaru > 0) {
+            $pesan .= ' ' . $jumlahDendaBaru . ' denda kerusakan otomatis ditambahkan ke tab Kelola Denda.';
+        }
+
+        return back()->with('success', $pesan)->with('active_tab', 'qc');
     }
     // ================= FITUR DENDA =================
     public function tambahDenda(Request $request, $id)
