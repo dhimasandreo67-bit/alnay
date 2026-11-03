@@ -309,6 +309,39 @@
                 </section>
             @endif
 
+            {{-- Jaminan KTP (hanya penyewaan) --}}
+            @if($sewa)
+                @php
+                    $jam = $sewa->jaminan;
+                    $jamVerified = ($jam->status_verifikasi ?? null) === 'verified';
+                @endphp
+                <section class="dt-rise rounded-3xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm" style="--d:.16s">
+                    <div class="mb-4 flex items-center justify-between gap-2">
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Jaminan KTP</p>
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ring-1 {{ $jamVerified ? $chipTerang['emerald'] : $chipTerang['amber'] }}">
+                            {{ $jamVerified ? 'Terverifikasi' : 'Menunggu verifikasi' }}
+                        </span>
+                    </div>
+
+                    @if($jam && $jam->foto_ktp)
+                        <a href="{{ asset('storage/' . $jam->foto_ktp) }}" target="_blank" rel="noopener"
+                           class="block overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
+                            <img src="{{ asset('storage/' . $jam->foto_ktp) }}" alt="Foto KTP {{ $namaUser }}" class="h-44 w-full object-contain">
+                        </a>
+                        <p class="mt-2 text-[11px] text-gray-400">Klik foto untuk memperbesar.</p>
+                    @else
+                        <p class="rounded-xl border border-dashed border-gray-200 py-6 text-center text-xs italic text-gray-400">
+                            Belum ada foto KTP tersimpan.
+                        </p>
+                    @endif
+
+                    <a href="{{ route('admin.sewa.show', $sewa->id) }}"
+                       class="mt-4 inline-flex text-xs font-bold text-amber-600 hover:text-amber-700">
+                        Buka di Kelola Sewa &rarr;
+                    </a>
+                </section>
+            @endif
+
             {{-- Informasi Pembayaran --}}
             <section class="dt-rise rounded-3xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm" style="--d:.2s">
                 <p class="mb-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Informasi Pembayaran</p>

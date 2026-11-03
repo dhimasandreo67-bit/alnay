@@ -104,15 +104,24 @@ class Sewa extends Model
                 ]
             );
 
-            JaminanSewa::firstOrCreate(
-                ['sewa_id' => $sewa->id],
-                [
-                    'metode_jaminan'              => $data['metode_jaminan'] ?? 'ktp_tatap_muka',
-                    'jumlah_deposit'              => $data['jumlah_deposit'] ?? 0,
-                    'status_verifikasi'           => 'pending',
-                    'status_pengembalian_deposit' => 'belum',
-                ]
-            );
+            // nomor_ktp tidak lagi diisi dari kasir (cukup centang kecocokan),
+            // jadi hanya ikut disimpan kalau memang dikirim.
+            $atribut = [
+                'metode_jaminan'              => $data['metode_jaminan'] ?? 'ktp_tatap_muka',
+                'foto_ktp'                    => $data['foto_ktp'] ?? null,
+                'nama_ktp'                    => $data['nama_ktp'] ?? null,
+                'jumlah_deposit'              => $data['jumlah_deposit'] ?? 0,
+                'status_verifikasi'           => ! empty($data['terverifikasi_oleh']) ? 'verified' : 'pending',
+                'diverifikasi_oleh'           => $data['terverifikasi_oleh'] ?? null,
+                'tanggal_verifikasi'          => ! empty($data['terverifikasi_oleh']) ? now() : null,
+                'status_pengembalian_deposit' => 'belum',
+            ];
+
+            if (! empty($data['nomor_ktp'])) {
+                $atribut['nomor_ktp'] = $data['nomor_ktp'];
+            }
+
+            JaminanSewa::firstOrCreate(['sewa_id' => $sewa->id], $atribut);
 
             return $sewa;
         });

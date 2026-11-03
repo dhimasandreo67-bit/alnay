@@ -26,8 +26,7 @@
         [
             'heading' => 'Sewa & Jaminan',
             'items' => [
-                ['label' => 'Data Sewa', 'route' => 'admin.sewa.*', 'icon' => 'calendar', 'badge' => null],
-                ['label' => 'Verifikasi Jaminan', 'route' => 'admin.jaminan.*', 'icon' => 'shield', 'badge' => fn () => \App\Models\JaminanSewa::where('status_verifikasi', 'pending')->count()],
+                ['label' => 'Data Sewa', 'route' => 'admin.sewa.*', 'icon' => 'calendar', 'badge' => fn () => \App\Models\JaminanSewa::where('status_verifikasi', 'pending')->count()],
             ],
         ],
         [

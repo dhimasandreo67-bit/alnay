@@ -46,8 +46,14 @@ class SewaController extends Controller
 
     public function show($id)
     {
-        $sewa = Sewa::with(['transaksi.user', 'transaksi.detail.produk', 'jaminan', 'pengecekan', 'denda'])
-            ->findOrFail($id);
+        $sewa = Sewa::with([
+            'transaksi.user',
+            'transaksi.detail.produk',
+            'transaksi.pembayaran',
+            'jaminan.verifikator',
+            'pengecekan',
+            'denda',
+        ])->findOrFail($id);
 
         $totalDenda = $sewa->denda->where('status', 'belum_lunas')->sum('jumlah');
 
@@ -86,12 +92,7 @@ class SewaController extends Controller
 
     public function verifikasiJaminan(Request $request, $id)
     {
-        $sewa = Sewa::with('jaminan')->findOrFail($id);
-
-        $request->validate([
-            'no_ktp' => 'required|string',
-            'nama_sesuai_ktp' => 'required|string',
-        ]);
+        $sewa = Sewa::with(['jaminan', 'transaksi.user'])->findOrFail($id);
 
         // Pakai jaminan yang ada; kalau belum ada (data lama), buat dulu.
         $jaminan = $sewa->jaminan ?? $sewa->jaminan()->make([
@@ -100,21 +101,39 @@ class SewaController extends Controller
             'status_pengembalian_deposit' => 'belum',
         ]);
 
-        // Kolom di tabel: nomor_ktp & nama_ktp (input form: no_ktp & nama_sesuai_ktp)
+        // Sudah diverifikasi (mis. otomatis dari kasir) -> tidak perlu diulang.
+        if ($jaminan->status_verifikasi === 'verified') {
+            return back()->with('error', 'Jaminan ini sudah terverifikasi.')->with('active_tab', 'jaminan');
+        }
+
+        // Cukup centang kecocokan KTP dengan penyewa; NIK & nama tidak perlu diketik.
+        $request->validate([
+            'konfirmasi_sesuai' => 'accepted',
+        ], [
+            'konfirmasi_sesuai.accepted' => 'Centang dulu konfirmasi kecocokan KTP sebelum verifikasi.',
+        ]);
+
         $jaminan->fill([
-            'nomor_ktp' => $request->no_ktp,
-            'nama_ktp' => $request->nama_sesuai_ktp,
+            'nama_ktp' => $jaminan->nama_ktp ?: $sewa->nama_pelanggan,
             'status_verifikasi' => 'verified',
             'diverifikasi_oleh' => auth('admin')->id(),
             'tanggal_verifikasi' => now(),
         ])->save();
 
-        return back()->with('success', 'Jaminan fisik berhasil diverifikasi!');
+        return back()->with('success', 'Jaminan berhasil diverifikasi!')->with('active_tab', 'jaminan');
     }
 
     public function kembalikanDeposit($id)
     {
-        $sewa = Sewa::with('jaminan')->findOrFail($id);
+        $sewa = Sewa::with(['jaminan', 'denda'])->findOrFail($id);
+
+        if ($sewa->status !== 'selesai') {
+            return back()->with('error', 'Barang belum ditandai kembali. Tandai sewa selesai dulu sebelum mengembalikan deposit.');
+        }
+
+        if ($sewa->denda->where('status', 'belum_lunas')->isNotEmpty()) {
+            return back()->with('error', 'Masih ada denda yang belum lunas. Lunasi semua denda dulu sebelum mengembalikan deposit.');
+        }
 
         if ($sewa->jaminan) {
             $sewa->jaminan->update([
@@ -180,7 +199,16 @@ class SewaController extends Controller
     public function ubahStatus(Request $request, $id)
     {
         $sewa = Sewa::findOrFail($id);
-        $sewa->update(['status' => $request->status]);
+
+        $data = ['status' => $request->status];
+
+        // Saat barang ditandai kembali/selesai, catat juga tanggal kembali aktualnya
+        // (kalau belum pernah diisi) supaya timeline & alur pengembalian akurat.
+        if ($request->status === 'selesai' && !$sewa->tanggal_kembali_aktual) {
+            $data['tanggal_kembali_aktual'] = now();
+        }
+
+        $sewa->update($data);
 
         return back()->with('success', 'Status sewa berhasil diubah menjadi ' . $request->status);
     }

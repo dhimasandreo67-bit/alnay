@@ -21,8 +21,9 @@
         return asset('storage/' . ltrim($f, '/'));
     };
 
-    $produkJs = $produks->map(function ($p) use ($fotoUrl) {
-        $ukuran = collect($p->ukuran ?? [])->map(function ($v) {
+    // Satu set stok (ukuran + warna + stok) dalam bentuk yang dibaca JS kasir
+    $bangunSet = function (array $ukuranRaw, array $warnaRaw, int $stok) {
+        $ukuran = collect($ukuranRaw)->map(function ($v) {
             return [
                 'ukuran' => (string) ($v['ukuran'] ?? ''),
                 'stok'   => (int) ($v['stok'] ?? 0),
@@ -33,10 +34,19 @@
             ];
         })->values();
 
-        $warna = collect((array) ($p->warna ?? []))
+        $warna = collect($warnaRaw)
             ->filter(fn ($w) => is_scalar($w) && $w !== '')
             ->map(fn ($w) => (string) $w)
             ->values();
+
+        return ['ukuran' => $ukuran, 'warna' => $warna, 'stok' => $stok];
+    };
+
+    $produkJs = $produks->map(function ($p) use ($fotoUrl, $bangunSet) {
+        // Produk dijual & disewa punya stok terpisah: set 'beli' dan set 'sewa'.
+        // Produk satu jenis: kedua set sama (memakai kolom lama).
+        $setBeli = $bangunSet($p->ukuranUntuk('jual'), $p->warnaUntuk('jual'), $p->stokUntuk('jual'));
+        $setSewa = $bangunSet($p->ukuranUntuk('sewa'), $p->warnaUntuk('sewa'), $p->stokUntuk('sewa'));
 
         return [
             'id'            => $p->id,
@@ -48,12 +58,13 @@
             'bahan'         => $p->bahan,
             'motif'         => $p->motif,
             'berat'         => $p->berat !== null ? (float) $p->berat : null,
-            'warna'         => $warna,
-            'ukuran'        => $ukuran,
+            'warna'         => $setBeli['warna'],
+            'ukuran'        => $setBeli['ukuran'],
+            'set'           => ['beli' => $setBeli, 'sewa' => $setSewa],
             'harga_jual'    => (float) $p->harga_jual,
             'harga_sewa'    => (float) $p->harga_sewa,
             'dp'            => (float) $p->dp,
-            'stok'          => (int) $p->stok,
+            'stok'          => $setBeli['stok'],
             'status'        => $p->status,
             'bisa_disewa'   => (bool) $p->bisa_disewa,
             'dapat_dijual'  => (bool) $p->dapat_dijual,
@@ -215,16 +226,15 @@
                             <button type="button" id="hapus-ktp" class="text-xs font-bold text-rose-600 hover:text-rose-700">Hapus foto</button>
                         </div>
                         <p id="error-ktp" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
-                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label for="nomor_ktp" class="text-xs font-bold text-gray-500">NIK (opsional)</label>
-                                <input type="text" id="nomor_ktp" name="nomor_ktp" value="{{ old('nomor_ktp') }}" inputmode="numeric" maxlength="16" placeholder="16 digit NIK" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
-                            </div>
-                            <div>
-                                <label for="nama_ktp" class="text-xs font-bold text-gray-500">Nama Sesuai KTP (opsional)</label>
-                                <input type="text" id="nama_ktp" name="nama_ktp" value="{{ old('nama_ktp') }}" maxlength="100" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
-                            </div>
-                        </div>
+                        {{-- Cukup centang: NIK & nama di KTP sudah dicocokkan kasir dengan pelanggan --}}
+                        <label for="ktp_sesuai" class="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-white p-3">
+                            <input type="checkbox" id="ktp_sesuai" name="ktp_sesuai" value="1" @checked(old('ktp_sesuai')) class="mt-0.5 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                            <span>
+                                <span class="block text-xs font-bold text-gray-800">NIK & nama di KTP sudah sesuai dengan penyewa <span class="text-rose-600">*</span></span>
+                                <span class="mt-0.5 block text-[11px] text-gray-500">Cocokkan KTP asli dengan pelanggan. Jaminan otomatis tercatat <b>terverifikasi</b> di Kelola Sewa.</span>
+                            </span>
+                        </label>
+                        <p id="error-ktp-sesuai" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
                     </div>
                 </div>
             </section>
@@ -430,6 +440,16 @@
     const jenisAktif = () => (el('radio-sewa').checked ? 'sewa' : 'beli');
     const hargaDasar = (p, j) => (j === 'sewa' ? p.harga_sewa : p.harga_jual);
     const hargaFinal = (p, j) => { const d = hargaDasar(p, j); return d - (d * p.diskon_persen / 100); };
+    // Ukuran, warna, dan stok mengikuti jenis transaksi: produk dijual & disewa punya stok terpisah.
+    function terapkanSet(j) {
+        const kunci = j === 'sewa' ? 'sewa' : 'beli';
+        PRODUK.forEach((p) => {
+            const s = p.set[kunci];
+            p.ukuran = s.ukuran;
+            p.warna = s.warna;
+            p.stok = s.stok;
+        });
+    }
     const punyaUkuran = (p) => p.ukuran.length > 0;
     // Penyewaan: yang ditampilkan & ditagih di kasir adalah harga DP, sisanya dilunasi saat barang kembali.
     // Kalau DP produk belum diisi (0), dipakai 50% dari harga sewa setelah diskon.
@@ -858,8 +878,16 @@
         el('box-tanggal-sewa').classList.toggle('hidden', !sewa);
         aturPembayaranSewa(sewa);
 
-        // Buang item yang tidak boleh untuk jenis ini, lalu render ulang harga
+        // Ganti set stok sesuai jenis (beli/sewa), lalu buang item yang tidak boleh untuk jenis ini
+        terapkanSet(jenisAktif());
         state.cart = state.cart.filter((r) => { const p = pById(r.produk_id); return p && cocokJenis(p, jenisAktif()); });
+        // Ukuran/warna/jumlah item bisa tidak ada di set stok yang baru -> reset yang tidak cocok
+        state.cart.forEach((r, idx) => {
+            const p = pById(r.produk_id);
+            if (r.ukuran && !barisUkuran(p, r.ukuran)) r.ukuran = '';
+            if (r.warna && !daftarWarna(p, r.ukuran).some((w) => w.nama === r.warna)) r.warna = '';
+            r.qty = Math.max(1, Math.min(r.qty, sisaStok(p, r.ukuran, r.warna, idx) || 1));
+        });
         state.dpManual = false;
         renderKatalog();
         renderCart();
@@ -957,8 +985,7 @@
             if (!a || !b) err.push('Isi tanggal ambil dan tanggal kembali.');
             else if (b < a) err.push('Tanggal kembali tidak boleh sebelum tanggal ambil.');
             if (!el('foto_ktp').files.length) err.push('Upload foto KTP penyewa.');
-            const nik = el('nomor_ktp').value.trim();
-            if (nik && !/^\d{16}$/.test(nik)) err.push('NIK harus 16 digit angka.');
+            if (!el('ktp_sesuai').checked) err.push('Centang konfirmasi bahwa NIK & nama di KTP sudah sesuai dengan penyewa.');
         }
 
         const tipe = document.querySelector('input[name="customer_type"]:checked').value;
