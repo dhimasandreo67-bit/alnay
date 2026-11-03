@@ -20,15 +20,21 @@ class Produk extends Model
         'warna',
         'berat',
         'ukuran',
+        'warna_sewa',
+        'ukuran_sewa',
         'harga_jual',
         'harga_sewa',
         'dp',
         'stok',
+        'stok_sewa',
         'status',
         'dapat_dijual',
         'bisa_disewa',
         'denda_per_hari_telat',
+        'harga_perpanjangan_per_hari',
         'diskon_persen',
+        'diskon_sewa_persen',
+        'diskon_jual_persen',
         'rating_rata_rata',
         'jumlah_rating',
     ];
@@ -37,6 +43,8 @@ class Produk extends Model
         'foto_produk' => 'array',
         'warna' => 'array',       // Penting: mengubah JSON dari database kembali menjadi Array PHP
         'ukuran' => 'array',      // Penting: mengubah JSON dari database kembali menjadi Array PHP
+        'warna_sewa' => 'array',
+        'ukuran_sewa' => 'array',
         'bisa_disewa' => 'boolean',
         'dapat_dijual' => 'boolean',
         'berat' => 'decimal:2',
@@ -44,9 +52,67 @@ class Produk extends Model
         'harga_sewa' => 'decimal:2',
         'dp' => 'decimal:2',
         'denda_per_hari_telat' => 'decimal:2',
+        'harga_perpanjangan_per_hari' => 'decimal:2',
         'diskon_persen' => 'decimal:2',
+        'diskon_sewa_persen' => 'decimal:2',
+        'diskon_jual_persen' => 'decimal:2',
         'rating_rata_rata' => 'decimal:2',
     ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stok terpisah antara penjualan dan penyewaan
+    |--------------------------------------------------------------------------
+    | - Produk yang hanya dijual ATAU hanya disewa: tetap memakai kolom lama
+    |   (stok, ukuran, warna).
+    | - Produk yang bisa dijual DAN disewa: kolom lama = set untuk penjualan,
+    |   kolom *_sewa (stok_sewa, ukuran_sewa, warna_sewa) = set untuk penyewaan.
+    */
+    public function pisahStok(): bool
+    {
+        return (bool) $this->bisa_disewa && (bool) $this->dapat_dijual;
+    }
+
+    /**
+     * Nama kolom yang menyimpan stok untuk jenis transaksi ('sewa' atau selain itu = jual).
+     *
+     * @return array{stok: string, ukuran: string, warna: string}
+     */
+    public function kolomStok(string $jenis): array
+    {
+        if ($jenis === 'sewa' && $this->pisahStok()) {
+            return ['stok' => 'stok_sewa', 'ukuran' => 'ukuran_sewa', 'warna' => 'warna_sewa'];
+        }
+
+        return ['stok' => 'stok', 'ukuran' => 'ukuran', 'warna' => 'warna'];
+    }
+
+    public function stokUntuk(string $jenis): int
+    {
+        return (int) $this->{$this->kolomStok($jenis)['stok']};
+    }
+
+    public function ukuranUntuk(string $jenis): array
+    {
+        $nilai = $this->{$this->kolomStok($jenis)['ukuran']};
+
+        return is_array($nilai) ? $nilai : [];
+    }
+
+    public function warnaUntuk(string $jenis): array
+    {
+        $nilai = $this->{$this->kolomStok($jenis)['warna']};
+
+        return is_array($nilai) ? $nilai : [];
+    }
+
+    /** Stok paling sedikit di antara set yang berlaku (dipakai untuk peringatan stok menipis). */
+    public function stokTerendah(): int
+    {
+        return $this->pisahStok()
+            ? min($this->stokUntuk('jual'), $this->stokUntuk('sewa'))
+            : (int) $this->stok;
+    }
 
     public function kategori(): BelongsTo
     {

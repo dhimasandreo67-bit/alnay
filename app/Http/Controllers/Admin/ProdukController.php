@@ -11,6 +11,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ProdukController extends Controller
 {
@@ -80,29 +81,20 @@ class ProdukController extends Controller
             'bahan'                 => 'nullable|string|max:255',
             'motif'                 => 'nullable|string|max:255',
             'berat'                 => 'nullable|numeric|min:0',
-            'warna'                 => 'nullable|array',
-            'warna.*'               => 'string|max:100',
-            'ukuran'                => 'nullable|array',
-            'ukuran.*.ukuran'       => 'required_with:ukuran|string|max:20',
-            'ukuran.*.stok'         => 'required_with:ukuran|integer|min:0',
-            'ukuran.*.warna'        => 'nullable|array',
-            'ukuran.*.warna.*.nama' => 'required|string|max:100',
-            'ukuran.*.warna.*.stok' => 'required|integer|min:0',
+            ...$this->aturanStok(),
             'bisa_disewa'           => 'nullable|boolean',
             'dapat_dijual'          => 'nullable|boolean',
             'status'                => 'required|in:' . implode(',', array_keys(Produk::opsiStatus())),
             'harga_sewa'            => 'nullable|numeric|min:0',
             'dp'                    => 'nullable|numeric|min:0',
             'harga_jual'            => 'nullable|numeric|min:0',
-            'stok'                  => 'nullable|integer|min:0',
             'denda_per_hari_telat'  => 'nullable|numeric|min:0',
-            'diskon_persen'         => 'nullable|numeric|min:0|max:100',
+            'harga_perpanjangan_per_hari' => 'nullable|numeric|min:0',
+            'diskon_sewa_persen'    => 'nullable|numeric|min:0|max:100',
+            'diskon_jual_persen'    => 'nullable|numeric|min:0|max:100',
             'foto'                  => 'nullable|array|max:4',
             'foto.*'                => 'nullable|image|max:5120', // 5MB
-        ], [
-            'ukuran.*.warna.*.nama.required' => 'Pilih nama warna pada setiap baris rincian warna.',
-            'ukuran.*.warna.*.stok.required' => 'Isi stok pada setiap baris rincian warna.',
-        ]);
+        ], $this->pesanStok());
 
         $bisaDisewa  = $request->boolean('bisa_disewa');
         $dapatDijual = $request->boolean('dapat_dijual');
@@ -113,24 +105,8 @@ class ProdukController extends Controller
                 ->withErrors(['jenis_transaksi' => 'Pilih minimal satu jenis transaksi: Bisa disewa atau Bisa dijual.']);
         }
 
-        $ukuranVariasi = $this->rapikanUkuran($validated['ukuran'] ?? []);
-
-        if ($ukuranGanda = $this->ukuranGanda($ukuranVariasi)) {
-            return back()
-                ->withInput()
-                ->withErrors(['ukuran' => "Ukuran {$ukuranGanda} dipilih lebih dari sekali. Gabungkan jadi satu baris."]);
-        }
-
-        if (empty($ukuranVariasi) && !$request->filled('stok')) {
-            return back()
-                ->withInput()
-                ->withErrors(['stok' => 'Isi stok, atau tambahkan minimal satu variasi ukuran dengan stoknya.']);
-        }
-
-        // Kalau ada variasi ukuran, total stok dihitung otomatis dari jumlah tiap variasi.
-        $totalStok = !empty($ukuranVariasi)
-            ? collect($ukuranVariasi)->sum(fn ($v) => (int) $v['stok'])
-            : (int) $validated['stok'];
+        // Stok, ukuran & warna dipisah per jenis kalau produk bisa dijual sekaligus disewa.
+        $stokSet = $this->rakitStok($validated, $bisaDisewa, $dapatDijual);
 
         $kategori = Kategori::findOrFail($validated['kategori_id']);
 
@@ -149,18 +125,15 @@ class ProdukController extends Controller
             'foto_produk'          => $fotoPaths,
             'bahan'                => $validated['bahan'] ?? null,
             'motif'                => $validated['motif'] ?? null,
-            'warna'                => $validated['warna'] ?? [],
+            ...$stokSet,
             'berat'                => $validated['berat'] ?? null,
-            'ukuran'               => $ukuranVariasi,
             'harga_jual'           => $dapatDijual ? ($validated['harga_jual'] ?? null) : null,
             'harga_sewa'           => $bisaDisewa ? ($validated['harga_sewa'] ?? null) : null,
             'dp'                   => $bisaDisewa ? ($validated['dp'] ?? 0) : 0,
-            'stok'                 => $totalStok,
             'status'               => $validated['status'],
             'dapat_dijual'         => $dapatDijual,
             'bisa_disewa'          => $bisaDisewa,
-            'denda_per_hari_telat' => $validated['denda_per_hari_telat'] ?? 0,
-            'diskon_persen'        => $validated['diskon_persen'] ?? 0,
+            ...$this->rakitBiayaTambahan($validated, $bisaDisewa, $dapatDijual),
             'rating_rata_rata'     => 0,
             'jumlah_rating'        => 0,
         ]);
@@ -185,31 +158,22 @@ class ProdukController extends Controller
             'bahan'                 => 'nullable|string|max:255',
             'motif'                 => 'nullable|string|max:255',
             'berat'                 => 'nullable|numeric|min:0',
-            'warna'                 => 'nullable|array',
-            'warna.*'               => 'string|max:100',
-            'ukuran'                => 'nullable|array',
-            'ukuran.*.ukuran'       => 'required_with:ukuran|string|max:20',
-            'ukuran.*.stok'         => 'required_with:ukuran|integer|min:0',
-            'ukuran.*.warna'        => 'nullable|array',
-            'ukuran.*.warna.*.nama' => 'required|string|max:100',
-            'ukuran.*.warna.*.stok' => 'required|integer|min:0',
+            ...$this->aturanStok(),
             'bisa_disewa'           => 'nullable|boolean',
             'dapat_dijual'          => 'nullable|boolean',
             'status'                => 'required|in:' . implode(',', array_keys(Produk::opsiStatus())),
             'harga_sewa'            => 'nullable|numeric|min:0',
             'dp'                    => 'nullable|numeric|min:0',
             'harga_jual'            => 'nullable|numeric|min:0',
-            'stok'                  => 'nullable|integer|min:0',
             'denda_per_hari_telat'  => 'nullable|numeric|min:0',
-            'diskon_persen'         => 'nullable|numeric|min:0|max:100',
+            'harga_perpanjangan_per_hari' => 'nullable|numeric|min:0',
+            'diskon_sewa_persen'    => 'nullable|numeric|min:0|max:100',
+            'diskon_jual_persen'    => 'nullable|numeric|min:0|max:100',
             'foto'                  => 'nullable|array|max:4',
             'foto.*'                => 'nullable|image|max:5120',
             'foto_existing'         => 'nullable|array|max:4',
             'foto_existing.*'       => 'nullable|string',
-        ], [
-            'ukuran.*.warna.*.nama.required' => 'Pilih nama warna pada setiap baris rincian warna.',
-            'ukuran.*.warna.*.stok.required' => 'Isi stok pada setiap baris rincian warna.',
-        ]);
+        ], $this->pesanStok());
 
         $bisaDisewa  = $request->boolean('bisa_disewa');
         $dapatDijual = $request->boolean('dapat_dijual');
@@ -220,23 +184,8 @@ class ProdukController extends Controller
                 ->withErrors(['jenis_transaksi' => 'Pilih minimal satu jenis transaksi: Bisa disewa atau Bisa dijual.']);
         }
 
-        $ukuranVariasi = $this->rapikanUkuran($validated['ukuran'] ?? []);
-
-        if ($ukuranGanda = $this->ukuranGanda($ukuranVariasi)) {
-            return back()
-                ->withInput()
-                ->withErrors(['ukuran' => "Ukuran {$ukuranGanda} dipilih lebih dari sekali. Gabungkan jadi satu baris."]);
-        }
-
-        if (empty($ukuranVariasi) && !$request->filled('stok')) {
-            return back()
-                ->withInput()
-                ->withErrors(['stok' => 'Isi stok, atau tambahkan minimal satu variasi ukuran dengan stoknya.']);
-        }
-
-        $totalStok = !empty($ukuranVariasi)
-            ? collect($ukuranVariasi)->sum(fn ($v) => (int) $v['stok'])
-            : (int) $validated['stok'];
+        // Stok, ukuran & warna dipisah per jenis kalau produk bisa dijual sekaligus disewa.
+        $stokSet = $this->rakitStok($validated, $bisaDisewa, $dapatDijual);
 
         $kategori = Kategori::findOrFail($validated['kategori_id']);
 
@@ -276,18 +225,15 @@ class ProdukController extends Controller
             'foto_produk'          => $fotoFinal,
             'bahan'                => $validated['bahan'] ?? null,
             'motif'                => $validated['motif'] ?? null,
-            'warna'                => $validated['warna'] ?? [],
+            ...$stokSet,
             'berat'                => $validated['berat'] ?? null,
-            'ukuran'               => $ukuranVariasi,
             'harga_jual'           => $dapatDijual ? ($validated['harga_jual'] ?? null) : null,
             'harga_sewa'           => $bisaDisewa ? ($validated['harga_sewa'] ?? null) : null,
             'dp'                   => $bisaDisewa ? ($validated['dp'] ?? 0) : 0,
-            'stok'                 => $totalStok,
             'status'               => $validated['status'],
             'dapat_dijual'         => $dapatDijual,
             'bisa_disewa'          => $bisaDisewa,
-            'denda_per_hari_telat' => $validated['denda_per_hari_telat'] ?? 0,
-            'diskon_persen'        => $validated['diskon_persen'] ?? 0,
+            ...$this->rakitBiayaTambahan($validated, $bisaDisewa, $dapatDijual),
         ]);
 
         return redirect()
@@ -379,12 +325,12 @@ class ProdukController extends Controller
         $judul = [
             'No', 'Kode SKU', 'Nama Produk', 'Kategori', 'Deskripsi', 'Bahan', 'Motif',
             'Warna', 'Ukuran & Stok', 'Berat', 'Jenis Transaksi', 'Harga Sewa', 'DP',
-            'Harga Jual', 'Diskon (%)', 'Denda/Hari Telat', 'Total Stok', 'Status',
+            'Harga Jual', 'Diskon Sewa (%)', 'Diskon Jual (%)', 'Denda/Hari Telat', 'Perpanjangan/Hari', 'Stok Jual', 'Stok Sewa', 'Status',
             'Rating', 'Jumlah Rating', 'Tanggal Dibuat',
         ];
 
         $xlsx = (new XlsxSederhana('Data Produk'))
-            ->lebarKolom([6, 16, 32, 20, 40, 18, 18, 24, 40, 10, 16, 14, 12, 14, 11, 16, 11, 16, 9, 13, 18])
+            ->lebarKolom([6, 16, 32, 20, 40, 18, 18, 24, 40, 10, 16, 14, 12, 14, 14, 14, 16, 16, 11, 11, 16, 9, 13, 18])
             ->aktifkanFilterHeader()
             ->tambahBaris(array_map(fn ($h) => [$h, XlsxSederhana::S_HEADER], $judul));
 
@@ -411,16 +357,19 @@ class ProdukController extends Controller
                 $teks($p->deskripsi),
                 $teks($p->bahan),
                 $teks($p->motif),
-                $teks(implode(', ', $this->keArray($p->warna))),
-                $teks($this->ringkasUkuran($p->ukuran)),
+                $teks($this->ringkasWarna($p)),
+                $teks($this->ringkasStokProduk($p)),
                 $angka($p->berat),
                 $teks($jenis),
                 $angka($p->harga_sewa),
                 $angka($p->dp),
                 $angka($p->harga_jual),
-                $angka($p->diskon_persen),
+                $angka($p->diskon_sewa_persen),
+                $angka($p->diskon_jual_persen),
                 $angka($p->denda_per_hari_telat),
-                $angka($p->stok),
+                $angka($p->harga_perpanjangan_per_hari),
+                $angka($p->dapat_dijual ? $p->stokUntuk('jual') : null),
+                $angka($p->bisa_disewa ? $p->stokUntuk('sewa') : null),
                 $teks($opsiStatus[$p->status] ?? $p->status),
                 $angka($p->rating_rata_rata),
                 $angka($p->jumlah_rating),
@@ -479,6 +428,26 @@ class ProdukController extends Controller
     }
 
     /**
+     * Biaya tambahan sewa & diskon terpisah. Nilai yang tidak relevan
+     * (mis. diskon sewa pada produk yang tidak disewa) dinolkan.
+     * diskon_persen (kolom lama) tetap diisi supaya halaman yang belum
+     * dimigrasi tidak rusak.
+     */
+    protected function rakitBiayaTambahan(array $v, bool $bisaDisewa, bool $dapatDijual): array
+    {
+        $diskonSewa = $bisaDisewa ? (float) ($v['diskon_sewa_persen'] ?? 0) : 0;
+        $diskonJual = $dapatDijual ? (float) ($v['diskon_jual_persen'] ?? 0) : 0;
+
+        return [
+            'denda_per_hari_telat'        => $v['denda_per_hari_telat'] ?? 0,
+            'harga_perpanjangan_per_hari' => $bisaDisewa ? ($v['harga_perpanjangan_per_hari'] ?? 0) : 0,
+            'diskon_sewa_persen'          => $diskonSewa,
+            'diskon_jual_persen'          => $diskonJual,
+            'diskon_persen'               => $bisaDisewa ? $diskonSewa : $diskonJual, // legacy
+        ];
+    }
+
+    /**
      * Pastikan nilai (array atau string JSON) menjadi array.
      */
     protected function keArray($nilai): array
@@ -511,6 +480,120 @@ class ProdukController extends Controller
         }
 
         return implode('; ', $bagian);
+    }
+
+    /**
+     * Aturan validasi stok, warna & ukuran. Set utama tanpa akhiran
+     * (penjualan, atau satu-satunya set); set penyewaan memakai akhiran "_sewa".
+     */
+    protected function aturanStok(): array
+    {
+        $aturan = [];
+
+        foreach (['', '_sewa'] as $a) {
+            $aturan += [
+                "warna{$a}"                 => 'nullable|array',
+                "warna{$a}.*"               => 'string|max:100',
+                "ukuran{$a}"                => 'nullable|array',
+                "ukuran{$a}.*.ukuran"       => "required_with:ukuran{$a}|string|max:20",
+                "ukuran{$a}.*.stok"         => "required_with:ukuran{$a}|integer|min:0",
+                "ukuran{$a}.*.warna"        => 'nullable|array',
+                "ukuran{$a}.*.warna.*.nama" => 'required|string|max:100',
+                "ukuran{$a}.*.warna.*.stok" => 'required|integer|min:0',
+                "stok{$a}"                  => 'nullable|integer|min:0',
+            ];
+        }
+
+        return $aturan;
+    }
+
+    protected function pesanStok(): array
+    {
+        $pesan = [];
+
+        foreach (['', '_sewa'] as $a) {
+            $pesan["ukuran{$a}.*.warna.*.nama.required"] = 'Pilih nama warna pada setiap baris rincian warna.';
+            $pesan["ukuran{$a}.*.warna.*.stok.required"] = 'Isi stok pada setiap baris rincian warna.';
+        }
+
+        return $pesan;
+    }
+
+    /**
+     * Susun kolom stok untuk disimpan.
+     * - Produk dijual DAN disewa: set utama = penjualan, set "_sewa" = penyewaan.
+     * - Produk satu jenis: hanya set utama yang dipakai, kolom *_sewa dikosongkan.
+     */
+    protected function rakitStok(array $validated, bool $bisaDisewa, bool $dapatDijual): array
+    {
+        $pisah = $bisaDisewa && $dapatDijual;
+
+        $utama = $this->olahSetStok($validated, '', $pisah ? 'penjualan' : ($bisaDisewa ? 'penyewaan' : 'penjualan'));
+        $sewa  = $pisah
+            ? $this->olahSetStok($validated, '_sewa', 'penyewaan')
+            : ['warna' => [], 'ukuran' => [], 'stok' => 0];
+
+        return [
+            'warna'       => $utama['warna'],
+            'ukuran'      => $utama['ukuran'],
+            'stok'        => $utama['stok'],
+            'warna_sewa'  => $sewa['warna'],
+            'ukuran_sewa' => $sewa['ukuran'],
+            'stok_sewa'   => $sewa['stok'],
+        ];
+    }
+
+    /**
+     * Rapikan & validasi satu set stok. Kalau ada variasi ukuran, total stok
+     * dihitung otomatis dari jumlah tiap variasi.
+     *
+     * @return array{warna: array, ukuran: array, stok: int}
+     */
+    protected function olahSetStok(array $validated, string $akhiran, string $label): array
+    {
+        $ukuranVariasi = $this->rapikanUkuran($validated["ukuran{$akhiran}"] ?? []);
+
+        if ($ukuranGanda = $this->ukuranGanda($ukuranVariasi)) {
+            throw ValidationException::withMessages([
+                "ukuran{$akhiran}" => "Ukuran {$ukuranGanda} pada bagian {$label} dipilih lebih dari sekali. Gabungkan jadi satu baris.",
+            ]);
+        }
+
+        $stokInput = $validated["stok{$akhiran}"] ?? null;
+
+        if (empty($ukuranVariasi) && ($stokInput === null || $stokInput === '')) {
+            throw ValidationException::withMessages([
+                "stok{$akhiran}" => "Isi stok {$label}, atau tambahkan minimal satu variasi ukuran dengan stoknya.",
+            ]);
+        }
+
+        return [
+            'warna'  => $validated["warna{$akhiran}"] ?? [],
+            'ukuran' => $ukuranVariasi,
+            'stok'   => ! empty($ukuranVariasi)
+                ? (int) collect($ukuranVariasi)->sum(fn ($v) => (int) $v['stok'])
+                : (int) $stokInput,
+        ];
+    }
+
+    /** Warna untuk Excel: dipisah per jenis kalau produk dijual & disewa. */
+    protected function ringkasWarna(Produk $p): string
+    {
+        if ($p->pisahStok()) {
+            return 'Jual: ' . implode(', ', $p->warnaUntuk('jual')) . ' | Sewa: ' . implode(', ', $p->warnaUntuk('sewa'));
+        }
+
+        return implode(', ', $this->keArray($p->warna));
+    }
+
+    /** Ukuran & stok untuk Excel: dipisah per jenis kalau produk dijual & disewa. */
+    protected function ringkasStokProduk(Produk $p): string
+    {
+        if ($p->pisahStok()) {
+            return 'Jual - ' . $this->ringkasUkuran($p->ukuran) . ' | Sewa - ' . $this->ringkasUkuran($p->ukuran_sewa);
+        }
+
+        return $this->ringkasUkuran($p->ukuran);
     }
 
     /**
