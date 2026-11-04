@@ -64,5 +64,7 @@
         document.body.classList.remove('preload');
     });
 </script>
+
+    <x-back-to-top />
 </body>
 </html>
