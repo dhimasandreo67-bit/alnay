@@ -369,6 +369,8 @@
                         <form method="POST" action="{{ route('fitting.store') }}" x-ref="formFitting"
                             @submit.prevent="kirim()">
                             @csrf
+                            <input type="hidden" name="transaksi_id" value="{{ request('transaksi_id') }}">
+                            
                             <input type="hidden" name="tanggal" x-ref="inputTanggal">
                             <input type="hidden" name="jam" x-ref="inputJam">
                             <input type="hidden" name="nama" x-ref="inputNama">

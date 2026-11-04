@@ -67,8 +67,8 @@
         <div class="max-w-3xl mx-auto px-4">
             {{-- Tombol Kembali & Judul --}}
             <div class="pd-up flex items-center gap-3 mb-6" style="--d: .05s;">
-                <a href="{{ route('akun.pesanan.index', ['jenis' => $transaksi->jenis]) }}" 
-                class="w-8 h-8 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold hover:border-gold/50 hover:-translate-x-0.5 transition-all duration-300">
+                <a href="{{ route('akun.pesanan.index', ['jenis' => $transaksi->jenis]) }}"
+                    class="w-8 h-8 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold hover:border-gold/50 hover:-translate-x-0.5 transition-all duration-300">
                     <x-icon name="chevron-right" :size="14" class="rotate-180" />
                 </a>
                 <div>
@@ -155,38 +155,47 @@
 
             {{-- STATUS PENGIRIMAN --}}
             @if ($transaksi->pengiriman)
+                @php $isSewaPesanan = $transaksi->jenis === 'sewa'; @endphp
                 <div class="pd-up bg-panel border border-line/40 rounded-xl p-5 mb-4" style="--d: .18s;">
                     <h2 class="text-[11px] font-semibold text-ink/80 mb-3 uppercase tracking-wider">Status Pengiriman</h2>
                     <div class="flex justify-between items-center">
                         <div class="space-y-1">
-                            <p class="text-[12px] text-ink/60">Kurir: <span
-                                    class="font-semibold text-ink/85">{{ $transaksi->pengiriman->kurir ?? '-' }}</span></p>
-                            <p class="text-[12px] text-ink/60">No. Resi: <span
-                                    class="font-semibold text-ink/85">{{ $transaksi->pengiriman->no_resi ?? '-' }}</span>
-                            </p>
+                            @if ($isSewaPesanan)
+                                <p class="text-[12px] text-ink/60">Metode: <span class="font-semibold text-ink/85">Diantar
+                                        Manual via WA</span></p>
+                                <p class="text-[12px] text-ink/60">Biaya Kirim: <span class="font-semibold text-ink/85">
+                                        @if (($transaksi->pengiriman->biaya_kirim ?? 0) > 0)
+                                            Rp{{ number_format($transaksi->pengiriman->biaya_kirim, 0, ',', '.') }}
+                                        @else
+                                            Diinfokan via WA
+                                        @endif
+                                    </span></p>
+                            @else
+                                <p class="text-[12px] text-ink/60">Kurir: <span
+                                        class="font-semibold text-ink/85">{{ $transaksi->pengiriman->kurir ?? '-' }}</span>
+                                </p>
+                                <p class="text-[12px] text-ink/60">No. Resi: <span
+                                        class="font-semibold text-ink/85">{{ $transaksi->pengiriman->no_resi ?? '-' }}</span>
+                                </p>
+                            @endif
                             <p class="text-[12px] text-ink/60">Alamat: <span
                                     class="font-semibold text-ink/85">{{ Str::limit($transaksi->pengiriman->alamat_tujuan, 50) }}</span>
                             </p>
                         </div>
                         <span
                             class="px-3 py-1 rounded text-xs font-bold uppercase
-                            {{ $transaksi->pengiriman->status_kirim === 'diterima' ? 'bg-emerald-50 text-emerald-600' : ($transaksi->pengiriman->status_kirim === 'dikirim' ? 'bg-sky-50 text-sky-600' : 'bg-amber-50 text-amber-600') }}">
+                {{ $transaksi->pengiriman->status_kirim === 'diterima' ? 'bg-emerald-50 text-emerald-600' : ($transaksi->pengiriman->status_kirim === 'dikirim' ? 'bg-sky-50 text-sky-600' : 'bg-amber-50 text-amber-600') }}">
                             {{ $transaksi->pengiriman->status_kirim }}
                         </span>
                     </div>
 
                     {{-- Tombol Pesanan Diterima --}}
-                        @if ($transaksi->pengiriman->status_kirim === 'dikirim')
-                            <div x-data="{ openKonfirmasi: false }" class="mt-4">
-                                {{-- Tombol Trigger --}}
-                                <button type="button" onclick="bukaModalTerima()"
-                                    class="w-full py-2.5 mt-4 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors">
-                                    Pesanan Diterima
-                                </button>
-
-                                
-                            </div>
-                        @endif
+                    @if ($transaksi->pengiriman->status_kirim === 'dikirim')
+                        <button type="button" onclick="bukaModalTerima()"
+                            class="w-full py-2.5 mt-4 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors">
+                            Pesanan Diterima
+                        </button>
+                    @endif
                 </div>
             @endif
 
@@ -329,11 +338,34 @@
             @endif
 
             {{-- TOMBOL AKSI --}}
-            <div class="pd-up flex gap-2" style="--d: .3s;">
+            <div class="pd-up grid grid-cols-2 sm:flex sm:flex-wrap gap-2" style="--d: .3s;">
                 <a href="{{ route('akun.pesanan.index') }}"
-                    class="flex-1 text-center py-2.5 rounded-lg border border-line/50 text-ink/65 text-[11px] font-semibold hover:bg-white transition-all duration-300">
+                    class="w-full sm:flex-1 text-center py-2.5 rounded-lg border border-line/50 text-ink/65 text-[11px] font-semibold hover:bg-white transition-all duration-300">
                     Kembali
                 </a>
+
+                                {{-- TOMBOL BOOKING FITTING (Hanya untuk Sewa) --}}
+                @if ($transaksi->jenis === 'sewa')
+                    @php
+                        // Cek apakah sudah ada jadwal fitting KHUSUS untuk transaksi ini
+                        $sudahFitting = \App\Models\ReservasiFitting::where('transaksi_id', $transaksi->id)
+                            ->where('status', '!=', 'batal')
+                            ->exists();
+                    @endphp
+
+                    @if (!$sudahFitting)
+                        {{-- Kirim ID transaksi ke form booking --}}
+                        <a href="{{ route('fitting.create', ['transaksi_id' => $transaksi->id]) }}"
+                            class="w-full sm:flex-1 text-center py-2.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700 transition-all duration-300 shadow-md shadow-emerald-500/20">
+                            Booking Fitting
+                        </a>
+                    @else
+                        <a href="{{ route('akun.fitting.index') }}"
+                            class="w-full sm:flex-1 text-center py-2.5 rounded-lg bg-gray-100 text-gray-600 text-[11px] font-semibold hover:bg-gray-200 transition-all duration-300">
+                            Lihat Jadwal Fitting
+                        </a>
+                    @endif
+                @endif
 
                 {{-- TOMBOL AJUKAN REFUND --}}
                 @if ($transaksi->status_pembayaran === 'lunas')
@@ -343,12 +375,12 @@
 
                     @if (!$sudahRefund)
                         <button type="button" onclick="document.getElementById('modalRefund').classList.remove('hidden')"
-                            class="flex-1 text-center py-2.5 rounded-lg bg-rose-600 text-white text-[11px] font-semibold hover:bg-rose-700 transition-all duration-300">
+                            class="w-full sm:flex-1 text-center py-2.5 rounded-lg bg-rose-600 text-white text-[11px] font-semibold hover:bg-rose-700 transition-all duration-300">
                             Ajukan Refund
                         </button>
                     @else
                         <span
-                            class="flex-1 text-center py-2.5 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-semibold">
+                            class="w-full sm:flex-1 text-center py-2.5 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-semibold">
                             Refund Sudah Diajukan
                         </span>
                     @endif
@@ -356,7 +388,7 @@
 
                 @if ($transaksi->status_pembayaran === 'pending' || $transaksi->status_pembayaran === 'dp')
                     <a href="{{ route('sewa.konfirmasi', $transaksi->id) }}"
-                        class="flex-1 text-center py-2.5 rounded-lg bg-gold text-white text-[11px] font-semibold hover:bg-gold/90 transition-all duration-300 pd-shine">
+                        class="w-full sm:flex-1 text-center py-2.5 rounded-lg bg-gold text-white text-[11px] font-semibold hover:bg-gold/90 transition-all duration-300 pd-shine">
                         Lanjutkan Pembayaran
                     </a>
                 @endif
@@ -366,26 +398,32 @@
             <div id="modalRefund"
                 class="hidden fixed inset-0 z-50 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
                 <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl" onclick="event.stopPropagation()">
-                    
+
                     <div class="flex items-center justify-between mb-5">
                         <h3 class="font-display text-xl font-bold text-gray-900">Ajukan Refund</h3>
-                        <button type="button" onclick="document.getElementById('modalRefund').classList.add('hidden')" class="text-gray-400 hover:text-rose-500 transition-colors">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        <button type="button" onclick="document.getElementById('modalRefund').classList.add('hidden')"
+                            class="text-gray-400 hover:text-rose-500 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
                         </button>
                     </div>
 
                     <p class="text-xs text-gray-500 mb-5 leading-relaxed">
-                        Silakan jelaskan alasan pengajuan refund Anda. Tim kami akan meninjau pengajuan ini maksimal 1x24 jam.
+                        Silakan jelaskan alasan pengajuan refund Anda. Tim kami akan meninjau pengajuan ini maksimal 1x24
+                        jam.
                     </p>
 
                     <form action="{{ route('akun.refund.store', $transaksi->id) }}" method="POST">
                         @csrf
                         <div class="mb-5">
-                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Alasan Refund <span class="text-rose-500">*</span></label>
+                            <label class="block text-xs font-bold text-gray-700 mb-1.5">Alasan Refund <span
+                                    class="text-rose-500">*</span></label>
                             <textarea name="alasan" rows="4" required placeholder="Contoh: Barang rusak saat diterima..."
                                 class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"></textarea>
                         </div>
-                        
+
                         {{-- Tombol Aksi (Batal di Kiri, Kirim di Kanan) --}}
                         <div class="flex gap-3">
                             <button type="button"
@@ -404,49 +442,53 @@
         </div>
     </div>
 
-        {{-- MODAL KONFIRMASI TERIMA BARANG --}}
+    {{-- MODAL KONFIRMASI TERIMA BARANG --}}
     @if ($transaksi->pengiriman)
-    <div id="modalTerimaBarang" class="hidden fixed inset-0 z-[100] items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div class="p-6 text-center">
-                <div class="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
+        <div id="modalTerimaBarang"
+            class="hidden fixed inset-0 z-[100] items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+                <div class="p-6 text-center">
+                    <div
+                        class="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="font-display text-lg font-bold text-gray-900 mb-2">Konfirmasi Terima Barang</h3>
+                    <p class="text-sm text-gray-500 leading-relaxed">Apakah Anda yakin barang sudah diterima dengan baik?
+                    </p>
                 </div>
-                <h3 class="font-display text-lg font-bold text-gray-900 mb-2">Konfirmasi Terima Barang</h3>
-                <p class="text-sm text-gray-500 leading-relaxed">Apakah Anda yakin barang sudah diterima dengan baik?</p>
-            </div>
-            <div class="p-4 bg-gray-50 border-t border-gray-100 flex gap-2">
-                <button type="button" onclick="tutupModalTerima()"
-                    class="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-100 transition-colors">
-                    Batal
-                </button>
-                <form action="{{ route('akun.pengiriman.terima', $transaksi->pengiriman->id) }}" method="POST" class="flex-1">
-                    @csrf
-                    @method('PATCH')
-                    <button type="submit"
-                        class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-md shadow-emerald-500/20">
-                        Ya, Terima
+                <div class="p-4 bg-gray-50 border-t border-gray-100 flex gap-2">
+                    <button type="button" onclick="tutupModalTerima()"
+                        class="flex-1 py-2.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-100 transition-colors">
+                        Batal
                     </button>
-                </form>
+                    <form action="{{ route('akun.pengiriman.terima', $transaksi->pengiriman->id) }}" method="POST"
+                        class="flex-1">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit"
+                            class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-md shadow-emerald-500/20">
+                            Ya, Terima
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
     @endif
 
-<script>
-    function bukaModalTerima() {
-        const modal = document.getElementById('modalTerimaBarang');
-        modal.classList.remove('hidden');
-        modal.style.display = 'flex';
-    }
+    <script>
+        function bukaModalTerima() {
+            const modal = document.getElementById('modalTerimaBarang');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+        }
 
-    function tutupModalTerima() {
-        const modal = document.getElementById('modalTerimaBarang');
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-    }
-</script>
+        function tutupModalTerima() {
+            const modal = document.getElementById('modalTerimaBarang');
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+        }
+    </script>
 @endsection
-

@@ -136,6 +136,19 @@ class SewaController extends Controller
             $totalSewaKeseluruhan += $item->total_sewa;
         }
 
+                // DP dibaca dari produk di database, bukan dari session.
+        $produkDp = Produk::whereIn('id', collect($items)->pluck('produk_id'))->get()->keyBy('id');
+        $dpTotal  = 0;
+        foreach ($items as $item) {
+            $dpTotal += (float) ($produkDp[$item->produk_id]->dp ?? 0);
+        }
+
+        if (($dpTotal + $deposit) < 1) {
+            return back()->withInput()->withErrors([
+                'metode_bayar' => 'Produk ini belum punya nilai DP, jadi tagihan tidak bisa dibuat. Hubungi admin.',
+            ]);
+        }
+
         // Upload KTP
         $fotoKtpPath = $request->hasFile('foto_ktp') ? $request->file('foto_ktp')->store('ktp', 'public') : null;
 
@@ -177,12 +190,11 @@ class SewaController extends Controller
             ]);
         }
 
-        // 3. Simpan Pembayaran
-        $dp = array_sum(array_map(fn($i) => $i->dp ?? 0, $items));
+        // 3. Simpan Pembayaran 
         Pembayaran::create([
             'transaksi_id' => $transaksi->id,
             'jenis_bayar' => 'dp',
-            'jumlah' => $dp + $deposit,
+            'jumlah' => $dpTotal + $deposit,
             'metode' => $validated['metode_bayar'],
             'status_midtrans' => 'pending',
             'tanggal_bayar' => now(),
@@ -233,12 +245,12 @@ class SewaController extends Controller
         return view('customer.sewa-konfirmasi', compact('transaksi', 'produk', 'total', 'dp', 'deposit'));
     }
 
-    public function charge($id)
+        public function charge($id)
     {
         try {
-            $transaksi = Transaksi::findOrFail($id);
+            $transaksi = Transaksi::where('user_id', Auth::id())->findOrFail($id);
 
-            // Panggil Service MidtransQris yang baru
+            // Panggil Service MidtransQris
             $qrData = app(\App\Services\MidtransQris::class)->qr($transaksi);
 
             if (isset($qrData['paid']) && $qrData['paid']) {
@@ -249,23 +261,34 @@ class SewaController extends Controller
                 'qr_url' => $qrData['qr_url'] ?? null,
                 'expires_in' => $qrData['expires_in'] ?? 0,
             ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
+        } catch (\Throwable $e) {
+            \Log::error('QRIS charge gagal', ['transaksi_id' => $id, 'error' => $e->getMessage()]);
+
+            return response()->json([
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'QR belum bisa dibuat. Coba lagi sebentar.',
+            ], 500);
         }
     }
 
     public function cekStatus($id)
     {
         try {
-            $transaksi = Transaksi::findOrFail($id);
-            $midtrans = app(\App\Services\MidtransQris::class);
+            $transaksi = Transaksi::where('user_id', Auth::id())->findOrFail($id);
 
             // Sinkronisasi status dari Midtrans ke database
-            $status = $midtrans->sync($transaksi);
+            $status = app(\App\Services\MidtransQris::class)->sync($transaksi);
 
             return response()->json(['status' => $status]);
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['status' => 'error', 'message' => 'Transaksi tidak ditemukan.'], 404);
+        } catch (\Throwable $e) {
+            \Log::warning('QRIS cek status gagal', ['transaksi_id' => $id, 'error' => $e->getMessage()]);
+
+            return response()->json(['status' => 'error', 'message' => 'Gagal memeriksa status.'], 500);
         }
     }
 

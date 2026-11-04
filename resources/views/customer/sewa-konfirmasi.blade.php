@@ -28,11 +28,14 @@
     </style>
 
     @php
-        $dp = $dp ?? 0;
-        $deposit = $deposit ?? 0;
-        $produk = $transaksi->detail->first()->produk ?? null;
-        $dibayarSekarang = ($produk->dp ?? 0) + ($deposit ?? 0);
-        $lunasDp = in_array($transaksi->status_pembayaran, ['dp_dibayar', 'lunas'], true);
+        $produk   = $transaksi->detail->first()->produk ?? null;
+        $tagihan  = $transaksi->pembayaran->sortByDesc('id')->first();
+
+        // Angka yang tampil = angka yang benar-benar ditagihkan.
+        $dibayarSekarang = (int) round((float) ($tagihan->jumlah ?? 0));
+        $deposit         = (int) round((float) ($deposit ?? 0));
+        $dpBagian        = max(0, $dibayarSekarang - $deposit);
+        $lunasDp         = in_array($transaksi->status_pembayaran, ['dp_dibayar', 'lunas'], true);
     @endphp
 
     <div class="bg-[#FBFAF7] min-h-screen py-8 md:py-12 font-sans">

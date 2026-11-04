@@ -11,6 +11,7 @@ use App\Services\RajaOngkir;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CheckoutController extends Controller
 {
@@ -50,10 +51,13 @@ class CheckoutController extends Controller
             return redirect()->route('keranjang.index')->with('error', 'Keranjang kosong.');
         }
 
-        $subtotal = array_reduce($cartItems, fn($c, $i) => $c + ($i['harga'] * $i['qty']), 0);
+        $subtotal  = array_reduce($cartItems, fn($c, $i) => $c + ($i['harga'] * $i['qty']), 0);
         $ongkir    = 0;
+        $dipilih   = null;
+        $berat     = null;
         $infoKirim = 'Ambil di studio';
 
+        // Ongkir SELALU dihitung ulang di server, bukan dari angka di browser.
         if ($request->metode_penerimaan === 'kirim') {
             try {
                 $berat = $ro->beratKeranjang($cartItems);
@@ -66,7 +70,7 @@ class CheckoutController extends Controller
             $dipilih = collect($opsi)->first(fn($o) => strcasecmp($o['layanan'], $request->layanan) === 0);
 
             if (! $dipilih) {
-                return back()->withInput()->with('error', 'Layanan pengiriman yang dipilih tidak tersedia.');
+                return back()->withInput()->with('error', 'Layanan pengiriman yang dipilih tidak tersedia. Pilih ulang.');
             }
 
             $ongkir    = (int) $dipilih['biaya'];
@@ -75,14 +79,14 @@ class CheckoutController extends Controller
                 . ' | WA: ' . $request->no_wa
                 . ' | Tujuan: ' . ($request->tujuan_label ?: $request->tujuan_id)
                 . ' | ' . strtoupper($dipilih['kurir']) . ' ' . $dipilih['layanan']
-                . ' (est. ' . $dipilih['etd'] . ')'
+                . ' (est. ' . ($dipilih['etd'] ?: '-') . ')'
                 . ' | Berat: ' . $berat . ' gr'
                 . ' | Ongkir: Rp ' . number_format($ongkir, 0, ',', '.');
         }
 
         $total = $subtotal + $ongkir;
 
-        $transaksi = DB::transaction(function () use ($request, $cartItems, $total, $infoKirim, $ongkir) {
+        $transaksi = DB::transaction(function () use ($request, $cartItems, $total, $infoKirim, $ongkir, $dipilih, $berat) {
             $transaksi = Transaksi::create([
                 'kode_transaksi'    => 'ALN-BLI-' . strtoupper(substr(uniqid(), -8)),
                 'user_id'           => Auth::id(),
@@ -91,7 +95,8 @@ class CheckoutController extends Controller
                 'tanggal'           => now()->toDateString(),
                 'total'             => $total,
                 'status_pembayaran' => 'pending',
-                'catatan'           => $infoKirim,
+                // Dibatasi supaya tidak melebihi panjang kolom.
+                'catatan'           => Str::limit($infoKirim, 250, ''),
             ]);
 
             foreach ($cartItems as $item) {
@@ -112,18 +117,25 @@ class CheckoutController extends Controller
                 'tanggal_bayar'   => now(),
             ]);
 
-            if ($request->metode_penerimaan === 'kirim') {
+            $wilayah = RajaOngkir::uraikanLabel($request->tujuan_label);
+            if ($dipilih) {
                 Pengiriman::create([
                     'transaksi_id'     => $transaksi->id,
-                    'provinsi_tujuan'  => auth()->user()->provinsi_nama ?? '-',
-                    'kota_tujuan'      => auth()->user()->kota_nama ?? '-',
-                    'kecamatan_tujuan' => $request->tujuan_label ?? '-',
-                    'kode_pos_tujuan'  => auth()->user()->kode_pos ?? null,
+                    'provinsi_tujuan'  => $wilayah['provinsi'] ?: '-',
+                    'kota_tujuan'      => $wilayah['kota'] ?: '-',
+                    'kecamatan_tujuan' => Str::limit($request->tujuan_label ?: '-', 250, ''),
+                    'kode_pos_tujuan'  => $wilayah['kode_pos'],
                     'alamat_tujuan'    => $request->alamat,
                     'status_kirim'     => 'menunggu',
-                    'kurir'            => $request->kurir,
-                    'layanan_ongkir'   => $request->layanan,
+                    // Nilai dari hasil API yang sudah dicocokkan, bukan dari input browser.
+                    'kurir'            => $dipilih['kurir'],
+                    'layanan_ongkir'   => $dipilih['layanan'],
                     'biaya_kirim'      => $ongkir,
+                    // Data untuk pembuatan resi oleh admin.
+                    'nama_penerima'    => $request->nama_penerima,
+                    'no_wa_penerima'   => $request->no_wa,
+                    'tujuan_id'        => (int) $request->tujuan_id,
+                    'berat_gram'       => $berat,
                 ]);
             }
 
@@ -132,6 +144,6 @@ class CheckoutController extends Controller
 
         session()->forget('cart');
 
-        return redirect()->route('sewa.konfirmasi', $transaksi->id);
+        return redirect()->route('beli.konfirmasi', $transaksi->id);
     }
 }

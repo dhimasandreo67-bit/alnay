@@ -182,7 +182,7 @@ class BeliController extends Controller
         $ongkir = (int) $dipilih['biaya'];
         $total  = $subtotal + $ongkir;
 
-        $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih) {
+            $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih, $berat) {
             $transaksi = Transaksi::create([
                 'kode_transaksi'    => 'ALN-BL-' . strtoupper(substr(uniqid(), -8)),
                 'user_id'           => auth()->id(),
@@ -210,19 +210,23 @@ class BeliController extends Controller
                 'tanggal_bayar'   => now(),
             ]);
 
-            $tujuan = $validated['tujuan_label'] ?? null;
+            $wilayah = RajaOngkir::uraikanLabel($validated['tujuan_label'] ?? null);
 
             Pengiriman::create([
                 'transaksi_id'     => $transaksi->id,
-                'provinsi_tujuan'  => auth()->user()->provinsi_nama ?? '-',
-                'kota_tujuan'      => auth()->user()->kota_nama ?? '-',
-                'kecamatan_tujuan' => auth()->user()->kecamatan ?? '-',
-                'kode_pos_tujuan'  => auth()->user()->kode_pos ?? null,
-                'alamat_tujuan'    => $validated['alamat'] . ($tujuan ? ' | Tujuan: ' . $tujuan : ''),
+                'provinsi_tujuan'  => $wilayah['provinsi'] ?: '-',
+                'kota_tujuan'      => $wilayah['kota'] ?: '-',
+                'kecamatan_tujuan' => mb_substr($validated['tujuan_label'] ?? '-', 0, 250),
+                'kode_pos_tujuan'  => $wilayah['kode_pos'],
+                'alamat_tujuan'    => $validated['alamat'],
                 'status_kirim'     => 'menunggu',
                 'kurir'            => $dipilih['kurir'],
                 'layanan_ongkir'   => $dipilih['layanan'],
                 'biaya_kirim'      => $ongkir,
+                'nama_penerima'    => $validated['nama_penerima'],
+                'no_wa_penerima'   => $validated['no_wa'],
+                'tujuan_id'        => (int) $validated['tujuan_id'],
+                'berat_gram'       => $berat,
             ]);
 
             return $transaksi;

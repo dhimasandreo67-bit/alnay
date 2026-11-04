@@ -106,7 +106,7 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Alamat Lengkap</label>
-                        <textarea name="alamat" rows="2" class="..." placeholder="...">{{ old('alamat', auth()->user()->alamat ?? '') }}</textarea>
+                                                <textarea name="alamat" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#c99a32]/20 focus:border-[#c99a32] outline-none transition-all" placeholder="Nama jalan, nomor rumah, RT/RW, patokan">{{ old('alamat', auth()->user()->alamat ?? '') }}</textarea>
                     </div>
 
                     <div>

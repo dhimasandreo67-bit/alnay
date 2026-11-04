@@ -48,13 +48,19 @@ class MidtransQris
             ->first();
     }
 
-    public function nominal(Transaksi $t): int
+        public function nominal(Transaksi $t): int
     {
         $tagihan = $this->tagihan($t);
-        $produk = $t->detail->first()->produk ?? null;
-        $dpProduk = $produk->dp ?? 0;
+        $jumlah  = (int) round((float) ($tagihan->jumlah ?? 0));
 
-        return (int) ($tagihan->jumlah ?? $dpProduk ?? $t->total);
+        if ($jumlah < 1) {
+            throw new \RuntimeException(
+                'Nominal tagihan Rp0 untuk transaksi ' . $t->kode_transaksi
+                . '. Periksa DP produk dan data pembayaran, lalu buat pesanan baru.'
+            );
+        }
+
+        return $jumlah;
     }
 
     private function key(Transaksi $t): string

@@ -10,6 +10,13 @@
     @keyframes pd-swap { from { opacity: 0; transform: translateY(8px); }  to { opacity: 1; transform: none; } }
     @keyframes pd-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
     @keyframes pd-spin { to { transform: rotate(360deg); } }
+        @keyframes pulse-slow {
+        0%, 100% { opacity: 1; border-color: #fcd34d; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2); }
+        50% { opacity: .9; border-color: #f59e0b; box-shadow: 0 0 15px 5px rgba(245, 158, 11, 0.1); }
+    }
+    .animate-pulse-slow {
+        animation: pulse-slow 2.5s infinite;
+    }
     .pd-up    { animation: pd-up .7s cubic-bezier(.22, .8, .3, 1) both; animation-delay: var(--d, 0s); }
     .pd-swap  { animation: pd-swap .45s ease-out both; }
     .pd-shake { animation: pd-shake .45s ease; }
@@ -134,14 +141,44 @@
                             </label>
                         </div>
 
-                        <div x-show="metodeKtp === 'digital'" x-cloak class="pd-swap">
-                            <div class="border border-dashed rounded-lg p-5 text-center transition-colors duration-300" :class="namaFileKtp ? 'border-gold/60 bg-gold/5' : 'border-line/60'">
-                                <p class="text-[13px] font-medium text-ink/75 mb-1" x-text="namaFileKtp || 'Upload Foto KTP'"></p>
-                                <p class="text-[11px] text-ink/50 mb-3">JPG/PNG, maks {{ $cfg['maksKtpMb'] }}MB</p>
-                                <input type="file" name="foto_ktp" id="upload-ktp" accept="image/png,image/jpeg" class="hidden" x-ref="fileKtp" @change="pilihKtp($event)">
-                                <label for="upload-ktp" class="inline-block px-4 py-2 rounded-md border border-line/60 bg-white text-xs font-semibold text-ink/70 hover:border-gold hover:text-gold cursor-pointer active:scale-95 transition-all" x-text="namaFileKtp ? 'Ganti File' : 'Pilih File'"></label>
+                                                <div x-show="metodeKtp === 'digital'" x-cloak class="pd-swap mt-4">
+                            {{-- Kotak Dashed dengan efek menyala --}}
+                            <div class="relative border-2 border-dashed rounded-xl p-5 text-center transition-all duration-300"
+                                 :class="namaFileKtp ? 'border-amber-500 bg-amber-50/50' : 'border-amber-300 bg-white animate-pulse-slow'">
+                                
+                                {{-- Gambar Preview (Muncul jika sudah pilih file) --}}
+                                <template x-if="fotoKtpPreview">
+                                    <div class="mb-4">
+                                        <img :src="fotoKtpPreview" alt="Preview KTP" class="mx-auto h-32 object-contain rounded-lg shadow-md border-2 border-white ring-1 ring-gray-200">
+                                        <p class="text-[11px] text-emerald-600 font-bold mt-2 flex items-center justify-center gap-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                                            Foto berhasil dipilih
+                                        </p>
+                                    </div>
+                                </template>
+
+                                {{-- Ikon dan Teks (Muncul jika belum pilih file) --}}
+                                <div x-show="!fotoKtpPreview" class="mb-3">
+                                    <div class="w-14 h-14 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-3">
+                                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    </div>
+                                    <p class="text-[14px] font-bold text-gray-800">Upload Foto KTP</p>
+                                    <p class="text-[11px] text-gray-500 mb-1">Pastikan wajah & NIK terlihat jelas</p>
+                                    <p class="text-[10px] text-amber-600 font-semibold bg-amber-50 inline-block px-2 py-0.5 rounded">Wajib untuk KTP Digital</p>
+                                </div>
+
+                                {{-- Nama File --}}
+                                <p x-show="namaFileKtp" class="text-xs font-semibold text-amber-700 mb-3 truncate px-4" x-text="namaFileKtp"></p>
+
+                                <input type="file" name="foto_ktp" id="upload-ktp" accept="image/jpeg,image/png" class="hidden"
+                                       x-ref="fileKtp" @change="pilihKtp($event)">
+                                
+                                <label for="upload-ktp"
+                                       class="inline-block px-6 py-2.5 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-md"
+                                       :class="namaFileKtp ? 'bg-white border-2 border-amber-500 text-amber-600 hover:bg-amber-50' : 'bg-amber-600 text-white hover:bg-amber-700 hover:shadow-lg'"
+                                       x-text="namaFileKtp ? 'Ganti Foto KTP' : 'Pilih File KTP'"></label>
                             </div>
-                            @error('foto_ktp') <p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            @error('foto_ktp') <p class="mt-2 text-xs text-rose-600 font-bold">{{ $message }}</p> @enderror
                         </div>
                     </div>
 
@@ -320,6 +357,7 @@
                 totalDp: cfg.totalDp,
                 maksKtpMb: cfg.maksKtpMb,
                 namaFileKtp: '',
+                fotoKtpPreview: null,
                 errorMetode: '',
                 getar: false,
                 sedangKirim: false,
@@ -361,16 +399,35 @@
                     this._anim = requestAnimationFrame(langkah);
                 },
 
-                pilihKtp(e) {
+                                pilihKtp(e) {
                     const file = e.target.files && e.target.files[0];
-                    if (!file) { this.namaFileKtp = ''; return; }
+                    if (!file) { 
+                        this.namaFileKtp = ''; 
+                        this.fotoKtpPreview = null;
+                        return; 
+                    }
                     if (!['image/jpeg', 'image/png'].includes(file.type)) {
-                        e.target.value = ''; this.namaFileKtp = ''; return this.tampilError('Foto harus JPG/PNG.');
+                        e.target.value = ''; 
+                        this.namaFileKtp = ''; 
+                        this.fotoKtpPreview = null;
+                        return this.tampilError('Foto harus JPG/PNG.');
                     }
                     if (file.size > this.maksKtpMb * 1024 * 1024) {
-                        e.target.value = ''; this.namaFileKtp = ''; return this.tampilError('Maksimal ' + this.maksKtpMb + 'MB.');
+                        e.target.value = ''; 
+                        this.namaFileKtp = ''; 
+                        this.fotoKtpPreview = null;
+                        return this.tampilError('Maksimal ' + this.maksKtpMb + 'MB.');
                     }
-                    this.namaFileKtp = file.name; this.errorMetode = '';
+                    
+                    this.namaFileKtp = file.name; 
+                    this.errorMetode = '';
+                    
+                    // Generate Preview
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.fotoKtpPreview = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
                 },
 
                 tampilError(pesan) {

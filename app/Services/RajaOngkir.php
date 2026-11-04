@@ -141,4 +141,28 @@ class RajaOngkir
 
         return max(1, $total + (int) config('rajaongkir.base_weight', 0));
     }
+
+        /** Pecah label "KELURAHAN, KECAMATAN, KOTA, PROVINSI, KODEPOS" dari domestic-destination. */
+    public static function uraikanLabel(?string $label): array
+    {
+        $bagian = array_map('trim', explode(',', (string) $label));
+
+        $zip = null;
+        if ($bagian && preg_match('/^\d{5}$/', end($bagian))) {
+            $zip = array_pop($bagian);
+        }
+
+        $provinsi  = array_pop($bagian);
+        $kota      = array_pop($bagian);
+        $kecamatan = array_pop($bagian);
+        $kelurahan = implode(', ', $bagian) ?: null;
+
+        return [
+            'kelurahan' => $kelurahan,
+            'kecamatan' => $kecamatan,
+            'kota'      => $kota,
+            'provinsi'  => $provinsi,
+            'kode_pos'  => $zip,
+        ];
+    }
 }
