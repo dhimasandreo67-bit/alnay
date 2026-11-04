@@ -86,16 +86,22 @@ class SewaController extends Controller
             'tanggal_ambil' => ['required', 'date'],
             'tanggal_kembali' => ['required', 'date', 'after:tanggal_ambil'],
             'ukuran' => ['required', 'string'],
+            'warna' => ['nullable', 'string'],
             'durasi' => ['required', 'integer', 'min:1'],
             'total_sewa' => ['required', 'numeric'],
         ]);
 
-        // ==== VALIDASI STOK ====
+        // ==== VALIDASI STOK (stok sewa, per ukuran & warna) ====
         $produk = Produk::findOrFail($validated['produk_id']);
-        if ($produk->stok <= 0) {
-            return back()->withErrors(['stok' => 'Maaf, produk ini sedang tidak tersedia.']);
+        if (! $produk->bisa_disewa || $produk->stokTersedia('sewa', $validated['ukuran'], $validated['warna'] ?? null) <= 0) {
+            return back()->withErrors(['stok' => 'Maaf, produk ini sedang tidak tersedia untuk disewa.']);
         }
-        // =========================
+        // =======================================================
+
+        // Hitung ulang durasi & total di server (harga sudah termasuk diskon), jangan percaya angka dari browser.
+        $validated['durasi'] = max(1, (int) \Carbon\Carbon::parse($validated['tanggal_ambil'])->startOfDay()
+            ->diffInDays(\Carbon\Carbon::parse($validated['tanggal_kembali'])->startOfDay(), true));
+        $validated['total_sewa'] = $produk->totalSewa($validated['durasi']);
 
         session(['sewa_data' => $validated]);
 
@@ -171,7 +177,7 @@ class SewaController extends Controller
                 'transaksi_id' => $transaksi->id,
                 'produk_id' => $produk->id,
                 'jumlah' => 1,
-                'harga_satuan' => $produk->harga_sewa,
+                'harga_satuan' => $produk->hargaSewaNet(),
             ]);
 
             $sewa = Sewa::create([
@@ -317,17 +323,26 @@ class SewaController extends Controller
             'tanggal_ambil' => 'required|date',
             'tanggal_kembali' => 'required|date|after:tanggal_ambil',
             'ukuran' => 'required|string',
+            'warna' => 'nullable|string',
             'durasi' => 'required|integer|min:1',
             'total_sewa' => 'required|numeric|min:0',
         ]);
 
         $produk = Produk::findOrFail($request->produk_id);
 
+        if (! $produk->bisa_disewa || $produk->stokTersedia('sewa', $request->ukuran, $request->warna) <= 0) {
+            return back()->withErrors(['stok' => 'Maaf, produk ini sedang tidak tersedia untuk disewa.']);
+        }
+
+        // Hitung ulang durasi & total di server (harga sudah termasuk diskon).
+        $durasi = max(1, (int) \Carbon\Carbon::parse($request->tanggal_ambil)->startOfDay()
+            ->diffInDays(\Carbon\Carbon::parse($request->tanggal_kembali)->startOfDay(), true));
+
         // 2. Ambil data keranjang sewa dari session
         $keranjangSewa = session()->get('keranjang_sewa', []);
 
         // 3. Buat ID unik untuk item (kombinasi produk + tanggal + ukuran)
-        $itemId = $produk->id . '_' . $request->tanggal_ambil . '_' . $request->ukuran;
+        $itemId = $produk->id . '_' . $request->tanggal_ambil . '_' . $request->ukuran . '_' . ($request->warna ?? '');
 
         // 4. Simpan ke session
         $keranjangSewa[$itemId] = [
@@ -335,11 +350,12 @@ class SewaController extends Controller
             'nama' => $produk->nama,
             'foto_produk' => $produk->foto_produk,
             'ukuran' => $request->ukuran,
+            'warna' => $request->warna,
             'tanggal_ambil' => $request->tanggal_ambil,
             'tanggal_kembali' => $request->tanggal_kembali,
-            'durasi' => $request->durasi,
-            'harga_sewa' => $produk->harga_sewa,
-            'total_sewa' => $request->total_sewa,
+            'durasi' => $durasi,
+            'harga_sewa' => $produk->hargaSewaNet(),
+            'total_sewa' => $produk->totalSewa($durasi),
             'dp' => $produk->dp ?? 0, // Ambil DP dinamis dari produk!
         ];
 
