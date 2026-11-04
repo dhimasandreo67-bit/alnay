@@ -61,14 +61,27 @@ class CartController extends Controller
             'qty' => 'required|integer|min:1',
             'mode' => 'required|in:sewa,beli',
             'ukuran' => 'nullable|string',
+            'warna' => 'nullable|string',
             'tanggal_ambil' => 'required_if:mode,sewa|nullable|date',
             'tanggal_kembali' => 'required_if:mode,sewa|nullable|date|after:tanggal_ambil',
         ]);
 
         $produk = Produk::findOrFail($request->produk_id);
-        $harga = $request->mode === 'sewa' ? $produk->harga_sewa : $produk->harga_jual;
-        
-        $cartKey = $produk->id . '-' . $request->mode . '-' . ($request->ukuran ?? 'all');
+        $jenis = $request->mode === 'sewa' ? 'sewa' : 'jual';
+
+        // Stok sesuai jenis (sewa/jual), per ukuran & warna, sama seperti yang tampil di detail produk
+        $tersedia = $produk->stokTersedia($jenis, $request->ukuran, $request->warna);
+        if ($tersedia <= 0) {
+            return back()->withErrors(['stok' => 'Maaf, stok pilihan ini sedang habis.']);
+        }
+        if ($request->mode === 'beli' && $request->qty > $tersedia) {
+            return back()->withErrors(['stok' => 'Jumlah melebihi stok yang tersedia (' . $tersedia . ').']);
+        }
+
+        // Harga sudah termasuk diskon
+        $harga = $request->mode === 'sewa' ? $produk->hargaSewaNet() : $produk->hargaJualNet();
+
+        $cartKey = $produk->id . '-' . $request->mode . '-' . ($request->ukuran ?? 'all') . '-' . ($request->warna ?? '');
         $cart = session('cart', []);
 
         if (isset($cart[$cartKey]) && is_array($cart[$cartKey])) {
@@ -82,6 +95,7 @@ class CartController extends Controller
                 'qty' => (int) $request->qty,
                 'mode' => $request->mode,
                 'ukuran' => $request->ukuran ?? '',
+                'warna' => $request->warna ?? '',
                 'tanggal_ambil' => $request->tanggal_ambil,
                 'tanggal_kembali' => $request->tanggal_kembali,
             ];
