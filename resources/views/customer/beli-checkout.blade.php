@@ -1,4 +1,4 @@
-    @extends('layouts.public')
+@extends('layouts.public')
 
     @section('title', 'Checkout Pembelian — ' . config('alnay.brand.nama'))
 
@@ -135,10 +135,16 @@
             }
 
             // Ambil ukuran dengan aman
-            $ukuranCheckout = $beliData['ukuran'] ?? 'M';
+            $ukuranCheckout = $beliData['ukuran'] ?? null;
             if (is_array($ukuranCheckout)) {
                 $ukuranCheckout = implode(', ', $ukuranCheckout);
             }
+
+            $spesifikasiCheckout = collect([
+                $ukuranCheckout ? 'Ukuran ' . $ukuranCheckout : null,
+                $varian ? 'Warna ' . $varian : null,
+            ])->filter()->implode(' · ');
+            $diskonJualCheckout = $produk->diskonJual();
 
             $cfg = [
                 'bayar' => old('metode_bayar', 'qris'),
@@ -196,8 +202,15 @@
                                     </div>
                                     <div class="flex-1">
                                         <p class="text-[15px] font-medium text-ink/85">{{ $produk->nama }}</p>
-                                        <p class="text-xs text-ink/55 mt-0.5">Varian {{ $varian }} · Ukuran
-                                            {{ $ukuranCheckout }}</p>
+                                        @if ($spesifikasiCheckout)
+                                            <p class="text-xs text-ink/55 mt-0.5">{{ $spesifikasiCheckout }}</p>
+                                        @endif
+                                        <p class="text-xs text-ink/55 mt-0.5">
+                                            @if ($diskonJualCheckout > 0)
+                                                <span class="line-through text-ink/40">Rp{{ number_format($produk->harga_jual, 0, ',', '.') }}</span>
+                                            @endif
+                                            Rp{{ number_format($produk->hargaJualNet(), 0, ',', '.') }} / unit
+                                        </p>
                                     </div>
                                     <span class="px-2.5 py-1 rounded-md bg-cream/70 text-[11px] font-semibold text-ink/65">Qty:
                                         {{ $qty }}</span>
