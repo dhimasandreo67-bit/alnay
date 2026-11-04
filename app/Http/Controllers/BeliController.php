@@ -48,19 +48,23 @@ class BeliController extends Controller
         $produk = Produk::with('kategori')->findOrFail($beliData['produk_id']);
         $qty = $beliData['qty'] ?? 1;
 
-        // ==== VALIDASI STOK ====
-        if ($produk->stok <= 0) {
+        $ukuran = $beliData['ukuran'] ?? null;
+        $varian = $beliData['varian'] ?? null;   // warna pilihan
+
+        // ==== VALIDASI STOK (stok jual, per ukuran & warna) ====
+        $stok = $produk->dapat_dijual ? $produk->stokTersedia('jual', $ukuran, $varian) : 0;
+        if ($stok <= 0) {
             session()->forget('beli_data');
             return redirect()->route('produk.detail', ['sku' => $produk->sku, 'mode' => 'beli'])
-                ->withErrors(['stok' => 'Maaf, stok produk ini sudah habis. Silakan pilih produk lain.']);
+                ->withErrors(['stok' => 'Maaf, stok pilihan ini sudah habis. Silakan pilih ukuran/warna lain.']);
         }
-        if ($produk->stok < $qty) {
+        if ($stok < $qty) {
             return redirect()->route('produk.detail', ['sku' => $produk->sku, 'mode' => 'beli'])
-                ->withErrors(['stok' => 'Stok tidak mencukupi. Tersedia: ' . $produk->stok . ' unit.']);
+                ->withErrors(['stok' => 'Stok tidak mencukupi. Tersedia: ' . $stok . ' unit.']);
         }
 
-        $varian   = $beliData['varian'] ?? 'Emas Klasik';
-        $subtotal = $produk->harga_jual * $qty;
+        // Harga sudah termasuk diskon jual (sama seperti di halaman admin & detail produk)
+        $subtotal = $produk->hargaJualNet() * $qty;
 
         // Ongkir belum dihitung di sini: pembeli memilih tujuan dulu di halaman checkout,
         // lalu daftar layanan diambil lewat route beli.ongkir.
@@ -108,8 +112,21 @@ class BeliController extends Controller
         $validated = $request->validate([
             'produk_id' => ['required', 'exists:produk,id'],
             'qty' => ['required', 'integer', 'min:1'],
-            'varian' => ['nullable', 'string'],
+            'ukuran' => ['nullable', 'string', 'max:50'],
+            'varian' => ['nullable', 'string', 'max:100'],   // warna
         ]);
+
+        $produk = Produk::findOrFail($validated['produk_id']);
+        $stok = $produk->dapat_dijual
+            ? $produk->stokTersedia('jual', $validated['ukuran'] ?? null, $validated['varian'] ?? null)
+            : 0;
+
+        if ($stok <= 0) {
+            return back()->withErrors(['stok' => 'Maaf, stok pilihan ini sedang habis.']);
+        }
+        if ($validated['qty'] > $stok) {
+            return back()->withErrors(['stok' => 'Jumlah melebihi stok yang tersedia (' . $stok . ' unit).']);
+        }
 
         session(['beli_data' => $validated]);
 
@@ -143,18 +160,29 @@ class BeliController extends Controller
         $produk = Produk::findOrFail($beliData['produk_id']);
         $qty    = (int) ($beliData['qty'] ?? 1);
 
-        // ==== VALIDASI STOK FINAL ====
-        if ($produk->stok <= 0) {
+        $ukuran = $beliData['ukuran'] ?? null;
+        $varian = $beliData['varian'] ?? null;
+
+        // ==== VALIDASI STOK FINAL (stok jual, per ukuran & warna) ====
+        $stok = $produk->dapat_dijual ? $produk->stokTersedia('jual', $ukuran, $varian) : 0;
+        if ($stok <= 0) {
             session()->forget('beli_data');
             return redirect()->route('koleksi.index')
-                ->withErrors(['stok' => 'Maaf, stok produk ini sudah habis.']);
+                ->withErrors(['stok' => 'Maaf, stok pilihan ini sudah habis.']);
         }
-        if ($produk->stok < $qty) {
+        if ($stok < $qty) {
             return redirect()->route('koleksi.index')
-                ->withErrors(['stok' => 'Stok tidak mencukupi. Tersedia: ' . $produk->stok . ' unit.']);
+                ->withErrors(['stok' => 'Stok tidak mencukupi. Tersedia: ' . $stok . ' unit.']);
         }
 
-        $subtotal = $produk->harga_jual * $qty;
+        $subtotal = $produk->hargaJualNet() * $qty;
+
+        // Ukuran & warna dicatat di awal catatan transaksi (belum ada kolom khusus di detail_transaksi)
+        $spesifikasi = collect([
+            $ukuran ? 'Ukuran: ' . $ukuran : null,
+            $varian ? 'Warna: ' . $varian : null,
+        ])->filter()->implode(' · ');
+        $spesifikasi = $spesifikasi !== '' ? '[' . $spesifikasi . ']' : '';
 
         // ==== HITUNG ULANG ONGKIR DI SERVER (angka dari browser tidak dipercaya) ====
         try {
@@ -182,7 +210,7 @@ class BeliController extends Controller
         $ongkir = (int) $dipilih['biaya'];
         $total  = $subtotal + $ongkir;
 
-            $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih, $berat) {
+        $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih, $spesifikasi) {
             $transaksi = Transaksi::create([
                 'kode_transaksi'    => 'ALN-BL-' . strtoupper(substr(uniqid(), -8)),
                 'user_id'           => auth()->id(),
@@ -191,14 +219,14 @@ class BeliController extends Controller
                 'tanggal'           => now()->toDateString(),
                 'total'             => $total,
                 'status_pembayaran' => 'pending',
-                'catatan'           => $validated['catatan'] ?? null,
+                'catatan'           => trim($spesifikasi . ' ' . ($validated['catatan'] ?? '')) ?: null,
             ]);
 
             DetailTransaksi::create([
                 'transaksi_id' => $transaksi->id,
                 'produk_id'    => $produk->id,
                 'jumlah'       => $qty,
-                'harga_satuan' => $produk->harga_jual,
+                'harga_satuan' => $produk->hargaJualNet(),
             ]);
 
             Pembayaran::create([
@@ -246,13 +274,14 @@ class BeliController extends Controller
 
         $produk   = $transaksi->detail->first()->produk;
         $qty      = $transaksi->detail->first()->jumlah;
-        $varian   = 'Emas Klasik';
+        // Ukuran & warna dibaca dari awal catatan transaksi: "[Ukuran: M · Warna: Merah]"
+        $spesifikasi = preg_match('/^\[(.+?)\]/u', (string) $transaksi->catatan, $m) ? $m[1] : null;
         $subtotal = $transaksi->detail->first()->harga_satuan * $qty;
         $ongkir   = $transaksi->pengiriman->biaya_kirim ?? self::ONGKIR_DEFAULT;
         $total    = $transaksi->total;
 
         return view('customer.beli-konfirmasi', compact(
-            'transaksi', 'produk', 'qty', 'varian', 'subtotal', 'ongkir', 'total'
+            'transaksi', 'produk', 'qty', 'spesifikasi', 'subtotal', 'ongkir', 'total'
         ));
     }
 }
