@@ -27,5 +27,6 @@
     <x-toast />
     @stack('modals')
 
+    <x-back-to-top />
 </body>
 </html>
