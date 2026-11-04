@@ -9,36 +9,47 @@ use Illuminate\Http\Request;
 class AkunController extends Controller
 {
     public function index()
-    {
-        $user = auth()->user();
+{
+    $user = auth()->user();
 
-        // Statistik
-        $totalFitting = ReservasiFitting::where('user_id', $user->id)
-            ->where('status', '!=', 'batal')
-            ->count();
+    $totalFitting = ReservasiFitting::where('user_id', $user->id)
+        ->where('status', '!=', 'batal')
+        ->count();
 
-        $fittingAktif = ReservasiFitting::with('slot')
-            ->where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->latest()
-            ->first();
+    $fittingAktif = ReservasiFitting::with('slot')
+        ->where('user_id', $user->id)
+        ->where('status', 'pending')
+        ->latest()
+        ->first();
 
-        // Sementara: pesanan dari session (belum database)
-        $pesananSession = [];
-        if (session('sewa_data')) {
-            $pesananSession[] = ['jenis' => 'sewa', 'data' => session('sewa_data')];
-        }
-        if (session('beli_data')) {
-            $pesananSession[] = ['jenis' => 'beli', 'data' => session('beli_data')];
-        }
+    $pesananAktif = \App\Models\Transaksi::where('user_id', $user->id)
+    ->where('jenis', 'beli')
+    ->whereNotIn('status_pembayaran', ['batal'])
+    ->count();
 
-        return view('customer.akun.index', compact(
-            'user',
-            'totalFitting',
-            'fittingAktif',
-            'pesananSession'
-        ));
+    $penyewaanAktif = \App\Models\Transaksi::where('user_id', $user->id)
+    ->where('jenis', 'sewa')
+    ->whereNotIn('status_pembayaran', ['batal'])
+    ->count();
+
+    // Sementara: pesanan dari session (belum database)
+    $pesananSession = [];
+    if (session('sewa_data')) {
+        $pesananSession[] = ['jenis' => 'sewa', 'data' => session('sewa_data')];
     }
+    if (session('beli_data')) {
+        $pesananSession[] = ['jenis' => 'beli', 'data' => session('beli_data')];
+    }
+
+    return view('customer.akun.index', compact(
+    'user',
+    'totalFitting',
+    'fittingAktif',
+    'pesananSession',
+    'pesananAktif',
+    'penyewaanAktif'
+));
+}
 
     public function pesanan(Request $request)
     {

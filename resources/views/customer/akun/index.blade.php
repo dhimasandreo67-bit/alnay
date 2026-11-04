@@ -3,215 +3,373 @@
 @section('title', 'Akun Saya — ' . config('alnay.brand.nama'))
 
 @section('content')
+@php
+    $adaFoto = $user->foto_profil && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->foto_profil);
+    $inisial = strtoupper(substr($user->name, 0, 1));
+    $statusAktif = request('status', 'semua');
+    $tabs = [
+        'semua' => 'Semua',
+        'belum_bayar' => 'Belum Bayar',
+        'dikemas' => 'Sedang Dikemas',
+        'dikirim' => 'Dikirim',
+        'selesai' => 'Selesai',
+        'dibatalkan' => 'Dibatalkan',
+        'pengembalian' => 'Pengembalian',
+    ];
+    $adaAktivitas = $pesananAktif > 0 || $penyewaanAktif > 0 || $fittingAktif;
+    $waNomor = config('alnay.brand.whatsapp');
+@endphp
 
-<style>
-    @keyframes pd-up   { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-    @keyframes pd-pop  { 0% { opacity: 0; transform: scale(.5); } 70% { transform: scale(1.15); } 100% { opacity: 1; transform: none; } }
-    @keyframes pd-pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
+<div class="bg-cream min-h-screen py-8 md:py-10">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 grid md:grid-cols-[280px_1fr] gap-6 items-start">
 
-    .pd-up    { animation: pd-up .7s cubic-bezier(.22, .8, .3, 1) both; animation-delay: var(--d, 0s); }
-    .pd-pop   { animation: pd-pop .5s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: var(--d, 0s); }
-    .pd-pulse { animation: pd-pulse 2s ease-in-out infinite; }
-
-    .pd-shine { position: relative; overflow: hidden; }
-    .pd-shine::after {
-        content: ''; position: absolute; inset: 0;
-        background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .38) 50%, transparent 70%);
-        transform: translateX(-120%); transition: transform .8s ease; pointer-events: none;
-    }
-    .pd-shine:hover::after { transform: translateX(120%); }
-
-    @media (prefers-reduced-motion: reduce) {
-        .pd-up, .pd-pop, .pd-pulse { animation: none !important; }
-        .pd-shine::after { transition: none !important; }
-    }
-
-    /* Animasi Khusus Hover Kartu Statistik */
-    .stat-card:hover .icon-box {
-        transform: rotate(-10deg) scale(1.15);
-        background-color: rgba(201, 154, 50, 0.15);
-        color: #c99a32;
-    }
-    .stat-card:hover .arrow-icon {
-        transform: translateX(3px);
-    }
-    .stat-card:hover {
-        border-color: rgba(201, 154, 50, 0.4);
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-        transform: translateY(-4px);
-    }
-</style>
-
-<div class="bg-cream min-h-screen py-10 md:py-16">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
-
-        {{-- 1. HEADER PROFIL --}}
-        <div class="pd-up flex flex-col sm:flex-row sm:items-center gap-5" style="--d: .05s;">
-            @if($user->foto_profil)
-                <img src="{{ asset('storage/' . $user->foto_profil) }}" alt="{{ $user->name }}" 
-                     class="pd-pop w-20 h-20 md:w-24 md:h-24 rounded-full object-cover shadow-lg border-4 border-white">
-            @else
-                <div class="pd-pop w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-gold to-[#a37b2a] flex items-center justify-center text-white font-display text-3xl font-semibold shadow-lg border-4 border-white">
-                    {{ strtoupper(substr($user->name, 0, 1)) }}
+        {{-- SIDEBAR --}}
+        <aside class="space-y-5 md:sticky md:top-6">
+            <div class="bg-white rounded-2xl border border-line/60 p-5 flex items-center gap-4">
+                <div class="relative shrink-0">
+                    @if($adaFoto)
+                        <img src="{{ asset('storage/' . $user->foto_profil) }}" alt="{{ $user->name }}"
+                             class="w-14 h-14 rounded-full object-cover border-2 border-white shadow">
+                    @else
+                        <div class="w-14 h-14 rounded-full bg-gradient-to-br from-gold to-[#8f5a2c] text-white font-display text-xl flex items-center justify-center">
+                            {{ $inisial }}
+                        </div>
+                    @endif
+                    <span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white"></span>
                 </div>
-            @endif
-            <div>
-                <h1 class="font-display text-2xl md:text-3xl font-bold text-ink/90">Halo, {{ $user->name }}!</h1>
-                <p class="text-sm text-ink/60 mt-1">Selamat datang kembali di akun Anda.</p>
+                <div class="min-w-0">
+                    <p class="font-semibold text-ink/90">Halo, {{ $user->name }}!</p>
+                    <p class="text-xs text-ink/60 mt-1">Selamat datang kembali di akun Anda.</p>
+                </div>
             </div>
-        </div>
 
-        {{-- 2. KARTU STATISTIK --}}
-                {{-- 2. KARTU STATISTIK --}}
-        <div class="grid grid-cols-3 gap-2 sm:gap-4">
-            {{-- Fitting --}}
-            <a href="{{ route('akun.fitting.index') }}" 
-               class="stat-card pd-up group bg-panel border border-line/40 rounded-2xl p-3 sm:p-4 transition-all duration-300 flex flex-col h-full"
-               style="--d: .1s;">
-                {{-- Header: Judul & Ikon --}}
-                <div class="flex items-start justify-between gap-1 mb-2 sm:mb-3">
-                    <p class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-ink/40 leading-tight pt-1">Total Fitting</p>
-                    <div class="icon-box w-6 h-6 sm:w-8 sm:h-8 rounded-md bg-gold/10 text-gold flex items-center justify-center transition-all duration-300 shrink-0">
-                        <x-icon name="calendar" class="w-3 h-3 sm:w-4 sm:h-4" />
+            <nav class="bg-white rounded-2xl border border-line/60 p-2">
+                <p class="px-3 pt-3 pb-2 text-xs font-semibold tracking-wider text-ink/50">AKUN SAYA</p>
+
+                <button type="button" data-panel="profil" class="panel-nav w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm text-ink/80 hover:bg-cream text-left">
+                    <span class="flex items-center gap-3"><x-icon name="user" :size="16" /> Edit Profil</span>
+                </button>
+
+                <button type="button" data-panel="alamat" class="panel-nav w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm text-ink/80 hover:bg-cream text-left">
+                    <span class="flex items-center gap-3"><x-icon name="map-pin" :size="16" /> Alamat Saya</span>
+                </button>
+
+                <button type="button" data-panel="ringkasan" class="panel-nav w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm text-ink/80 hover:bg-cream text-left">
+                    <span class="flex items-center gap-3"><x-icon name="cart" :size="16" /> Pesanan Saya</span>
+                    <span class="text-xs font-semibold bg-gold text-white rounded-full px-2 py-0.5">{{ $pesananAktif }}</span>
+                </button>
+
+                <button type="button" data-panel="penyewaan" class="panel-nav w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm text-ink/80 hover:bg-cream text-left">
+                    <span class="flex items-center gap-3"><x-icon name="cart" :size="16" /> Penyewaan</span>
+                    <span class="text-xs text-ink/60">{{ $penyewaanAktif }}</span>
+                </button>
+
+                <button type="button" data-panel="fitting" class="panel-nav w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm text-ink/80 hover:bg-cream text-left">
+                    <span class="flex items-center gap-3"><x-icon name="calendar" :size="16" /> Fitting Saya</span>
+                    <span class="text-xs text-ink/60">{{ $totalFitting }}</span>
+                </button>
+
+                <button type="button" data-panel="refund" class="panel-nav w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm text-ink/80 hover:bg-cream text-left">
+                    <span class="flex items-center gap-3"><x-icon name="refresh-cw" :size="16" /> Ajukan Refund</span>
+                </button>
+            </nav>
+
+            <div class="bg-white rounded-2xl border border-line/60 p-5">
+                <p class="text-xs font-semibold tracking-wider text-ink/90">BUTIK CONCIERGE</p>
+                <p class="text-sm text-ink/60 mt-2">Butuh asistensi gaun atau fitting privat?</p>
+                <a href="{{ $waNomor ? 'https://wa.me/' . $waNomor : '#' }}" target="_blank"
+                   class="inline-block text-sm font-semibold text-gold mt-3 hover:underline">
+                    Hubungi Konsultan →
+                </a>
+            </div>
+        </aside>
+
+        {{-- KONTEN UTAMA --}}
+        <section class="space-y-5 min-w-0">
+
+            {{-- KARTU STATISTIK: selalu tampil di atas --}}
+            <div class="grid grid-cols-3 gap-3 md:gap-4">
+                <button type="button" data-panel="fitting" class="text-left bg-white rounded-2xl border border-line/60 p-4 md:p-5 flex flex-col hover:shadow-md transition">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-ink/50 leading-tight">Total Fitting</p>
+                        <span class="w-8 h-8 rounded-lg bg-gold/10 text-gold flex items-center justify-center shrink-0"><x-icon name="calendar" :size="16" /></span>
+                    </div>
+                    <p class="font-display text-3xl font-bold text-ink/90 mt-3">{{ $totalFitting }}</p>
+                    <span class="mt-auto pt-4 text-xs md:text-sm font-semibold text-gold">Lihat semua &rsaquo;</span>
+                </button>
+
+                <button type="button" data-panel="ringkasan" class="text-left bg-white rounded-2xl border border-line/60 p-4 md:p-5 flex flex-col hover:shadow-md transition">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-ink/50 leading-tight">Pesanan Aktif</p>
+                        <span class="w-8 h-8 rounded-lg bg-gold/10 text-gold flex items-center justify-center shrink-0"><x-icon name="cart" :size="16" /></span>
+                    </div>
+                    <p class="font-display text-3xl font-bold text-ink/90 mt-3">{{ $pesananAktif }}</p>
+                    <span class="mt-auto pt-4 text-xs md:text-sm font-semibold text-gold">Lihat semua &rsaquo;</span>
+                </button>
+
+                <button type="button" data-panel="penyewaan" class="text-left bg-white rounded-2xl border border-line/60 p-4 md:p-5 flex flex-col hover:shadow-md transition">
+                    <div class="flex items-start justify-between gap-2">
+                        <p class="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-ink/50 leading-tight">Penyewaan Aktif</p>
+                        <span class="w-8 h-8 rounded-lg bg-gold/10 text-gold flex items-center justify-center shrink-0"><x-icon name="cart" :size="16" /></span>
+                    </div>
+                    <p class="font-display text-3xl font-bold text-ink/90 mt-3">{{ $penyewaanAktif }}</p>
+                    <span class="mt-auto pt-4 text-xs md:text-sm font-semibold text-gold">Lihat semua &rsaquo;</span>
+                </button>
+            </div>
+
+            {{-- ===== PANEL: RINGKASAN ===== --}}
+            <div data-panel-content="ringkasan" class="space-y-5">
+
+                @if ($fittingAktif)
+                    <div class="bg-white rounded-2xl border border-line/60 overflow-hidden">
+                        <div class="p-5 border-b border-line/60 flex items-center justify-between">
+                            <h2 class="font-display text-lg font-bold text-ink/90">Jadwal Fitting Terdekat</h2>
+                            <a href="{{ route('akun.fitting.index') }}" class="text-xs font-bold text-gold hover:underline">Lihat semua &rsaquo;</a>
+                        </div>
+                        <div class="p-5">
+                            @include('customer.akun._fitting-terdekat', ['fitting' => $fittingAktif])
+                        </div>
+                    </div>
+                @endif
+
+                <div class="bg-white rounded-2xl border border-line/60 overflow-x-auto no-scrollbar">
+                    <div class="flex min-w-max px-2">
+                        @foreach ($tabs as $key => $label)
+                            <a href="{{ route('akun.dashboard', ['status' => $key]) }}"
+                               class="px-4 md:px-5 py-4 text-sm whitespace-nowrap border-b-2 {{ $statusAktif === $key ? 'border-gold text-gold font-semibold' : 'border-transparent text-ink/60 hover:text-ink' }}">
+                                {{ $label }}
+                            </a>
+                        @endforeach
                     </div>
                 </div>
-                
-                {{-- Angka --}}
-                <p class="font-display text-2xl sm:text-3xl font-black text-ink/90">{{ $totalFitting }}</p>
-                
-                {{-- Tombol Bawah --}}
-                <div class="text-[9px] sm:text-xs font-semibold text-gold mt-auto pt-3 flex items-center gap-0.5 sm:gap-1">
-                    Lihat <span class="hidden sm:inline">semua</span>
-                    <x-icon name="chevron-right" class="w-3 h-3 sm:w-3.5 sm:h-3.5 arrow-icon transition-transform duration-300" />
-                </div>
-            </a>
 
-            {{-- Pesanan --}}
-            <a href="{{ route('akun.pesanan.index') }}" 
-               class="stat-card pd-up group bg-panel border border-line/40 rounded-2xl p-3 sm:p-4 transition-all duration-300 flex flex-col h-full"
-               style="--d: .15s;">
-                <div class="flex items-start justify-between gap-1 mb-2 sm:mb-3">
-                    <p class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-ink/40 leading-tight pt-1">Pesanan Aktif</p>
-                    <div class="icon-box w-6 h-6 sm:w-8 sm:h-8 rounded-md bg-gold/10 text-gold flex items-center justify-center transition-all duration-300 shrink-0">
-                        <x-icon name="cart" class="w-3 h-3 sm:w-4 sm:h-4" />
+                <form method="GET" action="{{ route('akun.dashboard') }}" class="bg-white rounded-2xl border border-line/60 p-3">
+                    <input type="hidden" name="status" value="{{ $statusAktif }}">
+                    <div class="flex items-center gap-3 bg-cream rounded-xl px-4 py-3">
+                        <x-icon name="search" :size="16" class="text-ink/50" />
+                        <input type="text" name="q" value="{{ request('q') }}"
+                               placeholder="Cari riwayat pesanan, jadwal fitting, atau refund..."
+                               class="bg-transparent outline-none text-sm w-full placeholder:text-ink/50">
                     </div>
-                </div>
-                
-                <p class="font-display text-2xl sm:text-3xl font-black text-ink/90">{{ count($pesananSession) }}</p>
-                
-                <div class="text-[9px] sm:text-xs font-semibold text-gold mt-auto pt-3 flex items-center gap-0.5 sm:gap-1">
-                    Lihat <span class="hidden sm:inline">semua</span>
-                    <x-icon name="chevron-right" class="w-3 h-3 sm:w-3.5 sm:h-3.5 arrow-icon transition-transform duration-300" />
-                </div>
-            </a>
+                </form>
 
-            {{-- Profil --}}
-            <a href="{{ route('akun.profil.edit') }}" 
-               class="stat-card pd-up group bg-panel border border-line/40 rounded-2xl p-3 sm:p-4 transition-all duration-300 flex flex-col h-full"
-               style="--d: .2s;">
-                <div class="flex items-start justify-between gap-1 mb-2 sm:mb-3">
-                    <p class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-ink/40 leading-tight pt-1">Profil Saya</p>
-                    <div class="icon-box w-6 h-6 sm:w-8 sm:h-8 rounded-md bg-gold/10 text-gold flex items-center justify-center transition-all duration-300 shrink-0">
-                        <x-icon name="user" class="w-3 h-3 sm:w-4 sm:h-4" />
+                <div class="bg-white rounded-2xl border border-line/60 p-6 md:p-8 min-h-[360px] flex flex-col items-center justify-center text-center">
+                    @if (! $adaAktivitas)
+                        <div class="w-20 h-20 rounded-full bg-cream flex items-center justify-center">
+                            <x-icon name="clipboard-list" :size="32" class="text-ink/50" />
+                        </div>
+                        <p class="font-semibold text-ink/90 mt-5">Belum Ada Pesanan Berlangsung</p>
+                        <p class="text-sm text-ink/60 mt-2 max-w-md">
+                            Saat ini Anda belum memiliki pesanan aktif. Mulai jelajahi koleksi busana eksklusif dan jadwalkan sesi fitting Anda.
+                        </p>
+                        <a href="{{ route('akun.pesanan.index') }}"
+                           class="mt-7 bg-gold text-white px-8 py-3.5 rounded-full text-sm font-semibold uppercase tracking-wide hover:opacity-90">
+                            Jelajahi Koleksi Busana
+                        </a>
+                    @else
+                        <p class="font-semibold text-ink/90">Anda memiliki {{ $pesananAktif + $penyewaanAktif }} pesanan aktif</p>
+                        <p class="text-sm text-ink/60 mt-2">Lihat detail dan statusnya di halaman Pesanan Saya.</p>
+                        <a href="{{ route('akun.pesanan.index') }}"
+                           class="mt-6 border border-line/60 px-6 py-3 rounded-full text-sm font-semibold text-ink/80 hover:bg-cream">
+                            Buka Pesanan Saya
+                        </a>
+                    @endif
+                </div>
+            </div>
+
+            {{-- ===== PANEL: EDIT PROFIL ===== --}}
+            <div data-panel-content="profil" class="hidden bg-white rounded-2xl border border-line/60 overflow-hidden">
+                <div class="p-5 md:p-6 border-b border-line/60">
+                    <h2 class="font-display text-xl font-bold text-ink/90">Profil Saya</h2>
+                    <p class="text-sm text-ink/60 mt-1">Kelola informasi profil Anda untuk mengontrol, melindungi dan mengamankan akun.</p>
+                </div>
+
+                <form method="POST" action="{{ route('akun.profil.update') }}" class="md:grid md:grid-cols-[1fr_220px]">
+                    @csrf
+                    @method('PUT')
+
+                    {{-- Kolom kiri: data --}}
+                    <div class="p-5 md:p-6 space-y-5">
+                        <div class="grid sm:grid-cols-[120px_1fr] gap-2 sm:gap-4 sm:items-center">
+                            <label for="profil-nama" class="text-sm text-ink/60 sm:text-right">Nama</label>
+                            <input id="profil-nama" type="text" name="name" value="{{ old('name', $user->name) }}"
+                                   class="w-full border border-line/60 rounded-md px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-gold">
+                        </div>
+
+                        <div class="grid sm:grid-cols-[120px_1fr] gap-2 sm:gap-4 sm:items-center">
+                            <span class="text-sm text-ink/60 sm:text-right">Email</span>
+                            <p class="text-sm text-ink/90 break-all">{{ $user->email }}</p>
+                        </div>
+
+                        <div class="grid sm:grid-cols-[120px_1fr] gap-2 sm:gap-4 sm:items-center">
+                            <label for="profil-hp" class="text-sm text-ink/60 sm:text-right">Nomor Telepon</label>
+                            <input id="profil-hp" type="tel" name="no_hp" value="{{ old('no_hp', $user->no_hp) }}"
+                                   class="w-full border border-line/60 rounded-md px-4 py-2.5 text-sm bg-white focus:outline-none focus:border-gold">
+                        </div>
+
+                        <div class="grid sm:grid-cols-[120px_1fr] gap-2 sm:gap-4 sm:items-center">
+                            <span class="text-sm text-ink/60 sm:text-right">Jenis Kelamin</span>
+                            <div class="flex flex-wrap gap-5 text-sm text-ink/80">
+                                @foreach (['L' => 'Laki-laki', 'P' => 'Perempuan'] as $nilai => $label)
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="jenis_kelamin" value="{{ $nilai }}"
+                                               @checked(old('jenis_kelamin', $user->jenis_kelamin) === $nilai)
+                                               class="accent-[#C27C3E]">
+                                        {{ $label }}
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="grid sm:grid-cols-[120px_1fr] gap-2 sm:gap-4 pt-2">
+                            <span class="hidden sm:block"></span>
+                            <div>
+                                <button type="submit" class="bg-gold text-white px-8 py-2.5 rounded-md text-sm font-semibold hover:opacity-90">
+                                    Simpan
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                
-                {{-- Teks pengganti angka --}}
-                <p class="font-display text-sm sm:text-base font-black text-ink/90 leading-tight">Edit<br class="hidden sm:block"> Data</p>
-                
-                <div class="text-[9px] sm:text-xs font-semibold text-gold mt-auto pt-3 flex items-center gap-0.5 sm:gap-1">
-                    Ubah <span class="hidden sm:inline">data</span>
-                    <x-icon name="chevron-right" class="w-3 h-3 sm:w-3.5 sm:h-3.5 arrow-icon transition-transform duration-300" />
-                </div>
-            </a>
-        </div>
 
-        {{-- 3. JADWAL FITTING TERDEKAT --}}
-        @if ($fittingAktif)
-            <div class="pd-up bg-panel border border-line/40 rounded-2xl shadow-sm overflow-hidden" style="--d: .25s;">
-                <div class="p-5 md:p-6 border-b border-line/30 flex items-center justify-between">
-                    <h2 class="font-display text-lg font-bold text-ink/90">Jadwal Fitting Terdekat</h2>
-                    <a href="{{ route('akun.fitting.index') }}" class="text-xs font-bold text-gold hover:underline flex items-center gap-1">
-                        Lihat semua <x-icon name="chevron-right" :size="14" />
+                    {{-- Kolom kanan: foto --}}
+                    <div class="p-5 md:p-6 border-t md:border-t-0 md:border-l border-line/60 flex flex-col items-center text-center">
+                        @if ($adaFoto)
+                            <img src="{{ asset('storage/' . $user->foto_profil) }}" alt="{{ $user->name }}"
+                                 class="w-32 h-32 rounded-full object-cover">
+                        @else
+                            <div class="w-32 h-32 rounded-full bg-cream flex items-center justify-center font-display text-4xl text-ink/60">
+                                {{ $inisial }}
+                            </div>
+                        @endif
+
+                        <button type="button" disabled
+                                class="mt-5 border border-line/60 px-5 py-2 rounded-md text-sm text-ink/40 cursor-not-allowed">
+                            Pilih Gambar
+                        </button>
+                        <p class="text-xs text-ink/50 mt-3 leading-relaxed">
+                            Ukuran gambar: maks. 1 MB<br>Format gambar: .JPEG, .PNG
+                        </p>
+                    </div>
+                </form>
+            </div>
+
+            {{-- ===== PANEL: ALAMAT ===== --}}
+            <div data-panel-content="alamat" class="hidden bg-white rounded-2xl border border-line/60 p-6 md:p-8">
+                <h2 class="font-display text-2xl font-bold text-ink/90">Alamat Saya</h2>
+                <p class="text-sm text-ink/60 mt-1">Alamat pengiriman dan pengembalian busana.</p>
+
+                <div class="mt-8 flex flex-col items-center text-center py-8">
+                    <div class="w-16 h-16 rounded-full bg-cream flex items-center justify-center">
+                        <x-icon name="map-pin" :size="28" class="text-ink/50" />
+                    </div>
+                    <p class="font-semibold text-ink/90 mt-4">Belum ada alamat tersimpan</p>
+                    <p class="text-sm text-ink/60 mt-1">Fitur tambah alamat akan segera tersedia.</p>
+                    <button type="button" disabled class="mt-6 border border-line/60 px-6 py-3 rounded-full text-sm font-semibold text-ink/40 cursor-not-allowed">
+                        Tambah Alamat
+                    </button>
+                </div>
+            </div>
+
+            {{-- ===== PANEL: PENYEWAAN ===== --}}
+            <div data-panel-content="penyewaan" class="hidden bg-white rounded-2xl border border-line/60 p-6 md:p-8">
+                <h2 class="font-display text-2xl font-bold text-ink/90">Penyewaan Saya</h2>
+                <p class="text-sm text-ink/60 mt-1">Ringkasan penyewaan busana Anda.</p>
+
+                <div class="mt-8 flex flex-col items-center text-center py-8">
+                    @if ($penyewaanAktif > 0)
+                        <p class="font-display text-4xl font-bold text-ink/90">{{ $penyewaanAktif }}</p>
+                        <p class="text-sm text-ink/60 mt-2">penyewaan sedang berjalan</p>
+                        <a href="{{ route('akun.pesanan.index', ['jenis' => 'sewa']) }}"
+                           class="mt-6 bg-gold text-white px-6 py-3 rounded-full text-sm font-semibold hover:opacity-90">
+                            Lihat Daftar Penyewaan
+                        </a>
+                    @else
+                        <div class="w-16 h-16 rounded-full bg-cream flex items-center justify-center">
+                            <x-icon name="cart" :size="28" class="text-ink/50" />
+                        </div>
+                        <p class="font-semibold text-ink/90 mt-4">Belum ada penyewaan aktif</p>
+                        <p class="text-sm text-ink/60 mt-1">Penyewaan yang sedang berjalan akan tampil di sini.</p>
+                    @endif
+                </div>
+            </div>
+
+            {{-- ===== PANEL: FITTING ===== --}}
+            <div data-panel-content="fitting" class="hidden bg-white rounded-2xl border border-line/60 p-6 md:p-8">
+                <h2 class="font-display text-2xl font-bold text-ink/90">Fitting Saya</h2>
+                <p class="text-sm text-ink/60 mt-1">Jadwal fitting busana Anda.</p>
+
+                <div class="mt-6">
+                    @if ($fittingAktif)
+                        @include('customer.akun._fitting-terdekat', ['fitting' => $fittingAktif])
+                    @else
+                        <div class="mt-8 flex flex-col items-center text-center py-8">
+                            <div class="w-16 h-16 rounded-full bg-cream flex items-center justify-center">
+                                <x-icon name="calendar" :size="28" class="text-ink/50" />
+                            </div>
+                            <p class="font-semibold text-ink/90 mt-4">Belum ada jadwal fitting</p>
+                            <p class="text-sm text-ink/60 mt-1">Jadwalkan fitting agar ukuran busana Anda pas.</p>
+                            <a href="{{ route('fitting.create') }}"
+                               class="mt-6 bg-gold text-white px-6 py-3 rounded-full text-sm font-semibold hover:opacity-90">
+                                Jadwalkan Fitting
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- ===== PANEL: REFUND ===== --}}
+            <div data-panel-content="refund" class="hidden bg-white rounded-2xl border border-line/60 p-6 md:p-8">
+                <h2 class="font-display text-2xl font-bold text-ink/90">Ajukan Refund</h2>
+                <p class="text-sm text-ink/60 mt-1">Refund diajukan per pesanan.</p>
+
+                <div class="mt-8 flex flex-col items-center text-center py-8">
+                    <div class="w-16 h-16 rounded-full bg-cream flex items-center justify-center">
+                        <x-icon name="refresh-cw" :size="28" class="text-ink/50" />
+                    </div>
+                    <p class="font-semibold text-ink/90 mt-4">Pilih pesanan yang ingin direfund</p>
+                    <p class="text-sm text-ink/60 mt-1 max-w-md">Buka pesanan Anda untuk mengajukan refund.</p>
+                    <a href="{{ route('akun.refund.index') }}"
+                       class="mt-6 border border-line/60 px-6 py-3 rounded-full text-sm font-semibold text-ink/80 hover:bg-cream">
+                        Buka Halaman Refund
                     </a>
                 </div>
-                
-                <div class="p-5 md:p-6">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-emerald-100 bg-emerald-50/40 hover:border-emerald-200 transition-all duration-300">
-                        <div class="flex items-center gap-4">
-                            <div class="pd-pop w-12 h-12 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center shrink-0">
-                                <x-icon name="check" :size="20" class="text-emerald-600" />
-                            </div>
-                            <div>
-                                <p class="text-sm font-bold text-ink/90">{{ $fittingAktif->kode_booking }}</p>
-                                <p class="text-xs text-ink/60 mt-0.5">
-                                    {{ $fittingAktif->slot ? \Carbon\Carbon::parse($fittingAktif->slot->tanggal)->translatedFormat('l, d M Y') : '—' }} 
-                                    • {{ $fittingAktif->slot->jam_mulai ?? '—' }} WIB
-                                </p>
-                            </div>
-                        </div>
-                        <a href="{{ route('fitting.show', $fittingAktif->id) }}" class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-white border border-emerald-200 text-emerald-700 text-xs font-bold rounded-xl hover:bg-emerald-50 transition-colors shadow-sm shrink-0">
-                            Lihat Detail <x-icon name="chevron-right" :size="14" />
-                        </a>
-                    </div>
-                </div>
             </div>
-        @endif
 
-        {{-- 4. MENU CEPAT --}}
-        <div class="pd-up bg-panel border border-line/40 rounded-2xl shadow-sm overflow-hidden" style="--d: .3s;">
-            <div class="p-5 md:p-6 border-b border-line/30">
-                <h2 class="font-display text-lg font-bold text-ink/90">Menu Cepat</h2>
-            </div>
-            
-            <div class="divide-y divide-line/30">
-                {{-- Pesanan Saya --}}
-                <a href="{{ route('akun.pesanan.index') }}" class="flex items-center justify-between p-5 hover:bg-cream/40 transition-colors group">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-cream/50 text-ink/60 flex items-center justify-center group-hover:bg-gold/10 group-hover:text-gold transition-colors">
-                            <x-icon name="cart" :size="18" />
-                        </div>
-                        <span class="text-sm font-semibold text-ink/80">Pesanan Saya</span>
-                    </div>
-                    <x-icon name="chevron-right" :size="16" class="text-ink/30 group-hover:text-gold group-hover:translate-x-1 transition-all" />
-                </a>
-
-                {{-- Fitting Saya --}}
-                <a href="{{ route('akun.fitting.index') }}" class="flex items-center justify-between p-5 hover:bg-cream/40 transition-colors group">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-cream/50 text-ink/60 flex items-center justify-center group-hover:bg-gold/10 group-hover:text-gold transition-colors">
-                            <x-icon name="calendar" :size="18" />
-                        </div>
-                        <span class="text-sm font-semibold text-ink/80">Fitting Saya</span>
-                    </div>
-                    <x-icon name="chevron-right" :size="16" class="text-ink/30 group-hover:text-gold group-hover:translate-x-1 transition-all" />
-                </a>
-
-                {{-- Ajukan Refund --}}
-                <a href="{{ route('akun.refund.index') }}" class="flex items-center justify-between p-5 hover:bg-cream/40 transition-colors group">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-cream/50 text-ink/60 flex items-center justify-center group-hover:bg-gold/10 group-hover:text-gold transition-colors">
-                            <x-icon name="refresh-cw" :size="18" />
-                        </div>
-                        <span class="text-sm font-semibold text-ink/80">Ajukan Refund</span>
-                    </div>
-                    <x-icon name="chevron-right" :size="16" class="text-ink/30 group-hover:text-gold group-hover:translate-x-1 transition-all" />
-                </a>
-
-                {{-- Edit Profil --}}
-                <a href="{{ route('akun.profil.edit') }}" class="flex items-center justify-between p-5 hover:bg-cream/40 transition-colors group">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-cream/50 text-ink/60 flex items-center justify-center group-hover:bg-gold/10 group-hover:text-gold transition-colors">
-                            <x-icon name="user" :size="18" />
-                        </div>
-                        <span class="text-sm font-semibold text-ink/80">Edit Profil</span>
-                    </div>
-                    <x-icon name="chevron-right" :size="16" class="text-ink/30 group-hover:text-gold group-hover:translate-x-1 transition-all" />
-                </a>
-            </div>
-        </div>
-
+        </section>
     </div>
 </div>
 
+<script>
+    (function () {
+        const DEFAULT = 'profil';
+        const panels = document.querySelectorAll('[data-panel-content]');
+        const navItems = document.querySelectorAll('aside .panel-nav');
+
+        function tampilkan(nama) {
+            if (!document.querySelector(`[data-panel-content="${nama}"]`)) nama = DEFAULT;
+
+            panels.forEach(p => p.classList.toggle('hidden', p.dataset.panelContent !== nama));
+
+            navItems.forEach(n => {
+                const aktif = n.dataset.panel === nama;
+                n.classList.toggle('bg-gold/10', aktif);
+                n.classList.toggle('text-gold', aktif);
+                n.classList.toggle('font-semibold', aktif);
+                n.classList.toggle('text-ink/80', !aktif);
+            });
+
+            history.replaceState(null, '', '#' + nama);
+        }
+
+        document.querySelectorAll('[data-panel]').forEach(el => {
+            el.addEventListener('click', e => {
+                e.preventDefault();
+                tampilkan(el.dataset.panel);
+            });
+        });
+
+        window.addEventListener('hashchange', () => tampilkan(location.hash.slice(1) || DEFAULT));
+        tampilkan(location.hash.slice(1) || DEFAULT);
+    })();
+</script>
 @endsection
