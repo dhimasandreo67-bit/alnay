@@ -69,153 +69,13 @@
     @php
         $statusLabel = \App\Support\ProdukStatus::label($produk->status, $produk->dapat_dijual);
 
-        $kunciUkuran = ['ukuran', 'size'];
-        $kunciWarna  = ['warna', 'color', 'colour', 'varian'];
-        $kunciNama   = ['nama', 'name', 'label', 'value', 'pilihan', 'opsi', 'nama_warna'];
-        $kunciStok   = ['stok', 'stock', 'qty', 'quantity', 'jumlah'];
-        $kunciHex    = ['hex', 'kode', 'kode_warna', 'kode_hex', 'warna_hex', 'hex_code', 'color_hex'];
-        $daftarUkuran = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '2XL', '3XL', '4XL', '5XL', 'ALL SIZE', 'ALLSIZE', 'ALL', 'FREE SIZE', 'FREESIZE', 'ONE SIZE', 'CUSTOM', 'STANDAR', 'STANDARD', 'JUMBO'];
 
-        // Data ukuran bisa berisi ukuran, warna, dan stok sekaligus (daftar datar, pasangan, atau record).
-        // Semuanya dikumpulkan dulu sebagai entri [label, stok, tipe, hex], lalu dipisah.
-        $entries = [];
-        $kumpulkan = function ($nilai) use (&$kumpulkan, &$entries, $kunciUkuran, $kunciWarna, $kunciNama, $kunciStok, $kunciHex) {
-            if (is_array($nilai)) {
-                $assoc = $nilai !== [] && array_keys($nilai) !== range(0, count($nilai) - 1);
-                if (!$assoc) {
-                    foreach ($nilai as $v) {
-                        $kumpulkan($v);
-                    }
-                    return;
-                }
-                $low = array_change_key_case($nilai, CASE_LOWER);
-                $kenal = array_merge($kunciUkuran, $kunciWarna, $kunciNama, $kunciStok);
-                if (!array_intersect(array_keys($low), $kenal)) {
-                    // Bentuk peta: ['M' => 2, 'L' => 1]
-                    foreach ($nilai as $k => $v) {
-                        if (!is_array($v) && is_numeric($v) && !is_numeric($k)) {
-                            $entries[] = ['label' => trim((string) $k), 'stok' => (int) $v, 'tipe' => null, 'hex' => null];
-                        } else {
-                            $kumpulkan($v);
-                        }
-                    }
-                    return;
-                }
-                $label = null;
-                $tipe = null;
-                $stok = null;
-                $hex = null;
-                foreach ($kunciStok as $k) {
-                    if (isset($low[$k]) && is_numeric($low[$k])) {
-                        $stok = (int) $low[$k];
-                        break;
-                    }
-                }
-                foreach ([[$kunciUkuran, 'ukuran'], [$kunciWarna, 'warna'], [$kunciNama, null]] as $grup) {
-                    foreach ($grup[0] as $k) {
-                        if ($label === null && isset($low[$k]) && is_scalar($low[$k]) && trim((string) $low[$k]) !== '') {
-                            $label = trim((string) $low[$k]);
-                            $tipe = $grup[1];
-                        }
-                    }
-                }
-                foreach ($kunciHex as $k) {
-                    if (!empty($low[$k]) && is_string($low[$k])) {
-                        $hex = $low[$k];
-                        break;
-                    }
-                }
-                if ($label === null) {
-                    foreach ($nilai as $v) {
-                        $kumpulkan($v);
-                    }
-                    return;
-                }
-                $entries[] = ['label' => $label, 'stok' => $stok, 'tipe' => $tipe, 'hex' => $hex];
-                return;
-            }
+        // Data stok dibaca lewat model, persis seperti halaman admin kelola produk:
+        //  - produk dijual & disewa : set jual = kolom utama, set sewa = kolom *_sewa
+        //  - produk satu jenis      : hanya kolom utama (warna, ukuran, stok)
+        $paletWarna = \App\Models\Produk::paletWarna();
 
-            if ($nilai === null || is_bool($nilai)) {
-                return;
-            }
-            $teks = trim((string) $nilai);
-            if ($teks === '') {
-                return;
-            }
-            if (is_numeric($teks)) {
-                $n = count($entries);
-                if ($n > 0 && $entries[$n - 1]['stok'] === null && !is_numeric($entries[$n - 1]['label'])) {
-                    $entries[$n - 1]['stok'] = (int) $teks; // angka setelah label = stok label tsb
-                    return;
-                }
-            }
-            if (preg_match('/^(.+?)\s*[:=]\s*(\d+)$/u', $teks, $m)) {
-                $entries[] = ['label' => trim($m[1]), 'stok' => (int) $m[2], 'tipe' => null, 'hex' => null];
-                return;
-            }
-            $entries[] = ['label' => $teks, 'stok' => null, 'tipe' => null, 'hex' => null];
-        };
-
-        // Ubah nilai kolom/relasi (string, JSON, array, Collection/Model) menjadi array biasa
-        $keArray = function ($nilai) {
-            if (is_object($nilai) && method_exists($nilai, 'toArray')) {
-                $nilai = $nilai->toArray();
-            }
-            if (is_string($nilai)) {
-                $t = trim($nilai);
-                if ($t !== '' && ($t[0] === '[' || $t[0] === '{')) {
-                    $j = json_decode($t, true);
-                    if (is_array($j)) {
-                        return $j;
-                    }
-                }
-                return array_map('trim', explode(',', $t));
-            }
-            return $nilai;
-        };
-
-        $kumpulkan($keArray($produk->ukuran));
-        $entriUkuran = $entries;
-        $entries = [];
-
-        // Warna yang diisi di halaman admin: cari kolom/relasi bernama warna/color pada produk
-        $namaKolom = method_exists($produk, 'getAttributes') ? array_keys($produk->getAttributes()) : array_keys(get_object_vars($produk));
-        $sumberWarna = null;
-        foreach (['warna', 'warna_tersedia', 'varian_warna', 'warna_produk', 'pilihan_warna', 'colors', 'color'] as $k) {
-            if (in_array($k, $namaKolom, true)) {
-                $sumberWarna = $k;
-                break;
-            }
-        }
-        if ($sumberWarna === null) {
-            foreach ($namaKolom as $k) {
-                if (preg_match('/warna|colou?r/i', (string) $k)) {
-                    $sumberWarna = $k;
-                    break;
-                }
-            }
-        }
-        if ($sumberWarna === null) {
-            foreach (['warna', 'warnas', 'varianWarna', 'warnaProduk'] as $k) {
-                if (method_exists($produk, $k)) {
-                    $sumberWarna = $k;
-                    break;
-                }
-            }
-        }
-        if ($sumberWarna !== null) {
-            $kumpulkan($keArray($produk->{$sumberWarna}));
-        }
-        $entriWarnaAdmin = $entries;
-        foreach ($entriWarnaAdmin as $i => $e) {
-            $entriWarnaAdmin[$i]['tipe'] = 'warna';
-        }
-        $adaWarnaAdmin = count($entriWarnaAdmin) > 0;
-        // Bila warna admin ada, warna yang "terselip" di kolom ukuran tidak dipakai
-        $entries = array_merge($entriUkuran, $entriWarnaAdmin);
-        $jumlahEntriUkuran = count($entriUkuran);
-
-        // Nama warna -> kode warna untuk bulatan contoh (yang lebih spesifik ditaruh lebih dulu)
+        // Cadangan untuk warna kustom yang tidak ada di palet admin (hex warna kustom tidak disimpan)
         $petaWarna = [
             'merah muda' => '#f4a6c0', 'rose gold' => '#d9a58f', 'burgundy' => '#7a1f33', 'marun' => '#6b1c2a', 'maroon' => '#6b1c2a',
             'navy' => '#1f2f55', 'tosca' => '#2bb3a3', 'teal' => '#2a8c8c', 'lavender' => '#b9a3e3', 'magenta' => '#c2185b',
@@ -228,96 +88,84 @@
             'white' => '#f5f2ec', 'abu' => '#9a9a9a', 'grey' => '#9a9a9a', 'gray' => '#9a9a9a', 'silver' => '#c0c0c0',
             'krem' => '#efe2c4', 'cream' => '#efe2c4',
         ];
-        uksort($petaWarna, function ($a, $b) {
-            return strlen($b) <=> strlen($a);
-        });
+        uksort($petaWarna, fn ($a, $b) => strlen($b) <=> strlen($a));
 
-        $ukuranOpsi = [];
-        $warnaOpsi = [];
-        $terlihat = [];
-        foreach ($entries as $idx => $e) {
-            $label = $e['label'];
-            $tipe = $e['tipe'];
-            if ($tipe === null) {
-                $tipe = (in_array(strtoupper($label), $daftarUkuran, true) || preg_match('/^\d{1,3}$/', $label)) ? 'ukuran' : 'warna';
+        $hexWarna = function (string $label) use ($paletWarna, $petaWarna) {
+            if (isset($paletWarna[$label])) {
+                return $paletWarna[$label];
             }
-            $unik = $tipe . '|' . mb_strtolower($label);
-            if (isset($terlihat[$unik])) {
-                continue;
+            if (preg_match('/^#[0-9a-fA-F]{3,8}$/', $label)) {
+                return $label;
             }
-            $terlihat[$unik] = true;
-
-            if ($tipe === 'ukuran') {
-                $ukuranOpsi[] = ['label' => $label, 'stok' => $e['stok']];
-                continue;
-            }
-            if ($adaWarnaAdmin && $idx < $jumlahEntriUkuran) {
-                continue; // warna dari kolom ukuran diabaikan karena sudah ada data warna dari admin
-            }
-
-            $hex = (is_string($e['hex']) && preg_match('/^#[0-9a-fA-F]{3,8}$/', $e['hex'])) ? $e['hex'] : null;
-            if ($hex === null && preg_match('/^#[0-9a-fA-F]{3,8}$/', $label)) {
-                $hex = $label; // label berupa kode warna
-            }
-            if ($hex === null) {
-                $rendah = mb_strtolower($label);
-                foreach ($petaWarna as $kata => $kode) {
-                    if (strpos($rendah, $kata) !== false) {
-                        $hex = $kode;
-                        break;
-                    }
+            $rendah = mb_strtolower($label);
+            foreach ($petaWarna as $kata => $kode) {
+                if (strpos($rendah, $kata) !== false) {
+                    return $kode;
                 }
             }
-            $warnaOpsi[] = ['label' => $label, 'stok' => $e['stok'], 'hex' => $hex ?? '#cfc8bb'];
-        }
-
-        if (empty($ukuranOpsi)) {
-            foreach (['S', 'M', 'L', 'XL', 'Custom'] as $u) {
-                $ukuranOpsi[] = ['label' => $u, 'stok' => null];
-            }
-        }
-
-        $ukuranList = array_column($ukuranOpsi, 'label');
-        $adaWarna = count($warnaOpsi) > 0;
-        $stokUkuran = array_column($ukuranOpsi, 'stok', 'label');
-        $stokWarna = array_column($warnaOpsi, 'stok', 'label');
-
-        $tersedia = function ($o) {
-            return $o['stok'] === null || $o['stok'] > 0;
+            return '#cfc8bb';
         };
-        $ukuranDefault = null;
-        foreach ($ukuranOpsi as $o) {
-            if ($tersedia($o) && strtoupper($o['label']) === 'M') {
-                $ukuranDefault = $o['label'];
-                break;
+
+        // Satu set stok: ukuran [{label, stok, warna:[{label, stok, hex}]}], warna set, total stok
+        $bangunSet = function (string $jenis) use ($produk, $hexWarna) {
+            $ukuran = [];
+            foreach ($produk->ukuranUntuk($jenis) as $row) {
+                // Data lama bisa berupa teks biasa; form admin menampilkannya dengan stok 0
+                $label = trim((string) (is_array($row) ? ($row['ukuran'] ?? '') : $row));
+                if ($label === '') {
+                    continue;
+                }
+                $warna = [];
+                foreach ((array) (is_array($row) ? ($row['warna'] ?? []) : []) as $w) {
+                    $nama = trim((string) ($w['nama'] ?? ''));
+                    if ($nama === '') {
+                        continue;
+                    }
+                    $warna[] = ['label' => $nama, 'stok' => max(0, (int) ($w['stok'] ?? 0)), 'hex' => $hexWarna($nama)];
+                }
+                $ukuran[] = [
+                    'label' => $label,
+                    'stok'  => $warna ? array_sum(array_column($warna, 'stok')) : max(0, (int) (is_array($row) ? ($row['stok'] ?? 0) : 0)),
+                    'warna' => $warna,
+                ];
             }
-        }
-        if ($ukuranDefault === null) {
-            foreach ($ukuranOpsi as $o) {
-                if ($tersedia($o)) {
-                    $ukuranDefault = $o['label'];
-                    break;
+
+            $warnaSet = [];
+            foreach ($produk->warnaUntuk($jenis) as $nama) {
+                $nama = trim((string) $nama);
+                if ($nama !== '') {
+                    $warnaSet[] = ['label' => $nama, 'hex' => $hexWarna($nama)];
                 }
             }
-        }
-        if ($ukuranDefault === null) {
-            $ukuranDefault = $ukuranOpsi[0]['label'];
-        }
-        $warnaDefault = '';
-        foreach ($warnaOpsi as $o) {
-            if ($tersedia($o)) {
-                $warnaDefault = $o['label'];
-                break;
-            }
-        }
-        if ($warnaDefault === '' && $adaWarna) {
-            $warnaDefault = $warnaOpsi[0]['label'];
-        }
 
-        // Nomor langkah menyesuaikan ada/tidaknya pilihan warna
-        $noTanggal = $adaWarna ? 3 : 2;
-        $noJumlah = $adaWarna ? 3 : 2;
-        $noKirim = $adaWarna ? 4 : 3;
+            return [
+                'ukuran' => $ukuran,
+                'warna'  => $warnaSet,
+                'stok'   => $ukuran ? array_sum(array_column($ukuran, 'stok')) : max(0, $produk->stokUntuk($jenis)),
+            ];
+        };
+
+        $sets = [];
+        if ($produk->bisa_disewa) {
+            $sets['sewa'] = $bangunSet('sewa');
+        }
+        if ($produk->dapat_dijual) {
+            $sets['jual'] = $bangunSet('jual');
+        }
+        $stokJual = $produk->dapat_dijual ? $sets['jual']['stok'] : 0;
+
+        // Ringkasan untuk tabel spesifikasi (gabungan semua set)
+        $semuaUkuran = collect($sets)->flatMap(fn ($s) => array_column($s['ukuran'], 'label'))->unique()->values()->all();
+        $semuaWarna = collect($sets)->flatMap(fn ($s) => array_merge(
+            array_column($s['warna'], 'label'),
+            collect($s['ukuran'])->flatMap(fn ($u) => array_column($u['warna'], 'label'))->all()
+        ))->unique()->values()->all();
+        $beratTeks = (float) $produk->berat > 0 ? number_format((float) $produk->berat, 0, ',', '.') . ' gram' : '-';
+
+        $diskonSewa = $produk->diskonSewa();
+        $diskonJual = $produk->diskonJual();
+        $fmtDiskon = fn ($d) => rtrim(rtrim(number_format($d, 2, '.', ''), '0'), '.');
+
 
         $paragrafDeskripsi = preg_split('/\R{2,}/', trim((string) $produk->deskripsi)) ?: [];
         $jumlahDisewa = $produk->getAttributes()['jumlah_disewa'] ?? null;
@@ -337,17 +185,16 @@
         $punyaFoto = count($fotoList) > 0;
         $jumlahFoto = $punyaFoto ? count($fotoList) : count($thumbGradien);
 
+        $modeAwal = (request('mode') === 'beli' && $produk->dapat_dijual) || ! $produk->bisa_disewa ? 'beli' : 'sewa';
+
         $config = [
-            'mode' => (request('mode') === 'beli' && $produk->dapat_dijual) || !$produk->bisa_disewa ? 'beli' : 'sewa',
-            'hargaSewa' => (float) ($produk->harga_sewa ?? 0),
-            'dendaPerHari' => (float) ($produk->denda_per_hari_telat ?? 0),
-            'hargaJual' => (float) ($produk->harga_jual ?? 0),
-            'stok' => (int) ($produk->stok ?? 0),
-            'ukuran' => $ukuranList,
-            'ukuranDefault' => $ukuranDefault,
-            'warnaDefault' => $warnaDefault,
-            'stokUkuran' => (object) $stokUkuran,
-            'stokWarna' => (object) $stokWarna,
+            'mode' => $modeAwal,
+            // Set stok per jenis (sewa / jual), dibaca dari kolom yang sama dengan form admin
+            'sets' => (object) $sets,
+            // Harga sudah dipotong diskon, sama seperti di halaman admin
+            'hargaSewa' => $produk->hargaSewaNet(),
+            'hargaJual' => $produk->hargaJualNet(),
+            'tarifTambahan' => $produk->tarifTambahanSewa(),
             'dibooking' => array_values($dibooking ?? []),
             'jumlahFoto' => $jumlahFoto,
             'fotoUrls' => collect($fotoList)->map(fn ($f) => asset('storage/' . $f))->values()->all(),
@@ -539,11 +386,26 @@
                     {{-- ===== MODE SEWA: HARGA ===== --}}
                     <div x-show="mode === 'sewa'" x-cloak class="pd-swap">
                         <div class="bg-cream/70 rounded-2xl p-5 mb-6 border border-line/30 hover:border-gold/40 hover:shadow-md transition-all duration-300">
+                            @if ($diskonSewa > 0)
+                                <p class="mb-1.5 flex items-center gap-2 text-xs text-ink/50">
+                                    <span class="line-through tabular-nums">Rp {{ number_format($produk->harga_sewa, 0, ',', '.') }}</span>
+                                    <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200">-{{ $fmtDiskon($diskonSewa) }}%</span>
+                                </p>
+                            @endif
                             <p class="font-display text-[28px] font-medium text-ink leading-none lining-nums tabular-nums">
                                 <span x-text="formatRupiah(hargaTampil)"></span>
                                 <span class="font-sans text-xs font-normal text-ink/50">/ <span
                                         x-text="durasi > 0 ? durasi + ' hari' : 'sewa'"></span></span>
                             </p>
+
+                            {{-- Stok sewa (terpisah dari stok jual bila produk dijual & disewa) --}}
+                            <p class="mt-2 text-xs text-ink/60 flex items-center gap-1.5">
+                                <span class="inline-block w-1.5 h-1.5 rounded-full" :class="stok > 0 ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+                                <span x-text="stok <= 0 ? 'Stok sewa habis' : (stok <= 3 ? 'Stok sewa tinggal ' + stok + ' unit' : 'Stok sewa: ' + stok + ' unit')"></span>
+                            </p>
+                            @if ($produk->dp > 0)
+                                <p class="mt-1 text-xs text-ink/60">DP / uang muka: <strong class="text-ink/80 font-semibold">Rp {{ number_format($produk->dp, 0, ',', '.') }}</strong></p>
+                            @endif
 
                             {{-- Alur 3 tahap --}}
                             <div class="mt-4 grid grid-cols-3 gap-2 text-center">
@@ -566,8 +428,11 @@
                                 class="mt-3 p-3 rounded-lg border border-dashed border-gold/50 text-xs text-ink/60 leading-relaxed bg-gold/[0.04]">
                                 Ingin pemakaian lebih dari 1 hari? Tidak perlu bayar harga sewa penuh lagi — cukup tambahan
                                 <strong
-                                    class="text-gold font-semibold">Rp{{ number_format($produk->denda_per_hari_telat, 0, ',', '.') }}
+                                    class="text-gold font-semibold">Rp{{ number_format($produk->tarifTambahanSewa(), 0, ',', '.') }}
                                     per hari</strong>.
+                                @if ($produk->denda_per_hari_telat > 0)
+                                    Keterlambatan pengembalian dikenakan denda Rp{{ number_format($produk->denda_per_hari_telat, 0, ',', '.') }} per hari.
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -576,18 +441,24 @@
                     <div x-show="mode === 'beli'" x-cloak class="pd-swap">
                         <div class="bg-cream/70 rounded-2xl p-5 mb-6 border border-line/30 hover:border-gold/40 hover:shadow-md transition-all duration-300">
                             <p class="text-xs text-ink/50 mb-1">Harga Beli</p>
+                            @if ($diskonJual > 0)
+                                <p class="mb-1.5 flex items-center gap-2 text-xs text-ink/50">
+                                    <span class="line-through tabular-nums">Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</span>
+                                    <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200">-{{ $fmtDiskon($diskonJual) }}%</span>
+                                </p>
+                            @endif
                             <p
                                 class="font-display text-[28px] font-semibold text-ink/90 leading-none lining-nums tabular-nums">
-                                Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}</p>
+                                Rp {{ number_format($produk->hargaJualNet(), 0, ',', '.') }}</p>
                             <p class="mt-2 text-xs text-ink/60 flex items-center gap-1.5">
-                                <span class="inline-block w-1.5 h-1.5 rounded-full {{ $produk->stok > 0 ? 'bg-emerald-500' : 'bg-rose-500' }}"></span>
-                                {{ $produk->stok > 0 ? 'Tersedia untuk dibeli' : 'Stok habis' }}
+                                <span class="inline-block w-1.5 h-1.5 rounded-full" :class="stok > 0 ? 'bg-emerald-500' : 'bg-rose-500'"></span>
+                                <span x-text="stok > 0 ? 'Tersedia untuk dibeli' : 'Stok habis'"></span>
                             </p>
                         </div>
                     </div>
 
-                    {{-- Pilihan 1: Ukuran --}}
-                    <div class="pd-up mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm" style="--d: .3s;">
+                    {{-- Pilihan 1: Ukuran (hanya bila admin mengisi variasi ukuran) --}}
+                    <div x-show="adaUkuran" x-cloak class="pd-up mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm" style="--d: .3s;">
                         <div class="flex items-center justify-between gap-3 mb-3">
                             <p class="flex items-center gap-2 text-sm font-semibold text-ink/85">
                                 <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold">1</span>
@@ -596,71 +467,61 @@
                             <p class="text-xs text-ink/50">Terpilih: <span class="font-semibold text-gold" x-text="ukuran"></span></p>
                         </div>
                         <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Ukuran">
-                            @foreach ($ukuranOpsi as $o)
-                                @php
-                                    $u = $o['label'];
-                                    $habisU = $o['stok'] !== null && $o['stok'] <= 0;
-                                @endphp
-                                <button type="button" role="radio" :aria-checked="ukuran === @js($u)" @click="ukuran = @js($u)"
-                                    @if ($habisU) :disabled="mode === 'beli'" @endif
-                                    :class="[ukuran === @js($u) ? 'bg-ink/90 text-gold border-ink/90 shadow-md' : 'bg-white text-ink/65 border-line/60 hover:border-gold hover:text-ink hover:-translate-y-0.5', @if ($habisU) (mode === 'beli' ? 'opacity-40 line-through cursor-not-allowed' : '') @else '' @endif]"
+                            <template x-for="o in set.ukuran" :key="jenis + '-' + o.label">
+                                <button type="button" role="radio" :aria-checked="ukuran === o.label" @click="ukuran = o.label"
+                                    :disabled="o.stok <= 0"
+                                    :class="[ukuran === o.label ? 'bg-ink/90 text-gold border-ink/90 shadow-md' : 'bg-white text-ink/65 border-line/60 hover:border-gold hover:text-ink hover:-translate-y-0.5', o.stok <= 0 ? 'opacity-40 line-through cursor-not-allowed' : '']"
                                     class="relative min-w-[56px] min-h-[44px] px-4 py-1.5 rounded-xl border text-[13px] font-semibold active:scale-95 transition-all duration-200">
-                                    <span class="block leading-tight">{{ $u }}</span>
-                                    @if ($o['stok'] !== null)
-                                        <span x-show="mode === 'beli'" x-cloak
-                                            class="block text-[10px] font-normal leading-tight {{ $habisU ? 'text-rose-500' : 'opacity-60' }}">{{ $habisU ? 'habis' : 'stok ' . $o['stok'] }}</span>
-                                    @endif
-                                    <span x-show="ukuran === @js($u)" x-cloak
+                                    <span class="block leading-tight" x-text="o.label"></span>
+                                    <span class="block text-[10px] font-normal leading-tight"
+                                        :class="o.stok <= 0 ? 'text-rose-500' : 'opacity-60'"
+                                        x-text="o.stok <= 0 ? 'habis' : 'stok ' + o.stok"></span>
+                                    <span x-show="ukuran === o.label" x-cloak
                                         class="pd-pop absolute -top-1.5 -right-1.5 flex w-4 h-4 items-center justify-center rounded-full bg-gold text-white text-[9px] leading-none">✓</span>
                                 </button>
-                            @endforeach
+                            </template>
                         </div>
                         <p class="mt-3 text-[11px] text-ink/45">Ragu soal ukuran? Tanyakan lewat WhatsApp di bawah, kami bantu pilihkan.</p>
                     </div>
 
-                    @if ($adaWarna)
-                        {{-- Pilihan 2: Warna --}}
-                        <div class="pd-up mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm" style="--d: .33s;">
-                            <div class="flex items-center justify-between gap-3 mb-4">
-                                <p class="flex items-center gap-2 text-sm font-semibold text-ink/85">
-                                    <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold">2</span>
-                                    Pilih Warna
-                                </p>
-                                <p class="text-xs text-ink/50 text-right">Terpilih: <span class="font-semibold text-gold" x-text="varianWarna || '-'"></span></p>
-                            </div>
-                            <div class="flex flex-wrap gap-x-3 gap-y-4" role="radiogroup" aria-label="Warna">
-                                @foreach ($warnaOpsi as $w)
-                                    @php $habisW = $w['stok'] !== null && $w['stok'] <= 0; @endphp
-                                    <label class="w-[76px] flex flex-col items-center gap-1.5 text-center {{ $habisW ? '' : 'cursor-pointer' }}"
-                                        @if ($habisW) :class="mode === 'beli' ? 'cursor-not-allowed' : 'cursor-pointer'" @endif>
-                                        <input type="radio" name="pilih_warna" value="{{ $w['label'] }}" class="peer sr-only"
-                                            x-model="varianWarna" @if ($habisW) :disabled="mode === 'beli'" @endif>
-                                        <span class="relative block w-12 h-12 rounded-full border border-black/10 ring-2 ring-offset-2 ring-offset-white ring-transparent shadow-inner hover:scale-110 peer-checked:ring-gold peer-checked:scale-110 transition-all duration-300"
-                                            @if ($habisW) :class="mode === 'beli' ? 'opacity-40' : ''" @endif
-                                            style="background: {{ $w['hex'] }};">
-                                            <span x-show="varianWarna === @js($w['label'])" x-cloak
-                                                class="pd-pop absolute -top-1 -right-1 flex w-4 h-4 items-center justify-center rounded-full bg-gold text-white text-[9px] leading-none">✓</span>
-                                            @if ($habisW)
-                                                <span x-show="mode === 'beli'" x-cloak aria-hidden="true" class="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full">
-                                                    <span class="block w-[130%] h-[2px] bg-rose-500/80 -rotate-45"></span>
-                                                </span>
-                                            @endif
-                                        </span>
-                                        <span class="text-[11px] leading-tight text-ink/75 peer-checked:text-gold peer-checked:font-semibold">{{ $w['label'] }}</span>
-                                        @if ($w['stok'] !== null)
-                                            <span x-show="mode === 'beli'" x-cloak class="text-[10px] -mt-1 {{ $habisW ? 'font-medium text-rose-500' : 'text-ink/45' }}">{{ $habisW ? 'Habis' : 'stok ' . $w['stok'] }}</span>
-                                        @endif
-                                    </label>
-                                @endforeach
-                            </div>
+                    {{-- Pilihan 2: Warna (stok per warna mengikuti ukuran yang dipilih) --}}
+                    <div x-show="adaWarna" x-cloak class="pd-up mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm" style="--d: .33s;">
+                        <div class="flex items-center justify-between gap-3 mb-4">
+                            <p class="flex items-center gap-2 text-sm font-semibold text-ink/85">
+                                <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold" x-text="noWarna"></span>
+                                Pilih Warna
+                            </p>
+                            <p class="text-xs text-ink/50 text-right">Terpilih: <span class="font-semibold text-gold" x-text="varianWarna || '-'"></span></p>
                         </div>
-                    @endif
+                        <div class="flex flex-wrap gap-x-3 gap-y-4" role="radiogroup" aria-label="Warna">
+                            <template x-for="w in warnaTampil" :key="jenis + '-' + ukuran + '-' + w.label">
+                                <label class="w-[76px] flex flex-col items-center gap-1.5 text-center"
+                                    :class="habis(w.stok) ? 'cursor-not-allowed' : 'cursor-pointer'">
+                                    <input type="radio" name="pilih_warna" :value="w.label" class="peer sr-only"
+                                        x-model="varianWarna" :disabled="habis(w.stok)">
+                                    <span class="relative block w-12 h-12 rounded-full border border-black/10 ring-2 ring-offset-2 ring-offset-white ring-transparent shadow-inner hover:scale-110 peer-checked:ring-gold peer-checked:scale-110 transition-all duration-300"
+                                        :class="habis(w.stok) ? 'opacity-40' : ''"
+                                        :style="'background: ' + w.hex">
+                                        <span x-show="varianWarna === w.label" x-cloak
+                                            class="pd-pop absolute -top-1 -right-1 flex w-4 h-4 items-center justify-center rounded-full bg-gold text-white text-[9px] leading-none">✓</span>
+                                        <span x-show="habis(w.stok)" x-cloak aria-hidden="true" class="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full">
+                                            <span class="block w-[130%] h-[2px] bg-rose-500/80 -rotate-45"></span>
+                                        </span>
+                                    </span>
+                                    <span class="text-[11px] leading-tight text-ink/75 peer-checked:text-gold peer-checked:font-semibold" x-text="w.label"></span>
+                                    <span x-show="w.stok !== null" x-cloak class="text-[10px] -mt-1"
+                                        :class="habis(w.stok) ? 'font-medium text-rose-500' : 'text-ink/45'"
+                                        x-text="habis(w.stok) ? 'Habis' : 'stok ' + w.stok"></span>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
 
                     {{-- ===== MODE SEWA: KALENDER ===== --}}
                     <div x-show="mode === 'sewa'" x-cloak class="pd-swap">
                         <div class="mb-6" id="kalender-sewa">
                             <p class="flex items-center gap-2 text-sm font-semibold text-ink/85 mb-3">
-                                <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold">{{ $noTanggal }}</span>
+                                <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold"><span x-text="noTanggal"></span></span>
                                 Pilih Tanggal Sewa
                             </p>
 
@@ -737,8 +598,8 @@
                                     <span class="tabular-nums text-ink/85" x-text="formatRupiah(hargaSewaPerHari)"></span>
                                 </div>
                                 <div class="flex justify-between" x-show="durasi > 1" x-cloak>
-                                    <span x-text="'Tambahan ' + (durasi - 1) + ' hari × ' + formatRupiah(dendaPerHari)"></span>
-                                    <span class="tabular-nums text-ink/85" x-text="formatRupiah((durasi - 1) * dendaPerHari)"></span>
+                                    <span x-text="'Tambahan ' + (durasi - 1) + ' hari × ' + formatRupiah(tarifTambahan)"></span>
+                                    <span class="tabular-nums text-ink/85" x-text="formatRupiah((durasi - 1) * tarifTambahan)"></span>
                                 </div>
                                 <div class="flex justify-between pt-1.5 border-t border-line/30 text-[13px] font-semibold text-ink/90">
                                     <span>Total sewa</span>
@@ -758,7 +619,7 @@
                         <div class="mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm">
                             <div class="flex items-center justify-between gap-3 mb-3">
                                 <p class="flex items-center gap-2 text-sm font-semibold text-ink/85">
-                                    <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold">{{ $noJumlah }}</span>
+                                    <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold"><span x-text="noJumlah"></span></span>
                                     Jumlah
                                 </p>
                                 <p class="text-xs font-medium"
@@ -785,7 +646,7 @@
                         {{-- Pilihan 4: Pengiriman --}}
                         <div class="mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm">
                             <p class="flex items-center gap-2 text-sm font-semibold text-ink/85 mb-3">
-                                <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold">{{ $noKirim }}</span>
+                                <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold"><span x-text="noKirim"></span></span>
                                 Metode Pengiriman
                             </p>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -814,7 +675,7 @@
                     {{-- Ringkasan pilihan --}}
                     <div class="pd-up mb-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl bg-ink/[0.04] border border-line/30 px-3.5 py-2.5 text-xs text-ink/70" style="--d: .35s;">
                         <span class="font-semibold text-ink/85">Pilihanmu:</span>
-                        <span class="px-2 py-0.5 rounded-md bg-white border border-line/40">Ukuran <b class="text-ink/90" x-text="ukuran"></b></span>
+                        <span x-show="adaUkuran" x-cloak class="px-2 py-0.5 rounded-md bg-white border border-line/40">Ukuran <b class="text-ink/90" x-text="ukuran"></b></span>
                         <span x-show="varianWarna" x-cloak class="px-2 py-0.5 rounded-md bg-white border border-line/40">Warna <b class="text-ink/90" x-text="varianWarna"></b></span>
                         <span x-show="mode === 'beli'" x-cloak class="px-2 py-0.5 rounded-md bg-white border border-line/40">Jumlah <b class="text-ink/90" x-text="jumlah"></b></span>
                         <span x-show="mode === 'sewa'" x-cloak class="px-2 py-0.5 rounded-md border"
@@ -833,14 +694,14 @@
                                     <input type="hidden" name="produk_id" value="{{ $produk->id }}">
                                     <input type="hidden" name="tanggal_ambil" :value="tanggalAmbil">
                                     <input type="hidden" name="tanggal_kembali" :value="tanggalKembali">
-                                    <input type="hidden" name="ukuran" :value="ukuran">
+                                    <input type="hidden" name="ukuran" :value="ukuranKirim">
                                     <input type="hidden" name="warna" :value="varianWarna">
                                     <input type="hidden" name="durasi" :value="durasi">
                                     <input type="hidden" name="total_sewa" :value="totalSewa">
-                                    <button type="submit" @click.prevent="kirimSewa()" :disabled="memuat"
+                                    <button type="submit" @click.prevent="kirimSewa()" :disabled="memuat || stok <= 0"
                                         :class="{ 'pd-ready': tanggalAmbil && tanggalKembali && !memuat }"
                                         class="pd-shine w-full h-12 rounded-xl bg-gold text-white text-[13px] font-semibold tracking-wide hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 active:translate-y-0 active:scale-[0.98] disabled:opacity-70 disabled:cursor-wait transition-all duration-300">
-                                        <span x-show="!memuat">Sewa Sekarang</span>
+                                        <span x-show="!memuat" x-text="stok > 0 ? 'Sewa Sekarang' : 'Stok Habis'"></span>
                                         <span x-show="memuat" x-cloak class="inline-flex items-center gap-2">
                                             <span class="pd-spin inline-block w-4 h-4 rounded-full border-2 border-white/40 border-t-white"></span>
                                             Memproses…
@@ -858,7 +719,8 @@
                                     <input type="hidden" name="produk_id" value="{{ $produk->id }}">
                                     <input type="hidden" name="qty" :value="jumlah">
                                     <input type="hidden" name="varian" :value="varianWarna">
-                                    @if ($produk->stok > 0)
+                                    <input type="hidden" name="ukuran" :value="ukuranKirim">
+                                    @if ($stokJual > 0)
                                         <button type="submit" :disabled="memuat || stok <= 0" class="pd-shine w-full h-12 rounded-xl bg-gold text-white text-[13px] font-semibold tracking-wide hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 active:translate-y-0 active:scale-[0.98] disabled:opacity-70 disabled:cursor-wait transition-all duration-300">
                                             <span x-show="!memuat">Beli Sekarang (<span x-text="formatRupiah(totalBeli)"></span>)</span>
                                             <span x-show="memuat" x-cloak class="inline-flex items-center gap-2">
@@ -880,7 +742,7 @@
                             @csrf
                             <input type="hidden" name="produk_id" value="{{ $produk->id }}">
                             <input type="hidden" name="mode" :value="mode">
-                            <input type="hidden" name="ukuran" :value="ukuran">
+                            <input type="hidden" name="ukuran" :value="ukuranKirim">
                             <input type="hidden" name="warna" :value="varianWarna">
                             <input type="hidden" name="qty" :value="jumlah">
 
@@ -894,7 +756,7 @@
                                 </div>
                             </template>
 
-                            <button type="submit" @click.prevent="tambahKeKeranjang($event)" :disabled="memuat"
+                            <button type="submit" @click.prevent="tambahKeKeranjang($event)" :disabled="memuat || stok <= 0"
                                     class="w-full h-12 rounded-xl border border-ink/80 bg-white text-ink/85 text-[13px] font-semibold tracking-wide hover:bg-ink/90 hover:text-cream hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] disabled:opacity-70 disabled:cursor-wait transition-all duration-300">
                                 <span x-show="!memuat">+ Tambah ke Keranjang</span>
                                 <span x-show="memuat" x-cloak>Menambahkan…</span>
@@ -931,12 +793,15 @@
                 <div class="lg:col-span-2">
                     <div class="pd-reveal rounded-2xl border border-line/40 bg-white/80 p-4 md:p-5 shadow-sm">
                         <h3 class="font-display text-base font-semibold text-ink/90 mb-2">Spesifikasi</h3>
-                        @foreach ([
+                        @foreach (array_filter([
+                            ['Kode Produk', $produk->sku ?: '-'],
                             ['Kategori', $produk->kategori->nama_kategori ?? '-'],
                             ['Material', $toTeks($produk->bahan ?? '-')],
-                            ['Ukuran Tersedia', $ukuranList ? implode(', ', $ukuranList) : '-'],
-                            ...($adaWarna ? [['Warna', implode(', ', array_column($warnaOpsi, 'label'))]] : [])
-                        ] as $baris)
+                            ['Motif', $toTeks($produk->motif ?? '-')],
+                            ['Berat', $beratTeks],
+                            ['Ukuran Tersedia', $semuaUkuran ? implode(', ', $semuaUkuran) : 'All Size'],
+                            ['Warna', $semuaWarna ? implode(', ', $semuaWarna) : '-'],
+                        ], fn ($baris) => $baris[1] !== '-') as $baris)
                             <div class="flex justify-between gap-4 py-3 px-2 -mx-2 rounded-md text-[13px] border-b border-line/40 last:border-b-0 hover:bg-cream/60 transition-colors duration-300">
                                 <span class="text-ink/55 shrink-0">{{ $baris[0] }}</span>
                                 <span class="text-ink/85 font-medium text-right">{{ $baris[1] }}</span>
@@ -1039,9 +904,9 @@
                     <p class="font-display text-lg font-semibold text-ink leading-tight tabular-nums truncate"
                         x-text="formatRupiah(mode === 'sewa' ? hargaTampil : totalBeli)"></p>
                 </div>
-                <button type="button" @click="aksiUtama()" :disabled="memuat || (mode === 'beli' && stok <= 0)"
+                <button type="button" @click="aksiUtama()" :disabled="memuat || stok <= 0"
                     class="pd-shine shrink-0 h-12 px-6 rounded-xl bg-gold text-white text-[13px] font-semibold tracking-wide active:scale-95 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-all duration-200"
-                    x-text="mode === 'sewa' ? 'Sewa Sekarang' : (stok > 0 ? 'Beli Sekarang' : 'Stok Habis')"></button>
+                    x-text="stok <= 0 ? 'Stok Habis' : (mode === 'sewa' ? 'Sewa Sekarang' : 'Beli Sekarang')"></button>
             </div>
         </div>
     </div>
@@ -1055,17 +920,15 @@
 
             return {
                 mode: cfg.mode,
+                sets: cfg.sets || {},
                 hargaSewaPerHari: cfg.hargaSewa,
-                dendaPerHari: cfg.dendaPerHari,
+                tarifTambahan: cfg.tarifTambahan,
                 hargaJual: cfg.hargaJual,
-                stokProduk: cfg.stok,
-                stokUkuran: cfg.stokUkuran || {},
-                stokWarna: cfg.stokWarna || {},
                 dibooking: cfg.dibooking,
-                ukuran: cfg.ukuranDefault,
+                ukuran: '',
                 tanggalAmbil: null,
                 tanggalKembali: null,
-                varianWarna: cfg.warnaDefault || '',
+                varianWarna: '',
                 jumlah: 1,
                 metodeKirim: 'ambil',
                 tahun: now.getFullYear(),
@@ -1092,6 +955,9 @@
 
                 // Alpine memanggil init() otomatis
                 init() {
+                    this.pilihDefault();
+                    this.$watch('mode', () => this.pilihDefault());
+                    this.$watch('ukuran', () => this.pilihWarnaDefault());
                     this.$watch('totalSewa', (v) => this.tweenHarga(v || this.hargaSewaPerHari));
                     this.$watch('tanggalKembali', (v) => { if (v) this.pesanTanggal = ''; });
                     this.$watch('lightbox', (v) => { document.body.style.overflow = v ? 'hidden' : ''; });
@@ -1176,6 +1042,7 @@
 
                 // Kirim form sewa, dengan pesan inline (bukan alert)
                 kirimSewa() {
+                    if (this.stok <= 0) return;
                     if (!this.tanggalAmbil || !this.tanggalKembali) {
                         this.peringatiTanggal();
                         return;
@@ -1216,15 +1083,47 @@
                     setTimeout(() => { fn(); this.gantiBulan = false; }, 150);
                 },
 
-                // Stok yang berlaku = stok terkecil dari ukuran & warna yang dipilih
+                // --- Set stok sesuai mode: sewa memakai stok sewa, beli memakai stok jual ---
+                get jenis() { return this.mode === 'sewa' ? 'sewa' : 'jual'; },
+                get set() { return this.sets[this.jenis] || { ukuran: [], warna: [], stok: 0 }; },
+                get adaUkuran() { return this.set.ukuran.length > 0; },
+                get barisUkuran() { return this.set.ukuran.find((u) => u.label === this.ukuran) || null; },
+                // Bila ukuran punya rincian warna, tampilkan warna + stoknya; kalau tidak, daftar warna produk
+                get warnaTampil() {
+                    const b = this.barisUkuran;
+                    if (b && b.warna.length) return b.warna;
+                    return this.set.warna.map((w) => ({ label: w.label, hex: w.hex, stok: null }));
+                },
+                get adaWarna() { return this.warnaTampil.length > 0; },
+                get ukuranKirim() { return this.adaUkuran ? this.ukuran : 'All Size'; },
+                get noWarna() { return this.adaUkuran ? 2 : 1; },
+                get noTanggal() { return (this.adaUkuran ? 1 : 0) + (this.adaWarna ? 1 : 0) + 1; },
+                get noJumlah() { return this.noTanggal; },
+                get noKirim() { return this.noTanggal + 1; },
+                habis(stok) { return stok !== null && stok !== undefined && stok <= 0; },
+
+                pilihDefault() {
+                    const u = this.set.ukuran.find((x) => x.stok > 0) || this.set.ukuran[0];
+                    this.ukuran = u ? u.label : '';
+                    this.varianWarna = '';
+                    this.pilihWarnaDefault();
+                },
+                pilihWarnaDefault() {
+                    const daftar = this.warnaTampil;
+                    if (daftar.some((w) => w.label === this.varianWarna && !this.habis(w.stok))) return;
+                    const pertama = daftar.find((w) => !this.habis(w.stok)) || daftar[0];
+                    this.varianWarna = pertama ? pertama.label : '';
+                },
+
+                // Stok yang berlaku: warna terpilih (bila ada rincian) > ukuran terpilih > total set
                 get stok() {
-                    const kandidat = [];
-                    const su = this.stokUkuran[this.ukuran];
-                    const sw = this.stokWarna[this.varianWarna];
-                    if (typeof su === 'number') kandidat.push(su);
-                    if (typeof sw === 'number') kandidat.push(sw);
-                    if (!kandidat.length) return this.stokProduk;
-                    return Math.max(0, Math.min(...kandidat));
+                    const b = this.barisUkuran;
+                    if (!b) return this.set.stok;
+                    if (b.warna.length && this.varianWarna) {
+                        const w = b.warna.find((x) => x.label === this.varianWarna);
+                        return w ? w.stok : 0;
+                    }
+                    return b.stok;
                 },
                 get namaBulan() {
                     return new Date(Date.UTC(this.tahun, this.bulan, 1)).toLocaleDateString('id-ID', {
@@ -1318,7 +1217,7 @@
                 },
                 get totalSewa() {
                     if (this.durasi === 0) return 0;
-                    return this.hargaSewaPerHari + (Math.max(0, this.durasi - 1) * this.dendaPerHari);
+                    return this.hargaSewaPerHari + (Math.max(0, this.durasi - 1) * this.tarifTambahan);
                 },
                 get totalBeli() {
                     return this.hargaJual * this.jumlah;
