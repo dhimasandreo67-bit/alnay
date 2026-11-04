@@ -42,6 +42,186 @@
         }
     </style>
 
+
+    <script>
+        function koleksiFilter(awal = {}) {
+            return {
+                filterOpen: false,
+                loading: false,
+                seq: 0,
+                timer: null,
+                urlTerakhir: '',
+                cari: awal.cari || '',
+                hargaMin: awal.hargaMin || '',
+                hargaMax: awal.hargaMax || '',
+                preset: [
+                    { l: '< 1 jt', min: '', max: '1000000' },
+                    { l: '1 – 3 jt', min: '1000000', max: '3000000' },
+                    { l: '3 – 5 jt', min: '3000000', max: '5000000' },
+                    { l: '> 5 jt', min: '5000000', max: '' },
+                ],
+
+                init() {
+                    this.urlTerakhir = location.href;
+                    // Tombol back/forward browser: sinkronkan form lalu muat ulang konten tanpa reload
+                    window.addEventListener('popstate', () => {
+                        this.sinkronForm();
+                        this.muat(location.href, { push: false });
+                    });
+                },
+
+                fmt(v) {
+                    return v === '' ? '' : Number(v).toLocaleString('id-ID');
+                },
+
+                // Input harga: hanya angka, tampil dengan titik ribuan, diterapkan otomatis setelah berhenti mengetik
+                setHarga(kolom, e) {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    this[kolom] = v;
+                    e.target.value = this.fmt(v);
+                    this.tunda();
+                },
+
+                tunda() {
+                    clearTimeout(this.timer);
+                    this.timer = setTimeout(() => this.kirim(), 500);
+                },
+
+                pilihPreset(p) {
+                    if (this.hargaMin === p.min && this.hargaMax === p.max) {
+                        this.hargaMin = '';
+                        this.hargaMax = '';
+                    } else {
+                        this.hargaMin = p.min;
+                        this.hargaMax = p.max;
+                    }
+                    this.kirim();
+                },
+
+                // Kumpulkan semua filter (form + search + harga + sort) -> URL -> muat via AJAX
+                kirim() {
+                    clearTimeout(this.timer);
+                    const f = document.getElementById('form-filter');
+                    const p = new URLSearchParams();
+                    new FormData(f).forEach((v, k) => {
+                        if (v !== '' && k !== 'sort' && k !== 'search') p.append(k, v);
+                    });
+                    if (this.cari.trim() !== '') p.set('search', this.cari.trim());
+                    if (this.hargaMin !== '') p.set('harga_min', this.hargaMin);
+                    if (this.hargaMax !== '') p.set('harga_max', this.hargaMax);
+                    const sort = new URLSearchParams(location.search).get('sort');
+                    if (sort) p.set('sort', sort);
+
+                    const qs = p.toString();
+                    const url = f.action + (qs ? '?' + qs : '');
+                    if (url === this.urlTerakhir) return;
+                    this.muat(url);
+                },
+
+                // Setiap input berubah -> langsung terapkan. 'Jenis' dibuat saling meniadakan.
+                ubah(e, f) {
+                    const t = e.target;
+                    if (t.type === 'text') return; // input harga ditangani setHarga (debounce)
+                    if (t.name === 'jenis' && t.checked) {
+                        f.querySelectorAll('input[name=jenis]').forEach(c => { if (c !== t) c.checked = false; });
+                    }
+                    this.kirim();
+                },
+
+                // Radio (warna) bisa dibatalkan dengan klik ulang pada pilihan yang sama
+                klik(e, f) {
+                    const t = e.target;
+                    if (t.type !== 'radio') return;
+                    if (t.dataset.was === '1') {
+                        t.checked = false;
+                        t.dataset.was = '';
+                        this.kirim();
+                        return;
+                    }
+                    f.querySelectorAll('input[name=' + t.name + ']').forEach(r => r.dataset.was = '');
+                    t.dataset.was = '1';
+                },
+
+                // Reset semua filter
+                reset(url) {
+                    const f = document.getElementById('form-filter');
+                    f.querySelectorAll('input[type=checkbox], input[type=radio]').forEach(i => {
+                        i.checked = false;
+                        i.dataset.was = '';
+                    });
+                    this.cari = '';
+                    this.hargaMin = '';
+                    this.hargaMax = '';
+                    this.muat(url);
+                },
+
+                // Klik pagination / tombol reset di area produk -> AJAX juga
+                halaman(e) {
+                    const a = e.target.closest('nav a, a[data-ajax]');
+                    if (!a || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+                    e.preventDefault();
+                    if (a.dataset.ajax !== undefined) return this.reset(a.href);
+                    this.muat(a.href, { naik: true });
+                },
+
+                // Samakan form dengan URL (untuk tombol back/forward)
+                sinkronForm() {
+                    const p = new URLSearchParams(location.search);
+                    document.getElementById('form-filter')
+                        .querySelectorAll('input[type=checkbox], input[type=radio]').forEach(i => {
+                            i.checked = p.getAll(i.name).includes(i.value);
+                            if (i.type === 'radio') i.dataset.was = i.checked ? '1' : '';
+                        });
+                    this.cari = p.get('search') || '';
+                    this.hargaMin = p.get('harga_min') || '';
+                    this.hargaMax = p.get('harga_max') || '';
+                },
+
+                // Inti: ambil halaman, ganti hanya area produk, posisi scroll tidak berubah
+                async muat(url, opt = {}) {
+                    const { push = true, naik = false } = opt;
+                    const id = ++this.seq;
+                    this.urlTerakhir = url;
+                    this.loading = true;
+                    try {
+                        const res = await fetch(url, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' }
+                        });
+                        if (!res.ok) throw new Error('gagal memuat');
+                        const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+                        if (id !== this.seq) return; // ada permintaan yang lebih baru
+                        const baru = doc.getElementById('area-produk');
+                        if (!baru) throw new Error('area produk tidak ditemukan');
+
+                        document.getElementById('area-produk').innerHTML = baru.innerHTML;
+                        const total = doc.getElementById('total-koleksi');
+                        if (total) document.getElementById('total-koleksi').textContent = total.textContent;
+                        if (push) history.pushState({}, '', url);
+
+                        // Hanya saat pindah halaman (pagination) -> geser ke awal daftar produk
+                        if (naik) {
+                            const top = document.getElementById('area-produk').getBoundingClientRect().top + window.scrollY - 96;
+                            window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+                        }
+                    } catch (err) {
+                        // Fallback: kalau AJAX gagal, pakai navigasi biasa
+                        if (id === this.seq) window.location.href = url;
+                    } finally {
+                        if (id === this.seq) this.loading = false;
+                    }
+                }
+            };
+        }
+    </script>
+
+    @php
+        $awalFilter = [
+            'cari' => (string) request('search', ''),
+            'hargaMin' => preg_replace('/\D/', '', (string) request('harga_min', '')),
+            'hargaMax' => preg_replace('/\D/', '', (string) request('harga_max', '')),
+        ];
+    @endphp
+
     <div class="bg-[#FBFAF7] min-h-screen py-8 md:py-12 font-sans">
 
         {{-- ============================================
@@ -54,7 +234,7 @@
                     Koleksi Produk
                 </h1>
                 <p class="pd-up text-sm text-ink/55" style="--d: .15s;">
-                    {{ $produkList->total() }} busana adat siap sewa maupun beli — cari berdasarkan kategori, warna, atau
+                    <span id="total-koleksi">{{ $produkList->total() }}</span> busana adat siap sewa maupun beli — cari berdasarkan kategori, warna, atau
                     harga.
                 </p>
             </div>
@@ -64,8 +244,8 @@
          KONTEN UTAMA — GRID + SIDEBAR
          ============================================ --}}
         <div class="max-w-[1280px] mx-auto px-4 md:px-6 py-8 md:py-12">
-            <div class="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 md:gap-8" x-data="{ filterOpen: false }"
-                @keydown.escape.window="filterOpen = false"
+            <div class="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 md:gap-8" x-data="koleksiFilter(@js($awalFilter))"
+                @muat="muat($event.detail.url)" @keydown.escape.window="filterOpen = false"
                 x-effect="document.body.style.overflow = (filterOpen && window.innerWidth < 1024) ? 'hidden' : ''">
 
                 {{-- ============================================
@@ -88,9 +268,13 @@
                         </div>
 
                         {{-- ISI FORM FILTER --}}
-                        <form method="GET" action="{{ route('koleksi.index') }}" class="space-y-5">
+                        <form id="form-filter" method="GET" action="{{ route('koleksi.index') }}" class="space-y-5"
+                            @submit.prevent="kirim()" @change="ubah($event, $el)" @click="klik($event, $el)">
 
                             <input type="hidden" name="search" value="{{ request('search') }}">
+                            @if (request('sort'))
+                                <input type="hidden" name="sort" value="{{ request('sort') }}">
+                            @endif
 
                             {{-- Jenis Transaksi --}}
                             <div>
@@ -136,36 +320,46 @@
 
                             <hr class="border-line/30">
 
-                            {{-- Rentang Harga --}}
+                            {{-- Rentang Harga (bebas diisi pelanggan) --}}
                             <div>
                                 <p class="text-[11px] font-semibold text-ink/80 mb-2.5">Rentang Harga</p>
-                                <div class="space-y-2">
-                                    @php
-                                        $hargaOpsi = [
-                                            '0-1000000' => 'Di bawah Rp 1.000.000',
-                                            '1000000-3000000' => 'Rp 1.000.000 – 3.000.000',
-                                            '3000000-5000000' => 'Rp 3.000.000 – 5.000.000',
-                                            '5000000+' => 'Di atas Rp 5.000.000',
-                                        ];
-                                    @endphp
-                                    @foreach ($hargaOpsi as $val => $label)
-                                        <label class="block cursor-pointer">
-                                            <input type="radio" name="harga" value="{{ $val }}"
-                                                class="peer sr-only" {{ request('harga') === $val ? 'checked' : '' }}>
-                                            <div
-                                                class="px-3 py-2 rounded-md border border-line/50 text-[12px] text-ink/70 transition-all
-                                                    peer-checked:border-gold peer-checked:bg-gold/5 peer-checked:text-gold peer-checked:font-medium
-                                                    hover:border-gold/60 hover:-translate-y-px hover:shadow-sm">
-                                                {{ $label }}
-                                            </div>
-                                        </label>
-                                    @endforeach
+
+                                <div class="flex items-center gap-2">
+                                    <div class="relative flex-1 min-w-0">
+                                        <span
+                                            class="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink/40 pointer-events-none">Rp</span>
+                                        <input type="text" inputmode="numeric" autocomplete="off" placeholder="Min"
+                                            aria-label="Harga minimum" :value="fmt(hargaMin)"
+                                            @input="setHarga('hargaMin', $event)" @keydown.enter.prevent="kirim()"
+                                            class="w-full pl-8 pr-2 py-2 rounded-md border border-line/50 bg-panel text-[12px] text-ink/80 placeholder:text-ink/30 focus:border-gold focus:ring-1 focus:ring-gold/40 outline-none transition-all">
+                                    </div>
+                                    <span class="text-ink/40 text-xs">–</span>
+                                    <div class="relative flex-1 min-w-0">
+                                        <span
+                                            class="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] text-ink/40 pointer-events-none">Rp</span>
+                                        <input type="text" inputmode="numeric" autocomplete="off" placeholder="Max"
+                                            aria-label="Harga maksimum" :value="fmt(hargaMax)"
+                                            @input="setHarga('hargaMax', $event)" @keydown.enter.prevent="kirim()"
+                                            class="w-full pl-8 pr-2 py-2 rounded-md border border-line/50 bg-panel text-[12px] text-ink/80 placeholder:text-ink/30 focus:border-gold focus:ring-1 focus:ring-gold/40 outline-none transition-all">
+                                    </div>
+                                </div>
+
+                                {{-- Pilihan cepat: mengisi kolom min/max di atas --}}
+                                <div class="flex flex-wrap gap-1.5 mt-2.5">
+                                    <template x-for="p in preset" :key="p.l">
+                                        <button type="button" @click="pilihPreset(p)"
+                                            class="px-2.5 py-1 rounded-full border text-[11px] transition-all"
+                                            :class="(hargaMin === p.min && hargaMax === p.max) ?
+                                            'border-gold bg-gold/5 text-gold font-medium' :
+                                            'border-line/50 text-ink/65 hover:border-gold/60'"
+                                            x-text="p.l"></button>
+                                    </template>
                                 </div>
                             </div>
 
                             <hr class="border-line/30">
 
-                                                        {{-- Warna --}}
+                            {{-- Warna --}}
                             <div>
                                 <p class="text-[11px] font-semibold text-ink/80 mb-2.5">Warna</p>
                                 
@@ -174,24 +368,28 @@
                                     
                                     @forelse ($warnaList as $w)
                                         @php
-                                            // Menerjemahkan nama warna dari Admin menjadi kode HEX CSS
-                                            $wLower = strtolower(trim($w));
-                                            $hex = '#d1d5db'; // Warna default abu-abu jika tidak dikenali
+                                            // Pakai palet resmi dari model; jika tidak ada, tebak dari kata kunci
+                                            $hex = \App\Models\Produk::paletWarna()[$w] ?? null;
 
-                                            if (str_contains($wLower, 'hitam')) $hex = '#1a1a1a';
-                                            elseif (str_contains($wLower, 'maroon') || str_contains($wLower, 'merah')) $hex = '#6b1c2a';
-                                            elseif (str_contains($wLower, 'gold') || str_contains($wLower, 'emas') || str_contains($wLower, 'kuning')) $hex = '#c99a32';
-                                            elseif (str_contains($wLower, 'cream') || str_contains($wLower, 'krem') || str_contains($wLower, 'putih')) $hex = '#f5e6c8';
-                                            elseif (str_contains($wLower, 'hijau') || str_contains($wLower, 'green')) $hex = '#2a5c3f';
-                                            elseif (str_contains($wLower, 'coklat') || str_contains($wLower, 'brown')) $hex = '#5c3a21';
-                                            elseif (str_contains($wLower, 'biru') || str_contains($wLower, 'blue') || str_contains($wLower, 'navy')) $hex = '#1e3a8a';
-                                            elseif (str_contains($wLower, 'pink') || str_contains($wLower, 'rose')) $hex = '#f472b6';
-                                            elseif (str_contains($wLower, 'ungu') || str_contains($wLower, 'purple')) $hex = '#7e22ce';
-                                            elseif (str_contains($wLower, 'abu') || str_contains($wLower, 'grey') || str_contains($wLower, 'silver')) $hex = '#9ca3af';
+                                            if (!$hex) {
+                                                $wLower = strtolower(trim($w));
+                                                $hex = '#d1d5db'; // default abu-abu
+
+                                                if (str_contains($wLower, 'hitam')) $hex = '#1a1a1a';
+                                                elseif (str_contains($wLower, 'maroon') || str_contains($wLower, 'marun') || str_contains($wLower, 'merah')) $hex = '#6b1c2a';
+                                                elseif (str_contains($wLower, 'gold') || str_contains($wLower, 'emas') || str_contains($wLower, 'kuning')) $hex = '#c99a32';
+                                                elseif (str_contains($wLower, 'cream') || str_contains($wLower, 'krem') || str_contains($wLower, 'putih')) $hex = '#f5e6c8';
+                                                elseif (str_contains($wLower, 'hijau') || str_contains($wLower, 'green')) $hex = '#2a5c3f';
+                                                elseif (str_contains($wLower, 'coklat') || str_contains($wLower, 'cokelat') || str_contains($wLower, 'brown')) $hex = '#5c3a21';
+                                                elseif (str_contains($wLower, 'biru') || str_contains($wLower, 'blue') || str_contains($wLower, 'navy')) $hex = '#1e3a8a';
+                                                elseif (str_contains($wLower, 'pink') || str_contains($wLower, 'rose')) $hex = '#f472b6';
+                                                elseif (str_contains($wLower, 'ungu') || str_contains($wLower, 'purple')) $hex = '#7e22ce';
+                                                elseif (str_contains($wLower, 'abu') || str_contains($wLower, 'grey') || str_contains($wLower, 'silver')) $hex = '#9ca3af';
+                                            }
                                         @endphp
 
                                         <label class="cursor-pointer group relative">
-                                            <input type="radio" name="warna" value="{{ $w }}" class="peer sr-only" {{ request('warna') === $w ? 'checked' : '' }}>
+                                            <input type="radio" name="warna" value="{{ $w }}" data-was="{{ request('warna') === $w ? '1' : '' }}" class="peer sr-only" {{ request('warna') === $w ? 'checked' : '' }}>
                                             
                                             {{-- Bulatan Warna --}}
                                             <span class="block w-7 h-7 rounded-full border border-black/10 shadow-sm transition-all duration-200
@@ -211,16 +409,12 @@
                                 </div>
                             </div>
 
-                            {{-- Tombol Reset & Terapkan --}}
-                            <div class="flex gap-2 pt-2">
-                                <a href="{{ route('koleksi.index') }}"
-                                    class="flex-1 text-center py-2.5 rounded-md bg-cream text-[11px] font-semibold text-ink/70 hover:bg-cream-dim transition-all">
+                            {{-- Tombol Reset (filter diterapkan otomatis saat dipilih) --}}
+                            <div class="pt-2">
+                                <a href="{{ route('koleksi.index') }}" @click.prevent="reset($el.href)"
+                                    class="block w-full text-center py-2.5 rounded-md bg-cream text-[11px] font-semibold text-ink/70 hover:bg-cream-dim transition-all">
                                     Reset
                                 </a>
-                                <button type="submit" @click="filterOpen = false"
-                                    class="flex-1 text-center py-2.5 rounded-md bg-gold text-[11px] font-semibold text-white hover:bg-gold/90 transition-all">
-                                    Terapkan
-                                </button>
                             </div>
                         </form>
                     </div>
@@ -231,9 +425,31 @@
                  ============================================ --}}
                 <div class="min-w-0">
 
+                    {{-- Pencarian (di luar #area-produk supaya fokus ketikan tidak hilang saat hasil diganti) --}}
+                    <div class="relative mb-4">
+                        <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink/40 pointer-events-none"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
+                        </svg>
+                        <input type="search" x-model="cari" @input.debounce.400ms="kirim()"
+                            @keydown.enter.prevent="kirim()" autocomplete="off" aria-label="Cari produk"
+                            placeholder="Cari nama busana, motif, warna, atau kode produk..."
+                            class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-line/50 bg-panel text-[13px] text-ink/80 placeholder:text-ink/35 focus:border-gold focus:ring-1 focus:ring-gold/40 outline-none transition-all [&::-webkit-search-cancel-button]:hidden">
+                        <button type="button" x-show="cari" x-cloak @click="cari = ''; kirim()" aria-label="Hapus pencarian"
+                            class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-ink/40 hover:text-ink/70 hover:bg-cream transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                <div id="area-produk" class="transition-opacity duration-200"
+                    :class="loading ? 'opacity-50 pointer-events-none' : ''" @click="halaman($event)">
+
                     {{-- Toolbar --}}
-                    <div class="pd-up relative z-30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6"
-                        style="--d: .25s;">
+                    <div class="relative z-30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
 
                         <div class="flex items-center justify-between gap-4">
                             <p class="text-sm text-ink/55">
@@ -266,8 +482,10 @@
                             updateSort(val) {
                                 this.selected = val;
                                 this.open = false;
-                                document.getElementById('sort-input').value = val;
-                                document.getElementById('sort-form').submit();
+                                const p = new URLSearchParams(location.search);
+                                p.set('sort', val);
+                                p.delete('page');
+                                this.$dispatch('muat', { url: '{{ route('koleksi.index') }}?' + p.toString() });
                             }
                         }">
                             {{-- Form tersembunyi: membawa filter yang sedang aktif --}}
@@ -322,7 +540,7 @@
                         </div>
 
                         {{-- Pagination --}}
-                        <div class="pd-reveal mt-10">
+                        <div class="mt-10">
                             @if ($produkList->hasPages())
                                 <nav class="flex items-center justify-center gap-1">
                                     {{-- Previous --}}
@@ -367,13 +585,14 @@
                             <p class="text-sm text-ink/50 max-w-md mx-auto mb-6">
                                 Coba ubah filter atau reset untuk melihat semua koleksi.
                             </p>
-                            <a href="{{ route('koleksi.index') }}"
+                            <a href="{{ route('koleksi.index') }}" data-ajax
                                 class="pd-shine inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gold text-white text-sm font-semibold hover:bg-gold/90 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 min-h-[44px]">
                                 Reset Filter
                             </a>
                         </div>
                     @endif
-                </div>
+                </div>{{-- /area-produk --}}
+                </div>{{-- /kolom kanan --}}
             </div>
         </div>
     </div>
