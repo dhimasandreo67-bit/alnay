@@ -853,21 +853,6 @@
                 <div class="relative rounded-2xl overflow-hidden group cursor-pointer border shadow-sm"
                     style="border-color: var(--line); z-index: 1;">
                     <div id="peta-alnay" class="w-full h-[280px] md:h-[320px]"></div>
-
-                    <div class="absolute top-4 left-4 right-4 p-4 rounded-xl shadow-lg transition-transform duration-500 group-hover:-translate-y-1"
-                        style="background-color: rgba(23, 20, 15, 0.92); backdrop-filter: blur(6px); z-index: 10;">
-                        <p class="text-white text-sm font-bold flex items-center gap-2">
-                            <svg class="w-4 h-4" style="color: var(--gold);" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                    d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                                    clip-rule="evenodd" />
-                            </svg>
-                            Atelier & Fashion Etnik
-                        </p>
-                        <p class="text-gray-300 text-xs mt-1.5 leading-relaxed">Jl. Terusan Rajabasa No.11, Perum Bumi
-                            Permata Cirmai, Kel. Kedung, Kec. Kemiling, Bandar Lampung</p>
-                        <p class="text-gray-400 text-[10px] mt-1.5">Buka: 09.00 - 20.00 WIB</p>
-                    </div>
                 </div>
             </div>
         </div>
@@ -1066,52 +1051,26 @@
 
 
         // =====================================================
-        // 2. PETA (Leaflet dimuat saat section mendekati layar)
+        // PETA (Google Maps Embed dimuat saat mendekati layar)
         // =====================================================
         function initMap() {
             const el = document.getElementById('peta-alnay');
             if (!el || el.dataset.ready) return;
             el.dataset.ready = '1';
 
-            const script = document.createElement('script');
-            script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-            script.integrity = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
-            script.crossOrigin = "";
-            script.onload = function () {
-                const alnayLocation = [-5.3971, 105.2668];
+            // Menggunakan kata kunci pencarian lokasi Alnay.id Lampung
+            const searchQuery = encodeURIComponent('Alnay.id Lampung, Kedaung, Kemiling, Bandar Lampung');
 
-                const map = L.map('peta-alnay', {
-                    zoomControl: false,
-                    scrollWheelZoom: false,
-                    dragging: false
-                }).setView(alnayLocation, 17);
-
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap',
-                    maxZoom: 19
-                }).addTo(map);
-
-                const customIcon = L.divIcon({
-                    className: 'custom-marker',
-                    html: `<div class="pin-bounce"><div style="background-color: #c99a32; width: 32px; height: 32px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
-                        <svg style="transform: rotate(45deg); width: 16px; height: 16px; fill: white;" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-                        </svg>
-                       </div></div>`,
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 32]
-                });
-
-                L.marker(alnayLocation, { icon: customIcon }).addTo(map);
-
-                const googleMapsUrl =
-                    `https://www.google.com/maps/search/?api=1&query=${alnayLocation[0]},${alnayLocation[1]}`;
-
-                el.addEventListener('click', function () {
-                    window.open(googleMapsUrl, '_blank', 'noopener');
-                });
-            };
-            document.head.appendChild(script);
+            el.innerHTML = `
+                <iframe 
+                    width="100%" 
+                    height="100%" 
+                    style="border:0; width:100%; height:100%;" 
+                    loading="lazy" 
+                    allowfullscreen 
+                    src="https://maps.google.com/maps?q=${searchQuery}&hl=id&z=17&output=embed">
+                </iframe>
+            `;
         }
 
 
