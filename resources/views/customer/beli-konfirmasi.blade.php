@@ -247,6 +247,9 @@
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-[12px] font-medium text-ink/80 truncate">{{ $item->produk->nama ?? 'Produk' }}</p>
+                                        @if (! empty($spesifikasi) && $loop->first)
+                                            <p class="text-[10px] text-ink/50 truncate">{{ $spesifikasi }}</p>
+                                        @endif
                                         <p class="text-[10px] text-ink/50">{{ $item->jumlah }}x Rp{{ number_format($item->harga_satuan, 0, ',', '.') }}</p>
                                     </div>
                                     <span class="text-[11px] font-bold text-ink/80 shrink-0">Rp{{ number_format($item->jumlah * $item->harga_satuan, 0, ',', '.') }}</span>
