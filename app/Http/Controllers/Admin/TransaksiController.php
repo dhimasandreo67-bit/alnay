@@ -318,7 +318,7 @@ class TransaksiController extends Controller
                         $validated['tanggal_kembali_rencana'],
                         $baris['qty']
                     )) {
-                        $gagal("\"{$produk->nama}\" tidak cukup unit kosong pada tanggal sewa yang dipilih (sudah dibooking pelanggan online). Pilih tanggal lain.");
+                        $gagal("\"{$produk->nama}\" tidak cukup unit kosong pada tanggal sewa yang dipilih (sudah dibooking, online maupun kasir). Pilih tanggal lain.");
                     }
                 }
             }
@@ -368,8 +368,10 @@ class TransaksiController extends Controller
                 ])->save();
             }
 
-            // Kurangi stok sekali per produk (total + per ukuran + per warna)
-            foreach ($kebutuhan as $produkId => $k) {
+            // Kurangi stok sekali per produk (total + per ukuran + per warna).
+            // Hanya untuk PEMBELIAN: stok sewa tidak dipotong, ketersediaannya dihitung per tanggal
+            // (Support\KetersediaanSewa) supaya kalender kasir dan kalender pelanggan online sama persis.
+            foreach ($validated['jenis'] === 'sewa' ? [] : $kebutuhan as $produkId => $k) {
                 $produk = $produkMap[$produkId];
                 $kol = $produk->kolomStok($jenisStok);
 
@@ -548,8 +550,7 @@ class TransaksiController extends Controller
     }
 
     // Fungsi untuk menyelesaikan masa sewa (baju sudah dikembalikan)
-    // Stok produk yang terpotong saat transaksi kasir dikembalikan di sini,
-    // sesuai produk, ukuran, warna, dan jumlah yang disewa.
+    // Setelah selesai, unit kembali kosong di kalender (stok sewa tidak pernah dipotong).
     public function selesaikanSewa($id)
     {
         $transaksi = Transaksi::with(['sewa', 'detail'])->findOrFail($id);
@@ -572,12 +573,8 @@ class TransaksiController extends Controller
                 return;
             }
 
-            // Stok hanya terpotong oleh transaksi kasir (lihat store()),
-            // jadi hanya transaksi kasir yang stoknya dikembalikan.
-            if (($transaksi->channel ?? null) === 'kasir') {
-                $this->kembalikanStok($transaksi);
-                $stokDikembalikan = true;
-            }
+            // Stok sewa tidak pernah dipotong (ketersediaan dihitung per tanggal),
+            // jadi menyelesaikan sewa cukup membebaskan tanggalnya di kalender.
 
             $sewa->update([
                 'status' => 'selesai',
