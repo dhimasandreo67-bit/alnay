@@ -247,8 +247,8 @@
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-[12px] font-medium text-ink/80 truncate">{{ $item->produk->nama ?? 'Produk' }}</p>
-                                        @if (! empty($spesifikasi) && $loop->first)
-                                            <p class="text-[10px] text-ink/50 truncate">{{ $spesifikasi }}</p>
+                                        @if (! empty($spesifikasi[$loop->index]) && $spesifikasi[$loop->index] !== '-')
+                                            <p class="text-[10px] text-ink/50 truncate">{{ $spesifikasi[$loop->index] }}</p>
                                         @endif
                                         <p class="text-[10px] text-ink/50">{{ $item->jumlah }}x Rp{{ number_format($item->harga_satuan, 0, ',', '.') }}</p>
                                     </div>

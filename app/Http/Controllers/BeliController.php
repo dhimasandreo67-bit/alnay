@@ -238,23 +238,19 @@ class BeliController extends Controller
                 'tanggal_bayar'   => now(),
             ]);
 
-            $wilayah = RajaOngkir::uraikanLabel($validated['tujuan_label'] ?? null);
+            $tujuan = $validated['tujuan_label'] ?? null;
 
             Pengiriman::create([
                 'transaksi_id'     => $transaksi->id,
-                'provinsi_tujuan'  => $wilayah['provinsi'] ?: '-',
-                'kota_tujuan'      => $wilayah['kota'] ?: '-',
-                'kecamatan_tujuan' => mb_substr($validated['tujuan_label'] ?? '-', 0, 250),
-                'kode_pos_tujuan'  => $wilayah['kode_pos'],
-                'alamat_tujuan'    => $validated['alamat'],
+                'provinsi_tujuan'  => auth()->user()->provinsi_nama ?? '-',
+                'kota_tujuan'      => auth()->user()->kota_nama ?? '-',
+                'kecamatan_tujuan' => auth()->user()->kecamatan ?? '-',
+                'kode_pos_tujuan'  => auth()->user()->kode_pos ?? null,
+                'alamat_tujuan'    => $validated['alamat'] . ($tujuan ? ' | Tujuan: ' . $tujuan : ''),
                 'status_kirim'     => 'menunggu',
                 'kurir'            => $dipilih['kurir'],
                 'layanan_ongkir'   => $dipilih['layanan'],
                 'biaya_kirim'      => $ongkir,
-                'nama_penerima'    => $validated['nama_penerima'],
-                'no_wa_penerima'   => $validated['no_wa'],
-                'tujuan_id'        => (int) $validated['tujuan_id'],
-                'berat_gram'       => $berat,
             ]);
 
             return $transaksi;
@@ -274,8 +270,12 @@ class BeliController extends Controller
 
         $produk   = $transaksi->detail->first()->produk;
         $qty      = $transaksi->detail->first()->jumlah;
-        // Ukuran & warna dibaca dari awal catatan transaksi: "[Ukuran: M · Warna: Merah]"
-        $spesifikasi = preg_match('/^\[(.+?)\]/u', (string) $transaksi->catatan, $m) ? $m[1] : null;
+        // Ukuran & warna tiap item dibaca dari awal catatan transaksi: "[Ukuran: M · Warna: Merah]"
+        $spesifikasi = [];
+        if (preg_match('/^(?:\s*\[[^\]]*\])+/u', (string) $transaksi->catatan, $awal)) {
+            preg_match_all('/\[([^\]]*)\]/u', $awal[0], $mm);
+            $spesifikasi = $mm[1];
+        }
         $subtotal = $transaksi->detail->first()->harga_satuan * $qty;
         $ongkir   = $transaksi->pengiriman->biaya_kirim ?? self::ONGKIR_DEFAULT;
         $total    = $transaksi->total;
