@@ -19,24 +19,45 @@ class KoleksiController extends Controller
         // 3. Query dasar
         $query = Produk::query()->with('kategori');
 
-        // 4. PENCARIAN — tiap kata harus cocok (AND), tiap kata dicari di beberapa kolom (OR)
+        // 4. PENCARIAN & RELEVANSI
         if ($request->filled('search')) {
-            $terms = preg_split('/\s+/', trim($request->string('search')->toString()), -1, PREG_SPLIT_NO_EMPTY);
+            $rawSearch = trim($request->string('search')->toString());
+            $terms = preg_split('/\s+/', $rawSearch, -1, PREG_SPLIT_NO_EMPTY);
 
+            // Filter: Setiap kata harus cocok (AND)
             foreach (array_slice($terms, 0, 6) as $term) {
                 $like = '%' . addcslashes($term, '%_\\') . '%';
 
-                $query->where(function ($q) use ($like) {
+                $query->where(function ($q) use ($like, $term) {
                     $q->where('nama', 'like', $like)
-                        ->orWhere('sku', 'like', $like)
-                        ->orWhere('deskripsi', 'like', $like)
-                        ->orWhere('motif', 'like', $like)
-                        ->orWhere('bahan', 'like', $like)
-                        ->orWhere('warna', 'like', $like)
-                        ->orWhere('warna_sewa', 'like', $like)
-                        ->orWhereHas('kategori', fn ($k) => $k->where('nama_kategori', 'like', $like));
+                      ->orWhere('sku', 'like', $like);
+
+                    // Cerdas: Jika kata BUKAN angka murni, cari juga di kolom lain.
+                    // Jika kata adalah angka (misal: "2"), HANYA cari di Nama dan SKU.
+                    if (!is_numeric($term)) {
+                        $q->orWhere('deskripsi', 'like', $like)
+                          ->orWhere('motif', 'like', $like)
+                          ->orWhere('bahan', 'like', $like)
+                          ->orWhere('warna', 'like', $like)
+                          ->orWhere('warna_sewa', 'like', $like)
+                          ->orWhereHas('kategori', fn ($k) => $k->where('nama_kategori', 'like', $like));
+                    }
                 });
             }
+
+            // PRIORITAS (Relevance Sorting)
+            // Langsung suntikkan variabel yang sudah di-escape agar Laravel tidak salah menaruh binding
+            $safeRaw = addcslashes($rawSearch, '%_\\');
+            $safeTerm1 = addcslashes($terms[0], '%_\\');
+
+            $query->orderByRaw("
+                CASE 
+                    WHEN nama LIKE '%{$safeRaw}%' THEN 0
+                    WHEN sku LIKE '%{$safeRaw}%' THEN 1
+                    WHEN nama LIKE '%{$safeTerm1}%' THEN 2
+                    ELSE 3
+                END ASC
+            ");
         }
 
         // 5. Kategori (multi-select)
@@ -45,11 +66,9 @@ class KoleksiController extends Controller
             $query->whereHas('kategori', fn ($q) => $q->whereIn('slug', $kategoris));
         }
 
-        // 6. Warna — kolom `warna` / `warna_sewa` berisi JSON array (mis. ["Hitam Legam","Merah Marun"]),
-        //    jadi harus dicek "mengandung", bukan sama persis. Data non-JSON (string biasa) tetap didukung.
+        // 6. Warna — kolom `warna` / `warna_sewa` berisi JSON array
         if ($request->filled('warna')) {
             $warna = $request->string('warna')->toString();
-
             $query->where(function ($q) use ($warna) {
                 foreach (['warna', 'warna_sewa'] as $kolom) {
                     $q->orWhereRaw(
@@ -69,7 +88,7 @@ class KoleksiController extends Controller
             }
         }
 
-        // 8. Rentang harga bebas (harga_min / harga_max), diisi sendiri oleh pelanggan
+        // 8. Rentang harga bebas
         $min = $this->angka($request->input('harga_min'));
         $max = $this->angka($request->input('harga_max'));
 
@@ -78,7 +97,6 @@ class KoleksiController extends Controller
         }
 
         if ($min !== null || $max !== null) {
-            // Kalau sedang memilih jenis tertentu, cocokkan ke harga jenis itu saja
             $kolomHarga = match ($request->input('jenis')) {
                 'sewa'  => ['harga_sewa'],
                 'beli'  => ['harga_jual'],
@@ -100,7 +118,7 @@ class KoleksiController extends Controller
             });
         }
 
-        // 9. Sorting (default: terbaru)
+        // 9. Sorting (Hanya dipakai sebagai tie-breaker jika ada produk dengan prioritas sama)
         $sort = $request->get('sort', 'terbaru');
         match ($sort) {
             'termurah' => $query->orderBy('harga_jual', 'asc')->orderBy('harga_sewa', 'asc'),
@@ -118,10 +136,7 @@ class KoleksiController extends Controller
     public function showKategori($kode)
     {
         $kategori = Kategori::where('kode_kategori', $kode)->firstOrFail();
-
         $kategoriList = Kategori::withCount('produks')->orderBy('nama_kategori')->get();
-
-        // View koleksi membutuhkan $warnaList (sebelumnya tidak dikirim di sini)
         $warnaList = $this->daftarWarna();
 
         $produkList = Produk::with('kategori')
@@ -132,7 +147,6 @@ class KoleksiController extends Controller
         return view('customer.koleksi', compact('produkList', 'kategoriList', 'kategori', 'warnaList'));
     }
 
-    /** Kumpulkan semua nama warna unik dari kolom warna & warna_sewa (JSON array atau string biasa). */
     private function daftarWarna()
     {
         return Produk::query()
@@ -153,21 +167,16 @@ class KoleksiController extends Controller
         if (!is_string($mentah) || trim($mentah) === '') {
             return [];
         }
-
         $decoded = json_decode($mentah, true);
-
         if (is_array($decoded)) {
             return array_values(array_filter($decoded, 'is_string'));
         }
-
         return is_string($decoded) ? [$decoded] : [$mentah];
     }
 
-    /** "1.500.000" / "Rp 1500000" -> 1500000 ; kosong -> null */
     private function angka($nilai): ?int
     {
         $digit = preg_replace('/\D/', '', (string) $nilai);
-
         return $digit === '' ? null : (int) substr($digit, 0, 12);
     }
 }

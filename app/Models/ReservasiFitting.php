@@ -11,6 +11,7 @@ class ReservasiFitting extends Model
     protected $fillable = [
         'kode_booking',
         'user_id',
+        'transaksi_id', // <-- INI DITAMBAHKAN AGAR BISA DISIMPAN
         'slot_id',
         'produk_id',
         'tanggal_daftar',
@@ -32,8 +33,15 @@ class ReservasiFitting extends Model
     {
         return $this->belongsTo(SlotFitting::class, 'slot_id');
     }
+    
     public function produk()
     {
         return $this->belongsTo(Produk::class, 'produk_id');
+    }
+    
+    // Opsional: Relasi ke Transaksi
+    public function transaksi()
+    {
+        return $this->belongsTo(Transaksi::class, 'transaksi_id');
     }
 }

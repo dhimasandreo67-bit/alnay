@@ -28,22 +28,21 @@
 <div class="bg-[#FBFAF7] min-h-screen py-8 md:py-12 font-sans">
     <div class="max-w-[900px] mx-auto px-4 md:px-6">
 
-        {{-- Breadcrumb --}}
+        {{-- Breadcrumb (SINKRONISASI) --}}
         <nav class="pd-up text-[11px] text-ink/50 mb-3" style="--d: .05s;">
-            <a href="{{ route('akun.fitting.index') }}" class="hover:text-gold transition-colors">Riwayat Pemesanan</a>
+            <a href="{{ route('akun.dashboard') }}#fitting" class="hover:text-gold transition-colors">Riwayat Pemesanan</a>
             <span class="mx-1">/</span>
             <span class="text-ink/70">{{ $reservasi->kode_booking }}</span>
         </nav>
 
-        {{-- Header --}}
+        {{-- Header (SINKRONISASI) --}}
         <div class="pd-up flex items-center gap-3 mb-6" style="--d: .1s;">
-            <a href="{{ route('akun.fitting.index') }}" class="w-8 h-8 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold hover:border-gold/50 hover:-translate-x-0.5 transition-all duration-300">
+            <a href="{{ route('akun.dashboard') }}#fitting" class="w-8 h-8 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold hover:border-gold/50 hover:-translate-x-0.5 transition-all duration-300">
                 <x-icon name="chevron-right" :size="14" class="rotate-180" />
             </a>
             <h1 class="font-display text-2xl md:text-3xl font-medium text-ink/85">Rincian Booking Fitting</h1>
         </div>
 
-        {{-- Alert Success --}}
         @if (session('success'))
             <div class="pd-up p-3 mb-4 rounded-md bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center gap-2" style="--d: .15s;">
                 <x-icon name="check" :size="16" />
@@ -52,7 +51,6 @@
         @endif
 
         <div class="space-y-4">
-
             {{-- Status --}}
             <div class="pd-up bg-panel border border-line/40 rounded-xl p-5 flex items-center gap-4" style="--d: .2s;">
                 <div class="pd-pop w-10 h-10 rounded-full bg-emerald-50 border-2 border-emerald-500 flex items-center justify-center shrink-0">
@@ -91,7 +89,6 @@
             <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .3s;">
                 <h2 class="font-display text-base font-medium text-ink/80 mb-4">Detail Sesi Fitting</h2>
                 <div class="flex items-center gap-4">
-                    {{-- FOTO PRODUK ASLI --}}
                     <div class="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden border border-line/50">
                         @if($fotoProduk)
                             <img src="{{ asset('storage/' . $fotoProduk) }}" alt="{{ $namaProduk }}" class="w-full h-full object-cover">
@@ -101,15 +98,12 @@
                             </div>
                         @endif
                     </div>
-                    
                     <div class="flex-1">
-                        {{-- NAMA PRODUK ASLI --}}
                         <p class="text-[13px] font-medium text-ink/85">{{ $namaProduk ?? 'Sesi Fitting' }}</p>
                         <p class="text-[10px] text-ink/50 mt-0.5">Kode Booking: #{{ $reservasi->kode_booking }}</p>
                     </div>
                     <span class="text-[11px] font-medium text-emerald-600">Gratis</span>
                 </div>
-                
                 <div class="mt-4 pt-3 border-t border-line/30 flex justify-between items-center">
                     <span class="text-[11px] text-ink/50">Jadwal:</span>
                     <span class="text-[12px] font-medium text-ink/85">
@@ -123,13 +117,10 @@
             <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .35s;">
                 <h2 class="font-display text-base font-medium text-ink/80 mb-3">Butuh Bantuan?</h2>
                 <div class="divide-y divide-line/30">
-                    {{-- Link Ubah Jadwal --}}
                     <a href="{{ route('fitting.edit', $reservasi->id) }}" class="flex items-center justify-between py-3 text-[12px] text-ink/70 hover:text-gold transition-colors group">
                         <span class="flex items-center gap-2"><x-icon name="calendar" :size="14" /> Ubah Tanggal / Jam Fitting</span>
                         <x-icon name="chevron-right" :size="14" class="text-ink/30 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
                     </a>
-                    
-                    {{-- Form Batalkan Jadwal --}}
                     <form method="POST" action="{{ route('fitting.cancel', $reservasi->id) }}" onsubmit="return confirm('Yakin ingin membatalkan booking fitting ini?')">
                         @csrf
                         @method('PATCH')
@@ -138,7 +129,6 @@
                             <x-icon name="chevron-right" :size="14" class="text-ink/30 group-hover:text-red-500 group-hover:translate-x-0.5 transition-all" />
                         </button>
                     </form>
-                    
                     <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="flex items-center justify-between py-3 text-[12px] text-ink/70 hover:text-gold transition-colors group">
                         <span class="flex items-center gap-2"><x-icon name="whatsapp" :size="14" /> Hubungi Customer Service</span>
                         <x-icon name="chevron-right" :size="14" class="text-ink/30 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
@@ -169,12 +159,12 @@
                 </div>
             </div>
 
-            {{-- Tombol Aksi --}}
+            {{-- Tombol Aksi (SINKRONISASI) --}}
             <div class="pd-up grid grid-cols-1 sm:grid-cols-2 gap-3" style="--d: .45s;">
                 <a href="{{ route('fitting.edit', $reservasi->id) }}" class="w-full h-[44px] rounded-lg border border-gold/60 bg-white text-gold text-[11px] font-semibold hover:bg-gold/5 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center">
                     Ubah Jadwal
                 </a>
-                <a href="{{ route('akun.pesanan.index') }}" class="pd-shine w-full h-[44px] rounded-lg bg-gold text-white text-[11px] font-semibold hover:bg-gold/90 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 flex items-center justify-center">
+                <a href="{{ route('akun.dashboard') }}#penyewaan" class="pd-shine w-full h-[44px] rounded-lg bg-gold text-white text-[11px] font-semibold hover:bg-gold/90 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 flex items-center justify-center">
                     Lihat Pesanan Sewa
                 </a>
             </div>

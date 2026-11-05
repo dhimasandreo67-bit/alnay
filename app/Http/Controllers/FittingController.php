@@ -7,12 +7,10 @@ use App\Models\SlotFitting;
 use App\Models\Sewa;
 use App\Models\Produk;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class FittingController extends Controller
 {
-    /**
-     * Menampilkan form booking fitting.
-     */
     public function create(Request $request) 
     {
         $transaksiId = $request->query('transaksi_id');
@@ -21,26 +19,31 @@ class FittingController extends Controller
         $slotJam = ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00', '19:00'];
         $daftarProduk = Produk::where('bisa_disewa', true)->orderBy('nama')->get();
 
-        // Ambil sewa aktif user untuk membatasi tanggal fitting
-        $sewaAktif = Sewa::whereHas('transaksi', function ($q) {
-                $q->where('user_id', auth()->id());
-            })
-            ->where('status', 'aktif')
-            ->whereDate('tanggal_kembali_rencana', '>=', now())
-            ->latest()
-            ->first();
+        $sewaAktif = null;
+        if ($transaksiId) {
+            // KUNCI UTAMA: Ambil sewa spesifik berdasarkan transaksi_id dari URL
+            $sewaAktif = Sewa::where('transaksi_id', $transaksiId)->first();
+        } else {
+            // Fallback jika tidak ada transaksi_id di URL
+            $sewaAktif = Sewa::whereHas('transaksi', function ($q) {
+                    $q->where('user_id', auth()->id());
+                })
+                ->where('status', 'aktif')
+                ->whereDate('tanggal_pinjam', '>=', now())
+                ->latest()
+                ->first();
+        }
 
-        // Ambil slot yang sudah terisi
+        // Format tanggal maksimal ke Y-m-d agar cocok dengan JavaScript
+        $tanggalMaksimal = $sewaAktif ? Carbon::parse($sewaAktif->tanggal_pinjam)->format('Y-m-d') : null;
+
         $slotTerisi = $this->getSlotTerisi();
 
         return view('customer.fitting', compact(
-            'tanggalPenuh', 'slotJam', 'slotTerisi', 'daftarProduk', 'sewaAktif', 'transaksiId'
+            'tanggalPenuh', 'slotJam', 'slotTerisi', 'daftarProduk', 'sewaAktif', 'tanggalMaksimal', 'transaksiId'
         ));
     }
 
-    /**
-     * Riwayat booking fitting user.
-     */
     public function index()
     {
         $reservasis = ReservasiFitting::with('slot')
@@ -51,9 +54,6 @@ class FittingController extends Controller
         return view('customer.fitting-riwayat', compact('reservasis'));
     }
 
-    /**
-     * Simpan booking fitting baru.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -67,42 +67,43 @@ class FittingController extends Controller
         ]);
 
         // ==== VALIDASI: Cek Tanggal Fitting vs Tanggal Sewa ====
-        $sewaAktif = Sewa::whereHas('transaksi', function ($q) {
-                $q->where('user_id', auth()->id());
-            })
-            ->where('status', 'aktif')
-            ->whereDate('tanggal_kembali_rencana', '>=', now())
-            ->latest()
-            ->first();
+        $sewaAktif = null;
+        if (!empty($validated['transaksi_id'])) {
+            $sewaAktif = Sewa::where('transaksi_id', $validated['transaksi_id'])->first();
+        } else {
+            $sewaAktif = Sewa::whereHas('transaksi', function ($q) {
+                    $q->where('user_id', auth()->id());
+                })
+                ->where('status', 'aktif')
+                ->whereDate('tanggal_pinjam', '>=', now())
+                ->latest()
+                ->first();
+        }
 
-        if ($sewaAktif && $validated['tanggal'] > $sewaAktif->tanggal_kembali_rencana) {
+        if ($sewaAktif && Carbon::parse($validated['tanggal'])->greaterThan(Carbon::parse($sewaAktif->tanggal_pinjam))) {
             return back()->withErrors([
-                'tanggal' => 'Tanggal fitting tidak boleh melebihi tanggal selesai sewa Anda (' .
-                    \Carbon\Carbon::parse($sewaAktif->tanggal_kembali_rencana)->format('d M Y') . ').'
+                'tanggal' => 'Tanggal fitting tidak boleh melebihi tanggal pengambilan busana Anda (' .
+                    Carbon::parse($sewaAktif->tanggal_pinjam)->format('d M Y') . ').'
             ])->withInput();
         }
 
-        // ==== VALIDASI: Cek Slot Sudah Terisi ====
-        $slotCek = ReservasiFitting::whereHas('slot', function ($q) use ($validated) {
-                $q->where('tanggal', $validated['tanggal'])
-                    ->where('jam_mulai', $validated['jam']);
-            })
-            ->whereIn('status', ['pending', 'disetujui'])
-            ->exists();
-
-        if ($slotCek) {
-            return back()->withErrors([
-                'jam' => 'Maaf, slot jam ' . $validated['jam'] . ' di tanggal ' .
-                    \Carbon\Carbon::parse($validated['tanggal'])->format('d M Y') .
-                    ' sudah dibooking. Silakan pilih jam atau tanggal lain.'
-            ])->withInput();
-        }
-        // =========================================
-
+        // ==== VALIDASI: Cek Kapasitas Slot ====
         $slot = SlotFitting::firstOrCreate(
             ['tanggal' => $validated['tanggal'], 'jam_mulai' => $validated['jam']],
             ['kapasitas' => 4]
         );
+
+        $terisi = ReservasiFitting::where('slot_id', $slot->id)
+            ->whereIn('status', ['pending', 'disetujui'])
+            ->count();
+
+        if ($terisi >= $slot->kapasitas) {
+            return back()->withErrors([
+                'jam' => 'Maaf, slot jam ' . $validated['jam'] . ' di tanggal ' .
+                    Carbon::parse($validated['tanggal'])->format('d M Y') .
+                    ' sudah penuh. Silakan pilih jam atau tanggal lain.'
+            ])->withInput();
+        }
 
         // Cari ID produk berdasarkan nama
         $produkId = null;
@@ -130,9 +131,6 @@ class FittingController extends Controller
             ->with('success', 'Booking fitting berhasil dibuat!');
     }
 
-    /**
-     * Detail satu reservasi fitting.
-     */
     public function show($id)
     {
         $reservasi = ReservasiFitting::with(['slot', 'user', 'produk'])
@@ -152,9 +150,6 @@ class FittingController extends Controller
         return view('customer.fitting-detail', compact('reservasi', 'namaProduk', 'fotoProduk'));
     }
 
-    /**
-     * Batalkan booking fitting.
-     */
     public function cancel($id)
     {
         $reservasi = ReservasiFitting::where('user_id', auth()->id())->findOrFail($id);
@@ -163,9 +158,6 @@ class FittingController extends Controller
         return back()->with('success', 'Booking fitting berhasil dibatalkan.');
     }
 
-    /**
-     * Form edit jadwal fitting.
-     */
     public function edit($id)
     {
         $reservasi = ReservasiFitting::with('slot')
@@ -176,26 +168,23 @@ class FittingController extends Controller
         $slotJam = ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00', '19:00'];
         $daftarProduk = Produk::where('bisa_disewa', true)->orderBy('nama')->get();
 
-        // Ambil slot terisi (kecuali milik reservasi ini sendiri)
         $slotTerisi = $this->getSlotTerisi($reservasi->id);
 
-        // Data sewa aktif (untuk validasi tanggal)
         $sewaAktif = Sewa::whereHas('transaksi', function ($q) {
                 $q->where('user_id', auth()->id());
             })
             ->where('status', 'aktif')
-            ->whereDate('tanggal_kembali_rencana', '>=', now())
+            ->whereDate('tanggal_pinjam', '>=', now())
             ->latest()
             ->first();
 
+        $tanggalMaksimal = $sewaAktif ? Carbon::parse($sewaAktif->tanggal_pinjam)->format('Y-m-d') : null;
+
         return view('customer.fitting-edit', compact(
-            'reservasi', 'tanggalPenuh', 'slotJam', 'slotTerisi', 'daftarProduk', 'sewaAktif'
+            'reservasi', 'tanggalPenuh', 'slotJam', 'slotTerisi', 'daftarProduk', 'sewaAktif', 'tanggalMaksimal'
         ));
     }
 
-    /**
-     * Update jadwal fitting.
-     */
     public function update(Request $request, $id)
     {
         $reservasi = ReservasiFitting::where('user_id', auth()->id())->findOrFail($id);
@@ -205,44 +194,43 @@ class FittingController extends Controller
             'jam' => ['required', 'string'],
         ]);
 
-        // ==== VALIDASI: Cek Tanggal Fitting vs Sewa ====
-        $sewaAktif = Sewa::whereHas('transaksi', function ($q) {
-                $q->where('user_id', auth()->id());
-            })
-            ->where('status', 'aktif')
-            ->whereDate('tanggal_kembali_rencana', '>=', now())
-            ->latest()
-            ->first();
-
-        if ($sewaAktif && $validated['tanggal'] > $sewaAktif->tanggal_kembali_rencana) {
-            return back()->withErrors([
-                'tanggal' => 'Tanggal fitting tidak boleh melebihi tanggal selesai sewa Anda (' .
-                    \Carbon\Carbon::parse($sewaAktif->tanggal_kembali_rencana)->format('d M Y') . ').'
-            ])->withInput();
+        $sewaAktif = null;
+        if ($reservasi->transaksi_id) {
+            $sewaAktif = Sewa::where('transaksi_id', $reservasi->transaksi_id)->first();
+        } else {
+            $sewaAktif = Sewa::whereHas('transaksi', function ($q) {
+                    $q->where('user_id', auth()->id());
+                })
+                ->where('status', 'aktif')
+                ->whereDate('tanggal_pinjam', '>=', now())
+                ->latest()
+                ->first();
         }
 
-        // ==== VALIDASI: Cek Slot Terisi (Kecuali milik sendiri) ====
-        $slotCek = ReservasiFitting::whereHas('slot', function ($q) use ($validated) {
-                $q->where('tanggal', $validated['tanggal'])
-                    ->where('jam_mulai', $validated['jam']);
-            })
-            ->whereIn('status', ['pending', 'disetujui'])
-            ->where('id', '!=', $reservasi->id) // Kecualikan reservasi ini sendiri
-            ->exists();
-
-        if ($slotCek) {
+        if ($sewaAktif && Carbon::parse($validated['tanggal'])->greaterThan(Carbon::parse($sewaAktif->tanggal_pinjam))) {
             return back()->withErrors([
-                'jam' => 'Maaf, slot jam ' . $validated['jam'] . ' di tanggal ' .
-                    \Carbon\Carbon::parse($validated['tanggal'])->format('d M Y') .
-                    ' sudah dibooking oleh user lain. Silakan pilih jam atau tanggal lain.'
+                'tanggal' => 'Tanggal fitting tidak boleh melebihi tanggal pengambilan busana Anda (' .
+                    Carbon::parse($sewaAktif->tanggal_pinjam)->format('d M Y') . ').'
             ])->withInput();
         }
-        // =============================================================
 
         $slot = SlotFitting::firstOrCreate(
             ['tanggal' => $validated['tanggal'], 'jam_mulai' => $validated['jam']],
             ['kapasitas' => 4]
         );
+
+        $terisi = ReservasiFitting::where('slot_id', $slot->id)
+            ->whereIn('status', ['pending', 'disetujui'])
+            ->where('id', '!=', $reservasi->id)
+            ->count();
+
+        if ($terisi >= $slot->kapasitas) {
+            return back()->withErrors([
+                'jam' => 'Maaf, slot jam ' . $validated['jam'] . ' di tanggal ' .
+                    Carbon::parse($validated['tanggal'])->format('d M Y') .
+                    ' sudah penuh. Silakan pilih jam atau tanggal lain.'
+            ])->withInput();
+        }
 
         $reservasi->update([
             'slot_id' => $slot->id,
@@ -253,10 +241,6 @@ class FittingController extends Controller
             ->with('success', 'Jadwal fitting berhasil diubah!');
     }
 
-    /**
-     * Helper: Ambil slot terisi dari database.
-     * Return format: ['2024-11-01' => ['09:00', '13:30'], ...]
-     */
     private function getSlotTerisi($kecualiReservasiId = null)
     {
         $query = ReservasiFitting::with('slot')
@@ -265,7 +249,6 @@ class FittingController extends Controller
                 $q->whereDate('tanggal', '>=', now());
             });
 
-        // Jika sedang edit, kecualikan reservasi milik sendiri (agar slotnya sendiri tidak dianggap terisi)
         if ($kecualiReservasiId) {
             $query->where('id', '!=', $kecualiReservasiId);
         }
@@ -275,16 +258,19 @@ class FittingController extends Controller
         $slotTerisi = [];
         foreach ($reservasiTerisi as $r) {
             if ($r->slot) {
-                // Konversi Carbon ke string agar bisa jadi key array
-                $tanggal = $r->slot->tanggal instanceof \Carbon\Carbon 
+                $tanggal = $r->slot->tanggal instanceof Carbon 
                     ? $r->slot->tanggal->format('Y-m-d') 
                     : $r->slot->tanggal;
                 
-                $jam = $r->slot->jam_mulai;
+                $jam = Carbon::parse($r->slot->jam_mulai)->format('H:i');
+                
                 if (!isset($slotTerisi[$tanggal])) {
                     $slotTerisi[$tanggal] = [];
                 }
-                $slotTerisi[$tanggal][] = \Carbon\Carbon::parse($jam)->format('H:i');
+                if (!isset($slotTerisi[$tanggal][$jam])) {
+                    $slotTerisi[$tanggal][$jam] = 0;
+                }
+                $slotTerisi[$tanggal][$jam]++;
             }
         }
 

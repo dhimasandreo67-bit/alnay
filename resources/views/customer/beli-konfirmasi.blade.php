@@ -170,7 +170,8 @@
                                     <a href="{{ route('fitting.create') }}"
                                         class="px-6 py-3 rounded-xl bg-gold text-white text-sm font-bold hover:bg-gold/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 transition-all duration-300">Booking Fitting</a>
                                 @endif
-                                <a href="{{ route('akun.pesanan.index') }}"
+                                {{-- PERUBAHAN: Mengarah ke Dashboard #ringkasan --}}
+                                <a href="{{ route('akun.dashboard') }}#ringkasan"
                                     class="px-6 py-3 rounded-xl border border-line/60 bg-white text-ink/75 text-sm font-bold hover:bg-cream/50 hover:-translate-y-0.5 transition-all duration-300">Lihat Riwayat Pesanan</a>
                             </div>
                         </div>
@@ -239,13 +240,10 @@
                                 class="inline-flex items-center px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold uppercase tracking-wide">Gagal</span>
                         </div>
 
-                                                <div class="space-y-3 mb-4 max-h-60 overflow-y-auto pr-2">
+                        <div class="space-y-3 mb-4 max-h-60 overflow-y-auto pr-2">
                             @foreach ($transaksi->detail as $item)
                                 @php
-                                    // Ambil data foto produk
                                     $foto = $item->produk->foto_produk ?? null;
-                                    
-                                    // Antisipasi jika foto disimpan dalam bentuk array/JSON
                                     if (is_string($foto) && str_starts_with($foto, '[')) {
                                         $decoded = json_decode($foto, true);
                                         $foto = is_array($decoded) ? ($decoded[0] ?? null) : $foto;
@@ -255,16 +253,13 @@
                                 @endphp
 
                                 <div class="flex gap-3 items-center border-b border-line/30 pb-3">
-                                    {{-- Tampilkan Foto Produk --}}
                                     <div class="w-12 h-12 rounded-lg bg-cream-dim border border-line/40 flex items-center justify-center shrink-0 overflow-hidden">
                                         @if($foto)
                                             <img src="{{ asset('storage/' . $foto) }}" alt="{{ $item->produk->nama ?? 'Produk' }}" class="w-full h-full object-cover">
                                         @else
-                                            {{-- Placeholder jika tidak ada foto --}}
                                             <x-icon name="sparkle" :size="16" class="text-ink/30" />
                                         @endif
                                     </div>
-                                    
                                     <div class="flex-1 min-w-0">
                                         <p class="text-[12px] font-medium text-ink/80 truncate">{{ $item->produk->nama ?? 'Produk' }}</p>
                                         @if (! empty($spesifikasi[$loop->index]) && $spesifikasi[$loop->index] !== '-')
@@ -376,7 +371,6 @@
                         this.mengecek = true;
                         this.hasilCek = '';
 
-                        // Jeda singkat supaya pengguna melihat proses pemeriksaan.
                         const [hasil] = await Promise.all([
                             this.periksa(true),
                             new Promise(r => setTimeout(r, 900)),

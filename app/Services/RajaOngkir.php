@@ -60,11 +60,15 @@ class RajaOngkir
             }
 
             return collect($res->json('data') ?? [])
-                ->map(fn ($d) => ['id' => (int) $d['id'], 'name' => $d['name']])
-                ->values()
-                ->all();
-        });
-    }
+            ->map(fn ($d) => [
+                'id' => (int) $d['id'], 
+                'name' => $d['name'],
+                'zip_code' => $d['zip_code'] ?? null
+            ])
+            ->values()
+            ->all();
+                });
+            }
 
     /** Daftar provinsi untuk dropdown alamat. */
 public function daftarProvinsi(): array

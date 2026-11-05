@@ -7,7 +7,8 @@
     <div class="max-w-[800px] mx-auto px-4">
         
         <div class="mb-6 flex items-center gap-3">
-            <a href="{{ route('beranda') }}" class="w-8 h-8 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold transition-all">
+            {{-- SINKRONISASI: Kembali ke Dashboard Tab Fitting --}}
+            <a href="{{ route('akun.dashboard') }}#fitting" class="w-8 h-8 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold transition-all">
                 <x-icon name="chevron-right" :size="14" class="rotate-180" />
             </a>
             <h1 class="font-display text-2xl font-medium text-ink/85">Riwayat Booking Fitting</h1>
