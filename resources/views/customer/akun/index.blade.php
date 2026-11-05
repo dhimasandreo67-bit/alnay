@@ -215,8 +215,9 @@
                         <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
                             @if ($t->status_pembayaran === 'pending') <a href="{{ route('beli.konfirmasi', $t->id) }}" class="{{ $btnEmas }}">Bayar Sekarang</a> @endif
                             @if ($kirim && $kirim->status_kirim === 'dikirim')
-                                <form method="POST" action="{{ route('akun.pengiriman.terima', $kirim->id) }}" onsubmit="return confirm('Konfirmasi bahwa pesanan sudah Anda terima?')">
-                                    @csrf @method('PATCH') <button type="submit" class="{{ $btnEmas }}">Pesanan Diterima</button>
+                                <form method="POST" action="{{ route('akun.pengiriman.terima', $kirim->id) }}" id="form-terima-{{ $kirim->id }}">
+                                    @csrf @method('PATCH')
+                                    <button type="button" onclick="konfirmasiTerima('{{ $kirim->id }}')" class="{{ $btnEmas }}">Pesanan Diterima</button>
                                 </form>
                             @endif
                             <a href="{{ route('akun.pesanan.detail', $t->id) }}" class="{{ $btnTepi }}">Detail</a>
@@ -850,5 +851,59 @@
         modalFoto.addEventListener('click', e => { if (e.target === modalFoto) tutupFoto(); });
         document.addEventListener('keydown', e => { if (e.key === 'Escape') tutupFoto(); });
     })();
+</script>
+{{-- MODAL KONFIRMASI TERIMA BARANG (KUSTOM) --}}
+<div id="modalTerimaBarang" class="hidden fixed inset-0 z-[100] items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
+        
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto mb-4 border border-emerald-100">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 class="font-display text-xl font-bold text-gray-900 mb-2">Konfirmasi Terima Barang</h3>
+            <p class="text-sm text-gray-500 leading-relaxed">Apakah Anda yakin pesanan sudah diterima dengan baik? Status pesanan akan berubah menjadi selesai.</p>
+        </div>
+
+        <div class="p-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+            <button type="button" onclick="tutupModalTerima()"
+                class="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-100 transition-colors">
+                Batal
+            </button>
+            <button type="button" id="btn-submit-terima"
+                class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-colors shadow-md shadow-emerald-500/20">
+                Ya, Terima
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function konfirmasiTerima(id) {
+        const modal = document.getElementById('modalTerimaBarang');
+        const form = document.getElementById('form-terima-' + id);
+        const btnSubmit = document.getElementById('btn-submit-terima');
+
+        // Saat tombol "Ya, Terima" di modal diklik, submit form yang sesuai
+        btnSubmit.onclick = function() {
+            form.submit();
+        };
+
+        // Tampilkan modal
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+    }
+
+    function tutupModalTerima() {
+        const modal = document.getElementById('modalTerimaBarang');
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+
+    // Tutup modal jika user klik area gelap di luar kotak
+    document.getElementById('modalTerimaBarang').addEventListener('click', function(e) {
+        if (e.target === this) tutupModalTerima();
+    });
 </script>
 @endsection
