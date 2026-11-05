@@ -106,7 +106,7 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Alamat Lengkap</label>
-                                                <textarea name="alamat" rows="2" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#c99a32]/20 focus:border-[#c99a32] outline-none transition-all" placeholder="Nama jalan, nomor rumah, RT/RW, patokan">{{ old('alamat', auth()->user()->alamat ?? '') }}</textarea>
+                        <textarea name="alamat" rows="2" class="..." placeholder="...">{{ old('alamat', auth()->user()->alamat ?? '') }}</textarea>
                     </div>
 
                     <div>
@@ -173,7 +173,13 @@
                         <div class="flex justify-between text-sm">
                             <div class="text-gray-600">
                                 <span class="font-semibold text-gray-800">{{ $item['nama'] }}</span><br>
-                                <span class="text-xs">{{ $item['qty'] }}x Rp {{ number_format($item['harga'], 0, ',', '.') }}</span>
+                                @php
+                                    $specCk = collect([!empty($item['ukuran']) ? 'Ukuran ' . $item['ukuran'] : null, !empty($item['warna']) ? 'Warna ' . $item['warna'] : null])->filter()->implode(' · ');
+                                @endphp
+                                @if ($specCk)<span class="text-xs text-gray-500">{{ $specCk }}</span><br>@endif
+                                <span class="text-xs">{{ $item['qty'] }}x
+                                    @if (($item['diskon'] ?? 0) > 0)<span class="line-through text-gray-400">Rp {{ number_format($item['harga_asli'], 0, ',', '.') }}</span>@endif
+                                    Rp {{ number_format($item['harga'], 0, ',', '.') }}</span>
                             </div>
                             <span class="font-bold text-gray-800">Rp {{ number_format($item['harga'] * $item['qty'], 0, ',', '.') }}</span>
                         </div>
