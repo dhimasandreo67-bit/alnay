@@ -13,8 +13,10 @@ class FittingController extends Controller
     /**
      * Menampilkan form booking fitting.
      */
-    public function create()
+    public function create(Request $request) 
     {
+        $transaksiId = $request->query('transaksi_id');
+        
         $tanggalPenuh = [];
         $slotJam = ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00', '19:00'];
         $daftarProduk = Produk::where('bisa_disewa', true)->orderBy('nama')->get();
@@ -32,7 +34,7 @@ class FittingController extends Controller
         $slotTerisi = $this->getSlotTerisi();
 
         return view('customer.fitting', compact(
-            'tanggalPenuh', 'slotJam', 'slotTerisi', 'daftarProduk', 'sewaAktif'
+            'tanggalPenuh', 'slotJam', 'slotTerisi', 'daftarProduk', 'sewaAktif', 'transaksiId'
         ));
     }
 
@@ -61,6 +63,7 @@ class FittingController extends Controller
             'no_wa' => ['required', 'string', 'max:20'],
             'produk' => ['nullable', 'string', 'max:200'],
             'catatan' => ['nullable', 'string'],
+            'transaksi_id' => ['nullable', 'exists:transaksi,id'],
         ]);
 
         // ==== VALIDASI: Cek Tanggal Fitting vs Tanggal Sewa ====
@@ -115,6 +118,7 @@ class FittingController extends Controller
         $reservasi = ReservasiFitting::create([
             'kode_booking' => $kodeBooking,
             'user_id' => auth()->id(),
+            'transaksi_id' => $validated['transaksi_id'] ?? null,
             'slot_id' => $slot->id,
             'produk_id' => $produkId,
             'tanggal_daftar' => now()->toDateString(),

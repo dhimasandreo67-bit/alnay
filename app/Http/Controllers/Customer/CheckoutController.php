@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\DetailTransaksi;
 use App\Models\Pembayaran;
+use App\Models\Produk;
+use App\Support\Keranjang;
 use App\Models\Transaksi;
 use App\Models\Pengiriman;
 use App\Services\RajaOngkir;
@@ -16,7 +18,7 @@ class CheckoutController extends Controller
 {
     public function index()
     {
-        $cartItems = session('cart', []);
+        $cartItems = Keranjang::segarkan(session('cart', []));
         if (empty($cartItems)) {
             return redirect()->route('keranjang.index')->with('error', 'Keranjang Anda kosong.');
         }
@@ -50,7 +52,32 @@ class CheckoutController extends Controller
             return redirect()->route('keranjang.index')->with('error', 'Keranjang kosong.');
         }
 
-        $subtotal = array_reduce($cartItems, fn($c, $i) => $c + ($i['harga'] * $i['qty']), 0);
+        // Harga & stok dihitung ulang dari database (harga sudah termasuk diskon), bukan dari session.
+        $baris = [];
+        foreach ($cartItems as $item) {
+            $produk = Produk::find($item['id']);
+            if (! $produk) {
+                return redirect()->route('keranjang.index')->with('error', 'Ada produk di keranjang yang sudah tidak tersedia.');
+            }
+
+            $jenis    = ($item['mode'] ?? 'beli') === 'sewa' ? 'sewa' : 'jual';
+            $tersedia = $produk->stokTersedia($jenis, $item['ukuran'] ?? null, $item['warna'] ?? null);
+            if ($tersedia < (int) $item['qty']) {
+                return redirect()->route('keranjang.index')->with('error',
+                    $produk->nama . ': stok tidak mencukupi' . ($tersedia > 0 ? ' (tersedia ' . $tersedia . ' unit).' : ' (habis).'));
+            }
+
+            $baris[] = [
+                'produk_id' => $produk->id,
+                'nama'      => $produk->nama,
+                'qty'       => (int) $item['qty'],
+                'harga'     => $jenis === 'sewa' ? $produk->hargaSewaNet() : $produk->hargaJualNet(),
+                'ukuran'    => $item['ukuran'] ?? '',
+                'warna'     => $item['warna'] ?? '',
+            ];
+        }
+
+        $subtotal = array_reduce($baris, fn ($c, $b) => $c + ($b['harga'] * $b['qty']), 0);
         $ongkir    = 0;
         $infoKirim = 'Ambil di studio';
 
@@ -82,7 +109,17 @@ class CheckoutController extends Controller
 
         $total = $subtotal + $ongkir;
 
-        $transaksi = DB::transaction(function () use ($request, $cartItems, $total, $infoKirim, $ongkir) {
+        // Ukuran & warna per item dicatat di awal catatan, urut sama dengan detail transaksi:
+        // "[Ukuran: M · Warna: Merah] [-] ..." (belum ada kolom khusus di detail_transaksi)
+        $rincian = collect($baris)->map(function ($b) {
+            $spek = collect([$b['ukuran'] ? 'Ukuran: ' . $b['ukuran'] : null, $b['warna'] ? 'Warna: ' . $b['warna'] : null])
+                ->filter()->implode(' · ');
+
+            return '[' . ($spek ?: '-') . ']';
+        })->implode(' ');
+        $infoKirim = $rincian . ' ' . $infoKirim;
+
+        $transaksi = DB::transaction(function () use ($request, $baris, $total, $infoKirim, $ongkir) {
             $transaksi = Transaksi::create([
                 'kode_transaksi'    => 'ALN-BLI-' . strtoupper(substr(uniqid(), -8)),
                 'user_id'           => Auth::id(),
@@ -94,12 +131,12 @@ class CheckoutController extends Controller
                 'catatan'           => $infoKirim,
             ]);
 
-            foreach ($cartItems as $item) {
+            foreach ($baris as $b) {
                 DetailTransaksi::create([
                     'transaksi_id' => $transaksi->id,
-                    'produk_id'    => $item['id'],
-                    'jumlah'       => $item['qty'],
-                    'harga_satuan' => $item['harga'],
+                    'produk_id'    => $b['produk_id'],
+                    'jumlah'       => $b['qty'],
+                    'harga_satuan' => $b['harga'],
                 ]);
             }
 
@@ -132,6 +169,6 @@ class CheckoutController extends Controller
 
         session()->forget('cart');
 
-        return redirect()->route('sewa.konfirmasi', $transaksi->id);
+        return redirect()->route('beli.konfirmasi', $transaksi->id);
     }
 }

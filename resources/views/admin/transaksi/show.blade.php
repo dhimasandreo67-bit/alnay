@@ -222,6 +222,178 @@
                 </div>
             </section>
 
+                        {{-- ================= PENGIRIMAN ================= --}}
+@php $kirim = $transaksi->pengiriman; @endphp
+@if($kirim)
+    @php
+        $nadaKirim = $nada($kirim->status_kirim);
+        $lunasBeli = in_array(strtolower((string) $transaksi->status_pembayaran), ['lunas', 'settlement', 'success'], true);
+        $isSewa    = $transaksi->jenis === 'sewa';
+
+        $hpPenerima = preg_replace('/\D+/', '', (string) $kirim->no_wa_penerima);
+        if ($hpPenerima !== '' && str_starts_with($hpPenerima, '0')) {
+            $hpPenerima = '62' . substr($hpPenerima, 1);
+        }
+
+        $teksSalin = implode("\n", array_filter([
+            'Penerima: ' . $kirim->nama_penerima,
+            'No. WA: ' . $kirim->no_wa_penerima,
+            'Alamat: ' . $kirim->alamat_tujuan,
+            'Wilayah: ' . $kirim->kecamatan_tujuan,
+            'Kota/Provinsi: ' . $kirim->kota_tujuan . ', ' . $kirim->provinsi_tujuan,
+            $kirim->kode_pos_tujuan ? 'Kode pos: ' . $kirim->kode_pos_tujuan : null,
+            $isSewa
+                ? 'Pengiriman: Diantar manual (via WA), ongkir menyusul'
+                : ('Layanan: ' . strtoupper((string) $kirim->kurir) . ' ' . $kirim->layanan_ongkir),
+        ]));
+
+        $teksResi = null;
+        if (!$isSewa) {
+            $teksResi = 'Halo ' . $kirim->nama_penerima . ', pesanan ' . $transaksi->kode_transaksi
+                . ' sudah dikirim via ' . strtoupper((string) $kirim->kurir) . ' ' . $kirim->layanan_ongkir
+                . '. Nomor resi: ' . $kirim->no_resi . '. Terima kasih sudah berbelanja di ALNAY.ID.';
+        }
+        $waResiUrl = (!$isSewa && $hpPenerima !== '' && $kirim->no_resi)
+            ? 'https://wa.me/' . $hpPenerima . '?text=' . rawurlencode($teksResi)
+            : null;
+        $waUmumUrl = $hpPenerima !== '' ? 'https://wa.me/' . $hpPenerima : null;
+    @endphp
+
+    <section class="dt-rise rounded-3xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm" style="--d:.12s">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Pengiriman</p>
+            <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 {{ $chipTerang[$nadaKirim] }}">
+                <span class="h-1.5 w-1.5 rounded-full {{ $titik[$nadaKirim] }}"></span>
+                {{ $label($kirim->status_kirim) }}
+            </span>
+        </div>
+
+        <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div class="rounded-xl bg-gray-50 px-4 py-3">
+                <dt class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Penerima</dt>
+                <dd class="mt-1 text-sm font-semibold text-gray-800">{{ $kirim->nama_penerima ?: '-' }}</dd>
+                <dd class="text-xs text-gray-500">{{ $kirim->no_wa_penerima ?: '-' }}</dd>
+            </div>
+            <div class="rounded-xl bg-gray-50 px-4 py-3">
+                <dt class="text-[10px] font-bold uppercase tracking-wider text-gray-400">{{ $isSewa ? 'Info Pengiriman' : 'Layanan & Berat' }}</dt>
+                @if($isSewa)
+                    <dd class="mt-1 text-sm font-semibold text-gray-800">Diantar Manual (Via WA)</dd>
+                    <dd class="text-xs text-gray-500">
+                        Biaya kirim: {{ $rp($kirim->biaya_kirim ?? 0) }}
+                    </dd>
+                @else
+                    <dd class="mt-1 text-sm font-semibold text-gray-800">{{ strtoupper((string) $kirim->kurir) }} {{ $kirim->layanan_ongkir }}</dd>
+                    <dd class="text-xs text-gray-500">
+                        {{ $kirim->berat_gram ? number_format($kirim->berat_gram, 0, ',', '.') . ' gram' : 'Berat belum tercatat' }}
+                        &middot; Ongkir {{ $rp($kirim->biaya_kirim) }}
+                    </dd>
+                @endif
+            </div>
+            <div class="rounded-xl bg-gray-50 px-4 py-3 sm:col-span-2">
+                <dt class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Alamat Tujuan</dt>
+                <dd class="mt-1 text-sm text-gray-800">{{ $kirim->alamat_tujuan ?: '-' }}</dd>
+                <dd class="mt-1 text-xs text-gray-500">{{ $kirim->kecamatan_tujuan }}</dd>
+                <dd class="text-xs text-gray-500">{{ $kirim->kota_tujuan }}, {{ $kirim->provinsi_tujuan }}{{ $kirim->kode_pos_tujuan ? ' ' . $kirim->kode_pos_tujuan : '' }}</dd>
+            </div>
+        </dl>
+
+        <button type="button" data-salin="{{ $teksSalin }}"
+            class="mt-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 transition hover:border-amber-300 hover:bg-amber-50 active:scale-95">
+            <svg class="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            <span data-salin-teks>Salin data alamat</span>
+        </button>
+
+        <form action="{{ route('admin.transaksi.pengiriman.update', $transaksi->id) }}" method="POST" class="mt-5 border-t border-gray-100 pt-5">
+            @csrf
+            @method('PATCH')
+
+            @unless($lunasBeli)
+                <p class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+                    Pembayaran belum lunas. Pengiriman baru bisa diproses setelah pembayaran diterima.
+                </p>
+            @endunless
+
+            @if (in_array($kirim->status_kirim, ['menunggu', 'dikemas']))
+                <input type="hidden" name="status_kirim" value="dikirim">
+
+                @unless($isSewa)
+                    <div class="mb-3">
+                        <label for="no_resi" class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-gray-400">Nomor Resi (Wajib)</label>
+                        <input id="no_resi" type="text" name="no_resi" maxlength="60" value="{{ old('no_resi', $kirim->no_resi) }}"
+                            placeholder="Masukkan nomor resi dari kurir"
+                            class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 font-mono text-sm text-gray-800 focus:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                            required>
+                        @error('no_resi') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                @else
+                    <p class="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800">
+                        Pengiriman sewa diurus manual via WhatsApp. Pastikan ongkir sudah disepakati dengan penyewa sebelum menandai pesanan sebagai "Dikirim".
+                    </p>
+                @endunless
+
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <button type="submit" {{ $lunasBeli ? '' : 'disabled' }}
+                        class="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-amber-700 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1"/></svg>
+                        Proses &amp; Kirim Pesanan
+                    </button>
+
+                    @if($waResiUrl)
+                        <a href="{{ $waResiUrl }}" target="_blank" rel="noopener"
+                            class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
+                            Kirim resi ke pembeli via WhatsApp
+                        </a>
+                    @elseif($isSewa && $waUmumUrl)
+                        <a href="{{ $waUmumUrl }}" target="_blank" rel="noopener"
+                            class="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
+                            Chat penyewa via WhatsApp
+                        </a>
+                    @endif
+                </div>
+
+            @elseif ($kirim->status_kirim === 'dikirim')
+                <div class="mb-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+                    <p class="text-sm font-semibold text-sky-800">Pesanan sudah dalam pengiriman.</p>
+                    @if(!$isSewa)
+                        <p class="text-xs text-sky-600 mt-1">No. Resi: <span class="font-mono font-bold">{{ $kirim->no_resi }}</span></p>
+                    @endif
+                </div>
+                <input type="hidden" name="status_kirim" value="diterima">
+
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[.98]">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        Tandai Diterima
+                    </button>
+                </div>
+
+            @elseif ($kirim->status_kirim === 'diterima')
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
+                    <p class="text-sm font-bold text-emerald-800">Pesanan Telah Diterima</p>
+                    <p class="text-xs text-emerald-600 mt-1">Transaksi selesai.</p>
+                </div>
+            @endif
+        </form>
+    </section>
+
+    <script>
+        document.querySelectorAll('[data-salin]').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+                var teks = btn.dataset.salin;
+                var label = btn.querySelector('[data-salin-teks]');
+                try {
+                    await navigator.clipboard.writeText(teks);
+                    label.textContent = 'Tersalin!';
+                } catch (e) {
+                    label.textContent = 'Gagal menyalin';
+                }
+                setTimeout(function () { label.textContent = 'Salin data alamat'; }, 1800);
+            });
+        });
+    </script>
+@endif
+
             {{-- Informasi Penyewa --}}
             <section class="dt-rise rounded-3xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm" style="--d:.16s">
                 <p class="mb-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Informasi Pelanggan</p>
@@ -259,6 +431,9 @@
                     </div>
                 </dl>
             </section>
+
+
+
             {{-- Catatan --}}
             @if($transaksi->catatan)
                 <section class="dt-rise rounded-3xl border border-gray-100 bg-white p-5 sm:p-6 shadow-sm" style="--d:.2s">

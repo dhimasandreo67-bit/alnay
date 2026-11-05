@@ -114,6 +114,71 @@ class Produk extends Model
             : (int) $this->stok;
     }
 
+    /**
+     * Stok yang benar-benar tersedia untuk kombinasi ukuran (+ warna) pada satu jenis transaksi.
+     * Mengikuti struktur yang disimpan form admin: ukuran[].warna[].stok.
+     */
+    public function stokTersedia(string $jenis, ?string $ukuran = null, ?string $warna = null): int
+    {
+        $baris = collect($this->ukuranUntuk($jenis));
+
+        if ($baris->isEmpty()) {
+            return max(0, $this->stokUntuk($jenis));
+        }
+
+        $u = $baris->first(fn ($r) => trim((string) (is_array($r) ? ($r['ukuran'] ?? '') : $r)) === trim((string) $ukuran));
+        if (! $u) {
+            return 0;
+        }
+
+        $perWarna = collect(is_array($u) ? ($u['warna'] ?? []) : []);
+        if ($perWarna->isNotEmpty() && $warna) {
+            $w = $perWarna->first(fn ($x) => ($x['nama'] ?? null) === $warna);
+
+            return $w ? max(0, (int) ($w['stok'] ?? 0)) : 0;
+        }
+
+        return max(0, (int) (is_array($u) ? ($u['stok'] ?? 0) : 0));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Harga & diskon (rumus sama dengan form dan index admin: harga * (1 - diskon/100))
+    |--------------------------------------------------------------------------
+    */
+    public function diskonSewa(): float
+    {
+        return max(0, min(100, (float) ($this->diskon_sewa_persen ?? 0)));
+    }
+
+    public function diskonJual(): float
+    {
+        return max(0, min(100, (float) ($this->diskon_jual_persen ?? 0)));
+    }
+
+    public function hargaSewaNet(): int
+    {
+        return (int) round((float) $this->harga_sewa * (1 - $this->diskonSewa() / 100));
+    }
+
+    public function hargaJualNet(): int
+    {
+        return (int) round((float) $this->harga_jual * (1 - $this->diskonJual() / 100));
+    }
+
+    /** Tarif per hari tambahan setelah hari pertama (tarif perpanjangan; cadangan: denda per hari untuk data lama). */
+    public function tarifTambahanSewa(): int
+    {
+        $perpanjangan = (float) $this->harga_perpanjangan_per_hari;
+
+        return (int) round($perpanjangan > 0 ? $perpanjangan : (float) $this->denda_per_hari_telat);
+    }
+
+    public function totalSewa(int $durasi): int
+    {
+        return $durasi < 1 ? 0 : $this->hargaSewaNet() + ($durasi - 1) * $this->tarifTambahanSewa();
+    }
+
     public function kategori(): BelongsTo
     {
         return $this->belongsTo(Kategori::class, 'kategori_id');

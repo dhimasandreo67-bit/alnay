@@ -227,10 +227,13 @@
                                 <td class="px-4 py-4 text-left">
                                     <p class="text-sm font-bold text-gray-800">Rp
                                         {{ number_format($p->biaya_kirim ?? 0, 0, ',', '.') }}</p>
-                                    @if ($p->layanan_ongkir)
-                                        <span
-                                            class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{{ strtoupper($p->kurir ?? '') }}
-                                            {{ $p->layanan_ongkir }}</span>
+                                    
+                                    @if (($p->transaksi->jenis ?? 'beli') === 'beli' && $p->layanan_ongkir)
+                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                            {{ strtoupper($p->kurir ?? '') }} {{ $p->layanan_ongkir }}
+                                        </span>
+                                    @elseif (($p->transaksi->jenis ?? 'beli') === 'sewa')
+                                        <span class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Via WA</span>
                                     @endif
                                 </td>
 
@@ -248,36 +251,58 @@
                                     @endif
                                 </td>
 
-                                {{-- Kolom 5: Aksi (Form Vertikal) --}}
+                                                                {{-- Kolom 5: Aksi --}}
                                 <td class="px-4 py-4 text-right">
                                     @if ($p->status_kirim === 'menunggu')
-                                        <form action="{{ route('admin.pengiriman.update-status', $p->id) }}"
-                                            method="POST" class="flex flex-col gap-2 items-end ml-auto w-48">
-                                            @csrf @method('PATCH')
-                                            <input type="hidden" name="status_kirim" value="dikirim">
-                                            <select name="kurir" required
-                                                class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-sky-500">
-                                                <option value="">Pilih Kurir</option>
-                                                @foreach (['jne' => 'JNE', 'jnt' => 'JNT', 'sicepat' => 'SiCepat', 'pos' => 'POS', 'tiki' => 'TIKI'] as $val => $label)
-                                                    <option value="{{ $val }}" @selected(old('kurir', $p->kurir) === $val)>
-                                                        {{ $label }}</option>
-                                                @endforeach
-                                            </select>
-                                            <input type="text" name="layanan_ongkir"
-                                                value="{{ old('layanan_ongkir', $p->layanan_ongkir ?? '') }}"
-                                                placeholder="Layanan (REG, EZ)" required
-                                                class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg">
-                                            <input type="text" name="no_resi" placeholder="No. Resi" required
-                                                class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg">
-                                            <button type="submit"
-                                                class="w-full py-1.5 rounded-lg text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 transition-all">Kirim</button>
-                                        </form>
+                                        
+                                        {{-- JIKA INI PEMBELIAN (BELI) --}}
+                                        @if (($p->transaksi->jenis ?? 'beli') === 'beli')
+                                            <form action="{{ route('admin.pengiriman.update-status', $p->id) }}"
+                                                method="POST" class="flex flex-col gap-2 items-end ml-auto w-48">
+                                                @csrf @method('PATCH')
+                                                <input type="hidden" name="status_kirim" value="dikirim">
+                                                <select name="kurir" required
+                                                    class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-sky-500">
+                                                    <option value="">Pilih Kurir</option>
+                                                    @foreach (['jne' => 'JNE', 'jnt' => 'JNT', 'sicepat' => 'SiCepat', 'pos' => 'POS', 'tiki' => 'TIKI'] as $val => $label)
+                                                        <option value="{{ $val }}" @selected(old('kurir', $p->kurir) === $val)>
+                                                            {{ $label }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <input type="text" name="layanan_ongkir"
+                                                    value="{{ old('layanan_ongkir', $p->layanan_ongkir ?? '') }}"
+                                                    placeholder="Layanan (REG, EZ)" required
+                                                    class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg">
+                                                <input type="text" name="no_resi" placeholder="No. Resi" required
+                                                    class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg">
+                                                <button type="submit"
+                                                    class="w-full py-1.5 rounded-lg text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 transition-all">Kirim</button>
+                                            </form>
+
+                                        {{-- JIKA INI SEWA --}}
+                                        @else
+                                            <form action="{{ route('admin.pengiriman.update-status', $p->id) }}"
+                                                method="POST" class="flex flex-col gap-2 items-end ml-auto w-48">
+                                                @csrf @method('PATCH')
+                                                <input type="hidden" name="status_kirim" value="dikirim">
+                                                <p class="text-[10px] text-amber-600 font-semibold text-right leading-tight mb-1">
+                                                    Ongkir & Kurir diinfokan via WA
+                                                </p>
+                                                <button type="submit"
+                                                    class="w-full py-1.5 rounded-lg text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 transition-all">
+                                                    Tandai Dikirim
+                                                </button>
+                                            </form>
+                                        @endif
+
                                     @elseif($p->status_kirim === 'dikirim')
                                         <div class="text-right">
                                             <p class="text-xs font-bold text-gray-800 mb-1">
-                                                {{ strtoupper($p->kurir ?? '-') }} @if ($p->layanan_ongkir)
-                                                    {{ $p->layanan_ongkir }}
-                                                @endif &middot; {{ $p->no_resi ?? '-' }}
+                                                @if (($p->transaksi->jenis ?? 'beli') === 'beli')
+                                                    {{ strtoupper($p->kurir ?? '-') }} @if ($p->layanan_ongkir) {{ $p->layanan_ongkir }} @endif &middot; {{ $p->no_resi ?? '-' }}
+                                                @else
+                                                    Diantar Manual (Via WA)
+                                                @endif
                                             </p>
                                             <form action="{{ route('admin.pengiriman.update-status', $p->id) }}"
                                                 method="POST" class="inline">

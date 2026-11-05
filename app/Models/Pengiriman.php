@@ -8,6 +8,9 @@ class Pengiriman extends Model
 {
     protected $table = 'pengiriman';
 
+    /** Urutan status pengiriman yang dipakai di alur admin. */
+    public const STATUS = ['menunggu', 'dikemas', 'dikirim', 'diterima'];
+
     protected $fillable = [
         'transaksi_id',
         'provinsi_tujuan',
@@ -22,6 +25,10 @@ class Pengiriman extends Model
         'status_kirim',
         'tanggal_kirim',
         'tanggal_diterima',
+        'nama_penerima',
+        'no_wa_penerima',
+        'tujuan_id',
+        'berat_gram',
     ];
 
     protected function casts(): array
@@ -30,6 +37,8 @@ class Pengiriman extends Model
             'biaya_kirim' => 'decimal:2',
             'tanggal_kirim' => 'date',
             'tanggal_diterima' => 'date',
+            'tujuan_id' => 'integer',
+            'berat_gram' => 'integer',
         ];
     }
 

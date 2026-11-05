@@ -77,4 +77,64 @@ class PengirimanController extends Controller
 
         return back()->with('error', 'Status pengiriman bukan "Diterima".');
     }
+
+        /**
+     * Update status pengiriman & resi dari halaman Detail Transaksi.
+     */
+        public function update(Request $request, \App\Models\Transaksi $transaksi)
+    {
+        $pengiriman = $transaksi->pengiriman;
+        
+        if (!$pengiriman) {
+            return back()->with('error', 'Transaksi ini tidak memiliki data pengiriman.');
+        }
+
+        $isSewa = $transaksi->jenis === 'sewa';
+
+        // Validasi: no_resi wajib HANYA jika transaksi Beli dan status dikirim/diterima
+        $request->validate([
+            'status_kirim' => 'required|in:menunggu,dikemas,dikirim,diterima',
+            'no_resi' => [
+                'nullable',
+                'string',
+                'max:60',
+                // Wajib diisi jika ini BUKAN sewa (berarti beli), dan statusnya dikirim
+                $isSewa ? 'nullable' : 'required_if:status_kirim,dikirim,diterima'
+            ],
+        ], [
+            'no_resi.required_if' => 'Isi nomor resi sebelum menandai pesanan dikirim.',
+        ]);
+
+        // Validasi: Barang tidak boleh dikirim sebelum lunas
+        $lunas = in_array(strtolower((string) $transaksi->status_pembayaran), ['lunas', 'settlement', 'success']);
+        if (!$lunas && $request->status_kirim !== 'menunggu') {
+            return back()->with('error', 'Pembayaran belum lunas. Pengiriman baru bisa diproses setelah pembayaran diterima.');
+        }
+
+        $data = [
+            'status_kirim' => $request->status_kirim,
+        ];
+
+        // Hanya simpan no_resi jika BUKAN sewa
+        if (!$isSewa) {
+            $data['no_resi'] = $request->no_resi;
+        }
+
+        // Atur tanggal kirim & terima otomatis
+        if (in_array($request->status_kirim, ['dikirim', 'diterima'])) {
+            $data['tanggal_kirim'] = $pengiriman->tanggal_kirim ?? now();
+        } else {
+            $data['tanggal_kirim'] = null;
+        }
+
+        if ($request->status_kirim === 'diterima') {
+            $data['tanggal_diterima'] = $pengiriman->tanggal_diterima ?? now();
+        } else {
+            $data['tanggal_diterima'] = null;
+        }
+
+        $pengiriman->update($data);
+
+        return back()->with('success', 'Data pengiriman berhasil diperbarui!');
+    }
 }

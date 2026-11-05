@@ -92,7 +92,12 @@
                                     </div>
                                     <div class="flex-1">
                                         <p class="text-[15px] font-semibold text-ink/85">{{ $produk->nama }}</p>
-                                        <p class="text-xs text-ink/55 mt-0.5">Ukuran {{ $item['ukuran'] }} · {{ $item['durasi'] }} hari</p>
+                                        <p class="text-xs text-ink/55 mt-0.5">
+                                            {{ collect([!empty($item['ukuran']) ? 'Ukuran ' . $item['ukuran'] : null, !empty($item['warna']) ? 'Warna ' . $item['warna'] : null, $item['durasi'] . ' hari'])->filter()->implode(' · ') }}
+                                        </p>
+                                        @if ($produk->diskonSewa() > 0)
+                                            <p class="mt-0.5"><span class="inline-flex rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold text-rose-700 border border-rose-200">Diskon sewa -{{ rtrim(rtrim(number_format($produk->diskonSewa(), 2, '.', ''), '0'), '.') }}%</span></p>
+                                        @endif
                                         <p class="text-xs text-ink/55 mt-0.5">{{ $tglAmbil->translatedFormat('d M') }} - {{ $tglKembali->translatedFormat('d M Y') }}</p>
                                     </div>
                                     <div class="text-right">

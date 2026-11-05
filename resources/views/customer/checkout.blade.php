@@ -173,7 +173,13 @@
                         <div class="flex justify-between text-sm">
                             <div class="text-gray-600">
                                 <span class="font-semibold text-gray-800">{{ $item['nama'] }}</span><br>
-                                <span class="text-xs">{{ $item['qty'] }}x Rp {{ number_format($item['harga'], 0, ',', '.') }}</span>
+                                @php
+                                    $specCk = collect([!empty($item['ukuran']) ? 'Ukuran ' . $item['ukuran'] : null, !empty($item['warna']) ? 'Warna ' . $item['warna'] : null])->filter()->implode(' · ');
+                                @endphp
+                                @if ($specCk)<span class="text-xs text-gray-500">{{ $specCk }}</span><br>@endif
+                                <span class="text-xs">{{ $item['qty'] }}x
+                                    @if (($item['diskon'] ?? 0) > 0)<span class="line-through text-gray-400">Rp {{ number_format($item['harga_asli'], 0, ',', '.') }}</span>@endif
+                                    Rp {{ number_format($item['harga'], 0, ',', '.') }}</span>
                             </div>
                             <span class="font-bold text-gray-800">Rp {{ number_format($item['harga'] * $item['qty'], 0, ',', '.') }}</span>
                         </div>

@@ -37,11 +37,11 @@ Route::get('/tentang', fn () => view('customer.tentang'))->name('tentang');
 Route::get('/testimoni', [TestimoniController::class, 'index'])->name('testimoni');
 Route::get('/kontak', fn () => view('placeholder'))->name('kontak');
 
-// Reservasi fitting (opsional, bukan syarat sewa)
-Route::get('/reservasi-fitting', [FittingController::class, 'create'])->name('fitting.create');
-Route::post('/reservasi-fitting', [FittingController::class, 'store'])->name('fitting.store');
-Route::get('/reservasi-fitting/{id}', [FittingController::class, 'show'])->name('fitting.show');
-Route::post('/reservasi-fitting/{id}/cancel', [FittingController::class, 'cancel'])->name('fitting.cancel');
+// Ubah yang di public.php menjadi seperti ini:
+Route::get('/reservasi-fitting', [FittingController::class, 'create'])->name('public.fitting.create');
+Route::post('/reservasi-fitting', [FittingController::class, 'store'])->name('public.fitting.store');
+Route::get('/reservasi-fitting/{id}', [FittingController::class, 'show'])->name('public.fitting.show');
+Route::post('/reservasi-fitting/{id}/cancel', [FittingController::class, 'cancel'])->name('public.fitting.cancel');
 
 // Alur Beli
 Route::post('/beli/simpan', [BeliController::class, 'simpanSession'])->name('beli.simpan');

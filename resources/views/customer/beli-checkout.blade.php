@@ -1,4 +1,4 @@
-    @extends('layouts.public')
+@extends('layouts.public')
 
     @section('title', 'Checkout Pembelian — ' . config('alnay.brand.nama'))
 
@@ -135,10 +135,16 @@
             }
 
             // Ambil ukuran dengan aman
-            $ukuranCheckout = $beliData['ukuran'] ?? 'M';
+            $ukuranCheckout = $beliData['ukuran'] ?? null;
             if (is_array($ukuranCheckout)) {
                 $ukuranCheckout = implode(', ', $ukuranCheckout);
             }
+
+            $spesifikasiCheckout = collect([
+                $ukuranCheckout ? 'Ukuran ' . $ukuranCheckout : null,
+                $varian ? 'Warna ' . $varian : null,
+            ])->filter()->implode(' · ');
+            $diskonJualCheckout = $produk->diskonJual();
 
             $cfg = [
                 'bayar' => old('metode_bayar', 'qris'),
@@ -196,8 +202,15 @@
                                     </div>
                                     <div class="flex-1">
                                         <p class="text-[15px] font-medium text-ink/85">{{ $produk->nama }}</p>
-                                        <p class="text-xs text-ink/55 mt-0.5">Varian {{ $varian }} · Ukuran
-                                            {{ $ukuranCheckout }}</p>
+                                        @if ($spesifikasiCheckout)
+                                            <p class="text-xs text-ink/55 mt-0.5">{{ $spesifikasiCheckout }}</p>
+                                        @endif
+                                        <p class="text-xs text-ink/55 mt-0.5">
+                                            @if ($diskonJualCheckout > 0)
+                                                <span class="line-through text-ink/40">Rp{{ number_format($produk->harga_jual, 0, ',', '.') }}</span>
+                                            @endif
+                                            Rp{{ number_format($produk->hargaJualNet(), 0, ',', '.') }} / unit
+                                        </p>
                                     </div>
                                     <span class="px-2.5 py-1 rounded-md bg-cream/70 text-[11px] font-semibold text-ink/65">Qty:
                                         {{ $qty }}</span>
@@ -383,8 +396,8 @@
 
                                     <div class="bg-ink text-cream rounded-lg p-3.5 mb-4">
                                         <div class="flex justify-between items-center gap-3">
-                                            <span class="text-xs text-cream/75">Total Dibayar Sekarang</span>
-                                            <span class="font-sans text-xl font-semibold tabular-nums"
+                                            <span class="text-xs text-cream/75 leading-snug">Total Dibayar<br>Sekarang</span>
+                                            <span class="font-sans text-xl font-semibold tabular-nums whitespace-nowrap"
                                                 id="labelTotalBayar">Rp{{ number_format($total, 0, ',', '.') }}</span>
                                         </div>
                                     </div>
@@ -437,7 +450,7 @@
             </div>
         </div>
 
-                <script>
+        <script>
             (function () {
                 const SUBTOTAL   = {{ (int) $subtotal }};
                 const URL_TUJUAN = "{{ route('ongkir.tujuan') }}";
@@ -445,7 +458,7 @@
                 const TOKEN      = document.querySelector('input[name="_token"]').value;
 
                 const $ = id => document.getElementById(id);
-                const rupiah = n => 'Rp ' + new Intl.NumberFormat('id-ID').format(n);
+                const rupiah = n => 'Rp' + new Intl.NumberFormat('id-ID').format(n);
 
                 let timer = null;
 
@@ -561,16 +574,20 @@
                         input.type = 'radio';
                         input.name = 'layanan_ongkir';
                         input.value = o.layanan;
-                        input.className = 'peer sr-only';
+                        input.className = 'opsi-radio peer sr-only';
                         input.addEventListener('change', () => {
                             $('inputKurir').value = o.kurir;
                             setHarga(o.biaya, o.kurir.toUpperCase() + ' ' + o.layanan);
                         });
 
                         const card = document.createElement('div');
-                        card.className = 'flex items-center justify-between gap-3 p-3 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all';
+                        card.className = 'opsi-card flex items-center gap-3 p-3 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all duration-300';
+
+                        const dot = document.createElement('span');
+                        dot.className = 'radio-dot w-4 h-4 rounded-full border-2 border-line shrink-0 transition-all';
 
                         const info = document.createElement('div');
+                        info.className = 'flex-1 min-w-0';
                         const nama = document.createElement('p');
                         nama.className = 'text-[13px] font-semibold text-ink/85';
                         nama.textContent = o.kurir.toUpperCase() + ' - ' + o.layanan;
@@ -580,13 +597,20 @@
                         info.append(nama, est);
 
                         const harga = document.createElement('span');
-                        harga.className = 'text-[13px] font-bold text-ink tabular-nums';
+                        harga.className = 'text-[13px] font-bold text-ink tabular-nums shrink-0';
                         harga.textContent = rupiah(o.biaya);
 
-                        card.append(info, harga);
+                        card.append(dot, info, harga);
                         label.append(input, card);
                         wrap.appendChild(label);
                     });
+
+                    // Pilih otomatis yang termurah (server sudah mengurutkan) supaya total langsung memuat ongkir.
+                    const pertama = wrap.querySelector('input[name="layanan_ongkir"]');
+                    if (pertama) {
+                        pertama.checked = true;
+                        pertama.dispatchEvent(new Event('change'));
+                    }
                 }
 
                 $('q-tujuan').addEventListener('input', function () {
@@ -617,37 +641,55 @@
         </script>
 
         <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('checkoutBeli', (cfg) => {
-            return {
-                // State dari PHP
-                metodeBayar: cfg.bayar,
-                namaPenerima: cfg.nama,
-                noWa: cfg.wa,
-                alamat: cfg.alamat,
-                catatan: cfg.catatan,
-                setuju: cfg.setuju,
-                total: cfg.total,
-                
-                // State UI
-                sedangKirim: false,
-                errorMetode: '',
-                getar: false,
+            document.addEventListener('alpine:init', () => {
+                Alpine.data('checkoutBeli', (cfg) => ({
+                    metodeBayar: cfg.bayar,
+                    namaPenerima: cfg.nama,
+                    noWa: cfg.wa,
+                    alamat: cfg.alamat,
+                    catatan: cfg.catatan,
+                    setuju: cfg.setuju,
 
-                // Fungsi Kirim
-                kirim() {
-                    if (!this.setuju) {
-                        this.errorMetode = 'Centang syarat & ketentuan.';
-                        this.getar = true;
-                        setTimeout(() => this.getar = false, 500);
-                        return;
-                    }
-                    this.sedangKirim = true;
-                    this.$refs.formCheckout.submit();
-                }
-            };
-        });
-    });
-</script>
+                    errorMetode: '',
+                    getar: false,
+                    sedangKirim: false,
+
+                    tampilError(pesan) {
+                        this.errorMetode = pesan;
+                        this.getar = false;
+                        this.$nextTick(() => {
+                            this.getar = true;
+                            setTimeout(() => { this.getar = false; }, 500);
+                            if (this.$refs.errorBox) {
+                                this.$refs.errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        });
+                        return false;
+                    },
+
+                    validasi() {
+                        if (!this.metodeBayar) return this.tampilError('Pilih metode pembayaran.');
+                        if (!document.getElementById('in-tujuan-id').value)
+                            return this.tampilError('Pilih kelurahan/kecamatan tujuan dari daftar.');
+                        if (!document.getElementById('inputKurir').value)
+                            return this.tampilError('Pilih kurir dan layanan pengiriman.');
+                        if (!this.namaPenerima.trim()) return this.tampilError('Nama penerima wajib diisi.');
+                        if (!this.noWa.trim()) return this.tampilError('No. WhatsApp wajib diisi.');
+                        if (!this.alamat.trim()) return this.tampilError('Alamat lengkap wajib diisi.');
+                        if (!this.setuju) return this.tampilError('Centang persetujuan syarat & ketentuan pembelian.');
+
+                        this.errorMetode = '';
+                        return true;
+                    },
+
+                    kirim() {
+                        if (this.sedangKirim) return;
+                        if (!this.validasi()) return;
+                        this.sedangKirim = true;
+                        this.$refs.formCheckout.submit();
+                    },
+                }));
+            });
+        </script>
 
     @endsection
