@@ -28,14 +28,22 @@
     </style>
 
     @php
-        $produk   = $transaksi->detail->first()->produk ?? null;
-        $tagihan  = $transaksi->pembayaran->sortByDesc('id')->first();
+        $dp = $dp ?? 0;
+        $deposit = $deposit ?? 0;
+        $produk = $transaksi->detail->first()->produk ?? null;
 
-        // Angka yang tampil = angka yang benar-benar ditagihkan.
-        $dibayarSekarang = (int) round((float) ($tagihan->jumlah ?? 0));
-        $deposit         = (int) round((float) ($deposit ?? 0));
-        $dpBagian        = max(0, $dibayarSekarang - $deposit);
-        $lunasDp         = in_array($transaksi->status_pembayaran, ['dp_dibayar', 'lunas'], true);
+        // Jumlah yang ditagih = pembayaran DP yang tersimpan (sudah mencakup DP semua item + deposit)
+        $dibayarSekarang = $dp > 0 ? $dp : ($produk->dp ?? 0) + $deposit;
+        $dpMurni = max(0, $dibayarSekarang - $deposit);
+        $totalSewa = max(0, $total - $deposit);   // total transaksi sudah ditambah deposit
+        $lunasDp = in_array($transaksi->status_pembayaran, ['dp_dibayar', 'lunas'], true);
+
+        // Ukuran, warna & tanggal tiap item dibaca dari awal catatan: "[Ukuran: M · Warna: X · 12/03/2026–14/03/2026]"
+        $spesifikasi = [];
+        if (preg_match('/^(?:\s*\[[^\]]*\])+/u', (string) $transaksi->catatan, $awal)) {
+            preg_match_all('/\[([^\]]*)\]/u', $awal[0], $mm);
+            $spesifikasi = $mm[1];
+        }
     @endphp
 
     <div class="bg-[#FBFAF7] min-h-screen py-8 md:py-12 font-sans">
@@ -80,31 +88,37 @@
                         <h2 class="text-[10px] font-medium uppercase tracking-wider text-ink/50 mb-4">Ringkasan Pembayaran
                         </h2>
 
-                        <div class="flex gap-3 items-center border-b border-line/30 pb-4 mb-4">
-                            <div
-                                class="w-12 h-12 rounded-lg bg-cream-dim border border-line/40 flex items-center justify-center text-muted text-[8px] uppercase shrink-0">
-                                Foto</div>
-                            <div>
-                                <p class="text-[12px] font-medium text-ink/80">{{ $produk->nama }}</p>
-                                <p class="text-[10px] text-ink/50">
-                                    @if ($transaksi->sewa)
-                                        {{ \Carbon\Carbon::parse($transaksi->sewa->tanggal_pinjam)->format('d M') }} –
-                                        {{ \Carbon\Carbon::parse($transaksi->sewa->tanggal_kembali_rencana)->format('d M Y') }}
-                                    @endif
-                                </p>
-                            </div>
+                        <div class="space-y-3 border-b border-line/30 pb-4 mb-4">
+                            @foreach ($transaksi->detail as $detail)
+                                <div class="flex gap-3 items-center">
+                                    <div
+                                        class="w-12 h-12 rounded-lg bg-cream-dim border border-line/40 flex items-center justify-center text-muted text-[8px] uppercase shrink-0">
+                                        Foto</div>
+                                    <div class="min-w-0">
+                                        <p class="text-[12px] font-medium text-ink/80">{{ $detail->produk->nama ?? 'Produk' }}</p>
+                                        @if (! empty($spesifikasi[$loop->index]))
+                                            <p class="text-[10px] text-ink/50">{{ $spesifikasi[$loop->index] }}</p>
+                                        @elseif ($loop->first && $transaksi->sewa)
+                                            <p class="text-[10px] text-ink/50">
+                                                {{ \Carbon\Carbon::parse($transaksi->sewa->tanggal_pinjam)->format('d M') }} –
+                                                {{ \Carbon\Carbon::parse($transaksi->sewa->tanggal_kembali_rencana)->format('d M Y') }}
+                                            </p>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
 
                         <div class="space-y-2 text-[11px] mb-4">
                             <div class="flex justify-between">
                                 <span class="text-ink/50">Total Biaya Sewa</span>
                                 <span
-                                    class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($total, 0, ',', '.') }}</span>
+                                    class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($totalSewa, 0, ',', '.') }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-ink/50">DP (Uang Muka)</span>
                                 <span
-                                    class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($produk->dp ?? 0, 0, ',', '.') }}</span>
+                                    class="font-medium text-ink/80 tabular-nums">Rp{{ number_format($dpMurni, 0, ',', '.') }}</span>
                             </div>
                             @if ($deposit > 0)
                                 <div class="flex justify-between">
