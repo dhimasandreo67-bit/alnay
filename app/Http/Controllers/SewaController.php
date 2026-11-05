@@ -10,6 +10,7 @@ use App\Models\JaminanSewa;
 use App\Models\Pembayaran;
 use App\Models\Pengiriman;
 use App\Models\AlamatPengiriman; // Tambahan untuk Buku Alamat
+use App\Support\KetersediaanSewa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -107,6 +108,10 @@ class SewaController extends Controller
         if (! $produk->bisa_disewa || $produk->stokTersedia('sewa', $validated['ukuran'], $validated['warna'] ?? null) <= 0) {
             return back()->withErrors(['stok' => 'Maaf, produk ini sedang tidak tersedia untuk disewa.']);
         }
+        if (! KetersediaanSewa::tersedia($produk, $validated['ukuran'], $validated['warna'] ?? null, $validated['tanggal_ambil'], $validated['tanggal_kembali'])) {
+            return back()->withErrors(['tanggal' => 'Maaf, pada tanggal tersebut semua unit pilihan ini sudah dibooking. Silakan pilih tanggal lain.']);
+        }
+        // =======================================================
 
         $validated['durasi'] = max(1, (int) \Carbon\Carbon::parse($validated['tanggal_ambil'])->startOfDay()
             ->diffInDays(\Carbon\Carbon::parse($validated['tanggal_kembali'])->startOfDay(), true));
@@ -155,6 +160,10 @@ class SewaController extends Controller
                 return redirect()->route('sewa.keranjang.index')
                     ->with('error', $produk->nama . ': stok sewa untuk pilihan ini sudah habis.');
             }
+            if (! KetersediaanSewa::tersedia($produk, $item->ukuran ?? null, $item->warna ?? null, $item->tanggal_ambil, $item->tanggal_kembali)) {
+                return redirect()->route('sewa.keranjang.index')
+                    ->with('error', $produk->nama . ': tanggal yang dipilih sudah penuh dibooking. Hapus item dan pilih tanggal lain.');
+            }
 
             $item->total_sewa = $produk->totalSewa((int) $item->durasi);
             $item->dp = (float) ($produk->dp ?? 0);
@@ -196,6 +205,8 @@ class SewaController extends Controller
                 'produk_id' => $produk->id,
                 'jumlah' => 1,
                 'harga_satuan' => $produk->hargaSewaNet(),
+                'ukuran' => ! empty($item->ukuran) ? mb_substr((string) $item->ukuran, 0, 20) : null,
+                'warna' => ! empty($item->warna) ? mb_substr((string) $item->warna, 0, 100) : null,
             ]);
 
             $sewa = Sewa::create([
@@ -332,6 +343,9 @@ class SewaController extends Controller
 
         if (! $produk->bisa_disewa || $produk->stokTersedia('sewa', $request->ukuran, $request->warna) <= 0) {
             return back()->withErrors(['stok' => 'Maaf, produk ini sedang tidak tersedia untuk disewa.']);
+        }
+        if (! KetersediaanSewa::tersedia($produk, $request->ukuran, $request->warna, $request->tanggal_ambil, $request->tanggal_kembali)) {
+            return back()->withErrors(['tanggal' => 'Maaf, pada tanggal tersebut semua unit pilihan ini sudah dibooking. Silakan pilih tanggal lain.']);
         }
 
         $durasi = max(1, (int) \Carbon\Carbon::parse($request->tanggal_ambil)->startOfDay()
