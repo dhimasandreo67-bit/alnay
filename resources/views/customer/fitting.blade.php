@@ -58,7 +58,7 @@
             @endif
 
             <div class="pd-up mb-6" style="--d: .05s;">
-                <h1 class="font-display text-2xl md:text-3xl font-medium text-ink/85 mb-2">Booking Fitting di Studio</h1>
+                <h1 class="font-display text-2xl md:text-3xl font-medium text-ink/85 mb-2">Booking Fitting di Toko ALNAY</h1>
                 <p class="text-[12px] text-ink/55 max-w-2xl leading-relaxed">
                     Karena Anda memilih ambil sendiri di toko, sesi fitting wajib dilakukan dulu agar ukuran benar-benar pas dan busana tidak rusak saat dipakai. Pilih tanggal & jam sebelum tanggal pengambilan busana Anda.
                 </p>
@@ -81,8 +81,8 @@
                         <div class="flex items-start justify-between gap-3 p-3 rounded-lg bg-cream/50 border border-line/30 hover:border-gold/40 transition-all duration-300">
                             <div>
                                 <p class="text-[12px] font-medium text-ink/80">ALNAY.ID</p>
-                                <p class="text-[10px] text-ink/50 mt-0.5">{{ config('alnay.studio.alamat') }}</p>
-                                <span class="inline-block mt-2 px-2 py-0.5 rounded bg-gold/10 text-gold text-[9px] font-medium">{{ config('alnay.studio.jam_buka') }}</span>
+                                <p class="text-[10px] text-ink/50 mt-0.5">{{ config('alnay.toko.alamat') }}</p>
+                                <span class="inline-block mt-2 px-2 py-0.5 rounded bg-gold/10 text-gold text-[9px] font-medium">{{ config('alnay.toko.jam_buka') }}</span>
                             </div>
                             <a href="#" class="shrink-0 px-3 py-1.5 rounded-md border border-line/50 text-[10px] font-medium text-ink/60 hover:border-gold/50 hover:text-gold hover:-translate-y-px transition-all duration-300">Buka di Google Maps →</a>
                         </div>
@@ -119,7 +119,7 @@
                         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-[9px] text-ink/40">
                             <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-ink/80"></span> Dipilih</div>
                             <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-200/80"></span> Penuh</div>
-                            <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-ink/10"></span> Studio tutup</div>
+                            <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-ink/10"></span> Toko tutup</div>
                             <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full border border-line/50"></span> Tersedia</div>
                         </div>
 
@@ -129,7 +129,7 @@
                     {{-- 2. Pilih Jam --}}
                     <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .25s;">
                         <h2 class="font-display text-base font-medium text-ink/80 mb-1">2. Pilih Jam Kedatangan</h2>
-                        <p class="text-[11px] text-ink/50 mb-4" x-text="tanggalDipilih ? 'Tanggal: ' + formatTanggal(tanggalDipilih) + ' — ALNAY.ID Studio' : 'Pilih tanggal terlebih dahulu.'"></p>
+                        <p class="text-[11px] text-ink/50 mb-4" x-text="tanggalDipilih ? 'Tanggal: ' + formatTanggal(tanggalDipilih) + ' — Toko ALNAY' : 'Pilih tanggal terlebih dahulu.'"></p>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             <template x-for="jam in slotJam" :key="jam">
                                 <button type="button" @click="pilihJam(jam)" :disabled="jamTerisi(jam) || !tanggalDipilih" :class="kelasJam(jam)" class="h-9 rounded-md border text-[11px] font-medium transition-all duration-300 hover:-translate-y-0.5 active:scale-95">

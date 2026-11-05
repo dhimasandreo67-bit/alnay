@@ -220,7 +220,7 @@
             <div class="fade-up timeline-step" style="transition-delay: 100ms;">
                 <div class="step-number">2</div>
                 <h3 class="font-display text-lg font-bold mb-2" style="color: #15233d;">Konsultasi & Fitting</h3>
-                <p class="text-sm leading-relaxed" style="color: #6b7280;">Hubungi CS kami untuk konfirmasi ukuran. Fitting langsung di studio atau via video call.</p>
+                <p class="text-sm leading-relaxed" style="color: #6b7280;">Hubungi CS kami untuk konfirmasi ukuran. Fitting langsung di toko atau via video call.</p>
             </div>
 
             <div class="fade-up timeline-step" style="transition-delay: 200ms;">
@@ -232,7 +232,7 @@
             <div class="fade-up timeline-step" style="transition-delay: 300ms;">
                 <div class="step-number">4</div>
                 <h3 class="font-display text-lg font-bold mb-2" style="color: #15233d;">Pengiriman / Ambil</h3>
-                <p class="text-sm leading-relaxed" style="color: #6b7280;">Barang dikirim via kurir khusus (H-3 acara) atau diambil langsung di studio kami.</p>
+                <p class="text-sm leading-relaxed" style="color: #6b7280;">Barang dikirim via kurir khusus (H-3 acara) atau diambil langsung di toko kami.</p>
             </div>
 
             <div class="fade-up timeline-step" style="transition-delay: 400ms;">
@@ -247,7 +247,7 @@
 
 
 {{-- ============================================================
-     3. METODE SEWA: Ambil di Studio vs Kirim
+     3. METODE SEWA: Ambil di Toko vs Kirim
      ============================================================ --}}
 <section style="background-color: #faf7f0;">
     <div class="max-w-6xl mx-auto">
@@ -261,7 +261,7 @@
         </div>
 
         <div class="method-grid">
-            {{-- Card 1: Ambil di Studio --}}
+            {{-- Card 1: Ambil di Toko --}}
             <div class="fade-up method-card group">
                 <div class="flex items-center gap-4 mb-6">
                     <div class="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-500 group-hover:rotate-6" style="background-color: #fbf6e9;">
@@ -271,7 +271,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="font-display text-2xl font-bold" style="color: #15233d;">Ambil di Studio</h3>
+                        <h3 class="font-display text-2xl font-bold" style="color: #15233d;">Ambil di Toko</h3>
                         <p class="text-xs" style="color: #6b7280;">Booking jadwal fitting langsung</p>
                     </div>
                 </div>
@@ -291,7 +291,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
                         <div>
-                            <p class="text-sm font-semibold" style="color: #15233d;">Fitting Langsung di Studio</p>
+                            <p class="text-sm font-semibold" style="color: #15233d;">Fitting Langsung di Toko</p>
                             <p class="text-xs" style="color: #6b7280;">Coba langsung dengan penjahit profesional</p>
                         </div>
                     </div>
@@ -309,7 +309,7 @@
                 <div class="p-4 rounded-xl mb-6 border" style="background-color: #fbf6e9; border-color: rgba(201, 154, 50, 0.2);">
                     <p class="text-xs font-bold mb-1 flex items-center gap-1.5" style="color: #15233d;">
                         <svg class="w-4 h-4" style="color: #c99a32;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        Lokasi Studio:
+                        Lokasi ALANY:
                     </p>
                     <p class="text-xs" style="color: #6b7280;">Jl. Terusan Rajabasa No.11, Bandar Lampung</p>
                     <p class="text-xs mt-2 font-bold flex items-center gap-1.5" style="color: #c99a32;">
@@ -443,7 +443,7 @@
                         </svg>
                         <div>
                             <p class="text-sm font-semibold" style="color: #15233d;">Fitting & Pengukuran</p>
-                            <p class="text-xs" style="color: #6b7280;">Pengukuran presisi di studio</p>
+                            <p class="text-xs" style="color: #6b7280;">Pengukuran presisi di toko</p>
                         </div>
                     </div>
                     <div class="flex items-start gap-3">

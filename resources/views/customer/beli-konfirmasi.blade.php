@@ -161,7 +161,7 @@
                             <h1 class="kb-up font-display text-2xl md:text-3xl font-medium text-ink/85 mb-2" style="--d: .25s;">Pembayaran Berhasil</h1>
                             <p class="kb-up text-sm text-ink/55 max-w-md mx-auto mb-7 leading-relaxed" style="--d: .35s;">
                                 {{ $isSewa
-                                    ? 'Terima kasih. Silakan datang ke studio untuk fitting sesuai jadwal.'
+                                    ? 'Terima kasih. Silakan datang ke toko alnay untuk fitting sesuai jadwal.'
                                     : 'Terima kasih. Pesanan Anda akan segera kami siapkan dan kirim. Nomor resi dikirim lewat WhatsApp.' }}
                             </p>
 

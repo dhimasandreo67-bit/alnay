@@ -6,68 +6,31 @@
 
     <style>
         @keyframes pd-up {
-            from {
-                opacity: 0;
-                transform: translateY(18px);
-            }
-
-            to {
-                opacity: 1;
-                transform: none;
-            }
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: none; }
         }
-
         @keyframes pd-pop {
-            0% {
-                opacity: 0;
-                transform: scale(.5);
-            }
-
-            70% {
-                transform: scale(1.15);
-            }
-
-            100% {
-                opacity: 1;
-                transform: none;
-            }
+            0% { opacity: 0; transform: scale(.5); }
+            70% { transform: scale(1.15); }
+            100% { opacity: 1; transform: none; }
         }
-
-        .pd-up {
-            animation: pd-up .7s cubic-bezier(.22, .8, .3, 1) both;
-            animation-delay: var(--d, 0s);
-        }
-
-        .pd-pop {
-            animation: pd-pop .5s cubic-bezier(.3, 1.4, .5, 1) both;
-            animation-delay: var(--d, 0s);
-        }
-
-        .pd-shine {
-            position: relative;
-            overflow: hidden;
-        }
-
+        .pd-up { animation: pd-up .7s cubic-bezier(.22, .8, .3, 1) both; animation-delay: var(--d, 0s); }
+        .pd-pop { animation: pd-pop .5s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: var(--d, 0s); }
+        .pd-shine { position: relative; overflow: hidden; }
         .pd-shine::after {
-            content: '';
-            position: absolute;
-            inset: 0;
+            content: ''; position: absolute; inset: 0;
             background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .38) 50%, transparent 70%);
-            transform: translateX(-120%);
-            transition: transform .8s ease;
-            pointer-events: none;
+            transform: translateX(-120%); transition: transform .8s ease; pointer-events: none;
         }
-
-        .pd-shine:hover::after {
-            transform: translateX(120%);
-        }
+        .pd-shine:hover::after { transform: translateX(120%); }
     </style>
 
     <div class="bg-cream min-h-screen py-8 md:py-12">
         <div class="max-w-3xl mx-auto px-4">
             {{-- Tombol Kembali & Judul --}}
             <div class="pd-up flex items-center gap-3 mb-6" style="--d: .05s;">
-                <a href="{{ route('akun.pesanan.index', ['jenis' => $transaksi->jenis]) }}"
+                {{-- SINKRONISASI: Kembali ke Dashboard Tab Pesanan --}}
+                <a href="{{ route('akun.dashboard') }}#ringkasan"
                     class="w-8 h-8 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold hover:border-gold/50 hover:-translate-x-0.5 transition-all duration-300">
                     <x-icon name="chevron-right" :size="14" class="rotate-180" />
                 </a>
@@ -339,28 +302,28 @@
 
             {{-- TOMBOL AKSI --}}
             <div class="pd-up grid grid-cols-2 sm:flex sm:flex-wrap gap-2" style="--d: .3s;">
-                <a href="{{ route('akun.pesanan.index') }}"
+                {{-- SINKRONISASI: Kembali ke Dashboard --}}
+                <a href="{{ route('akun.dashboard') }}#ringkasan"
                     class="w-full sm:flex-1 text-center py-2.5 rounded-lg border border-line/50 text-ink/65 text-[11px] font-semibold hover:bg-white transition-all duration-300">
                     Kembali
                 </a>
 
-                                {{-- TOMBOL BOOKING FITTING (Hanya untuk Sewa) --}}
+                {{-- TOMBOL BOOKING FITTING (Hanya untuk Sewa) --}}
                 @if ($transaksi->jenis === 'sewa')
                     @php
-                        // Cek apakah sudah ada jadwal fitting KHUSUS untuk transaksi ini
                         $sudahFitting = \App\Models\ReservasiFitting::where('transaksi_id', $transaksi->id)
                             ->where('status', '!=', 'batal')
                             ->exists();
                     @endphp
 
                     @if (!$sudahFitting)
-                        {{-- Kirim ID transaksi ke form booking --}}
                         <a href="{{ route('fitting.create', ['transaksi_id' => $transaksi->id]) }}"
                             class="w-full sm:flex-1 text-center py-2.5 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700 transition-all duration-300 shadow-md shadow-emerald-500/20">
                             Booking Fitting
                         </a>
                     @else
-                        <a href="{{ route('akun.fitting.index') }}"
+                        {{-- SINKRONISASI: Mengarah ke Dashboard Tab Fitting --}}
+                        <a href="{{ route('akun.dashboard') }}#fitting"
                             class="w-full sm:flex-1 text-center py-2.5 rounded-lg bg-gray-100 text-gray-600 text-[11px] font-semibold hover:bg-gray-200 transition-all duration-300">
                             Lihat Jadwal Fitting
                         </a>
@@ -394,7 +357,7 @@
                 @endif
             </div>
 
-            {{-- MODAL REFUND (Diperbarui) --}}
+            {{-- MODAL REFUND --}}
             <div id="modalRefund"
                 class="hidden fixed inset-0 z-50 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
                 <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl" onclick="event.stopPropagation()">
@@ -424,7 +387,6 @@
                                 class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"></textarea>
                         </div>
 
-                        {{-- Tombol Aksi (Batal di Kiri, Kirim di Kanan) --}}
                         <div class="flex gap-3">
                             <button type="button"
                                 onclick="document.getElementById('modalRefund').classList.add('hidden')"

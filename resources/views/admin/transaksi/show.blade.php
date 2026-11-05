@@ -43,12 +43,16 @@
     $isKasir = ($transaksi->channel ?? null) === 'kasir';
     $inisial = strtoupper(mb_substr(trim($namaUser) ?: '?', 0, 1));
 
-    // Link WhatsApp (08xxx -> 628xxx)
-    $hp = preg_replace('/\D+/', '', (string) ($noHp ?? ''));
+    // Link WhatsApp (08xxx -> 628xxx) dengan pesan otomatis
+    $hp = preg_replace('/\D/', '', (string) ($noHp ?? ''));
     if ($hp !== '' && str_starts_with($hp, '0')) {
         $hp = '62' . substr($hp, 1);
     }
-    $waUrl = $hp !== '' ? 'https://wa.me/' . $hp : null;
+    
+    // Teks yang akan muncul otomatis di WhatsApp
+    $pesanWa = "Halo Kak " . $namaUser . ", kami dari Admin ALNAY.ID. Terkait pesanan Anda dengan kode *" . $transaksi->kode_transaksi . "*, ada yang bisa kami bantu?";
+    
+    $waUrl = $hp !== '' ? 'https://wa.me/' . $hp . '?text=' . rawurlencode($pesanWa) : null;
 
     $nadaTransaksi = $nada($transaksi->status_pembayaran);
     $sewa = $transaksi->sewa;
@@ -400,9 +404,18 @@
 
                 <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex min-w-0 items-center gap-4">
-                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-600 to-amber-400 text-lg font-black text-white shadow-sm">
-                            {{ $inisial }}
-                        </div>
+                        @php
+                            $fotoUser = $user->foto_profil ?? null;
+                            $fotoUserUrl = $fotoUser ? (\Illuminate\Support\Str::startsWith($fotoUser, ['http://', 'https://']) ? $fotoUser : asset('storage/' . $fotoUser)) : null;
+                        @endphp
+
+                        @if($fotoUserUrl)
+                            <img src="{{ $fotoUserUrl }}" alt="{{ $namaUser }}" class="h-12 w-12 shrink-0 rounded-full object-cover border-2 border-white shadow-sm">
+                        @else
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-600 to-amber-400 text-lg font-black text-white shadow-sm">
+                                {{ $inisial }}
+                            </div>
+                        @endif
                         <div class="min-w-0">
                             <p class="truncate text-sm font-bold text-gray-900">{{ $namaUser }}</p>
                             <p class="mt-0.5 text-xs text-gray-400">{{ $user ? ($transaksi->jenis === 'sewa' ? 'Penyewa' : 'Pembeli') : 'Tamu (Walk-in)' }}</p>

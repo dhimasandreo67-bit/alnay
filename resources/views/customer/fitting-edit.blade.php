@@ -102,7 +102,7 @@
                 {{-- 2. Pilih Jam --}}
                 <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .25s;">
                     <h2 class="font-display text-base font-medium text-ink/80 mb-1">2. Pilih Jam Kedatangan</h2>
-                    <p class="text-[11px] text-ink/50 mb-4" x-text="tanggalDipilih ? 'Tanggal: ' + formatTanggal(tanggalDipilih) + ' — ALNAY.ID Studio' : 'Pilih tanggal terlebih dahulu.'"></p>
+                    <p class="text-[11px] text-ink/50 mb-4" x-text="tanggalDipilih ? 'Tanggal: ' + formatTanggal(tanggalDipilih) + ' — Toko ALNAY' : 'Pilih tanggal terlebih dahulu.'"></p>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <template x-for="jam in slotJam" :key="jam">
                             <button type="button" @click="pilihJam(jam)" :disabled="jamTerisi(jam) || !tanggalDipilih" :class="kelasJam(jam)" class="h-9 rounded-md border text-[11px] font-medium transition-all duration-300 hover:-translate-y-0.5 active:scale-95">

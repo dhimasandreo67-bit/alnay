@@ -127,7 +127,7 @@
             <div class="mt-5 pt-4 border-t border-line">
                 @if (!$flowDiterima)
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <p class="text-xs text-gray-500">Busana masih di tangan pelanggan. Tandai sudah kembali begitu diterima di studio.</p>
+                        <p class="text-xs text-gray-500">Busana masih di tangan pelanggan. Tandai sudah kembali begitu diterima di toko.</p>
                         <form action="{{ route('admin.sewa.ubah-status', $sewa->id) }}" method="POST">
                             @csrf @method('PATCH')
                             <input type="hidden" name="status" value="selesai">
@@ -441,7 +441,7 @@
                                         @else
                                             <div class="text-center px-4 text-gray-400">
                                                 <i class="fas fa-id-card text-4xl mb-2 text-gray-300"></i>
-                                                <p class="text-sm font-semibold">{{ $isFisik ? 'KTP fisik disimpan di studio' : 'Belum ada foto KTP' }}</p>
+                                                <p class="text-sm font-semibold">{{ $isFisik ? 'KTP fisik disimpan di toko' : 'Belum ada foto KTP' }}</p>
                                             </div>
                                         @endif
                                     </div>
@@ -478,7 +478,7 @@
                                         <span>
                                             <span class="block text-sm font-bold text-ink">Nama & NIK di KTP sudah sesuai dengan {{ $sewa->nama_pelanggan }}</span>
                                             <span class="mt-1 block text-xs text-gray-500">
-                                                {{ $adaFoto ? 'Bandingkan dengan foto KTP di atas' : 'Cocokkan dengan KTP fisik yang disimpan di studio' }}{{ $isFisik ? ' dan KTP asli saat serah terima.' : '.' }}
+                                                {{ $adaFoto ? 'Bandingkan dengan foto KTP di atas' : 'Cocokkan dengan KTP fisik yang disimpan di toko' }}{{ $isFisik ? ' dan KTP asli saat serah terima.' : '.' }}
                                             </span>
                                         </span>
                                     </label>

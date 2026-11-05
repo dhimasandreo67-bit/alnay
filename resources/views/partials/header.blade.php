@@ -27,9 +27,9 @@
             {{ config('alnay.promo_bar.teks') }}
         </p>
         <div class="flex items-center gap-4 text-cream/70">
-            <span class="hidden sm:inline-flex items-center gap-1.5">
-                Studio: {{ config('alnay.studio.jam_buka') }}
-            </span>
+                <span class="hidden sm:inline-flex items-center gap-1.5">
+                    Toko: {{ config('alnay.toko.jam_buka') }}
+                </span>
             <span class="inline-flex items-center gap-1.5">
                 <x-icon name="whatsapp" :size="14" />
                 WA CS: {{ config('alnay.kontak.wa_cs_display') }}

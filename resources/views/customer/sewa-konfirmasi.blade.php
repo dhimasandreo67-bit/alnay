@@ -127,7 +127,7 @@
                                 <svg class="kb-check w-12 h-12 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path pathLength="1" d="M5 13l4 4L19 7" /></svg>
                             </div>
                             <h1 class="kb-up font-display text-2xl md:text-3xl font-medium text-ink/85 mb-2" style="--d: .25s;">Pembayaran DP Berhasil</h1>
-                            <p class="kb-up text-sm text-ink/55 max-w-md mx-auto mb-7 leading-relaxed" style="--d: .35s;">Terima kasih. Silakan datang ke studio untuk fitting sesuai jadwal. Tim kami akan menghubungi Anda untuk langkah berikutnya.</p>
+                            <p class="kb-up text-sm text-ink/55 max-w-md mx-auto mb-7 leading-relaxed" style="--d: .35s;">Terima kasih. Silakan datang ke toko Alnay untuk fitting sesuai jadwal. Tim kami akan menghubungi Anda untuk langkah berikutnya.</p>
                             <div class="kb-up flex flex-col sm:flex-row gap-3 justify-center" style="--d: .45s;">
                                 <a href="{{ route('fitting.create', ['transaksi_id' => $transaksi->id]) }}" class="px-6 py-3 rounded-xl bg-gold text-white text-sm font-bold hover:bg-gold/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 transition-all duration-300">Booking Fitting</a>
                                 

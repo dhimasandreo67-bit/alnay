@@ -120,14 +120,25 @@
                 @endforeach
             </nav>
 
-            <div class="ak-rise {{ $kartu }} p-5" style="--d: .1s;">
-                <p class="text-xs font-semibold tracking-wider text-ink/90">BUTIK CONCIERGE</p>
-                <p class="text-sm text-ink/60 mt-2">Butuh asistensi gaun atau fitting privat?</p>
-                <a href="{{ $waNomor ? 'https://wa.me/' . $waNomor : '#' }}" target="_blank" rel="noopener"
-                   class="inline-flex items-center gap-1.5 text-sm font-semibold text-gold mt-3 hover:underline">
-                    Hubungi Konsultan
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
-                </a>
+            {{-- Tombol Keluar (Logout) --}}
+            <div class="ak-rise {{ $kartu }} p-2 mt-4" style="--d: .1s;">
+                <form method="POST" action="{{ route('keluar') }}"> 
+                {{-- Sesuaikan 'keluar' dengan nama rute yang muncul di terminal --}}
+                    @csrf
+                    <button type="submit" class="w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors text-left group">
+                        <span class="flex items-center gap-3">
+                            {{-- Ikon Logout --}}
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            Keluar Akun
+                        </span>
+                        {{-- Panah kecil saat hover --}}
+                        <svg class="w-4 h-4 text-rose-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </form>
             </div>
         </aside>
 

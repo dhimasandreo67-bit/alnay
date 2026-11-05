@@ -7,7 +7,7 @@
         
         <div class="mb-6">
             <h1 class="font-display text-2xl font-medium text-ink/85">Pilih Jadwal Fitting</h1>
-            <p class="text-xs text-ink/50 mt-1">Tentukan waktu kedatangan Anda ke studio ALNAY untuk pengukuran dan penyesuaian busana.</p>
+            <p class="text-xs text-ink/50 mt-1">Tentukan waktu kedatangan Anda ke Toko ALNAY untuk pengukuran dan penyesuaian busana.</p>
         </div>
 
         @if(session('error'))

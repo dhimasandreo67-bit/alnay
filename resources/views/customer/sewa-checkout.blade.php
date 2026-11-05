@@ -109,7 +109,7 @@
                     {{-- 2. Verifikasi KTP --}}
                     <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .1s;">
                         <h2 class="font-display text-xl font-semibold text-ink/90 mb-1">Verifikasi Identitas</h2>
-                        <p class="text-xs text-ink/55 mb-4">Sebagai jaminan sewa — Anda diharapkan datang langsung ke studio untuk verifikasi KTP asli.</p>
+                        <p class="text-xs text-ink/55 mb-4">Sebagai jaminan sewa diharapkan datang langsung ke toko untuk verifikasi KTP asli.</p>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                             <label class="cursor-pointer">
@@ -119,7 +119,7 @@
                                         <span class="radio-dot w-3.5 h-3.5 rounded-full border-2 border-line shrink-0 transition-all"></span>
                                         <p class="text-[13px] font-semibold text-ink/85">KTP Fisik (Asli)</p>
                                     </div>
-                                    <p class="text-xs text-ink/60 leading-relaxed mb-2">Datang langsung ke studio, tunjukkan KTP asli. <strong class="text-ink/85">Disarankan</strong>.</p>
+                                    <p class="text-xs text-ink/60 leading-relaxed mb-2">Datang langsung ke toko, tunjukkan KTP asli. <strong class="text-ink/85">Disarankan</strong>.</p>
                                     <p class="text-xs text-green-700 flex items-center gap-1">Tidak ada deposit tambahan</p>
                                 </div>
                             </label>
@@ -159,7 +159,7 @@
                                 <div class="opsi-card h-full p-4 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all duration-300">
                                     <div class="flex items-center gap-2 mb-2">
                                         <span class="radio-dot w-3.5 h-3.5 rounded-full border-2 border-line shrink-0 transition-all"></span>
-                                        <p class="text-[13px] font-semibold text-ink/85">Ambil di Studio</p>
+                                        <p class="text-[13px] font-semibold text-ink/85">Ambil di Toko</p>
                                     </div>
                                     <p class="text-xs text-ink/60 leading-relaxed">Tidak tersedia untuk KTP Digital.</p>
                                 </div>
