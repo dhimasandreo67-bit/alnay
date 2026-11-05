@@ -43,6 +43,26 @@ class OngkirController extends Controller
         }
     }
 
+    public function provinsi(RajaOngkir $ro)
+{
+    try {
+        return response()->json($ro->daftarProvinsi());
+    } catch (\Throwable $e) {
+        \Log::warning('Provinsi gagal dimuat', ['error' => $e->getMessage()]);
+        return response()->json(['message' => 'Daftar provinsi tidak tersedia.'], 503);
+    }
+}
+
+public function kota(int $provinsiId, RajaOngkir $ro)
+{
+    try {
+        return response()->json($ro->daftarKota($provinsiId));
+    } catch (\Throwable $e) {
+        \Log::warning('Kota gagal dimuat', ['error' => $e->getMessage()]);
+        return response()->json(['message' => 'Daftar kota tidak tersedia.'], 503);
+    }
+}
+
     public function kecamatan(int $kotaId, RajaOngkir $ro)
     {
         try {

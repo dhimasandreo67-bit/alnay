@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 
+
 class ProfilController extends Controller
 {
     public function edit()
@@ -19,54 +20,29 @@ class ProfilController extends Controller
     }
 
     public function update(Request $request)
-    {
-        $user = Auth::user();
+{
+    $user = auth()->user();
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:100', 'unique:users,email,' . $user->id],
-            'no_hp' => ['required', 'string', 'max:20'],
-            'alamat' => ['nullable', 'string'],
-            'provinsi' => ['nullable', 'string'],
-            'kota_kabupaten' => ['nullable', 'string'],
-            'kecamatan' => ['nullable', 'string'],
-            'kode_pos' => ['nullable', 'string', 'max:10'],
+    $data = $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'no_hp' => ['nullable', 'string', 'max:20'],
+        'jenis_kelamin' => ['nullable', 'in:L,P'],
+        'foto' => ['nullable', 'image', 'mimes:jpeg,jpg,png', 'max:1024'],
+    ]);
 
-            // ==== KOLOM BARU (untuk ongkir) ====
-            'provinsi_nama' => ['nullable', 'string', 'max:100'],
-            'kota_id' => ['nullable', 'integer'],
-            'kota_nama' => ['nullable', 'string', 'max:100'],
-            // ===================================
-
-            'foto_profil' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
-        ], [
-            'name.required' => 'Nama lengkap wajib diisi.',
-            'email.required' => 'Email wajib diisi.',
-            'email.unique' => 'Email sudah dipakai akun lain.',
-            'no_hp.required' => 'No. HP wajib diisi.',
-            'foto_profil.image' => 'File harus berupa gambar.',
-            'foto_profil.max' => 'Ukuran gambar maksimal 2MB.',
-        ]);
-
-        // Handle upload foto profil
-        if ($request->hasFile('foto_profil')) {
-            if ($user->foto_profil && Storage::disk('public')->exists($user->foto_profil)) {
-                Storage::disk('public')->delete($user->foto_profil);
-            }
-
-            $path = $request->file('foto_profil')->store('profil', 'public');
-            $validated['foto_profil'] = $path;
+    if ($request->hasFile('foto')) {
+        if ($user->foto_profil && Storage::disk('public')->exists($user->foto_profil)) {
+            Storage::disk('public')->delete($user->foto_profil);
         }
-
-        // ==== SIMPAN KOLOM BARU ====
-        $validated['provinsi_nama'] = $request->input('provinsi_nama');
-        $validated['kota_id'] = $request->input('kota_id');
-        $validated['kota_nama'] = $request->input('kota_nama');
-
-        $user->update($validated);
-
-        return back()->with('success', 'Profil berhasil diperbarui.');
+        $data['foto_profil'] = $request->file('foto')->store('foto-profil', 'public');
     }
+
+    unset($data['foto']);
+    $user->update($data);
+
+    return redirect(route('akun.dashboard') . '#profil')
+        ->with('success', 'Profil berhasil diperbarui.');
+}
 
     public function updatePassword(Request $request)
     {

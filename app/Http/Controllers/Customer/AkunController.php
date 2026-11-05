@@ -23,14 +23,23 @@ class AkunController extends Controller
         ->first();
 
     $pesananAktif = \App\Models\Transaksi::where('user_id', $user->id)
-    ->where('jenis', 'beli')
-    ->whereNotIn('status_pembayaran', ['batal'])
-    ->count();
+        ->where('jenis', 'beli')
+        ->whereNotIn('status_pembayaran', ['batal'])
+        ->count();
 
     $penyewaanAktif = \App\Models\Transaksi::where('user_id', $user->id)
-    ->where('jenis', 'sewa')
-    ->whereNotIn('status_pembayaran', ['batal'])
-    ->count();
+        ->where('jenis', 'sewa')
+        ->whereNotIn('status_pembayaran', ['batal'])
+        ->count();
+
+    $refundAktif = \App\Models\Refund::where('diajukan_oleh', $user->id)
+        ->where('status', 'pending')
+        ->count();
+
+    $alamatList = \App\Models\AlamatPengiriman::where('user_id', $user->id)
+        ->orderByDesc('is_utama')
+        ->latest()
+        ->get();
 
     // Sementara: pesanan dari session (belum database)
     $pesananSession = [];
@@ -42,13 +51,15 @@ class AkunController extends Controller
     }
 
     return view('customer.akun.index', compact(
-    'user',
-    'totalFitting',
-    'fittingAktif',
-    'pesananSession',
-    'pesananAktif',
-    'penyewaanAktif'
-));
+        'user',
+        'totalFitting',
+        'fittingAktif',
+        'pesananSession',
+        'pesananAktif',
+        'penyewaanAktif',
+        'refundAktif',
+        'alamatList'
+    ));
 }
 
     public function pesanan(Request $request)

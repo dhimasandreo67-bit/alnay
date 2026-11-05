@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Customer\AkunController;
+use App\Http\Controllers\Customer\AlamatController;
 use App\Http\Controllers\Customer\ProfilController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
@@ -16,6 +17,9 @@ Route::middleware('auth:web')->prefix('akun')->name('akun.')->group(function () 
     Route::get('/profil', [ProfilController::class, 'edit'])->name('profil.edit');
     Route::put('/profil', [ProfilController::class, 'update'])->name('profil.update');
     Route::put('/profil/password', [ProfilController::class, 'updatePassword'])->name('profil.password');
+    Route::post('/alamat', [AlamatController::class, 'store'])->name('alamat.store');
+    Route::patch('/alamat/{id}/utama', [AlamatController::class, 'jadikanUtama'])->name('alamat.utama');
+    Route::delete('/alamat/{id}', [AlamatController::class, 'destroy'])->name('alamat.destroy');
 
     Route::get('/pesanan', [AkunController::class, 'pesanan'])->name('pesanan.index');
     Route::get('/pesanan/{id}', [AkunController::class, 'pesananDetail'])->name('pesanan.detail');
@@ -73,10 +77,10 @@ Route::middleware('auth:web')->group(function () {
 
     Route::get('/ongkir/tujuan', [OngkirController::class, 'tujuan'])->name('ongkir.tujuan');
     Route::post('/ongkir/hitung', [OngkirController::class, 'hitung'])->name('ongkir.hitung');
+    Route::get('/ongkir/provinsi', [OngkirController::class, 'provinsi'])->name('ongkir.provinsi');
+    Route::get('/ongkir/kota/{provinsiId}', [OngkirController::class, 'kota'])->name('ongkir.kota');
+    Route::get('/ongkir/kecamatan/{kotaId}', [OngkirController::class, 'kecamatan'])->name('ongkir.kecamatan');
 
-    Route::get('/akun/wilayah/kecamatan/{kotaId}', [OngkirController::class, 'kecamatan'])
-        ->whereNumber('kotaId')
-        ->name('akun.wilayah.kecamatan');
 
 });
 

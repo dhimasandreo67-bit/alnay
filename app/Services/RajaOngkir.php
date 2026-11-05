@@ -43,7 +43,7 @@ class RajaOngkir
             }
 
             return collect($res->json('data') ?? [])
-                ->map(fn ($d) => ['id' => (int) $d['id'], 'label' => $d['label']])
+                ->map(fn ($d) => ['id' => (int) $d['id'], 'label' => $d['label'], 'zip_code' => $d['zip_code'] ?? null])
                 ->values()
                 ->all();
         });
@@ -65,6 +65,40 @@ class RajaOngkir
                 ->all();
         });
     }
+
+    /** Daftar provinsi untuk dropdown alamat. */
+public function daftarProvinsi(): array
+{
+    return Cache::remember('ro-provinsi', now()->addDays(30), function () {
+        $res = $this->client()->get('destination/province');
+
+        if (! $res->successful()) {
+            throw new \RuntimeException('Gagal memuat provinsi: ' . $res->json('meta.message'));
+        }
+
+        return collect($res->json('data') ?? [])
+            ->map(fn ($d) => ['id' => (int) $d['id'], 'name' => $d['name']])
+            ->values()
+            ->all();
+    });
+}
+
+/** Daftar kota/kabupaten dalam satu provinsi untuk dropdown alamat. */
+public function daftarKota(int $provinsiId): array
+{
+    return Cache::remember("ro-kota-{$provinsiId}", now()->addDays(30), function () use ($provinsiId) {
+        $res = $this->client()->get("destination/city/{$provinsiId}");
+
+        if (! $res->successful()) {
+            throw new \RuntimeException('Gagal memuat kota: ' . $res->json('meta.message'));
+        }
+
+        return collect($res->json('data') ?? [])
+            ->map(fn ($d) => ['id' => (int) $d['id'], 'name' => $d['name']])
+            ->values()
+            ->all();
+    });
+}
 
     /** Hitung ongkir satu kurir. $beratGram dalam gram. */
     public function hitungOngkir(int $tujuanId, int $beratGram, string $kurir = 'jne'): array
