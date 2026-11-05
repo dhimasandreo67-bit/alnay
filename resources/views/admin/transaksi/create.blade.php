@@ -69,6 +69,8 @@
             'bisa_disewa'   => (bool) $p->bisa_disewa,
             'dapat_dijual'  => (bool) $p->dapat_dijual,
             'diskon_persen' => (float) $p->diskon_persen,
+            'diskon_sewa'   => (float) ($p->diskon_sewa_persen ?? 0),
+            'diskon_jual'   => (float) ($p->diskon_jual_persen ?? 0),
             'denda'         => (float) $p->denda_per_hari_telat,
         ];
     })->values();
@@ -214,6 +216,7 @@
                         </div>
                     </div>
                     <p id="info-durasi" class="mt-2 text-xs font-semibold text-amber-700"></p>
+                    <div id="info-bentrok" class="hidden mt-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800" role="alert"></div>
 
                     {{-- Upload KTP penyewa (jaminan) --}}
                     <div class="mt-4 rounded-2xl border border-dashed border-amber-300 bg-amber-50/40 p-4">
@@ -425,6 +428,8 @@
 <script>
     // ================= DATA =================
     const PRODUK = @json($produkJs);
+    // Tanggal yang sudah penuh dibooking pelanggan online: { produk_id: { "ukuran|warna": [tanggal...] } }
+    const TANGGAL_PENUH = @json((object) ($tanggalPenuh ?? []));
     const KATEGORI = @json($kategoriJs);
     const USERS = @json($usersJs);
     const OLD_ITEMS = @json($oldItems);
@@ -449,7 +454,9 @@
     // ================= HELPER HARGA / STOK =================
     const jenisAktif = () => (el('radio-sewa').checked ? 'sewa' : 'beli');
     const hargaDasar = (p, j) => (j === 'sewa' ? p.harga_sewa : p.harga_jual);
-    const hargaFinal = (p, j) => { const d = hargaDasar(p, j); return d - (d * p.diskon_persen / 100); };
+    // Diskon sewa & jual dipisah, sama seperti hargaUnit() di server (TransaksiController::store)
+    const diskonPersen = (p, j) => (j === 'sewa' ? p.diskon_sewa : p.diskon_jual) || 0;
+    const hargaFinal = (p, j) => { const d = hargaDasar(p, j); return d - (d * diskonPersen(p, j) / 100); };
     // Ukuran, warna, dan stok mengikuti jenis transaksi: produk dijual & disewa punya stok terpisah.
     function terapkanSet(j) {
         const kunci = j === 'sewa' ? 'sewa' : 'beli';
@@ -571,7 +578,7 @@
         const ok = bisaDipilih(p);
         const final = hargaTampil(p, j);
         const dasar = hargaDasar(p, j);
-        const diskon = p.diskon_persen > 0;
+        const diskon = diskonPersen(p, j) > 0;
         const sewa = j === 'sewa';
         const foto = p.foto
             ? '<img src="' + esc(p.foto) + '" alt="' + esc(p.nama) + '" loading="lazy" class="h-full w-full object-cover">'
@@ -590,7 +597,7 @@
         const meta = [p.bahan, p.motif].filter(Boolean).map(esc).join(' &middot; ');
         const badgeStatus = !ok
             ? '<span class="absolute left-2 top-2 rounded-full bg-gray-900/80 px-2 py-0.5 text-[10px] font-bold text-white">' + (!adaStokTersisa(p) ? 'Stok habis' : esc(p.status)) + '</span>'
-            : (diskon ? '<span class="absolute left-2 top-2 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white">-' + p.diskon_persen + '%</span>' : '');
+            : (diskon ? '<span class="absolute left-2 top-2 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white">-' + diskonPersen(p, j) + '%</span>' : '');
 
         return '<article class="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-500/10 ' + (ok ? '' : 'opacity-60') + '">'
             + '<div class="relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-gray-50">' + foto + badgeStatus
@@ -669,7 +676,7 @@
         if (!p) return '';
         const final = hargaTampil(p, j);
         const dasar = hargaDasar(p, j);
-        const tampilDiskon = j !== 'sewa' && p.diskon_persen > 0;
+        const tampilDiskon = j !== 'sewa' && diskonPersen(p, j) > 0;
         // Batas qty baris ini = sisa stok varian setelah dikurangi baris keranjang LAIN (bukan dirinya sendiri)
         const stokMaks = Math.max(1, sisaStok(p, r.ukuran, r.warna, idx));
         const perluUkuran = punyaUkuran(p) && !r.ukuran;
@@ -765,6 +772,7 @@
         el('cart').innerHTML = state.cart.map((r, i) => barisCart(r, i, j)).join('');
         el('cart-kosong').classList.toggle('hidden', state.cart.length > 0);
         el('badge-item').textContent = state.cart.length + ' item';
+        cekBentrokTanggal();
         renderKatalog(); // refresh tombol "+ Tambah": nonaktif kalau semua varian produk sudah penuh dipakai di keranjang
         updateRingkasan();
     }
@@ -862,7 +870,45 @@
     el('cari-produk').addEventListener('input', (e) => { state.q = e.target.value; renderKatalog(); });
 
     // ================= JENIS TRANSAKSI & TANGGAL =================
+    // Kunci kombinasi: sama dengan Support\KetersediaanSewa::kunci() di server
+    function kunciTanggal(p, ukuran, warna) {
+        const s = p.set.sewa;
+        if (!s.ukuran.length) return '|';
+        const b = s.ukuran.find((x) => x.ukuran === ukuran);
+        if (b && b.warna && b.warna.length && warna && b.warna.some((w) => w.nama === warna)) return ukuran + '|' + warna;
+        return (ukuran || '') + '|';
+    }
+    const tglPendek = (t) => new Date(t + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+
+    // Peringatan bila rentang sewa menabrak tanggal yang sudah penuh dibooking pelanggan online.
+    // (Server tetap memeriksa ulang saat disimpan, termasuk jumlah unit.)
+    function cekBentrokTanggal() {
+        const box = el('info-bentrok');
+        const pesan = [];
+        if (jenisAktif() === 'sewa') {
+            const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
+            if (a && b && b >= a) {
+                state.cart.forEach((r) => {
+                    const p = pById(r.produk_id);
+                    const peta = p && TANGGAL_PENUH[p.id];
+                    if (!peta) return;
+                    const penuh = (peta[kunciTanggal(p, r.ukuran, r.warna)] || []).filter((t) => t >= a && t <= b);
+                    if (!penuh.length) return;
+                    const varian = [r.ukuran, r.warna].filter(Boolean).join(', ');
+                    const daftar = penuh.slice(0, 4).map(tglPendek).join(', ') + (penuh.length > 4 ? ' +' + (penuh.length - 4) + ' lainnya' : '');
+                    pesan.push('"' + p.nama + '"' + (varian ? ' (' + varian + ')' : '') + ' sudah penuh dibooking pada ' + daftar + '.');
+                });
+            }
+        }
+        box.innerHTML = pesan.length
+            ? '<p class="mb-1 font-bold">Tanggal bentrok dengan booking online. Ganti tanggal atau pilih ukuran/warna lain:</p>' + pesan.map((m) => '<p>' + esc(m) + '</p>').join('')
+            : '';
+        box.classList.toggle('hidden', !pesan.length);
+        return pesan;
+    }
+
     function hitungDurasi() {
+        cekBentrokTanggal();
         const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
         const out = el('info-durasi');
         if (!a || !b) { out.textContent = ''; return; }
@@ -994,6 +1040,7 @@
             const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
             if (!a || !b) err.push('Isi tanggal ambil dan tanggal kembali.');
             else if (b < a) err.push('Tanggal kembali tidak boleh sebelum tanggal ambil.');
+            else cekBentrokTanggal().forEach((m) => err.push(m));
             if (!el('foto_ktp').files.length) err.push('Upload foto KTP penyewa.');
             if (!el('ktp_sesuai').checked) err.push('Centang konfirmasi bahwa NIK & nama di KTP sudah sesuai dengan penyewa.');
 
