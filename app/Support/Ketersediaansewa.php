@@ -10,9 +10,9 @@ use Carbon\Carbon;
 /**
  * Ketersediaan sewa per tanggal, berdasarkan stok sewa dan pemesanan aktif.
  *
- * Sebuah tanggal "penuh" bila jumlah unit yang sedang dibooking sudah sama dengan
- * stok sewa untuk kombinasi ukuran/warna yang dipilih. Stok sewa tidak dikurangi
- * permanen: unit kembali tersedia setelah masa sewanya lewat.
+ * Sebuah tanggal "penuh" bila jumlah unit yang sedang dibooking (online + kasir) sudah sama dengan
+ * stok sewa untuk kombinasi ukuran/warna yang dipilih. Stok sewa = jumlah unit yang dimiliki untuk
+ * disewakan; TIDAK dikurangi oleh transaksi sewa mana pun. Ketersediaan hanya ditentukan per tanggal.
  */
 class KetersediaanSewa
 {
@@ -27,11 +27,8 @@ class KetersediaanSewa
     public static function pemesananAktif(Produk $produk): array
     {
         $ids = DetailTransaksi::where('produk_id', $produk->id)
-            // Transaksi kasir TIDAK dihitung di sini: stok sewanya sudah dipotong saat transaksi dibuat
-            // (dan dikembalikan saat sewa diselesaikan), jadi menghitungnya lagi akan dobel.
-            ->whereHas('transaksi', fn ($q) => $q->whereIn('status_pembayaran', self::STATUS_BAYAR)
-                ->where(fn ($c) => $c->whereNull('channel')->orWhere('channel', '!=', 'kasir'))
-                ->whereHas('sewa'))
+            // Online DAN kasir dihitung bersama, jadi kalender kedua sisi selalu sama.
+            ->whereHas('transaksi', fn ($q) => $q->whereIn('status_pembayaran', self::STATUS_BAYAR)->whereHas('sewa'))
             ->pluck('transaksi_id')
             ->unique()
             ->values();
