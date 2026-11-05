@@ -13,6 +13,8 @@ class DetailTransaksi extends Model
         'produk_id',
         'jumlah',
         'harga_satuan',
+        'ukuran',
+        'warna',
     ];
 
     protected function casts(): array
