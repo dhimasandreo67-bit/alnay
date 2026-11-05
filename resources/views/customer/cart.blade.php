@@ -185,8 +185,28 @@
                                                 <button type="submit" aria-label="Hapus {{ $item['nama'] }}" class="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                                             </form>
                                         </div>
+                                        @php
+                                            $specCart = collect([
+                                                !empty($item['ukuran']) ? 'Ukuran ' . $item['ukuran'] : null,
+                                                !empty($item['warna']) ? 'Warna ' . $item['warna'] : null,
+                                                ($item['mode'] ?? 'beli') === 'sewa' ? 'Sewa' : null,
+                                            ])->filter()->implode(' · ');
+                                        @endphp
+                                        @if ($specCart)
+                                            <p class="mt-1 text-xs text-gray-500">{{ $specCart }}</p>
+                                        @endif
+                                        @if (isset($item['tersedia']) && $item['tersedia'] < $item['qty'])
+                                            <p class="mt-1 text-xs font-semibold text-red-600">{{ $item['tersedia'] > 0 ? 'Stok tinggal ' . $item['tersedia'] . ' unit — kurangi jumlah.' : 'Stok pilihan ini habis — hapus dari keranjang.' }}</p>
+                                        @endif
                                         <div class="mt-auto flex items-end justify-between gap-3 pt-3">
-                                            <div><p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Harga</p><p class="text-lg font-bold tabular-nums md:text-xl" style="color: #c99a32;">Rp {{ number_format($item['harga'], 0, ',', '.') }}</p></div>
+                                            <div>
+                                                <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Harga</p>
+                                                @if (($item['diskon'] ?? 0) > 0)
+                                                    <p class="text-xs text-gray-400"><span class="line-through tabular-nums">Rp {{ number_format($item['harga_asli'], 0, ',', '.') }}</span>
+                                                        <span class="ml-1 rounded-full bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">-{{ rtrim(rtrim(number_format($item['diskon'], 2, '.', ''), '0'), '.') }}%</span></p>
+                                                @endif
+                                                <p class="text-lg font-bold tabular-nums md:text-xl" style="color: #c99a32;">Rp {{ number_format($item['harga'], 0, ',', '.') }}</p>
+                                            </div>
                                             <form action="/keranjang/update/{{ $idSafe }}" method="POST" id="form-qty-{{ md5($idSafe) }}">
                                                 @csrf @method('PATCH')
                                                 <div class="kr-qty flex items-center overflow-hidden rounded-lg border bg-white" style="border-color: #d1d5db;">

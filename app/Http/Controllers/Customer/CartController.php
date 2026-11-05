@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Produk;
+use App\Support\Keranjang;
 
 class CartController extends Controller     
 {
@@ -22,7 +23,9 @@ class CartController extends Controller
         if (count($validItems) !== count($cartItems)) {
             session(['cart' => $validItems]);
         }
-        $cartItems = $validItems;
+        // Harga (diskon), stok, dan item yang sudah dihapus admin disegarkan dari database
+        $cartItems = Keranjang::segarkan($validItems);
+        session(['cart' => $cartItems]);
 
         $subtotal = collect($cartItems)->sum(fn($item) => $item['harga'] * $item['qty']);
         
@@ -112,6 +115,16 @@ class CartController extends Controller
         $cart = session('cart', []);
         
         if (isset($cart[$id]) && is_array($cart[$id])) {
+            $item = $cart[$id];
+            $produk = Produk::find($item['id']);
+            $jenis = ($item['mode'] ?? 'beli') === 'sewa' ? 'sewa' : 'jual';
+            $tersedia = $produk ? $produk->stokTersedia($jenis, $item['ukuran'] ?? null, $item['warna'] ?? null) : 0;
+
+            if ($request->qty > $tersedia) {
+                return redirect()->route('keranjang.index')
+                    ->with('error', 'Jumlah melebihi stok yang tersedia (' . $tersedia . ' unit).');
+            }
+
             $cart[$id]['qty'] = (int) $request->qty;
             session(['cart' => $cart]);
         }
