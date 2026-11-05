@@ -193,6 +193,55 @@ class Produk extends Model
         $this->save();
     }
 
+    /** Kebalikan kurangiStok(): tambahkan stok ke ukuran/warna tertentu. */
+    public function tambahStok(string $jenis, ?string $ukuran, ?string $warna, int $jumlah): void
+    {
+        $kol = $this->kolomStok($jenis);
+        $baris = $this->{$kol['ukuran']};
+        $baris = is_array($baris) ? $baris : [];
+        $ukuran = trim((string) $ukuran);
+
+        if ($baris && $ukuran !== '') {
+            foreach ($baris as $i => $r) {
+                if (! is_array($r) || trim((string) ($r['ukuran'] ?? '')) !== $ukuran) {
+                    continue;
+                }
+
+                $perWarna = is_array($r['warna'] ?? null) ? $r['warna'] : [];
+                if ($perWarna) {
+                    $sasaran = null;
+                    foreach ($perWarna as $j => $w) {
+                        if ($warna && ($w['nama'] ?? null) === $warna) {
+                            $sasaran = $j;
+                            break;
+                        }
+                    }
+                    // Warna yang disewa tidak ada di rincian stok ukuran ini: dulu tidak ada stok warna
+                    // yang terpotong, jadi tidak ada yang perlu dikembalikan.
+                    if ($sasaran === null && $warna) {
+                        return;
+                    }
+                    $sasaran ??= array_key_first($perWarna);
+                    $perWarna[$sasaran]['stok'] = (int) ($perWarna[$sasaran]['stok'] ?? 0) + $jumlah;
+                    $r['warna'] = $perWarna;
+                    $r['stok'] = array_sum(array_map(fn ($w) => (int) ($w['stok'] ?? 0), $perWarna));
+                } else {
+                    $r['stok'] = (int) ($r['stok'] ?? 0) + $jumlah;
+                }
+
+                $baris[$i] = $r;
+                $this->{$kol['ukuran']} = $baris;
+                $this->{$kol['stok']} = array_sum(array_map(fn ($x) => is_array($x) ? (int) ($x['stok'] ?? 0) : 0, $baris));
+                $this->save();
+
+                return;
+            }
+        }
+
+        $this->{$kol['stok']} = (int) $this->{$kol['stok']} + $jumlah;
+        $this->save();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Harga & diskon (rumus sama dengan form dan index admin: harga * (1 - diskon/100))
