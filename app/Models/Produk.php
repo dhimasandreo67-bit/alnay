@@ -141,6 +141,58 @@ class Produk extends Model
         return max(0, (int) (is_array($u) ? ($u['stok'] ?? 0) : 0));
     }
 
+    /**
+     * Kurangi stok setelah pembelian dibayar. Mengikuti struktur form admin:
+     * ukuran[].warna[].stok; total ukuran = jumlah stok warna; total stok = jumlah semua ukuran.
+     * Tanpa variasi (atau data lama tanpa ukuran) hanya total stok yang dikurangi.
+     */
+    public function kurangiStok(string $jenis, ?string $ukuran, ?string $warna, int $jumlah): void
+    {
+        $kol = $this->kolomStok($jenis);
+        $baris = $this->{$kol['ukuran']};
+        $baris = is_array($baris) ? $baris : [];
+        $ukuran = trim((string) $ukuran);
+
+        if ($baris && $ukuran !== '') {
+            foreach ($baris as $i => $r) {
+                if (! is_array($r) || trim((string) ($r['ukuran'] ?? '')) !== $ukuran) {
+                    continue;
+                }
+
+                $perWarna = is_array($r['warna'] ?? null) ? $r['warna'] : [];
+                if ($perWarna) {
+                    $sisa = $jumlah;
+                    foreach ($perWarna as $j => $w) {
+                        // Warna dipilih: kurangi warna itu. Tanpa warna: kurangi berurutan dari yang ada stoknya.
+                        if ($warna && ($w['nama'] ?? null) !== $warna) {
+                            continue;
+                        }
+                        $ambil = $warna ? $sisa : min($sisa, (int) ($w['stok'] ?? 0));
+                        $perWarna[$j]['stok'] = max(0, (int) ($w['stok'] ?? 0) - $ambil);
+                        $sisa -= $ambil;
+                        if ($sisa <= 0) {
+                            break;
+                        }
+                    }
+                    $r['warna'] = $perWarna;
+                    $r['stok'] = array_sum(array_map(fn ($w) => (int) ($w['stok'] ?? 0), $perWarna));
+                } else {
+                    $r['stok'] = max(0, (int) ($r['stok'] ?? 0) - $jumlah);
+                }
+
+                $baris[$i] = $r;
+                $this->{$kol['ukuran']} = $baris;
+                $this->{$kol['stok']} = array_sum(array_map(fn ($x) => is_array($x) ? (int) ($x['stok'] ?? 0) : 0, $baris));
+                $this->save();
+
+                return;
+            }
+        }
+
+        $this->{$kol['stok']} = max(0, (int) $this->{$kol['stok']} - $jumlah);
+        $this->save();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Harga & diskon (rumus sama dengan form dan index admin: harga * (1 - diskon/100))
