@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use App\Models\Kategori;
+use App\Support\KetersediaanSewa;
 
 class TransaksiController extends Controller
 {
@@ -133,7 +134,13 @@ class TransaksiController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.transaksi.create', compact('produks', 'kategoris', 'users'));
+        // Tanggal penuh dibooking pelanggan online, per produk & kombinasi ukuran/warna (untuk peringatan di form)
+        $tanggalPenuh = $produks->filter(fn ($p) => $p->bisa_disewa)
+            ->mapWithKeys(fn ($p) => [$p->id => KetersediaanSewa::tanggalPenuh($p)])
+            ->filter(fn ($peta) => collect($peta)->flatten()->isNotEmpty())
+            ->all();
+
+        return view('admin.transaksi.create', compact('produks', 'kategoris', 'users', 'tanggalPenuh'));
     }
 
     /**
@@ -287,6 +294,35 @@ class TransaksiController extends Controller
                 }
             }
 
+            // Sewa: pastikan tanggalnya belum penuh dibooking pelanggan online (stok sewa vs pemesanan aktif).
+            // Jumlah per kombinasi produk/ukuran/warna digabung dulu supaya item kembar tidak lolos satu per satu.
+            if ($validated['jenis'] === 'sewa') {
+                $perKombinasi = [];
+                foreach ($validated['items'] as $item) {
+                    $kunci = $item['produk_id'] . '|' . ($item['ukuran'] ?? '') . '|' . ($item['warna'] ?? '');
+                    $perKombinasi[$kunci] = [
+                        'item' => $item,
+                        'qty' => ($perKombinasi[$kunci]['qty'] ?? 0) + (int) $item['qty'],
+                    ];
+                }
+
+                foreach ($perKombinasi as $baris) {
+                    $item = $baris['item'];
+                    $produk = $produkMap[$item['produk_id']];
+
+                    if (! KetersediaanSewa::tersedia(
+                        $produk,
+                        $item['ukuran'] ?? null,
+                        $item['warna'] ?? null,
+                        $validated['tanggal_pinjam'],
+                        $validated['tanggal_kembali_rencana'],
+                        $baris['qty']
+                    )) {
+                        $gagal("\"{$produk->nama}\" tidak cukup unit kosong pada tanggal sewa yang dipilih (sudah dibooking pelanggan online). Pilih tanggal lain.");
+                    }
+                }
+            }
+
             $total = 0;
             foreach ($validated['items'] as $item) {
                 $produk = $produkMap[$item['produk_id']];
@@ -408,7 +444,8 @@ class TransaksiController extends Controller
     {
         $transaksi = Transaksi::with(['detail', 'sewa'])->findOrFail($id);
         $kode = $transaksi->kode_transaksi;
-        $kembalikanStok = $request->boolean('restock');
+        // Hanya kembalikan stok bila transaksi ini memang sudah memotong stok (lihat Transaksi::stokSudahDipotong)
+        $kembalikanStok = $request->boolean('restock') && $transaksi->stokSudahDipotong();
 
         try {
             DB::transaction(function () use ($transaksi, $kembalikanStok) {
@@ -546,6 +583,16 @@ class TransaksiController extends Controller
                 'status' => 'selesai',
                 'tanggal_kembali_aktual' => now()->toDateString(),
             ]);
+
+            // Transaksi online dengan beberapa item punya satu baris Sewa per item:
+            // selesaikan semuanya supaya kalender booking tidak tetap terblokir.
+            Sewa::where('transaksi_id', $transaksi->id)
+                ->where('id', '!=', $sewa->id)
+                ->where('status', '!=', 'selesai')
+                ->update([
+                    'status' => 'selesai',
+                    'tanggal_kembali_aktual' => now()->toDateString(),
+                ]);
         });
 
         if ($sudahSelesai) {

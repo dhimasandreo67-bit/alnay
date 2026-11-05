@@ -137,6 +137,8 @@ class CheckoutController extends Controller
                     'produk_id'    => $b['produk_id'],
                     'jumlah'       => $b['qty'],
                     'harga_satuan' => $b['harga'],
+                    'ukuran'       => $b['ukuran'] ? mb_substr((string) $b['ukuran'], 0, 20) : null,
+                    'warna'        => $b['warna'] ? mb_substr((string) $b['warna'], 0, 100) : null,
                 ]);
             }
 

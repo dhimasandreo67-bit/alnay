@@ -28,6 +28,11 @@ use Throwable;
  * Untuk aksi yang tidak lewat Eloquent (mis. DB::table()->update()), panggil manual:
  *   Audit::catat('status', 'menonaktifkan akun "Budi"', $user);
  *
+ * Untuk proses otomatis (mis. denda telat harian) supaya tercatat atas nama "Sistem",
+ * bukan atas nama admin yang kebetulan sedang membuka halaman, dan tetap tercatat saat
+ * dijalankan dari scheduler / artisan:
+ *   Audit::sebagaiSistem(fn () => DendaTelat::sinkron($sewa));
+ *
  * Perekaman TIDAK PERNAH boleh merusak request utama: semua error ditelan & dilaporkan saja.
  */
 class Audit
@@ -42,10 +47,13 @@ class Audit
     protected const KOLOM_RAHASIA = '/password|token|secret|otp|api_key/i';
 
     /** Urutan kolom yang dipakai sebagai nama/label sebuah data. */
-    protected const KOLOM_LABEL = ['name', 'nama', 'nama_produk', 'nama_kategori', 'judul', 'kode_transaksi', 'kode', 'email'];
+    protected const KOLOM_LABEL = ['name', 'nama', 'nama_produk', 'nama_kategori', 'judul', 'kode_transaksi', 'kode', 'email', 'jenis'];
 
     /** Penanda supaya listener tidak terpasang dua kali. */
     protected static bool $terdaftar = false;
+
+    /** Kedalaman blok "sebagai sistem" yang sedang berjalan (0 = tidak sedang berjalan). */
+    protected static int $kedalamanSistem = 0;
 
     /**
      * Pasang listener. Dipanggil sekali dari AppServiceProvider::boot().
@@ -99,13 +107,28 @@ class Audit
     }
 
     /**
+     * Jalankan $aksi sebagai proses otomatis: semua perubahan data di dalamnya dicatat
+     * atas nama "Sistem" (peran "sistem"), dan tetap dicatat walau dijalankan dari konsol.
+     */
+    public static function sebagaiSistem(callable $aksi): mixed
+    {
+        self::$kedalamanSistem++;
+
+        try {
+            return $aksi();
+        } finally {
+            self::$kedalamanSistem--;
+        }
+    }
+
+    /**
      * Catat aksi manual. $teks tanpa nama pelaku (otomatis diawali nama pelaku).
      *
      * @param  array<int, array{field: string, lama?: ?string, baru?: ?string}>|null  $perubahan
      */
     public static function catat(string $aksi, string $teks, ?Model $subjek = null, ?array $perubahan = null): void
     {
-        if (app()->runningInConsole()) {
+        if (self::dilewati()) {
             return;
         }
 
@@ -121,9 +144,17 @@ class Audit
 
     // ------------------------------------------------------------------ internal
 
+    /**
+     * Konsol (artisan, seeder, migrasi) tidak dicatat, kecuali sedang di dalam blok sebagaiSistem().
+     */
+    protected static function dilewati(): bool
+    {
+        return app()->runningInConsole() && self::$kedalamanSistem === 0;
+    }
+
     protected static function catatModel(string $aksi, Model $model): void
     {
-        if (app()->runningInConsole()) {
+        if (self::dilewati()) {
             return;
         }
 
@@ -184,7 +215,7 @@ class Audit
 
     protected static function catatAuth(string $aksi, ?Authenticatable $user, string $guard, ?string $email = null): void
     {
-        if (app()->runningInConsole()) {
+        if (self::dilewati()) {
             return;
         }
 
@@ -226,10 +257,15 @@ class Audit
     }
 
     /**
-     * Siapa yang sedang beraksi. Request /admin/* mengutamakan guard admin, sisanya guard pelanggan.
+     * Siapa yang sedang beraksi. Di dalam blok sebagaiSistem() pelakunya selalu "Sistem".
+     * Selain itu, request /admin/* mengutamakan guard admin, sisanya guard pelanggan.
      */
     protected static function pelaku(): array
     {
+        if (self::$kedalamanSistem > 0) {
+            return ['user' => null, 'guard' => null, 'nama' => 'Sistem', 'peran' => 'sistem'];
+        }
+
         $urutan = request()->is('admin', 'admin/*') ? ['admin', 'web'] : ['web', 'admin'];
 
         foreach ($urutan as $guard) {
@@ -316,7 +352,7 @@ class Audit
      */
     protected static function simpan(array $pelaku, array $d): void
     {
-        if (app()->runningInConsole()) {
+        if (self::dilewati()) {
             return;
         }
 

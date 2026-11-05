@@ -214,7 +214,7 @@ class BeliController extends Controller
         $ongkir = (int) $dipilih['biaya'];
         $total  = $subtotal + $ongkir;
 
-        $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih, $spesifikasi) {
+        $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih, $spesifikasi, $ukuran, $varian) {
             $transaksi = Transaksi::create([
                 'kode_transaksi'    => 'ALN-BL-' . strtoupper(substr(uniqid(), -8)),
                 'user_id'           => auth()->id(),
@@ -231,6 +231,8 @@ class BeliController extends Controller
                 'produk_id'    => $produk->id,
                 'jumlah'       => $qty,
                 'harga_satuan' => $produk->hargaJualNet(),
+                'ukuran'       => $ukuran ? mb_substr((string) $ukuran, 0, 20) : null,
+                'warna'        => $varian ? mb_substr((string) $varian, 0, 100) : null,
             ]);
 
             Pembayaran::create([

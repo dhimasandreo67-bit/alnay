@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Sewa;
 use App\Models\Transaksi;
 use App\Models\Denda;
+use App\Support\DendaTelat;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class SewaController extends Controller
@@ -54,6 +56,11 @@ class SewaController extends Controller
             'pengecekan',
             'denda',
         ])->findOrFail($id);
+
+        // Denda telat otomatis: hitung/perbarui dulu, lalu muat ulang relasi denda
+        // supaya total & tabel di halaman ikut angka terbaru.
+        DendaTelat::sinkron($sewa);
+        $sewa->load('denda');
 
         $totalDenda = $sewa->denda->where('status', 'belum_lunas')->sum('jumlah');
 
@@ -145,10 +152,10 @@ class SewaController extends Controller
     }
 
     // ================= FITUR QC =================
-           public function simpanQC(Request $request, $id)
+    public function simpanQC(Request $request, $id)
     {
         $sewa = Sewa::findOrFail($id);
-        
+
         $request->validate([
             'tahap' => 'required|string',
             'catatan' => 'required|string',
@@ -198,6 +205,7 @@ class SewaController extends Controller
 
         return back()->with('success', $pesan)->with('active_tab', 'qc');
     }
+
     // ================= FITUR DENDA =================
     public function tambahDenda(Request $request, $id)
     {
@@ -225,6 +233,18 @@ class SewaController extends Controller
         return back()->with('success', 'Denda berhasil dilunasi!');
     }
 
+    // Hitung ulang denda keterlambatan otomatis (tombol "Hitung Ulang Sekarang").
+    public function sinkronDendaTelat($id)
+    {
+        $sewa = Sewa::with(['transaksi.detail.produk', 'denda'])->findOrFail($id);
+
+        DendaTelat::sinkron($sewa);
+
+        return back()
+            ->with('success', 'Denda keterlambatan dihitung ulang.')
+            ->with('active_tab', 'denda');
+    }
+
     public function ubahStatus(Request $request, $id)
     {
         $sewa = Sewa::findOrFail($id);
@@ -239,14 +259,20 @@ class SewaController extends Controller
 
         $sewa->update($data);
 
+        // Barang kembali -> kunci denda telat final sampai tanggal kembali aktual.
+        if ($request->status === 'selesai') {
+            $sewa->refresh()->load('transaksi.detail.produk', 'denda');
+            DendaTelat::sinkron($sewa, Carbon::parse($sewa->tanggal_kembali_aktual ?? now()));
+        }
+
         return back()->with('success', 'Status sewa berhasil diubah menjadi ' . $request->status);
     }
 
     // Update Catatan QC
-        public function updateQC(Request $request, $id)
+    public function updateQC(Request $request, $id)
     {
         $qc = \App\Models\PengecekanBarang::findOrFail($id);
-        
+
         $request->validate([
             'tahap' => 'required|string',
             'catatan' => 'required|string',

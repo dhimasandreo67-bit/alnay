@@ -271,7 +271,7 @@
                                         Detail
                                     </a>
                                     @php
-                                        $bisaRestock = ($t->channel ?? null) === 'kasir' && strtolower((string) ($t->sewa->status ?? '')) !== 'selesai';
+                                        $bisaRestock = $t->stokSudahDipotong();
                                     @endphp
                                     <button type="button"
                                             data-modal-open="modal-hapus-transaksi"

@@ -17,6 +17,18 @@
             ['label' => 'Aksesoris hilang', 'default' => 200000, 'tingkat' => 'berat'],
             ['label' => 'Rusak total (tidak bisa disewakan lagi)', 'default' => 500000, 'tingkat' => 'berat'],
         ];
+
+        // Denda telat otomatis: tarif per hari diambil dari produk (kolom produk.denda_per_hari_telat,
+        // diatur di halaman produk admin). Kalau sewa berisi beberapa produk, tarifnya dijumlahkan.
+        $produkSewaList = $sewa->transaksi->detail->map(fn ($d) => $d->produk)->filter();
+        $tarifTelat = (float) $produkSewaList->sum('denda_per_hari_telat');
+        $dendaTelatOtomatis = $sewa->denda->where('otomatis', true)->first();
+        $hariTelatLive = 0;
+        if ($sewa->status !== 'selesai') {
+            $batasKembali = \Carbon\Carbon::parse($sewa->tanggal_kembali_rencana)->startOfDay();
+            $hariTelatLive = max(0, (int) $batasKembali->diffInDays(now()->startOfDay(), false));
+        }
+        $estimasiDendaTelat = $hariTelatLive * $tarifTelat;
     @endphp
     <div class="space-y-6" x-data="{ tab: '{{ session('active_tab', 'ringkasan') }}' }">
 
@@ -820,6 +832,40 @@
                         Denda</button>
                 </form>
 
+                {{-- Panel Denda Keterlambatan Otomatis --}}
+                <div class="mb-6 rounded-xl border {{ $dendaTelatOtomatis || $hariTelatLive > 0 ? 'border-rose-200 bg-rose-50/50' : 'border-line bg-gray-50' }} p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="text-sm">
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Denda Keterlambatan Otomatis</p>
+                        @if ($tarifTelat <= 0)
+                            <p class="font-semibold text-gray-700">Tarif denda telat per hari belum diatur pada produk ini.</p>
+                            <p class="text-xs text-gray-500 mt-0.5">Isi "Denda per hari telat" di halaman Produk agar denda dihitung otomatis.</p>
+                        @elseif ($sewa->status !== 'selesai' && $hariTelatLive > 0)
+                            <p class="font-bold text-rose-700">
+                                Terlambat {{ $hariTelatLive }} hari &times; Rp {{ number_format($tarifTelat, 0, ',', '.') }}
+                                = Rp {{ number_format($estimasiDendaTelat, 0, ',', '.') }}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-0.5">Bertambah otomatis setiap hari sampai busana ditandai sudah kembali.</p>
+                        @elseif ($dendaTelatOtomatis)
+                            <p class="font-bold text-rose-700">
+                                Terlambat {{ $dendaTelatOtomatis->jumlah_hari }} hari &times; Rp {{ number_format($dendaTelatOtomatis->tarif_per_hari, 0, ',', '.') }}
+                                = Rp {{ number_format($dendaTelatOtomatis->jumlah, 0, ',', '.') }}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-0.5">Perhitungan final (busana sudah kembali).</p>
+                        @else
+                            <p class="font-semibold text-emerald-700">Tidak ada keterlambatan.</p>
+                            <p class="text-xs text-gray-500 mt-0.5">Tarif: Rp {{ number_format($tarifTelat, 0, ',', '.') }} / hari.</p>
+                        @endif
+                    </div>
+                    @if ($sewa->status !== 'selesai' && $tarifTelat > 0)
+                        <form action="{{ route('admin.sewa.sinkron-denda-telat', $sewa->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="px-4 py-2 bg-white border border-line rounded-lg text-xs font-bold hover:bg-gray-50 whitespace-nowrap">
+                                <i class="fas fa-rotate mr-1"></i> Hitung Ulang Sekarang
+                            </button>
+                        </form>
+                    @endif
+                </div>
+
                 {{-- Tabel Denda --}}
                 <div class="bg-white border border-line rounded-xl overflow-hidden mb-6">
                     <table class="w-full text-left text-sm">
@@ -834,7 +880,15 @@
                         <tbody class="divide-y divide-line">
                             @forelse($sewa->denda as $denda)
                                 <tr>
-                                    <td class="px-6 py-4 font-bold text-ink">{{ $denda->jenis }}</td>
+                                    <td class="px-6 py-4 font-bold text-ink">
+                                        {{ $denda->jenis }}
+                                        @if ($denda->otomatis)
+                                            <span class="ml-1 rounded bg-sky-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-sky-700">Otomatis</span>
+                                            <p class="mt-0.5 text-[11px] font-normal text-gray-500">
+                                                {{ $denda->jumlah_hari }} hari &times; Rp {{ number_format($denda->tarif_per_hari, 0, ',', '.') }}
+                                            </p>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 text-right font-bold text-rose-600">Rp
                                         {{ number_format($denda->jumlah, 0, ',', '.') }}</td>
                                     <td class="px-6 py-4 text-center">

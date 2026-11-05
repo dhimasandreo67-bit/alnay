@@ -58,6 +58,21 @@ class Transaksi extends Model
         return $this->user?->no_hp ?: ($this->no_hp_tamu ?: null);
     }
 
+    /**
+     * Apakah stok produk sudah terpotong oleh transaksi ini?
+     * - Kasir: terpotong saat dibuat (sewa dikembalikan saat sewa diselesaikan).
+     * - Online beli: terpotong saat pembayaran lunas.
+     * - Online sewa: tidak pernah dipotong (ketersediaan dihitung per tanggal).
+     */
+    public function stokSudahDipotong(): bool
+    {
+        if (($this->channel ?? null) === 'kasir') {
+            return $this->jenis !== 'sewa' || strtolower((string) ($this->sewa->status ?? '')) !== 'selesai';
+        }
+
+        return $this->jenis === 'beli' && $this->status_pembayaran === 'lunas';
+    }
+
     public function detail()
     {
         return $this->hasMany(DetailTransaksi::class);
