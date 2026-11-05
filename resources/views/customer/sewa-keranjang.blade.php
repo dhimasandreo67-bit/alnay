@@ -44,6 +44,9 @@
             </div>
         </div>
 
+        @if (session('error'))
+            <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 font-semibold text-sm">{{ session('error') }}</div>
+        @endif
         @if (session('success'))
             <div class="mb-6 p-4 rounded-xl bg-green-50 border border-green-200 text-green-800 font-semibold text-sm">{{ session('success') }}</div>
         @endif
@@ -108,7 +111,10 @@
                                             <div class="flex items-start justify-between gap-3">
                                                 <div>
                                                     <h3 class="line-clamp-2 text-sm font-bold leading-snug md:text-base" style="color: #15233d;">{{ $item['nama'] }}</h3>
-                                                    <p class="text-xs text-gray-500 mt-1">Ukuran: <span class="font-semibold text-gray-800">{{ $item['ukuran'] }}</span></p>
+                                                    <p class="text-xs text-gray-500 mt-1">
+                                                        @if (!empty($item['ukuran']))Ukuran: <span class="font-semibold text-gray-800">{{ $item['ukuran'] }}</span>@endif
+                                                        @if (!empty($item['warna']))<span class="mx-1 text-gray-300">·</span>Warna: <span class="font-semibold text-gray-800">{{ $item['warna'] }}</span>@endif
+                                                    </p>
                                                     <p class="text-xs text-gray-500">Tanggal: {{ \Carbon\Carbon::parse($item['tanggal_ambil'])->format('d M') }} s/d {{ \Carbon\Carbon::parse($item['tanggal_kembali'])->format('d M Y') }} ({{ $item['durasi'] }} hari)</p>
                                                 </div>
                                                 
@@ -126,6 +132,12 @@
                                                     <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Total Sewa</p>
                                                     <p class="text-lg font-bold tabular-nums md:text-xl" style="color: #c99a32;">Rp {{ number_format($item['total_sewa'], 0, ',', '.') }}</p>
                                                     <p class="text-xs text-rose-500 font-bold mt-1 bg-rose-50 inline-block px-2 py-0.5 rounded-md">DP: Rp {{ number_format($item['dp'], 0, ',', '.') }}</p>
+                                                    @if (($item['diskon'] ?? 0) > 0)
+                                                        <p class="mt-1 text-[11px] font-semibold text-emerald-600">Sudah termasuk diskon sewa {{ rtrim(rtrim(number_format($item['diskon'], 2, '.', ''), '0'), '.') }}%</p>
+                                                    @endif
+                                                    @if (isset($item['tersedia']) && $item['tersedia'] <= 0)
+                                                        <p class="mt-1 text-[11px] font-semibold text-red-600">Stok sewa pilihan ini habis — hapus atau pilih ulang di halaman produk.</p>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
