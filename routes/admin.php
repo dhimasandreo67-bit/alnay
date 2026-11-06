@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\LaporanController;
 use App\Http\Controllers\Admin\PengirimanController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\SewaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -122,15 +123,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('/{id}', [PenggunaController::class, 'destroy'])->name('destroy');
         });
 
-        // --- Aksi Sewa (Verifikasi Jaminan, Deposit, QC, Denda) ---
-        Route::post('/sewa/{id}/verifikasi-jaminan', [App\Http\Controllers\Admin\SewaController::class, 'verifikasiJaminan'])->name('sewa.verifikasi-jaminan');
-        Route::post('/sewa/{id}/kembalikan-deposit', [App\Http\Controllers\Admin\SewaController::class, 'kembalikanDeposit'])->name('sewa.kembalikan-deposit');
-        Route::match(['get', 'post'], '/sewa/{id}/simpan-qc', [App\Http\Controllers\Admin\SewaController::class, 'simpanQC'])->name('sewa.simpan-qc');
-        Route::post('/sewa/{id}/tambah-denda', [App\Http\Controllers\Admin\SewaController::class, 'tambahDenda'])->name('sewa.tambah-denda');
-        Route::patch('/denda/{id}/lunasi', [App\Http\Controllers\Admin\SewaController::class, 'lunasiDenda'])->name('sewa.lunasi-denda');
-        Route::patch('/sewa/{id}/ubah-status', [App\Http\Controllers\Admin\SewaController::class, 'ubahStatus'])->name('sewa.ubah-status');
-        Route::post('sewa/{id}/sinkron-denda-telat', [SewaController::class, 'sinkronDendaTelat'])->name('sewa.sinkron-denda-telat');
-        Route::put('/pengecekan/{id}', [App\Http\Controllers\Admin\SewaController::class, 'updateQC'])->name('sewa.update-qc');
-        Route::delete('/pengecekan/{id}', [App\Http\Controllers\Admin\SewaController::class, 'hapusQC'])->name('sewa.hapus-qc');
+                // --- Aksi Sewa (Verifikasi Jaminan, Deposit, QC, Denda) ---
+        Route::post('/sewa/{id}/verifikasi-jaminan', [SewaController::class, 'verifikasiJaminan'])->name('sewa.verifikasi-jaminan');
+        Route::post('/sewa/{id}/kembalikan-deposit', [SewaController::class, 'kembalikanDeposit'])->name('sewa.kembalikan-deposit');
+        Route::match(['get', 'post'], '/sewa/{id}/simpan-qc', [SewaController::class, 'simpanQC'])->name('sewa.simpan-qc');
+        
+        // Denda
+        Route::post('/sewa/{id}/tambah-denda', [SewaController::class, 'tambahDenda'])->name('sewa.tambah-denda');
+        Route::patch('/denda/{id}/lunasi', [SewaController::class, 'lunasiDenda'])->name('sewa.lunasi-denda');
+        Route::delete('/denda/{id}/hapus', [SewaController::class, 'hapusDenda'])->name('sewa.hapus-denda'); // Route Hapus Baru
+        Route::post('/sewa/{id}/sinkron-denda-telat', [SewaController::class, 'sinkronDendaTelat'])->name('sewa.sinkron-denda-telat');
+        
+        // Lainnya
+        Route::patch('/sewa/{id}/ubah-status', [SewaController::class, 'ubahStatus'])->name('sewa.ubah-status');
+        Route::put('/pengecekan/{id}', [SewaController::class, 'updateQC'])->name('sewa.update-qc');
+        Route::delete('/pengecekan/{id}', [SewaController::class, 'hapusQC'])->name('sewa.hapus-qc');
     });
 });

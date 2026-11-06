@@ -3,7 +3,15 @@
 
 @section('content')
     <div class="p-6 space-y-6 max-w-7xl mx-auto transition-all duration-500 animate-fade-in">
-
+        @if ($errors->any())
+            <div class="bg-red-50 border border-red-200 text-red-600 p-4 rounded-xl shadow-sm">
+                <ul class="list-disc pl-5 text-sm font-bold">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         <style>
             .group-shine {
                 position: relative;
