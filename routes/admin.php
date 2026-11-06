@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\PenggunaController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\LaporanController;
 use App\Http\Controllers\Admin\PengirimanController;
+use App\Http\Controllers\OngkirController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SewaController;
 
@@ -116,6 +117,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('pengguna')->name('pengguna.')->group(function () {
             Route::get('/', [PenggunaController::class, 'index'])->name('index');
             Route::post('/', [PenggunaController::class, 'store'])->name('store');
+
+            // Data wilayah & pencarian kelurahan RajaOngkir untuk form alamat pengguna
+            // (sumber yang sama dengan halaman Checkout / Alamat Saya pelanggan)
+            Route::get('/ongkir/tujuan', [OngkirController::class, 'tujuan'])->name('ongkir.tujuan');
+            Route::get('/ongkir/provinsi', [OngkirController::class, 'provinsi'])->name('ongkir.provinsi');
+            Route::get('/ongkir/kota/{provinsiId}', [OngkirController::class, 'kota'])->name('ongkir.kota');
+            Route::get('/ongkir/kecamatan/{kotaId}', [OngkirController::class, 'kecamatan'])->name('ongkir.kecamatan');
             Route::put('/{id}', [PenggunaController::class, 'update'])->name('update');
             Route::get('/{id}', fn () => redirect()->route('admin.pengguna.index'))->whereNumber('id');
             Route::post('/massal', [PenggunaController::class, 'massal'])->name('massal');

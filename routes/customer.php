@@ -86,5 +86,16 @@ Route::middleware('auth:web')->group(function () {
 
 });
 
+// Halaman info untuk akun yang dinonaktifkan (diisi oleh listener BlokirAkunNonaktif saat login)
+Route::get('/akun-nonaktif', function () {
+    $info = session('akun_nonaktif');
+
+    if (! $info) {
+        return redirect('/');
+    }
+
+    return view('auth.akun-nonaktif', ['info' => $info]);
+})->name('akun.nonaktif');
+
 // Webhook Midtrans
 Route::post('/midtrans/webhook', [SewaController::class, 'webhook'])->name('midtrans.webhook');
