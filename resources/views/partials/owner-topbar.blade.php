@@ -21,7 +21,6 @@
         </nav>
 
         {{-- Chip lokasi — DIHAPUS sesuai aturan bisnis (lokasi hanya satu) --}}
-        {{-- Figma ada chip "Studio Bandung Dago". Tidak dibuat. --}}
 
         {{-- Search --}}
         <form action="#" class="hidden md:flex relative w-64">

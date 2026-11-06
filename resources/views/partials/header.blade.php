@@ -21,14 +21,15 @@
 
     /* Efek kaca + glow emas saat scroll */
     .al-header { border-bottom: 1px solid var(--al-gold); background: rgba(255, 255, 255, .98); transition: background-color .3s ease, box-shadow .3s ease; }
+    /* Efek kaca (liquid glass) saat scroll */
     .al-header.is-scrolled {
-        background: rgba(255, 255, 255, .86);
-        -webkit-backdrop-filter: blur(14px);
-        backdrop-filter: blur(14px);
-        box-shadow: 0 12px 32px -14px rgba(201, 154, 50, .40);
+        background: rgba(255, 255, 255, .62);
+        -webkit-backdrop-filter: blur(22px) saturate(180%);
+        backdrop-filter: blur(22px) saturate(180%);
+        box-shadow: 0 12px 32px -14px rgba(201, 154, 50, .40), inset 0 1px 0 rgba(255, 255, 255, .7);
     }
-    .al-main { transition: padding .3s ease; }
-    .al-header.is-scrolled .al-main { padding-top: .45rem; padding-bottom: .45rem; }
+    .al-main { position: relative; z-index: 2; }
+    /* Tinggi header dijaga tetap supaya isi halaman tidak bergeser saat scroll */
 
     /* Tombol ikon bulat (gaya ikon sosmed footer) */
     .al-icon-btn {
@@ -40,7 +41,30 @@
     .al-icon-btn:hover { border-color: var(--al-gold); color: #9a6f12; background: #fff; transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(201, 154, 50, .55); }
 
     /* Latar menu: motif kain tapis (pucuk rebung + belah ketupat) */
-    .al-tapis { position: relative; background: #fdf8ea; overflow: hidden; }
+    /*
+       Baris menu: menggantung tepat di bawah baris utama (absolute) dan ruangnya
+       dipesan oleh spacer, jadi menyembunyikannya TIDAK menggeser halaman.
+       Tidak boleh overflow:hidden agar dropdown Koleksi tidak terpotong.
+    */
+    .al-tapis {
+        position: absolute; left: 0; right: 0; top: calc(100% + 1px);
+        height: 49px; z-index: 1;
+        background: #fdf8ea;
+        border-bottom: 1px solid var(--al-gold);
+        box-shadow: 0 14px 24px -18px rgba(201, 154, 50, .45);
+        clip-path: inset(0 -60px -500px -60px);   /* tampil penuh (dropdown & bayangan tetap keluar) */
+        transition: transform .55s cubic-bezier(.22, .8, .3, 1), clip-path .55s cubic-bezier(.22, .8, .3, 1), visibility 0s linear 0s;
+        will-change: transform, clip-path;
+    }
+    .al-tapis > div { transition: opacity .4s ease; }
+    .al-tapis.is-hidden {
+        transform: translateY(-101%);   /* naik ... */
+        clip-path: inset(100% -60px -500px -60px);   /* ... dan bagian di atas tepi header dipotong: tak tembus kaca */
+        visibility: hidden;
+        pointer-events: none;
+        transition: transform .45s cubic-bezier(.4, 0, .2, 1), clip-path .45s cubic-bezier(.4, 0, .2, 1), visibility 0s linear .45s;
+    }
+    .al-tapis.is-hidden > div { opacity: 0; transition: opacity .25s ease; }
     .al-tapis::before {
         content: '';
         position: absolute; inset: 0;
@@ -83,7 +107,7 @@
     .al-search:focus { box-shadow: 0 0 0 3px rgba(201, 154, 50, .18); }
 
     @media (prefers-reduced-motion: reduce) {
-        .al-header, .al-main, .al-nav, .al-nav::after, .al-icon-btn { transition: none !important; }
+        .al-header, .al-main, .al-nav, .al-nav::after, .al-icon-btn, .al-tapis, .al-tapis.is-hidden, .al-tapis > div { transition: none !important; }
     }
 </style>
 
@@ -108,7 +132,7 @@
         </p>
         <div class="flex items-center gap-4 text-[#6b7280]">
             <span class="hidden sm:inline-flex items-center gap-1.5">
-                <span class="text-[#a97c1a]">Studio:</span> {{ config('alnay.studio.jam_buka') }}
+                <span class="text-[#a97c1a]">Toko:</span> {{ config('toko.alnay.jam_buka') }}
             </span>
             <span class="inline-flex items-center gap-1.5">
                 <span class="text-[#a97c1a]"><x-icon name="whatsapp" :size="14" /></span>
@@ -119,8 +143,8 @@
 </div>
 
 {{-- HEADER UTAMA --}}
-<header x-data="{ mobileOpen: false, koleksiOpen: false, scrolled: false }"
-    @scroll.window.passive="scrolled = window.scrollY > 30"
+<header x-data="alnayHeader()"
+    @scroll.window.passive="onScroll()"
     :class="{ 'is-scrolled': scrolled }"
     class="al-header sticky top-0 z-50">
 
@@ -302,8 +326,8 @@
     </div>
 
     {{-- NAV DESKTOP --}}
-    <nav class="al-tapis hidden md:block border-t border-[#c99a32]/20">
-        <div class="max-w-7xl mx-auto px-4 py-1.5 flex items-center justify-center gap-2">
+    <nav class="al-tapis hidden md:block" :class="{ 'is-hidden': navHidden }" :aria-hidden="navHidden ? 'true' : 'false'">
+        <div class="max-w-7xl mx-auto px-4 h-full flex items-center justify-center gap-2">
             @foreach ($navItems as $item)
                 @if ($item['label'] === 'Koleksi')
                     <div class="relative" @mouseenter="koleksiOpen = true" @mouseleave="koleksiOpen = false">
@@ -423,3 +447,46 @@
     </div>
 
 </header>
+
+{{-- Pemesan ruang baris menu (49px = tinggi .al-tapis) supaya halaman tidak melompat saat menu disembunyikan --}}
+<div class="hidden md:block h-[49px]" aria-hidden="true"></div>
+
+<script>
+    function alnayHeader() {
+        return {
+            mobileOpen: false,
+            koleksiOpen: false,
+            scrolled: false,
+            navHidden: false,
+            lastY: 0,
+            acc: 0,
+
+            init() {
+                this.lastY = window.scrollY;
+                this.scrolled = this.lastY > 30;
+            },
+
+            // Turun ±40px -> menu naik & memudar. Naik ±12px -> menu muncul lagi.
+            onScroll() {
+                const y = Math.max(0, window.scrollY);
+                const d = y - this.lastY;
+                this.lastY = y;
+                this.scrolled = y > 30;
+
+                if (y < 80) { this.navHidden = false; this.acc = 0; return; }
+                if (d === 0) return;
+
+                if ((d > 0) !== (this.acc > 0)) this.acc = 0; // arah berubah: mulai hitung ulang
+                this.acc += d;
+
+                if (this.acc > 40 && !this.koleksiOpen) {
+                    this.navHidden = true;
+                    this.acc = 0;
+                } else if (this.acc < -12) {
+                    this.navHidden = false;
+                    this.acc = 0;
+                }
+            },
+        };
+    }
+</script>
