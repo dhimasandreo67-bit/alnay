@@ -203,7 +203,17 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ strtoupper(mb_substr(trim($namaPelanggan) ?: '?', 0, 1)) }}</span>
+                                    @php
+                                        $fotoUser = $t->user->foto_profil ?? null;
+                                        $fotoUserUrl = $fotoUser ? (\Illuminate\Support\Str::startsWith($fotoUser, ['http://', 'https://']) ? $fotoUser : asset('storage/' . $fotoUser)) : null;
+                                        $inisial = strtoupper(mb_substr(trim($namaPelanggan) ?: '?', 0, 1));
+                                    @endphp
+
+                                    @if($fotoUserUrl)
+                                        <img src="{{ $fotoUserUrl }}" alt="{{ $namaPelanggan }}" class="h-10 w-10 shrink-0 rounded-2xl object-cover border border-gray-200">
+                                    @else
+                                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
+                                    @endif
                                     <div class="min-w-0">
                                         <div class="text-sm font-bold text-gray-900 truncate">{{ $namaPelanggan }}</div>
                                         <div class="mt-1 flex items-center gap-1.5">
@@ -261,7 +271,7 @@
                                         Detail
                                     </a>
                                     @php
-                                        $bisaRestock = ($t->channel ?? null) === 'kasir' && strtolower((string) ($t->sewa->status ?? '')) !== 'selesai';
+                                        $bisaRestock = $t->stokSudahDipotong();
                                     @endphp
                                     <button type="button"
                                             data-modal-open="modal-hapus-transaksi"

@@ -466,7 +466,7 @@
                 <span class="hero-in inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-[10px] font-semibold backdrop-blur-sm border border-white/10"
                     style="--d:.05; color: var(--gold-soft);">
                     <svg class="ico-dot" aria-hidden="true"><use href="#i-dot" /></svg>
-                    Jas &amp; Gown Berbudaya — Elegan dalam Setiap Momen
+                    Jas &amp; Gown Berbudaya & Elegan dalam Setiap Momen
                 </span>
 
                 <h1 class="hero-in font-display mt-4 text-[28px] leading-tight font-bold min-[375px]:text-[32px] sm:text-[40px] lg:text-[44px]"
@@ -1053,7 +1053,7 @@
     </section>
 
     {{-- ============================================================
-     7. OFFLINE ATELIER & STUDIO
+     7. OFFLINE ATELIER
      ============================================================ --}}
     <section class="reveal max-w-7xl mx-auto px-4 py-12 md:py-20">
         <div class="rounded-3xl border p-6 md:p-12 bg-white transition-shadow duration-500 hover:shadow-xl"
@@ -1061,9 +1061,9 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
                 <div>
                     <p class="sec-eyebrow">Galeri &amp; Ruang Fitting</p>
-                    <h2 class="sec-title mt-3">Offline Atelier &amp; Studio ALNAY.ID</h2>
+                    <h2 class="sec-title mt-3">Offline Atelier &amp; Toko ALNAY.ID</h2>
                     <p class="text-sm md:text-base text-gray-600 mt-5 leading-relaxed">
-                        Kunjungi studio kami untuk konsultasi langsung, fitting presisi, dan melihat koleksi secara
+                        Kunjungi toko ALNAY untuk konsultasi langsung, fitting presisi, dan melihat koleksi secara
                         nyata. Dilengkapi ruang fitting privat ber-AC dan penjahit profesional siap membantu.
                     </p>
 

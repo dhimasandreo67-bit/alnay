@@ -54,7 +54,7 @@
         $actionQueue ??= [
             ['key' => 'jaminan', 'title' => 'Verifikasi jaminan sewa', 'desc' => '4 jaminan KTP / deposit pending', 'count' => 4, 'route' => '#'],
             ['key' => 'refund', 'title' => 'Refund diproses', 'desc' => '2 pengajuan pembatalan', 'count' => 2, 'route' => '#'],
-            ['key' => 'retur', 'title' => 'Return pengecekan', 'desc' => '1 gaun baru tiba di studio', 'count' => 1, 'route' => '#'],
+            ['key' => 'retur', 'title' => 'Return pengecekan', 'desc' => '1 gaun baru tiba di Toko', 'count' => 1, 'route' => '#'],
             ['key' => 'fitting', 'title' => 'Reservasi fitting baru', 'desc' => '3 jadwal butuh konfirmasi', 'count' => 3, 'route' => '#'],
         ];
         $antreanTotal ??= collect($actionQueue)->sum('count');
@@ -322,7 +322,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="font-display text-lg font-bold text-gray-900">Perlu Tindakan</h2>
-                        <p class="mt-0.5 text-xs text-gray-500">Prioritas operasional studio</p>
+                        <p class="mt-0.5 text-xs text-gray-500">Prioritas operasional toko</p>
                     </div>
                     <span class="relative flex items-center">
                         <span class="animate-ping absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-rose-400 opacity-75"></span>

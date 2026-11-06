@@ -9,40 +9,38 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 
-
 class ProfilController extends Controller
 {
     public function edit()
     {
-        return view('customer.profil', [ 
-            'user' => Auth::user()
-        ]);
+        // Diarahkan ke dashboard tab profil
+        return redirect(route('akun.dashboard') . '#profil');
     }
 
     public function update(Request $request)
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    $data = $request->validate([
-        'name' => ['required', 'string', 'max:255'],
-        'no_hp' => ['nullable', 'string', 'max:20'],
-        'jenis_kelamin' => ['nullable', 'in:L,P'],
-        'foto' => ['nullable', 'image', 'mimes:jpeg,jpg,png', 'max:1024'],
-    ]);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'no_hp' => ['nullable', 'string', 'max:20'],
+            'jenis_kelamin' => ['nullable', 'in:L,P'],
+            'foto' => ['nullable', 'image', 'mimes:jpeg,jpg,png', 'max:1024'],
+        ]);
 
-    if ($request->hasFile('foto')) {
-        if ($user->foto_profil && Storage::disk('public')->exists($user->foto_profil)) {
-            Storage::disk('public')->delete($user->foto_profil);
+        if ($request->hasFile('foto')) {
+            if ($user->foto_profil && Storage::disk('public')->exists($user->foto_profil)) {
+                Storage::disk('public')->delete($user->foto_profil);
+            }
+            $data['foto_profil'] = $request->file('foto')->store('foto-profil', 'public');
         }
-        $data['foto_profil'] = $request->file('foto')->store('foto-profil', 'public');
+
+        unset($data['foto']);
+        $user->update($data);
+
+        return redirect(route('akun.dashboard') . '#profil')
+            ->with('success', 'Profil berhasil diperbarui.');
     }
-
-    unset($data['foto']);
-    $user->update($data);
-
-    return redirect(route('akun.dashboard') . '#profil')
-        ->with('success', 'Profil berhasil diperbarui.');
-}
 
     public function updatePassword(Request $request)
     {

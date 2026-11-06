@@ -25,13 +25,19 @@
 
 @php
     $user = auth()->user();
+    
+    // Set default value dari alamat utama (jika ada)
+    $defaultNama = $alamatUtama->nama_penerima ?? $user->name ?? '';
+    $defaultWa = $alamatUtama->no_hp ?? $user->no_hp ?? '';
+    $defaultAlamat = $alamatUtama->alamat ?? $user->alamat ?? '';
+
     $cfg = [
         'penerimaan' => old('metode_penerimaan', 'ambil'),
         'ktp'        => old('metode_ktp', 'fisik'),
         'bayar'      => old('metode_bayar', 'qris'),
-        'nama'       => old('nama_penerima', $user->name ?? ''),
-        'wa'         => old('no_wa', $user->no_hp ?? ''),
-        'alamat'     => old('alamat', $user->alamat ?? ''),
+        'nama'       => old('nama_penerima', $defaultNama),
+        'wa'         => old('no_wa', $defaultWa),
+        'alamat'     => old('alamat', $defaultAlamat),
         'catatan'    => old('catatan', ''),
         'setuju'     => (bool) old('setuju'),
         'deposit'    => (float) ($deposit ?? 0),
@@ -58,10 +64,8 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 lg:gap-8">
 
-                {{-- ==================== KOLOM KIRI ==================== --}}
                 <div class="space-y-4">
-
-                    {{-- 1. Ringkasan Sewa (MULTI ITEM) --}}
+                    {{-- 1. Ringkasan Sewa --}}
                     <div class="pd-up bg-panel border border-line/40 rounded-xl p-5 hover:shadow-md transition-shadow duration-300" style="--d: .05s;">
                         <div class="flex items-start justify-between gap-3 mb-4">
                             <div>
@@ -77,9 +81,6 @@
                                     $produk = $item['produk'];
                                     $tglAmbil = \Carbon\Carbon::parse($item['tanggal_ambil'])->locale('id');
                                     $tglKembali = \Carbon\Carbon::parse($item['tanggal_kembali'])->locale('id');
-                                    $rentang = $tglAmbil->isSameMonth($tglKembali)
-                                        ? $tglAmbil->format('d') . '–' . $tglKembali->translatedFormat('d M Y')
-                                        : $tglAmbil->translatedFormat('d M') . ' – ' . $tglKembali->translatedFormat('d M Y');
                                     $fotoSewa = is_array($produk->foto_produk) ? ($produk->foto_produk[0] ?? null) : $produk->foto_produk;
                                 @endphp
                                 <div class="flex gap-3 items-center border-b border-line/40 pb-4 last:border-0 last:pb-0">
@@ -95,9 +96,6 @@
                                         <p class="text-xs text-ink/55 mt-0.5">
                                             {{ collect([!empty($item['ukuran']) ? 'Ukuran ' . $item['ukuran'] : null, !empty($item['warna']) ? 'Warna ' . $item['warna'] : null, $item['durasi'] . ' hari'])->filter()->implode(' · ') }}
                                         </p>
-                                        @if ($produk->diskonSewa() > 0)
-                                            <p class="mt-0.5"><span class="inline-flex rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold text-rose-700 border border-rose-200">Diskon sewa -{{ rtrim(rtrim(number_format($produk->diskonSewa(), 2, '.', ''), '0'), '.') }}%</span></p>
-                                        @endif
                                         <p class="text-xs text-ink/55 mt-0.5">{{ $tglAmbil->translatedFormat('d M') }} - {{ $tglKembali->translatedFormat('d M Y') }}</p>
                                     </div>
                                     <div class="text-right">
@@ -111,24 +109,24 @@
                     {{-- 2. Verifikasi KTP --}}
                     <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .1s;">
                         <h2 class="font-display text-xl font-semibold text-ink/90 mb-1">Verifikasi Identitas</h2>
-                        <p class="text-xs text-ink/55 mb-4">Sebagai jaminan sewa — Anda diharapkan datang langsung ke studio untuk verifikasi KTP asli.</p>
+                        <p class="text-xs text-ink/55 mb-4">Sebagai jaminan sewa diharapkan datang langsung ke toko untuk verifikasi KTP asli.</p>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                             <label class="cursor-pointer">
                                 <input type="radio" name="metode_ktp" value="fisik" class="opsi-radio peer sr-only" x-model="metodeKtp">
-                                <div class="opsi-card h-full p-4 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 hover:-translate-y-px hover:shadow-sm transition-all duration-300">
+                                <div class="opsi-card h-full p-4 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all duration-300">
                                     <div class="flex items-center gap-2 mb-2">
                                         <span class="radio-dot w-3.5 h-3.5 rounded-full border-2 border-line shrink-0 transition-all"></span>
                                         <p class="text-[13px] font-semibold text-ink/85">KTP Fisik (Asli)</p>
                                     </div>
-                                    <p class="text-xs text-ink/60 leading-relaxed mb-2">Datang langsung ke studio, tunjukkan KTP asli. <strong class="text-ink/85">Disarankan</strong>.</p>
+                                    <p class="text-xs text-ink/60 leading-relaxed mb-2">Datang langsung ke toko, tunjukkan KTP asli. <strong class="text-ink/85">Disarankan</strong>.</p>
                                     <p class="text-xs text-green-700 flex items-center gap-1">Tidak ada deposit tambahan</p>
                                 </div>
                             </label>
 
                             <label class="cursor-pointer">
                                 <input type="radio" name="metode_ktp" value="digital" class="opsi-radio peer sr-only" x-model="metodeKtp">
-                                <div class="opsi-card h-full p-4 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 hover:-translate-y-px hover:shadow-sm transition-all duration-300">
+                                <div class="opsi-card h-full p-4 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all duration-300">
                                     <div class="flex items-center gap-2 mb-2">
                                         <span class="radio-dot w-3.5 h-3.5 rounded-full border-2 border-line shrink-0 transition-all"></span>
                                         <p class="text-[13px] font-semibold text-ink/85">KTP Digital (Online)</p>
@@ -153,15 +151,15 @@
                     {{-- 3. Metode Penerimaan --}}
                     <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .15s;">
                         <h2 class="font-display text-xl font-semibold text-ink/90 mb-1">Metode Penerimaan</h2>
-                        <p class="text-xs text-ink/55 mb-4">Jika memilih KTP Digital, busana wajib dikirim ke alamat Anda — pilihan otomatis berpindah.</p>
+                        <p class="text-xs text-ink/55 mb-4">Jika memilih KTP Digital, busana wajib dikirim ke alamat Anda.</p>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <label :class="metodeKtp === 'digital' ? 'cursor-not-allowed' : 'cursor-pointer'">
                                 <input type="radio" name="metode_penerimaan" value="ambil" class="opsi-radio peer sr-only" x-model="metodePenerimaan" :disabled="metodeKtp === 'digital'">
-                                <div class="opsi-card h-full p-4 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 hover:-translate-y-px hover:shadow-sm transition-all duration-300">
+                                <div class="opsi-card h-full p-4 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all duration-300">
                                     <div class="flex items-center gap-2 mb-2">
                                         <span class="radio-dot w-3.5 h-3.5 rounded-full border-2 border-line shrink-0 transition-all"></span>
-                                        <p class="text-[13px] font-semibold text-ink/85">Ambil di Studio</p>
+                                        <p class="text-[13px] font-semibold text-ink/85">Ambil di Toko</p>
                                     </div>
                                     <p class="text-xs text-ink/60 leading-relaxed">Tidak tersedia untuk KTP Digital.</p>
                                 </div>
@@ -169,24 +167,49 @@
 
                             <label class="cursor-pointer">
                                 <input type="radio" name="metode_penerimaan" value="kirim" class="opsi-radio peer sr-only" x-model="metodePenerimaan">
-                                <div class="opsi-card h-full p-4 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 hover:-translate-y-px hover:shadow-sm transition-all duration-300">
+                                <div class="opsi-card h-full p-4 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all duration-300">
                                     <div class="flex items-center gap-2 mb-2">
                                         <span class="radio-dot w-3.5 h-3.5 rounded-full border-2 border-line shrink-0 transition-all"></span>
                                         <p class="text-[13px] font-semibold text-ink/85">Dikirim ke Alamat</p>
                                     </div>
                                     <p class="text-xs text-ink/60 leading-relaxed">Diantar oleh kurir ke alamat Anda.</p>
-                                    <span class="inline-block mt-2 px-2 py-0.5 rounded bg-gold/10 text-gold text-[10px] font-bold uppercase">Wajib untuk KTP Digital</span>
                                 </div>
                             </label>
                         </div>
                     </div>
 
-                    {{-- 4. Alamat Pengiriman --}}
+                    {{-- 4. Alamat Pengiriman (UPDATED) --}}
                     <div class="bg-panel border border-line/40 rounded-xl p-5" x-show="metodePenerimaan === 'kirim'" x-cloak
                         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
                         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2">
                         <h2 class="font-display text-xl font-semibold text-ink/90 mb-1">Alamat Pengiriman</h2>
-                        <p class="text-xs text-green-700 mb-4 flex items-center gap-1">Diisi otomatis dari profil Anda — bisa diubah khusus untuk pesanan ini.</p>
+                        
+                        {{-- Pilihan Alamat Tersimpan --}}
+                        @if(isset($alamatList) && count($alamatList) > 0)
+                            <div class="mb-5 mt-3">
+                                <label class="block text-xs font-medium text-ink/70 mb-2">Pilih dari Alamat Tersimpan</label>
+                                <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                    @foreach($alamatList as $a)
+                                        <label class="cursor-pointer block">
+                                            <input type="radio" name="pilih_alamat" value="{{ $a->id }}" class="opsi-radio peer sr-only" 
+                                                   onchange="pilihAlamatSewa(this)" 
+                                                   data-alamat="{{ json_encode($a) }}"
+                                                   @if($alamatUtama && $alamatUtama->id === $a->id) checked @endif>
+                                            <div class="opsi-card flex items-start gap-3 p-3 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all duration-300">
+                                                <span class="radio-dot w-4 h-4 mt-0.5 rounded-full border-2 border-line shrink-0 transition-all"></span>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-[13px] font-bold text-ink/85">{{ $a->label }} - {{ $a->nama_penerima }}</p>
+                                                    <p class="text-[11px] text-ink/60">{{ $a->no_hp }}</p>
+                                                    <p class="text-[11px] text-ink/60 mt-1 leading-relaxed">{{ $a->alamat }}, {{ $a->kecamatan }}, {{ $a->kota_kabupaten }}, {{ $a->provinsi }} {{ $a->kode_pos }}</p>
+                                                </div>
+                                                @if($a->is_utama) <span class="text-[9px] font-bold px-2 py-0.5 bg-gold/10 text-gold rounded shrink-0">UTAMA</span> @endif
+                                            </div>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                <p class="text-[11px] text-ink/55 mt-2">Atau ubah alamat secara manual di bawah ini.</p>
+                            </div>
+                        @endif
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                             <div>
@@ -209,6 +232,12 @@
                             <label class="block text-xs font-medium text-ink/70 mb-1">Catatan untuk Kurir (opsional)</label>
                             <input type="text" name="catatan" x-model="catatan" class="w-full px-3 py-2.5 rounded-md border border-line/60 bg-white text-[13px] text-ink/85 focus:outline-none focus:border-gold transition-all">
                         </div>
+
+                        {{-- Hidden Inputs untuk data wilayah --}}
+                        <input type="hidden" name="provinsi" id="in-provinsi" value="{{ $alamatUtama->provinsi ?? '' }}">
+                        <input type="hidden" name="kota_kabupaten" id="in-kota" value="{{ $alamatUtama->kota_kabupaten ?? '' }}">
+                        <input type="hidden" name="kecamatan" id="in-kecamatan" value="{{ $alamatUtama->kecamatan ?? '' }}">
+                        <input type="hidden" name="kode_pos" id="in-kodepos" value="{{ $alamatUtama->kode_pos ?? '' }}">
                     </div>
 
                     {{-- 5. Metode Pembayaran --}}
@@ -251,7 +280,7 @@
                     </div>
                 </div>
 
-                {{-- ==================== KOLOM KANAN — RINGKASAN ==================== --}}
+                {{-- KOLOM KANAN --}}
                 <div class="lg:sticky lg:top-24 h-fit">
                     <div class="pd-up" style="--d: .3s;">
                     <div class="bg-panel border border-line/40 rounded-xl p-5 transition-colors duration-300" :class="{ 'pd-shake border-rose-300': getar }">
@@ -293,7 +322,7 @@
                 </div>
             </div>
             
-            {{-- Bar Bawah untuk HP --}}
+            {{-- Bar Bawah HP --}}
             <div class="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-line/50 px-4 py-3 flex items-center gap-3">
                 <div class="flex-1 min-w-0">
                     <p class="text-[11px] text-ink/55">Total dibayar sekarang</p>
@@ -332,7 +361,6 @@
                 _anim: null,
 
                 get totalBayar() {
-                    // Total dibayar = Total DP semua item + Deposit (jika KTP Digital)
                     return this.totalDp + (this.metodeKtp === 'digital' ? this.deposit : 0);
                 },
 
@@ -409,6 +437,31 @@
                 },
             };
         });
+    });
+
+    // Fungsi sinkronisasi alamat tersimpan ke UI
+    window.pilihAlamatSewa = function(el) {
+        const data = JSON.parse(el.dataset.alamat);
+        const root = document.querySelector('[x-data^="checkoutSewa"]');
+        
+        if (root) {
+            const alpineData = Alpine.$data(root);
+            alpineData.namaPenerima = data.nama_penerima;
+            alpineData.noWa = data.no_hp;
+            alpineData.alamat = data.alamat;
+        }
+
+        // Update hidden inputs untuk wilayah
+        if(document.getElementById('in-provinsi')) document.getElementById('in-provinsi').value = data.provinsi || '';
+        if(document.getElementById('in-kota')) document.getElementById('in-kota').value = data.kota_kabupaten || '';
+        if(document.getElementById('in-kecamatan')) document.getElementById('in-kecamatan').value = data.kecamatan || '';
+        if(document.getElementById('in-kodepos')) document.getElementById('in-kodepos').value = data.kode_pos || '';
+    };
+
+    // Jalankan saat halaman dimuat jika radio alamat utama sudah terpilih
+    document.addEventListener('DOMContentLoaded', function () {
+        const selected = document.querySelector('input[name="pilih_alamat"]:checked');
+        if (selected) pilihAlamatSewa(selected);
     });
 </script>
 

@@ -5,9 +5,7 @@
 | Konfigurasi Bisnis ALNAY.ID
 |--------------------------------------------------------------------------
 |
-| ⚠️ SEMUA NILAI DI BAWAH INI ADALAH PLACEHOLDER.
-| Ganti dengan nilai final sebelum produksi.
-| JANGAN hardcode nilai ini di Blade — selalu baca lewat config().
+| Semua nilai di bawah ini bisa diatur melalui file .env
 |
 */
 
@@ -19,7 +17,7 @@ return [
     ],
 
     'promo_bar' => [
-        'teks' => env('ALNAY_PROMO_TEKS', 'PLACEHOLDER: teks promo beranda'),
+        'teks' => env('ALNAY_PROMO_TEKS', 'Selamat datang di ALNAY.ID'),
     ],
 
     'kontak' => [
@@ -28,17 +26,14 @@ return [
         'email'         => env('ALNAY_EMAIL', 'placeholder@alnay.id'),
     ],
 
-    'studio' => [
-        'jam_buka' => env('ALNAY_JAM_BUKA', 'PLACEHOLDER: jam buka studio'),
-        'alamat'   => env('ALNAY_ALAMAT', 'PLACEHOLDER: alamat atelier'),
-        // ⚠️ Figma inkonsisten (Bandung vs Lampung). Jangan diisi sampai final.
-        // ⚠️ Aturan bisnis: lokasi fitting HANYA SATU.
+    'toko' => [
+        'nama'     => 'Toko ALNAY',
+        'jam_buka' => env('ALNAY_JAM_BUKA', 'Senin - Sabtu, 09.00 - 18.00 WIB'),
+        'alamat'   => env('ALNAY_ALAMAT', 'Alamat Toko ALNAY (Belum diatur)'),
     ],
 
     'event' => [
         'url' => env('ALNAY_EVENT_URL', 'https://event.alnay.id'),
-        // Sistem event TERPISAH TOTAL. Dari web utama, ini hanya tautan keluar.
-        // JANGAN buat query/model/migrasi ke tabel event di project ini.
     ],
 
     'dp_sewa' => env('ALNAY_DP_SEWA', 1000000),

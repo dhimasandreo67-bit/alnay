@@ -210,7 +210,8 @@
                                         @endif
                                         <div class="min-w-0">
                                             <p class="text-xs font-bold text-gray-800 truncate">{{ $namaPelanggan }}</p>
-                                            <p class="text-[10px] text-gray-500">{{ $p->transaksi?->user?->no_hp ?? '-' }}</p>
+                                            {{-- PERUBAHAN: Prioritas nomor WA penerima --}}
+                                            <p class="text-[10px] text-gray-500">{{ $p->no_wa_penerima ?: ($p->transaksi?->user?->no_hp ?? '-') }}</p>
                                         </div>
                                     </div>
                                 </td>

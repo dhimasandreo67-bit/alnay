@@ -67,6 +67,8 @@
                 filterOpen: false,
                 loading: false,
                 scrolled: false,
+                sheetY: 0,
+                dragY0: null,
                 seq: 0,
                 timer: null,
                 urlTerakhir: '',
@@ -90,6 +92,30 @@
                         this.sinkronForm();
                         this.muat(location.href, { push: false });
                     });
+                },
+
+                // Geser lembar filter ke bawah (HP) untuk menutupnya
+                mulaiTarik(e) {
+                    if (window.innerWidth >= 1024) return;
+                    this.dragY0 = e.touches[0].clientY;
+                },
+                tarik(e) {
+                    if (this.dragY0 === null) return;
+                    this.sheetY = Math.max(0, e.touches[0].clientY - this.dragY0);
+                },
+                lepasTarik() {
+                    if (this.dragY0 === null) return;
+                    if (this.sheetY > 90) this.filterOpen = false;
+                    this.sheetY = 0;
+                    this.dragY0 = null;
+                },
+
+                // Di HP hasil berada jauh di bawah hero: geser ke daftar produk
+                keHasil() {
+                    const el = document.getElementById('area-produk');
+                    if (!el) return;
+                    const top = el.getBoundingClientRect().top + window.scrollY - 96;
+                    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
                 },
 
                 fmt(v) {
@@ -125,16 +151,16 @@
                     const cb = document.querySelector('#form-filter input[name="kategori[]"][value="' + slug + '"]');
                     if (!cb) return;
                     cb.checked = !cb.checked;
-                    this.kirim();
+                    this.kirim({ hero: true });
                 },
 
                 semuaKategori() {
                     document.querySelectorAll('#form-filter input[name="kategori[]"]').forEach(c => c.checked = false);
-                    this.kirim();
+                    this.kirim({ hero: true });
                 },
 
                 // Kumpulkan semua filter (form + search + harga + sort) -> URL -> muat via AJAX
-                kirim() {
+                kirim(opt = {}) {
                     clearTimeout(this.timer);
                     const f = document.getElementById('form-filter');
                     const fd = new FormData(f);
@@ -152,8 +178,11 @@
 
                     const qs = p.toString();
                     const url = f.action + (qs ? '?' + qs : '');
-                    if (url === this.urlTerakhir) return;
-                    this.muat(url);
+                    if (url === this.urlTerakhir) {
+                        if (opt.hero && window.innerWidth < 1024) this.keHasil();
+                        return;
+                    }
+                    this.muat(url, { naik: !!opt.hero && window.innerWidth < 1024 });
                 },
 
                 // Setiap input berubah -> langsung terapkan. 'Jenis' dibuat saling meniadakan.
@@ -243,10 +272,7 @@
                         if (push) history.pushState({}, '', url);
 
                         // Hanya saat pindah halaman (pagination) -> geser ke awal daftar produk
-                        if (naik) {
-                            const top = document.getElementById('area-produk').getBoundingClientRect().top + window.scrollY - 96;
-                            window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-                        }
+                        if (naik) this.keHasil();
                     } catch (err) {
                         // Fallback: kalau AJAX gagal, pakai navigasi biasa
                         if (id === this.seq) window.location.href = url;
@@ -280,6 +306,7 @@
 
     <div class="bg-[#FBFAF7] min-h-screen font-sans" x-data="koleksiFilter(@js($awalFilter))"
         @muat="muat($event.detail.url)" @keydown.escape.window="filterOpen = false"
+        @resize.window.debounce.150ms="if (window.innerWidth >= 1024) filterOpen = false"
         @scroll.window.throttle.100ms="scrolled = window.scrollY > 520"
         x-effect="document.body.style.overflow = (filterOpen && window.innerWidth < 1024) ? 'hidden' : ''">
 
@@ -320,10 +347,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
                     </svg>
-                    <input type="search" x-model="cari" @input.debounce.400ms="kirim()" @keydown.enter.prevent="kirim()"
+                    <input type="search" x-model="cari" @input.debounce.400ms="kirim()" @keydown.enter.prevent="kirim({ hero: true }); $el.blur()"
                         autocomplete="off" enterkeyhint="search" aria-label="Cari produk"
-                        placeholder="Cari kebaya, siger, motif, atau kode produk…"
-                        class="w-full h-12 md:h-14 pl-12 pr-12 rounded-full bg-white text-[14px] md:text-[15px] text-ink placeholder:text-ink/40 shadow-lg shadow-black/20 border-0 ring-1 ring-white/10 focus:ring-2 focus:ring-gold outline-none transition-all [&::-webkit-search-cancel-button]:hidden">
+                        placeholder="Cari kebaya, siger, motif…"
+                        class="w-full h-12 md:h-14 pl-12 pr-12 rounded-full bg-white text-base md:text-[15px] text-ink placeholder:text-ink/40 shadow-lg shadow-black/20 border-0 ring-1 ring-white/10 focus:ring-2 focus:ring-gold outline-none transition-all [&::-webkit-search-cancel-button]:hidden">
                     <button type="button" x-show="cari" x-cloak @click="cari = ''; kirim()" aria-label="Hapus pencarian"
                         class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full text-ink/45 hover:text-ink hover:bg-cream transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -368,11 +395,12 @@
                 <aside
                     class="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] lg:backdrop-blur-none lg:bg-transparent lg:static lg:z-auto lg:!block"
                     x-show="filterOpen" x-transition.opacity x-cloak @click.self="filterOpen = false">
-                    <div
-                        class="sheet-in absolute bottom-0 inset-x-0 flex flex-col max-h-[88vh] bg-panel rounded-t-3xl shadow-2xl lg:static lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:rounded-2xl lg:shadow-sm lg:border lg:border-line/40">
+                    <div :style="sheetY ? 'transform: translateY(' + sheetY + 'px); transition: none; animation: none;' : ''"
+                        class="sheet-in absolute bottom-0 inset-x-0 flex flex-col max-h-[88dvh] bg-panel rounded-t-3xl shadow-2xl lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:rounded-2xl lg:shadow-sm lg:border lg:border-line/40">
 
                         {{-- Header panel --}}
-                        <div class="shrink-0 px-5 pt-3 pb-3 lg:pt-5 border-b border-line/30">
+                        <div class="shrink-0 px-5 pt-3 pb-3 lg:pt-5 border-b border-line/30" style="touch-action: pan-y;"
+                            @touchstart.passive="mulaiTarik($event)" @touchmove.passive="tarik($event)" @touchend="lepasTarik()">
                             <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-ink/15 lg:hidden"></div>
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">
@@ -397,7 +425,7 @@
 
                         {{-- ISI FORM FILTER --}}
                         <form id="form-filter" method="GET" action="{{ route('koleksi.index') }}"
-                            class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-5" @submit.prevent="kirim()"
+                            class="flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar px-5" @submit.prevent="kirim()"
                             @change="ubah($event, $el)" @click="klik($event, $el)">
 
                             <input type="hidden" name="search" value="{{ request('search') }}">
@@ -444,11 +472,11 @@
                                 <div class="pb-4 space-y-0.5">
                                     @foreach ($kategoriList as $k)
                                         <label
-                                            class="flex items-center justify-between gap-2 cursor-pointer group/row -mx-2 px-2 py-2 rounded-lg hover:bg-cream/70 transition-colors">
+                                            class="flex items-center justify-between gap-2 cursor-pointer group/row -mx-2 px-2 py-2.5 rounded-lg hover:bg-cream/70 transition-colors">
                                             <span class="flex items-center gap-2.5">
                                                 <input type="checkbox" name="kategori[]" value="{{ $k->slug }}"
                                                     {{ in_array($k->slug, (array) request('kategori', [])) ? 'checked' : '' }}
-                                                    class="w-[18px] h-[18px] rounded border-line/60 text-gold focus:ring-gold focus:ring-offset-0 transition-all">
+                                                    class="w-5 h-5 rounded border-line/60 text-gold focus:ring-gold focus:ring-offset-0 transition-all">
                                                 <span
                                                     class="text-[13px] text-ink/75 group-hover/row:text-ink transition-colors">{{ $k->nama_kategori }}</span>
                                             </span>
@@ -479,7 +507,7 @@
                                             <input type="text" inputmode="numeric" autocomplete="off" placeholder="Min"
                                                 aria-label="Harga minimum" :value="fmt(hargaMin)"
                                                 @input="setHarga('hargaMin', $event)" @keydown.enter.prevent="kirim()"
-                                                class="w-full h-11 pl-9 pr-2 rounded-xl border border-line/50 bg-white text-[13px] text-ink/85 placeholder:text-ink/30 focus:border-gold focus:ring-2 focus:ring-gold/25 outline-none transition-all">
+                                                class="w-full h-12 sm:h-11 pl-9 pr-2 rounded-xl border border-line/50 bg-white text-base sm:text-[13px] text-ink/85 placeholder:text-ink/30 focus:border-gold focus:ring-2 focus:ring-gold/25 outline-none transition-all">
                                         </div>
                                         <span class="text-ink/35 text-xs">–</span>
                                         <div class="relative flex-1 min-w-0">
@@ -488,14 +516,14 @@
                                             <input type="text" inputmode="numeric" autocomplete="off" placeholder="Max"
                                                 aria-label="Harga maksimum" :value="fmt(hargaMax)"
                                                 @input="setHarga('hargaMax', $event)" @keydown.enter.prevent="kirim()"
-                                                class="w-full h-11 pl-9 pr-2 rounded-xl border border-line/50 bg-white text-[13px] text-ink/85 placeholder:text-ink/30 focus:border-gold focus:ring-2 focus:ring-gold/25 outline-none transition-all">
+                                                class="w-full h-12 sm:h-11 pl-9 pr-2 rounded-xl border border-line/50 bg-white text-base sm:text-[13px] text-ink/85 placeholder:text-ink/30 focus:border-gold focus:ring-2 focus:ring-gold/25 outline-none transition-all">
                                         </div>
                                     </div>
 
                                     <div class="flex flex-wrap gap-1.5 mt-3">
                                         <template x-for="p in preset" :key="p.l">
                                             <button type="button" @click="pilihPreset(p)"
-                                                class="px-3 py-1.5 rounded-full border text-[12px] transition-all active:scale-95"
+                                                class="px-3.5 min-h-[40px] rounded-full border text-[12px] transition-all active:scale-95"
                                                 :class="(hargaMin === p.min && hargaMax === p.max) ?
                                                 'border-gold bg-gold/10 text-ink font-semibold' :
                                                 'border-line/50 text-ink/65 hover:border-gold/60'"
@@ -635,17 +663,17 @@
                     @endphp
 
                     {{-- Toolbar --}}
-                    <div class="relative z-30 flex items-center justify-between gap-3 mb-4">
+                    <div class="relative z-30 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                         <p class="text-[13px] text-ink/55 min-w-0">
                             <span class="hidden sm:inline">Menampilkan </span><b
                                 class="text-ink/85">{{ $produkList->firstItem() ?? 0 }}–{{ $produkList->lastItem() ?? 0 }}</b>
                             dari <b class="text-ink/85">{{ $produkList->total() }}</b> produk
                         </p>
 
-                        <div class="flex items-center gap-2 shrink-0">
+                        <div class="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
                             {{-- Tombol Filter khusus HP --}}
                             <button type="button" @click="filterOpen = true"
-                                class="lg:hidden inline-flex items-center gap-1.5 h-10 px-4 rounded-full border border-line/60 bg-panel text-[13px] font-semibold text-ink/80 active:scale-95 transition">
+                                class="lg:hidden inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 h-11 px-4 rounded-full border border-line/60 bg-panel text-[13px] font-semibold text-ink/80 active:scale-95 transition">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -658,7 +686,7 @@
                             </button>
 
                             {{-- Dropdown Sortir --}}
-                            <div class="flex items-center gap-2" x-data="{
+                            <div class="flex flex-1 sm:flex-none min-w-0 items-center gap-2" x-data="{
                                 open: false,
                                 selected: '{{ request('sort', 'terbaru') }}',
                                 options: {
@@ -694,9 +722,9 @@
 
                                 <span class="hidden md:inline text-xs text-ink/50">Urutkan:</span>
 
-                                <div class="relative" @click.outside="open = false" @keydown.escape="open = false">
+                                <div class="relative flex-1 sm:flex-none" @click.outside="open = false" @keydown.escape="open = false">
                                     <button type="button" @click="open = !open" :aria-expanded="open"
-                                        class="flex items-center justify-between gap-2 h-10 min-w-[128px] px-4 rounded-full border border-line/60 bg-panel text-[13px] text-ink/80 hover:border-gold/60 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50">
+                                        class="flex w-full items-center justify-between gap-2 h-11 sm:h-10 sm:min-w-[128px] px-4 rounded-full border border-line/60 bg-panel text-[13px] text-ink/80 hover:border-gold/60 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50">
                                         <span x-text="options[selected]"></span>
                                         <svg class="w-4 h-4 text-ink/40 transition-transform duration-200"
                                             :class="{ 'rotate-180': open }" fill="none" stroke="currentColor"
@@ -724,10 +752,10 @@
 
                     {{-- Chip filter aktif --}}
                     @if (count($chips))
-                        <div class="flex flex-wrap items-center gap-2 mb-5">
+                        <div class="flex items-center gap-2 mb-5 -mx-4 px-4 overflow-x-auto no-scrollbar sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible">
                             @foreach ($chips as $c)
                                 <a href="{{ $c['url'] }}" data-chip
-                                    class="group inline-flex items-center gap-1.5 pl-3.5 pr-2 py-1.5 rounded-full bg-gold/10 border border-gold/30 text-[12px] font-medium text-ink/80 hover:bg-gold/20 active:scale-95 transition">
+                                    class="group inline-flex shrink-0 items-center gap-1.5 pl-3.5 pr-2 py-2 rounded-full bg-gold/10 border border-gold/30 text-[12px] font-medium text-ink/80 hover:bg-gold/20 active:scale-95 transition">
                                     <span class="max-w-[220px] truncate">{{ $c['label'] }}</span>
                                     <svg class="w-3.5 h-3.5 text-ink/45 group-hover:text-ink" fill="none"
                                         stroke="currentColor" viewBox="0 0 24 24">
@@ -737,7 +765,7 @@
                                 </a>
                             @endforeach
                             <a href="{{ route('koleksi.index') }}" data-ajax
-                                class="text-[12px] font-semibold text-gold hover:underline px-1.5 py-1">Hapus semua</a>
+                                class="shrink-0 whitespace-nowrap text-[12px] font-semibold text-gold hover:underline px-1.5 py-1">Hapus semua</a>
                         </div>
                     @endif
 

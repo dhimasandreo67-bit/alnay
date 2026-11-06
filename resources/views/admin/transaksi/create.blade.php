@@ -69,6 +69,8 @@
             'bisa_disewa'   => (bool) $p->bisa_disewa,
             'dapat_dijual'  => (bool) $p->dapat_dijual,
             'diskon_persen' => (float) $p->diskon_persen,
+            'diskon_sewa'   => (float) ($p->diskon_sewa_persen ?? 0),
+            'diskon_jual'   => (float) ($p->diskon_jual_persen ?? 0),
             'denda'         => (float) $p->denda_per_hari_telat,
         ];
     })->values();
@@ -203,17 +205,46 @@
                 </div>
 
                 <div id="box-tanggal-sewa" class="hidden mt-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label for="tanggal_pinjam" class="text-xs font-bold text-gray-500">Tanggal Ambil</label>
-                            <input type="date" id="tanggal_pinjam" name="tanggal_pinjam" value="{{ old('tanggal_pinjam') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+                    {{-- Kalender rentang sewa (sama dengan kalender di halaman detail produk).
+                         Nilai tersimpan di dua input tersembunyi supaya form & validasi lama tetap jalan. --}}
+                    <input type="hidden" id="tanggal_pinjam" name="tanggal_pinjam" value="{{ old('tanggal_pinjam') }}">
+                    <input type="hidden" id="tanggal_kembali_rencana" name="tanggal_kembali_rencana" value="{{ old('tanggal_kembali_rencana') }}">
+
+                    <p class="text-xs font-bold text-gray-500 mb-2">Tanggal Sewa <span class="text-rose-600">*</span></p>
+                    <div class="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                        <div class="mb-2 flex items-center justify-between">
+                            <span id="kal-judul" class="text-sm font-bold capitalize text-gray-800"></span>
+                            <div class="flex gap-1.5">
+                                <button type="button" id="kal-mundur" aria-label="Bulan sebelumnya"
+                                    class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all hover:border-amber-400 hover:text-amber-600 active:scale-90 disabled:cursor-not-allowed disabled:opacity-40">&#8249;</button>
+                                <button type="button" id="kal-maju" aria-label="Bulan berikutnya"
+                                    class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all hover:border-amber-400 hover:text-amber-600 active:scale-90">&#8250;</button>
+                            </div>
                         </div>
-                        <div>
-                            <label for="tanggal_kembali_rencana" class="text-xs font-bold text-gray-500">Tanggal Kembali (Rencana)</label>
-                            <input type="date" id="tanggal_kembali_rencana" name="tanggal_kembali_rencana" value="{{ old('tanggal_kembali_rencana') }}" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+                        <div class="grid grid-cols-7 gap-y-1 text-center">
+                            <div class="py-1.5 text-[11px] font-medium text-gray-400">Sen</div>
+                            <div class="py-1.5 text-[11px] font-medium text-gray-400">Sel</div>
+                            <div class="py-1.5 text-[11px] font-medium text-gray-400">Rab</div>
+                            <div class="py-1.5 text-[11px] font-medium text-gray-400">Kam</div>
+                            <div class="py-1.5 text-[11px] font-medium text-gray-400">Jum</div>
+                            <div class="py-1.5 text-[11px] font-medium text-gray-400">Sab</div>
+                            <div class="py-1.5 text-[11px] font-medium text-gray-400">Min</div>
+                        </div>
+                        <div id="kal-grid" class="grid grid-cols-7 gap-y-1 text-center"></div>
+                        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 pt-3 text-[11px] text-gray-500">
+                            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-600"></span> Dipilih</span>
+                            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-200"></span> Rentang sewa</span>
+                            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-rose-200"></span> Penuh dibooking</span>
                         </div>
                     </div>
+                    <p id="kal-hint" class="mt-2 text-[11px] text-gray-500">Tambahkan produk ke keranjang dulu agar tanggal yang sudah penuh dibooking (online &amp; kasir) ditandai merah. Klik tanggal yang sama dua kali untuk sewa 1 hari.</p>
+                    <div class="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-amber-50/60 px-4 py-3 text-xs ring-1 ring-amber-100">
+                        <div><p class="text-[10px] text-gray-400">Ambil</p><p id="kal-ambil" class="font-bold text-gray-800">Klik tanggal</p></div>
+                        <div><p class="text-[10px] text-gray-400">Kembali</p><p id="kal-kembali" class="font-bold text-gray-800">-</p></div>
+                        <div><p class="text-[10px] text-gray-400">Durasi</p><p id="kal-durasi" class="font-bold text-amber-700">-</p></div>
+                    </div>
                     <p id="info-durasi" class="mt-2 text-xs font-semibold text-amber-700"></p>
+                    <div id="info-bentrok" class="hidden mt-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800" role="alert"></div>
 
                     {{-- Upload KTP penyewa (jaminan) --}}
                     <div class="mt-4 rounded-2xl border border-dashed border-amber-300 bg-amber-50/40 p-4">
@@ -425,6 +456,8 @@
 <script>
     // ================= DATA =================
     const PRODUK = @json($produkJs);
+    // Tanggal yang sudah penuh dibooking pelanggan online: { produk_id: { "ukuran|warna": [tanggal...] } }
+    const TANGGAL_PENUH = @json((object) ($tanggalPenuh ?? []));
     const KATEGORI = @json($kategoriJs);
     const USERS = @json($usersJs);
     const OLD_ITEMS = @json($oldItems);
@@ -449,7 +482,9 @@
     // ================= HELPER HARGA / STOK =================
     const jenisAktif = () => (el('radio-sewa').checked ? 'sewa' : 'beli');
     const hargaDasar = (p, j) => (j === 'sewa' ? p.harga_sewa : p.harga_jual);
-    const hargaFinal = (p, j) => { const d = hargaDasar(p, j); return d - (d * p.diskon_persen / 100); };
+    // Diskon sewa & jual dipisah, sama seperti hargaUnit() di server (TransaksiController::store)
+    const diskonPersen = (p, j) => (j === 'sewa' ? p.diskon_sewa : p.diskon_jual) || 0;
+    const hargaFinal = (p, j) => { const d = hargaDasar(p, j); return d - (d * diskonPersen(p, j) / 100); };
     // Ukuran, warna, dan stok mengikuti jenis transaksi: produk dijual & disewa punya stok terpisah.
     function terapkanSet(j) {
         const kunci = j === 'sewa' ? 'sewa' : 'beli';
@@ -571,7 +606,7 @@
         const ok = bisaDipilih(p);
         const final = hargaTampil(p, j);
         const dasar = hargaDasar(p, j);
-        const diskon = p.diskon_persen > 0;
+        const diskon = diskonPersen(p, j) > 0;
         const sewa = j === 'sewa';
         const foto = p.foto
             ? '<img src="' + esc(p.foto) + '" alt="' + esc(p.nama) + '" loading="lazy" class="h-full w-full object-cover">'
@@ -590,7 +625,7 @@
         const meta = [p.bahan, p.motif].filter(Boolean).map(esc).join(' &middot; ');
         const badgeStatus = !ok
             ? '<span class="absolute left-2 top-2 rounded-full bg-gray-900/80 px-2 py-0.5 text-[10px] font-bold text-white">' + (!adaStokTersisa(p) ? 'Stok habis' : esc(p.status)) + '</span>'
-            : (diskon ? '<span class="absolute left-2 top-2 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white">-' + p.diskon_persen + '%</span>' : '');
+            : (diskon ? '<span class="absolute left-2 top-2 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white">-' + diskonPersen(p, j) + '%</span>' : '');
 
         return '<article class="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-500/10 ' + (ok ? '' : 'opacity-60') + '">'
             + '<div class="relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-gray-50">' + foto + badgeStatus
@@ -669,7 +704,7 @@
         if (!p) return '';
         const final = hargaTampil(p, j);
         const dasar = hargaDasar(p, j);
-        const tampilDiskon = j !== 'sewa' && p.diskon_persen > 0;
+        const tampilDiskon = j !== 'sewa' && diskonPersen(p, j) > 0;
         // Batas qty baris ini = sisa stok varian setelah dikurangi baris keranjang LAIN (bukan dirinya sendiri)
         const stokMaks = Math.max(1, sisaStok(p, r.ukuran, r.warna, idx));
         const perluUkuran = punyaUkuran(p) && !r.ukuran;
@@ -765,6 +800,8 @@
         el('cart').innerHTML = state.cart.map((r, i) => barisCart(r, i, j)).join('');
         el('cart-kosong').classList.toggle('hidden', state.cart.length > 0);
         el('badge-item').textContent = state.cart.length + ' item';
+        cekBentrokTanggal();
+        renderKalender();
         renderKatalog(); // refresh tombol "+ Tambah": nonaktif kalau semua varian produk sudah penuh dipakai di keranjang
         updateRingkasan();
     }
@@ -862,7 +899,121 @@
     el('cari-produk').addEventListener('input', (e) => { state.q = e.target.value; renderKatalog(); });
 
     // ================= JENIS TRANSAKSI & TANGGAL =================
+    // Kunci kombinasi: sama dengan Support\KetersediaanSewa::kunci() di server
+    function kunciTanggal(p, ukuran, warna) {
+        const s = p.set.sewa;
+        if (!s.ukuran.length) return '|';
+        const b = s.ukuran.find((x) => x.ukuran === ukuran);
+        if (b && b.warna && b.warna.length && warna && b.warna.some((w) => w.nama === warna)) return ukuran + '|' + warna;
+        return (ukuran || '') + '|';
+    }
+    const tglPendek = (t) => new Date(t + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+
+    // Peringatan bila rentang sewa menabrak tanggal yang sudah penuh dibooking pelanggan online.
+    // (Server tetap memeriksa ulang saat disimpan, termasuk jumlah unit.)
+    function cekBentrokTanggal() {
+        const box = el('info-bentrok');
+        const pesan = [];
+        if (jenisAktif() === 'sewa') {
+            const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
+            if (a && b && b >= a) {
+                state.cart.forEach((r) => {
+                    const p = pById(r.produk_id);
+                    const peta = p && TANGGAL_PENUH[p.id];
+                    if (!peta) return;
+                    const penuh = (peta[kunciTanggal(p, r.ukuran, r.warna)] || []).filter((t) => t >= a && t <= b);
+                    if (!penuh.length) return;
+                    const varian = [r.ukuran, r.warna].filter(Boolean).join(', ');
+                    const daftar = penuh.slice(0, 4).map(tglPendek).join(', ') + (penuh.length > 4 ? ' +' + (penuh.length - 4) + ' lainnya' : '');
+                    pesan.push('"' + p.nama + '"' + (varian ? ' (' + varian + ')' : '') + ' sudah penuh dibooking pada ' + daftar + '.');
+                });
+            }
+        }
+        box.innerHTML = pesan.length
+            ? '<p class="mb-1 font-bold">Tanggal bentrok dengan booking online. Ganti tanggal atau pilih ukuran/warna lain:</p>' + pesan.map((m) => '<p>' + esc(m) + '</p>').join('')
+            : '';
+        box.classList.toggle('hidden', !pesan.length);
+        return pesan;
+    }
+
+    // ---------- Kalender rentang sewa (mengikuti kalender halaman detail produk) ----------
+    const kal = { bulan: 0, tahun: 0 };
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const isoTgl = (y, m, d) => y + '-' + pad2(m + 1) + '-' + pad2(d);
+    const hariIniIso = () => { const t = new Date(); return isoTgl(t.getFullYear(), t.getMonth(), t.getDate()); };
+    const tglPanjang = (t) => new Date(t + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    // Tanggal penuh = penuh untuk SALAH SATU item di keranjang (ukuran/warna yang dipilih)
+    function tanggalPenuhKeranjang() {
+        const hasil = new Set();
+        if (jenisAktif() !== 'sewa') return hasil;
+        state.cart.forEach((r) => {
+            const p = pById(r.produk_id);
+            const peta = p && TANGGAL_PENUH[p.id];
+            if (!peta) return;
+            (peta[kunciTanggal(p, r.ukuran, r.warna)] || []).forEach((t) => hasil.add(t));
+        });
+        return hasil;
+    }
+
+    function renderKalender() {
+        const grid = el('kal-grid');
+        if (!grid || !kal.tahun) return;
+        const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
+        const penuh = tanggalPenuhKeranjang();
+        const hariIni = hariIniIso();
+
+        el('kal-judul').textContent = new Date(Date.UTC(kal.tahun, kal.bulan, 1))
+            .toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+        const sekarang = new Date();
+        el('kal-mundur').disabled = kal.tahun < sekarang.getFullYear() || (kal.tahun === sekarang.getFullYear() && kal.bulan <= sekarang.getMonth());
+
+        const offset = (new Date(Date.UTC(kal.tahun, kal.bulan, 1)).getUTCDay() + 6) % 7;
+        let sel = [];
+        for (let i = 0; i < 42; i++) {
+            const d = new Date(Date.UTC(kal.tahun, kal.bulan, 1 - offset + i));
+            sel.push({ t: isoTgl(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()), hari: d.getUTCDate(), luar: d.getUTCMonth() !== kal.bulan });
+        }
+        if (sel.slice(35).every((c) => c.luar)) sel = sel.slice(0, 35);
+
+        grid.innerHTML = sel.map((c) => {
+            const lalu = c.t < hariIni, isPenuh = penuh.has(c.t);
+            const dipilih = c.t === a || c.t === b;
+            const dalam = a && b && c.t > a && c.t < b;
+            let kelas = 'h-10 mx-px rounded-lg text-xs font-medium transition-all duration-200 ';
+            let mati = false;
+            if (dipilih) kelas += 'relative z-10 scale-105 bg-amber-600 font-bold text-white shadow-md';
+            else if (dalam) kelas += 'bg-amber-100 font-semibold text-amber-900';
+            else if (c.luar || lalu) { kelas += 'cursor-default text-gray-300'; mati = true; }
+            else if (isPenuh) { kelas += 'cursor-not-allowed bg-rose-50 text-rose-400 line-through decoration-rose-300'; mati = true; }
+            else kelas += 'text-gray-700 hover:scale-110 hover:bg-amber-50 active:scale-95' + (c.t === hariIni ? ' ring-1 ring-amber-400' : '');
+            return '<button type="button" data-t="' + c.t + '" class="' + kelas + '"' + ((mati && !dipilih) || c.luar ? ' disabled' : '') + '>' + c.hari + '</button>';
+        }).join('');
+
+        el('kal-ambil').textContent = a ? tglPanjang(a) : 'Klik tanggal';
+        el('kal-kembali').textContent = b ? tglPanjang(b) : '-';
+        el('kal-durasi').textContent = a && b ? (Math.round((new Date(b) - new Date(a)) / 86400000) + 1) + ' hari' : '-';
+        el('kal-hint').classList.toggle('hidden', state.cart.length > 0);
+    }
+
+    function pilihTanggalKasir(t) {
+        const penuh = tanggalPenuhKeranjang();
+        if (t < hariIniIso() || penuh.has(t)) return;
+        const A = el('tanggal_pinjam'), B = el('tanggal_kembali_rencana');
+        const a = A.value, b = B.value;
+
+        if (!a || b || t < a) { A.value = t; B.value = ''; }                       // mulai rentang baru
+        else if (t === a) { B.value = t; }                                          // tanggal yang sama = sewa 1 hari
+        else if ([...penuh].some((x) => x > a && x < t)) { A.value = t; B.value = ''; } // rentang menabrak tanggal penuh
+        else { B.value = t; }
+
+        hitungDurasi();
+    }
+
     function hitungDurasi() {
+        cekBentrokTanggal();
+        renderKalender();
         const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
         const out = el('info-durasi');
         if (!a || !b) { out.textContent = ''; return; }
@@ -904,11 +1055,18 @@
     }
 
     document.querySelectorAll('input[name="jenis"]').forEach((r) => r.addEventListener('change', ubahJenis));
-    el('tanggal_pinjam').addEventListener('change', () => {
-        el('tanggal_kembali_rencana').min = el('tanggal_pinjam').value;
-        hitungDurasi();
+    el('kal-grid').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-t]');
+        if (btn && !btn.disabled) pilihTanggalKasir(btn.dataset.t);
     });
-    el('tanggal_kembali_rencana').addEventListener('change', hitungDurasi);
+    el('kal-mundur').addEventListener('click', () => {
+        if (kal.bulan === 0) { kal.bulan = 11; kal.tahun--; } else { kal.bulan--; }
+        renderKalender();
+    });
+    el('kal-maju').addEventListener('click', () => {
+        if (kal.bulan === 11) { kal.bulan = 0; kal.tahun++; } else { kal.bulan++; }
+        renderKalender();
+    });
 
     // ================= PELANGGAN =================
     function renderUsers(filter, pilihId) {
@@ -994,6 +1152,7 @@
             const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
             if (!a || !b) err.push('Isi tanggal ambil dan tanggal kembali.');
             else if (b < a) err.push('Tanggal kembali tidak boleh sebelum tanggal ambil.');
+            else cekBentrokTanggal().forEach((m) => err.push(m));
             if (!el('foto_ktp').files.length) err.push('Upload foto KTP penyewa.');
             if (!el('ktp_sesuai').checked) err.push('Centang konfirmasi bahwa NIK & nama di KTP sudah sesuai dengan penyewa.');
 
@@ -1044,7 +1203,10 @@
             const pad = (n) => String(n).padStart(2, '0');
             el('tanggal_pinjam').value = t.getFullYear() + '-' + pad(t.getMonth() + 1) + '-' + pad(t.getDate());
         }
-        el('tanggal_kembali_rencana').min = el('tanggal_pinjam').value;
+        // Kalender mulai di bulan tanggal yang terpilih (atau bulan ini)
+        const awal = el('tanggal_pinjam').value.split('-').map(Number);
+        kal.tahun = awal[0] || new Date().getFullYear();
+        kal.bulan = awal[1] ? awal[1] - 1 : new Date().getMonth();
 
         renderUsers('', OLD_USER_ID);
         renderKategori();

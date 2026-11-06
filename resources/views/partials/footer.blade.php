@@ -17,7 +17,7 @@
     $layananInfo = [
         ['label' => 'Cara & Syarat Sewa Busana',    'href' => '#'],
         ['label' => 'Aturan Deposit & Asuransi',    'href' => '#'],
-        ['label' => 'Jadwal Fitting Studio',        'href' => '#'],
+        ['label' => 'Jadwal Fitting Toko',          'href' => '#'],
         ['label' => 'Panduan Ukuran Badan Online',  'href' => '#'],
         ['label' => 'Pemesanan Custom Bespoke',     'href' => '#'],
     ];

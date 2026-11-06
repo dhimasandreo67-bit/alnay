@@ -161,7 +161,7 @@
                             <h1 class="kb-up font-display text-2xl md:text-3xl font-medium text-ink/85 mb-2" style="--d: .25s;">Pembayaran Berhasil</h1>
                             <p class="kb-up text-sm text-ink/55 max-w-md mx-auto mb-7 leading-relaxed" style="--d: .35s;">
                                 {{ $isSewa
-                                    ? 'Terima kasih. Silakan datang ke studio untuk fitting sesuai jadwal.'
+                                    ? 'Terima kasih. Silakan datang ke toko alnay untuk fitting sesuai jadwal.'
                                     : 'Terima kasih. Pesanan Anda akan segera kami siapkan dan kirim. Nomor resi dikirim lewat WhatsApp.' }}
                             </p>
 
@@ -170,7 +170,8 @@
                                     <a href="{{ route('fitting.create') }}"
                                         class="px-6 py-3 rounded-xl bg-gold text-white text-sm font-bold hover:bg-gold/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 transition-all duration-300">Booking Fitting</a>
                                 @endif
-                                <a href="{{ route('akun.pesanan.index') }}"
+                                {{-- PERUBAHAN: Mengarah ke Dashboard #ringkasan --}}
+                                <a href="{{ route('akun.dashboard') }}#ringkasan"
                                     class="px-6 py-3 rounded-xl border border-line/60 bg-white text-ink/75 text-sm font-bold hover:bg-cream/50 hover:-translate-y-0.5 transition-all duration-300">Lihat Riwayat Pesanan</a>
                             </div>
                         </div>
@@ -241,9 +242,23 @@
 
                         <div class="space-y-3 mb-4 max-h-60 overflow-y-auto pr-2">
                             @foreach ($transaksi->detail as $item)
+                                @php
+                                    $foto = $item->produk->foto_produk ?? null;
+                                    if (is_string($foto) && str_starts_with($foto, '[')) {
+                                        $decoded = json_decode($foto, true);
+                                        $foto = is_array($decoded) ? ($decoded[0] ?? null) : $foto;
+                                    } elseif (is_array($foto)) {
+                                        $foto = $foto[0] ?? null;
+                                    }
+                                @endphp
+
                                 <div class="flex gap-3 items-center border-b border-line/30 pb-3">
-                                    <div class="w-10 h-10 rounded-lg bg-cream-dim border border-line/40 flex items-center justify-center shrink-0">
-                                        <x-icon name="sparkle" :size="16" class="text-ink/30" />
+                                    <div class="w-12 h-12 rounded-lg bg-cream-dim border border-line/40 flex items-center justify-center shrink-0 overflow-hidden">
+                                        @if($foto)
+                                            <img src="{{ asset('storage/' . $foto) }}" alt="{{ $item->produk->nama ?? 'Produk' }}" class="w-full h-full object-cover">
+                                        @else
+                                            <x-icon name="sparkle" :size="16" class="text-ink/30" />
+                                        @endif
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p class="text-[12px] font-medium text-ink/80 truncate">{{ $item->produk->nama ?? 'Produk' }}</p>
@@ -356,7 +371,6 @@
                         this.mengecek = true;
                         this.hasilCek = '';
 
-                        // Jeda singkat supaya pengguna melihat proses pemeriksaan.
                         const [hasil] = await Promise.all([
                             this.periksa(true),
                             new Promise(r => setTimeout(r, 900)),

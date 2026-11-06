@@ -86,7 +86,7 @@ class DashboardController extends Controller
             [
                 'key'   => 'retur',
                 'title' => 'Return pengecekan',
-                'desc'  => $returPengecekan . ' gaun baru tiba di studio',
+                'desc'  => $returPengecekan . ' gaun baru tiba di toko, perlu dicek',
                 'count' => $returPengecekan,
                 'route' => \Illuminate\Support\Facades\Route::has('admin.sewa.index') ? route('admin.sewa.index', ['status' => 'dikembalikan']) : '#',
             ],

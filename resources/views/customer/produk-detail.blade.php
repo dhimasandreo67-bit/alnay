@@ -195,7 +195,8 @@
             'hargaSewa' => $produk->hargaSewaNet(),
             'hargaJual' => $produk->hargaJualNet(),
             'tarifTambahan' => $produk->tarifTambahanSewa(),
-            'dibooking' => array_values($dibooking ?? []),
+            // Tanggal penuh per kombinasi ukuran/warna: { "M|Merah Marun": [...], "M|": [...], "|": [...] }
+            'tanggalPenuh' => (object) ($tanggalPenuh ?? []),
             'jumlahFoto' => $jumlahFoto,
             'fotoUrls' => collect($fotoList)->map(fn ($f) => asset('storage/' . $f))->values()->all(),
         ];
@@ -563,7 +564,7 @@
                                     <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-gold/30"></span>
                                         Rentang sewa</div>
                                     <div class="flex items-center gap-1.5"><span
-                                            class="w-2.5 h-2.5 rounded-full bg-rose-200"></span> Sudah dibooking</div>
+                                            class="w-2.5 h-2.5 rounded-full bg-rose-200"></span> Penuh dibooking</div>
                                 </div>
                             </div>
 
@@ -924,7 +925,7 @@
                 hargaSewaPerHari: cfg.hargaSewa,
                 tarifTambahan: cfg.tarifTambahan,
                 hargaJual: cfg.hargaJual,
-                dibooking: cfg.dibooking,
+                tanggalPenuh: cfg.tanggalPenuh || {},
                 ukuran: '',
                 tanggalAmbil: null,
                 tanggalKembali: null,
@@ -958,6 +959,7 @@
                     this.pilihDefault();
                     this.$watch('mode', () => this.pilihDefault());
                     this.$watch('ukuran', () => this.pilihWarnaDefault());
+                    this.$watch('kunciKetersediaan', () => this.bersihkanTanggal());
                     this.$watch('totalSewa', (v) => this.tweenHarga(v || this.hargaSewaPerHari));
                     this.$watch('tanggalKembali', (v) => { if (v) this.pesanTanggal = ''; });
                     this.$watch('lightbox', (v) => { document.body.style.overflow = v ? 'hidden' : ''; });
@@ -1086,6 +1088,22 @@
                 // --- Set stok sesuai mode: sewa memakai stok sewa, beli memakai stok jual ---
                 get jenis() { return this.mode === 'sewa' ? 'sewa' : 'jual'; },
                 get set() { return this.sets[this.jenis] || { ukuran: [], warna: [], stok: 0 }; },
+                // Kunci kombinasi untuk daftar tanggal penuh (sama dengan Support\KetersediaanSewa::kunci)
+                get kunciKetersediaan() {
+                    if (!this.adaUkuran) return '|';
+                    const b = this.barisUkuran;
+                    return b && b.warna.length ? this.ukuran + '|' + this.varianWarna : this.ukuran + '|';
+                },
+                // Tanggal yang sudah penuh dibooking untuk ukuran/warna yang dipilih
+                get dibooking() { return this.tanggalPenuh[this.kunciKetersediaan] || []; },
+                bersihkanTanggal() {
+                    if (!this.tanggalAmbil) return;
+                    const penuh = this.dibooking;
+                    const bentrok = penuh.includes(this.tanggalAmbil) ||
+                        (this.tanggalKembali && (penuh.includes(this.tanggalKembali) ||
+                            penuh.some((b) => b > this.tanggalAmbil && b < this.tanggalKembali)));
+                    if (bentrok) { this.tanggalAmbil = null; this.tanggalKembali = null; }
+                },
                 get adaUkuran() { return this.set.ukuran.length > 0; },
                 get barisUkuran() { return this.set.ukuran.find((u) => u.label === this.ukuran) || null; },
                 // Bila ukuran punya rincian warna, tampilkan warna + stoknya; kalau tidak, daftar warna produk

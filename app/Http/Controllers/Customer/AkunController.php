@@ -3,71 +3,91 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\AlamatPengiriman;
+use App\Models\Pengiriman;
+use App\Models\Refund;
 use App\Models\ReservasiFitting;
+use App\Models\Sewa;
+use App\Models\Transaksi;
 use Illuminate\Http\Request;
 
 class AkunController extends Controller
 {
-    public function index()
-{
-    $user = auth()->user();
+    public function index(Request $request)
+    {
+        $user   = auth()->user();
+        $status = $request->get('status', 'semua');
+        $cari   = trim((string) $request->get('q', ''));
 
-    $totalFitting = ReservasiFitting::where('user_id', $user->id)
-        ->where('status', '!=', 'batal')
-        ->count();
+        // --- 1. STATISTIK ---
+        $totalFitting = ReservasiFitting::where('user_id', $user->id)
+            ->where('status', '!=', 'batal')
+            ->count();
 
-    $fittingAktif = ReservasiFitting::with('slot')
-        ->where('user_id', $user->id)
-        ->where('status', 'pending')
-        ->latest()
-        ->first();
+        $fittingAktif = ReservasiFitting::with('slot')
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->latest()
+            ->first();
 
-    $pesananAktif = \App\Models\Transaksi::where('user_id', $user->id)
-        ->where('jenis', 'beli')
-        ->whereNotIn('status_pembayaran', ['batal'])
-        ->count();
+        $pesananAktif = Transaksi::where('user_id', $user->id)
+            ->where('jenis', 'beli')
+            ->whereNotIn('status_pembayaran', ['batal', 'lunas'])
+            ->count();
 
-    $penyewaanAktif = \App\Models\Transaksi::where('user_id', $user->id)
-        ->where('jenis', 'sewa')
-        ->whereNotIn('status_pembayaran', ['batal'])
-        ->count();
+        $penyewaanAktif = Transaksi::where('user_id', $user->id)
+            ->where('jenis', 'sewa')
+            ->whereNotIn('status_pembayaran', ['batal', 'lunas'])
+            ->count();
 
-    $refundAktif = \App\Models\Refund::where('diajukan_oleh', $user->id)
-        ->where('status', 'pending')
-        ->count();
+        $refundAktif = Refund::where('diajukan_oleh', $user->id)
+            ->where('status', 'pending')
+            ->count();
 
-    $alamatList = \App\Models\AlamatPengiriman::where('user_id', $user->id)
-        ->orderByDesc('is_utama')
-        ->latest()
-        ->get();
+        // --- 2. DAFTAR PESANAN ---
+        // Menggunakan nama variabel $pesananList agar sesuai dengan View
+        $pesananList = Transaksi::with(['detail.produk', 'pengiriman'])
+            ->where('user_id', $user->id)
+            ->where('jenis', 'beli')
+            ->latest()
+            ->take(10)
+            ->get();
 
-    // Sementara: pesanan dari session (belum database)
-    $pesananSession = [];
-    if (session('sewa_data')) {
-        $pesananSession[] = ['jenis' => 'sewa', 'data' => session('sewa_data')];
+        $penyewaanList = Sewa::with(['transaksi.detail.produk'])
+            ->whereHas('transaksi', fn ($q) => $q->where('user_id', $user->id))
+            ->latest()
+            ->take(10)
+            ->get();
+
+        $fittingList = ReservasiFitting::with('slot')
+            ->where('user_id', $user->id)
+            ->latest()
+            ->take(10)
+            ->get();
+
+        $refundList = Refund::with('transaksi')
+            ->where('diajukan_oleh', $user->id)
+            ->latest()
+            ->get();
+
+        // --- 3. ALAMAT ---
+        $alamatList = AlamatPengiriman::where('user_id', $user->id)
+            ->orderByDesc('is_utama')
+            ->latest()
+            ->get();
+
+        $adaAktivitas = $pesananAktif > 0 || $penyewaanAktif > 0 || $fittingAktif;
+
+        return view('customer.akun.index', compact(
+            'user', 'totalFitting', 'fittingAktif', 'pesananAktif', 'penyewaanAktif', 'refundAktif',
+            'alamatList', 'adaAktivitas', 'pesananList', 'penyewaanList', 'fittingList', 'refundList'
+        ));
     }
-    if (session('beli_data')) {
-        $pesananSession[] = ['jenis' => 'beli', 'data' => session('beli_data')];
-    }
-
-    return view('customer.akun.index', compact(
-        'user',
-        'totalFitting',
-        'fittingAktif',
-        'pesananSession',
-        'pesananAktif',
-        'penyewaanAktif',
-        'refundAktif',
-        'alamatList'
-    ));
-}
 
     public function pesanan(Request $request)
     {
         $filter = $request->get('jenis', 'sewa');
-
-        $query = \App\Models\Transaksi::where('user_id', auth()->id())
-            ->with(['detail.produk', 'sewa']);
+        $query = Transaksi::where('user_id', auth()->id())->with(['detail.produk', 'sewa']);
 
         if ($filter === 'sewa') {
             $query->where('jenis', 'sewa');
@@ -76,31 +96,20 @@ class AkunController extends Controller
         }
 
         $pesananList = $query->latest()->get();
-
         return view('customer.akun.pesanan', compact('pesananList', 'filter'));
     }
 
     public function pesananDetail($id)
     {
-        $transaksi = \App\Models\Transaksi::with([
-            'detail.produk',
-            'sewa.pengecekan',
-            'pembayaran',
-            'pengiriman'
-        ])
+        $transaksi = Transaksi::with(['detail.produk', 'sewa.pengecekan', 'pembayaran', 'pengiriman'])
             ->where('user_id', auth()->id())
             ->findOrFail($id);
-
         return view('customer.akun.pesanan-detail', compact('transaksi'));
     }
 
     public function fitting()
     {
-        $fittingList = ReservasiFitting::with('slot')
-            ->where('user_id', auth()->id())
-            ->latest()
-            ->get();
-
+        $fittingList = ReservasiFitting::with('slot')->where('user_id', auth()->id())->latest()->get();
         return view('customer.akun.fitting', compact('fittingList'));
     }
 
@@ -109,15 +118,12 @@ class AkunController extends Controller
         return view('customer.akun.refund');
     }
 
-        public function ajukanRefund(Request $request, $id)
+    public function ajukanRefund(Request $request, $id)
     {
-        $request->validate([
-            'alasan' => 'required|string|max:500',
-        ]);
+        $request->validate(['alasan' => 'required|string|max:500']);
+        $transaksi = Transaksi::where('user_id', auth()->id())->findOrFail($id);
 
-        $transaksi = \App\Models\Transaksi::where('user_id', auth()->id())->findOrFail($id);
-
-        \App\Models\Refund::create([
+        Refund::create([
             'transaksi_id' => $transaksi->id,
             'diajukan_oleh' => auth()->id(),
             'alasan' => $request->alasan,
@@ -127,13 +133,19 @@ class AkunController extends Controller
         return back()->with('success', 'Pengajuan refund berhasil dikirim!');
     }
 
-        public function terimaPengiriman($id)
+    public function terimaPengiriman($id)
     {
-        $pengiriman = \App\Models\Pengiriman::whereHas('transaksi', function($q) {
-            $q->where('user_id', auth()->id());
-        })->findOrFail($id);
+        $pengiriman = Pengiriman::whereHas('transaksi', fn ($q) => $q->where('user_id', auth()->id()))
+            ->findOrFail($id);
 
-        $pengiriman->update(['status_kirim' => 'diterima']);
+        if ($pengiriman->status_kirim !== 'dikirim') {
+            return back()->with('error', 'Pesanan belum dikirim, jadi belum bisa dikonfirmasi diterima.');
+        }
+
+        $pengiriman->update([
+            'status_kirim'     => 'diterima',
+            'tanggal_diterima' => $pengiriman->tanggal_diterima ?? now(),
+        ]);
 
         return back()->with('success', 'Terima kasih! Konfirmasi penerimaan berhasil.');
     }

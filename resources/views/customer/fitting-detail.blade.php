@@ -30,20 +30,19 @@
 
         {{-- Breadcrumb --}}
         <nav class="pd-up text-[11px] text-ink/50 mb-3" style="--d: .05s;">
-            <a href="{{ route('akun.fitting.index') }}" class="hover:text-gold transition-colors">Riwayat Pemesanan</a>
+            <a href="{{ route('akun.dashboard') }}#fitting" class="hover:text-gold transition-colors">Riwayat Pemesanan</a>
             <span class="mx-1">/</span>
             <span class="text-ink/70">{{ $reservasi->kode_booking }}</span>
         </nav>
 
         {{-- Header --}}
         <div class="pd-up flex items-center gap-3 mb-6" style="--d: .1s;">
-            <a href="{{ route('akun.fitting.index') }}" class="w-8 h-8 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold hover:border-gold/50 hover:-translate-x-0.5 transition-all duration-300">
+            <a href="{{ route('akun.dashboard') }}#fitting" class="w-8 h-8 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold hover:border-gold/50 hover:-translate-x-0.5 transition-all duration-300">
                 <x-icon name="chevron-right" :size="14" class="rotate-180" />
             </a>
             <h1 class="font-display text-2xl md:text-3xl font-medium text-ink/85">Rincian Booking Fitting</h1>
         </div>
 
-        {{-- Alert Success --}}
         @if (session('success'))
             <div class="pd-up p-3 mb-4 rounded-md bg-emerald-50 border border-emerald-200 text-xs text-emerald-700 flex items-center gap-2" style="--d: .15s;">
                 <x-icon name="check" :size="16" />
@@ -52,23 +51,40 @@
         @endif
 
         <div class="space-y-4">
+            {{-- Status Dinamis --}}
+            @php
+                $status = strtolower($reservasi->status);
+                
+                if ($status === 'batal') {
+                    $themeBg = 'bg-rose-50 border-rose-200';
+                    $iconBg = 'bg-rose-100 border-rose-500 text-rose-600';
+                    $title = 'Booking Dibatalkan';
+                    $desc = 'Jadwal fitting ini sudah dibatalkan.';
+                    $iconSvg = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>';
+                } elseif ($status === 'hadir' || $status === 'disetujui') {
+                    $themeBg = 'bg-emerald-50 border-emerald-200';
+                    $iconBg = 'bg-emerald-100 border-emerald-500 text-emerald-600';
+                    $title = 'Jadwal Fitting Terkonfirmasi';
+                    $desc = 'Booking ini wajib diselesaikan sebelum tanggal pengambilan busana Anda.';
+                    $iconSvg = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>';
+                } else {
+                    $themeBg = 'bg-amber-50 border-amber-200';
+                    $iconBg = 'bg-amber-100 border-amber-500 text-amber-600';
+                    $title = 'Menunggu Konfirmasi';
+                    $desc = 'Jadwal Anda sedang ditinjau oleh admin.';
+                    $iconSvg = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+                }
+            @endphp
 
-            {{-- Status --}}
-            <div class="pd-up bg-panel border border-line/40 rounded-xl p-5 flex items-center gap-4" style="--d: .2s;">
-                <div class="pd-pop w-10 h-10 rounded-full bg-emerald-50 border-2 border-emerald-500 flex items-center justify-center shrink-0">
-                    <x-icon name="check" :size="20" class="text-emerald-500" />
+            <div class="pd-up {{ $themeBg }} border rounded-xl p-5 flex items-center gap-4" style="--d: .2s;">
+                <div class="pd-pop w-10 h-10 rounded-full {{ $iconBg }} border-2 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {!! $iconSvg !!}
+                    </svg>
                 </div>
                 <div>
-                    <p class="text-sm font-medium text-ink/85">
-                        @if ($reservasi->status === 'pending')
-                            Jadwal Fitting Terkonfirmasi
-                        @elseif ($reservasi->status === 'batal')
-                            Booking Dibatalkan
-                        @else
-                            Jadwal Fitting {{ ucfirst($reservasi->status) }}
-                        @endif
-                    </p>
-                    <p class="text-[11px] text-ink/50 mt-0.5">Booking ini wajib diselesaikan sebelum tanggal pengambilan busana Anda</p>
+                    <p class="text-sm font-bold text-ink/85">{{ $title }}</p>
+                    <p class="text-[11px] text-ink/60 mt-0.5">{{ $desc }}</p>
                 </div>
             </div>
 
@@ -80,9 +96,9 @@
                         <x-icon name="location" :size="16" class="text-rose-500" />
                     </div>
                     <div>
-                        <p class="text-[13px] font-medium text-ink/85">ALNAY.ID Studio</p>
-                        <p class="text-[11px] text-ink/50 mt-0.5">{{ config('alnay.studio.alamat') ?? 'Alamat studio belum diatur' }}</p>
-                        <p class="text-[10px] text-ink/40 mt-1">Jam Buka: {{ config('alnay.studio.jam_buka') ?? 'Belum diatur' }}</p>
+                        <p class="text-[13px] font-medium text-ink/85">Toko ALNAY</p>
+                        <p class="text-[11px] text-ink/50 mt-0.5">{{ config('alnay.toko.alamat') ?? 'Alamat toko belum diatur' }}</p>
+                        <p class="text-[10px] text-ink/40 mt-1">Jam Buka: {{ config('alnay.toko.jam_buka') ?? 'Belum diatur' }}</p>
                     </div>
                 </div>
             </div>
@@ -91,7 +107,6 @@
             <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .3s;">
                 <h2 class="font-display text-base font-medium text-ink/80 mb-4">Detail Sesi Fitting</h2>
                 <div class="flex items-center gap-4">
-                    {{-- FOTO PRODUK ASLI --}}
                     <div class="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden border border-line/50">
                         @if($fotoProduk)
                             <img src="{{ asset('storage/' . $fotoProduk) }}" alt="{{ $namaProduk }}" class="w-full h-full object-cover">
@@ -101,15 +116,12 @@
                             </div>
                         @endif
                     </div>
-                    
                     <div class="flex-1">
-                        {{-- NAMA PRODUK ASLI --}}
                         <p class="text-[13px] font-medium text-ink/85">{{ $namaProduk ?? 'Sesi Fitting' }}</p>
                         <p class="text-[10px] text-ink/50 mt-0.5">Kode Booking: #{{ $reservasi->kode_booking }}</p>
                     </div>
                     <span class="text-[11px] font-medium text-emerald-600">Gratis</span>
                 </div>
-                
                 <div class="mt-4 pt-3 border-t border-line/30 flex justify-between items-center">
                     <span class="text-[11px] text-ink/50">Jadwal:</span>
                     <span class="text-[12px] font-medium text-ink/85">
@@ -123,22 +135,24 @@
             <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .35s;">
                 <h2 class="font-display text-base font-medium text-ink/80 mb-3">Butuh Bantuan?</h2>
                 <div class="divide-y divide-line/30">
-                    {{-- Link Ubah Jadwal --}}
-                    <a href="{{ route('fitting.edit', $reservasi->id) }}" class="flex items-center justify-between py-3 text-[12px] text-ink/70 hover:text-gold transition-colors group">
-                        <span class="flex items-center gap-2"><x-icon name="calendar" :size="14" /> Ubah Tanggal / Jam Fitting</span>
-                        <x-icon name="chevron-right" :size="14" class="text-ink/30 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
-                    </a>
+                    {{-- Hanya tampil jika BELUM dibatalkan --}}
+                    @if($reservasi->status !== 'batal')
+                        <a href="{{ route('fitting.edit', $reservasi->id) }}" class="flex items-center justify-between py-3 text-[12px] text-ink/70 hover:text-gold transition-colors group">
+                            <span class="flex items-center gap-2"><x-icon name="calendar" :size="14" /> Ubah Tanggal / Jam Fitting</span>
+                            <x-icon name="chevron-right" :size="14" class="text-ink/30 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
+                        </a>
+                        
+                        <form method="POST" action="{{ route('fitting.cancel', $reservasi->id) }}" onsubmit="return confirm('Yakin ingin membatalkan booking fitting ini?')">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="w-full flex items-center justify-between py-3 text-[12px] text-ink/70 hover:text-red-500 transition-colors group">
+                                <span class="flex items-center gap-2"><x-icon name="close" :size="14" /> Batalkan Booking Fitting</span>
+                                <x-icon name="chevron-right" :size="14" class="text-ink/30 group-hover:text-red-500 group-hover:translate-x-0.5 transition-all" />
+                            </button>
+                        </form>
+                    @endif
                     
-                    {{-- Form Batalkan Jadwal --}}
-                    <form method="POST" action="{{ route('fitting.cancel', $reservasi->id) }}" onsubmit="return confirm('Yakin ingin membatalkan booking fitting ini?')">
-                        @csrf
-                        @method('PATCH')
-                        <button type="submit" class="w-full flex items-center justify-between py-3 text-[12px] text-ink/70 hover:text-red-500 transition-colors group">
-                            <span class="flex items-center gap-2"><x-icon name="close" :size="14" /> Batalkan Booking Fitting</span>
-                            <x-icon name="chevron-right" :size="14" class="text-ink/30 group-hover:text-red-500 group-hover:translate-x-0.5 transition-all" />
-                        </button>
-                    </form>
-                    
+                    {{-- CS Selalu Tampil --}}
                     <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="flex items-center justify-between py-3 text-[12px] text-ink/70 hover:text-gold transition-colors group">
                         <span class="flex items-center gap-2"><x-icon name="whatsapp" :size="14" /> Hubungi Customer Service</span>
                         <x-icon name="chevron-right" :size="14" class="text-ink/30 group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
@@ -171,10 +185,15 @@
 
             {{-- Tombol Aksi --}}
             <div class="pd-up grid grid-cols-1 sm:grid-cols-2 gap-3" style="--d: .45s;">
-                <a href="{{ route('fitting.edit', $reservasi->id) }}" class="w-full h-[44px] rounded-lg border border-gold/60 bg-white text-gold text-[11px] font-semibold hover:bg-gold/5 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center">
-                    Ubah Jadwal
-                </a>
-                <a href="{{ route('akun.pesanan.index') }}" class="pd-shine w-full h-[44px] rounded-lg bg-gold text-white text-[11px] font-semibold hover:bg-gold/90 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 flex items-center justify-center">
+                {{-- HANYA TAMPIL JIKA BELUM BATAL --}}
+                @if($reservasi->status !== 'batal')
+                    <a href="{{ route('fitting.edit', $reservasi->id) }}" class="w-full h-[44px] rounded-lg border border-gold/60 bg-white text-gold text-[11px] font-semibold hover:bg-gold/5 hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center">
+                        Ubah Jadwal
+                    </a>
+                @endif
+                
+                {{-- TOMBOL INI SELALU TAMPIL --}}
+                <a href="{{ route('akun.dashboard') }}#penyewaan" class="{{ $reservasi->status === 'batal' ? 'sm:col-span-2' : '' }} pd-shine w-full h-[44px] rounded-lg bg-gold text-white text-[11px] font-semibold hover:bg-gold/90 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 flex items-center justify-center">
                     Lihat Pesanan Sewa
                 </a>
             </div>

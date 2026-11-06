@@ -93,4 +93,51 @@ class AlamatController extends Controller
     {
         return redirect(route('akun.dashboard') . '#alamat');
     }
+
+    public function update(Request $request, $id)
+    {
+        $alamat = $this->milikSaya($id);
+
+        $validator = Validator::make($request->all(), [
+            'label' => ['nullable', 'string', 'max:50'],
+            'nama_penerima' => ['required', 'string', 'max:100'],
+            'no_hp' => ['required', 'string', 'max:20'],
+            'provinsi' => ['required', 'string', 'max:100'],
+            'kota_kabupaten' => ['required', 'string', 'max:100'],
+            'kecamatan' => ['required', 'string', 'max:100'],
+            'kode_pos' => ['nullable', 'string', 'max:10'],
+            'alamat' => ['required', 'string', 'max:500'],
+            'ongkir_tujuan_id' => ['required', 'integer'],
+            'ongkir_tujuan_label' => ['required', 'string', 'max:255'],
+            'is_utama' => ['nullable', 'boolean'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->kembali()->withErrors($validator, 'alamat')->withInput();
+        }
+
+        $data = $validator->validated();
+        $data['label'] = $data['label'] ?? 'Rumah';
+
+        DB::transaction(function () use ($request, $data, $alamat) {
+            // LOGIKA PENGAMAN (FIX BUG):
+            // Jika user mencentang box, ATAU alamat ini sebelumnya adalah utama,
+            // maka paksa statusnya tetap utama (tidak boleh ada 0 alamat utama).
+            $jadiUtama = $request->has('is_utama') || $alamat->is_utama;
+
+            if ($jadiUtama) {
+                // Jadikan semua alamat lain bukan utama
+                AlamatPengiriman::where('user_id', $alamat->user_id)
+                    ->where('id', '!=', $alamat->id)
+                    ->update(['is_utama' => false]);
+            }
+
+            // Timpa nilai is_utama di data dengan hasil kalkulasi di atas
+            $data['is_utama'] = $jadiUtama;
+
+            $alamat->update($data);
+        });
+
+        return $this->kembali()->with('success_alamat', 'Alamat berhasil diperbarui.');
+    }
 }

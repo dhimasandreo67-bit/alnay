@@ -24,6 +24,7 @@ class Denda extends Model
 
     protected $casts = [
         'jumlah' => 'integer',
+        'otomatis' => 'boolean',
     ];
 
     public function sewa()

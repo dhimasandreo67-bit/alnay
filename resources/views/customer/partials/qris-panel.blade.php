@@ -1,4 +1,4 @@
-    {{--
+{{--
     Panel QRIS bersama (Sewa & Beli).
     Butuh: $transaksi (dengan relasi pembayaran), $nominal (int, opsional).
 --}}
@@ -25,7 +25,7 @@
     </div>
 
     <div class="flex flex-col items-center mb-6">
-        <div class="w-64 h-64 bg-white border border-line/40 rounded-lg flex items-center justify-center p-2 relative">
+        <div class="w-64 h-64 bg-white border border-line/40 rounded-lg flex items-center justify-center p-2 relative shadow-sm">
 
             <p x-show="state === 'loading'" class="text-[10px] text-ink/40 uppercase tracking-wider animate-pulse">Memuat QR Code...</p>
 
@@ -39,19 +39,12 @@
                 <p class="text-sm font-semibold text-emerald-700">Pembayaran diterima</p>
                 <p class="text-[10px] text-ink/50 mt-1 mb-4">Terima kasih, transaksi Anda sedang diproses.</p>
                 
-                {{-- Tombol Aksi Setelah Lunas --}}
                 <div class="flex flex-col gap-2">
                     @if($isSewa)
-                        <a href="{{ route('fitting.create') }}" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all">
-                            Booking Fitting
-                        </a>
+                        <a href="{{ route('fitting.create') }}" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all">Booking Fitting</a>
                     @endif
-                    <a href="{{ route('akun.pesanan.index') }}" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-gold text-white text-xs font-bold hover:bg-gold/90 transition-all">
-                        Lihat Riwayat Pesanan
-                    </a>
-                    <a href="{{ route('beranda') }}" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg border border-line text-ink text-xs font-bold hover:bg-cream transition-all">
-                        Kembali ke Beranda
-                    </a>
+                    <a href="{{ route('akun.dashboard') }}#penyewaan" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-gold text-white text-xs font-bold hover:bg-gold/90 transition-all">Lihat Riwayat Pesanan</a>
+                    <a href="{{ route('beranda') }}" class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg border border-line text-ink text-xs font-bold hover:bg-cream transition-all">Kembali ke Beranda</a>
                 </div>
             </div>
 
@@ -76,18 +69,26 @@
 
     <div x-show="state === 'ready'" class="mb-6">
         <button type="button" @click="periksa(true)" :disabled="memeriksa"
-                class="w-full h-[42px] rounded-lg bg-gold text-white text-[11px] font-semibold tracking-wider hover:bg-gold/90 transition-colors disabled:opacity-60">
+                class="w-full h-[42px] rounded-lg bg-gold text-white text-[11px] font-semibold tracking-wider hover:bg-gold/90 transition-colors disabled:opacity-60 shadow-md">
             <span x-text="memeriksa ? 'Memeriksa...' : 'Cek Status Pembayaran'"></span>
         </button>
-        <p class="text-[10px] text-center text-ink/45 mt-2 min-h-[14px]" x-text="info"></p>
+        
+        {{-- PERUBAHAN UI: Peringatan yang Lebih Mencolok --}}
+        <div x-show="info" x-cloak x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0"
+             class="mt-4 flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 shadow-sm">
+            <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p class="text-[13px] font-semibold text-amber-900 leading-relaxed" x-text="info"></p>
+        </div>
     </div>
-
+    
     <hr class="border-line/30 my-6">
 
     <div class="space-y-4">
         @foreach (['Buka aplikasi pembayaran (m-banking, GoPay, OVO, ShopeePay, Dana, dsb).', 'Pilih menu Scan QRIS, lalu arahkan kamera ke kode di atas.', 'Periksa nama merchant dan nominal — pastikan sesuai.', 'Selesaikan pembayaran; halaman ini akan berubah otomatis setelah pembayaran diterima.'] as $i => $langkah)
             <div class="flex items-start gap-3">
-                <span class="w-6 h-6 rounded-full bg-cream text-ink/60 text-[10px] font-semibold flex items-center justify-center shrink-0">{{ $i + 1 }}</span>
+                <span class="w-6 h-6 rounded-full bg-cream text-ink/60 text-[10px] font-semibold flex items-center justify-center shrink-0 border border-line/50">{{ $i + 1 }}</span>
                 <p class="text-[11px] text-ink/60 leading-relaxed">{{ $langkah }}</p>
             </div>
         @endforeach
@@ -195,6 +196,7 @@
             async periksa(manual) {
                 if (this.memeriksa) return;
                 this.memeriksa = manual;
+                this.info = ''; // Reset info setiap kali memeriksa
                 try {
                     const res = await fetch(cfg.statusUrl, {
                         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -202,11 +204,15 @@
                     });
                     if (!res.ok) throw new Error('status ' + res.status);
                     const data = await res.json();
+                    
                     if (data.status === 'paid') return this.berhasil();
                     if (data.status === 'expired') return this.kedaluwarsa();
-                    if (manual) this.info = 'Belum ada pembayaran yang masuk.';
+                    
+                    if (manual) {
+                        this.info = 'Pembayaran belum masuk. Jika Anda baru saja membayar, tunggu 1-2 menit lalu cek lagi.';
+                    }
                 } catch (e) {
-                    if (manual) this.info = 'Gagal memeriksa, coba lagi sebentar.';
+                    if (manual) this.info = 'Gagal memeriksa status. Periksa koneksi internet Anda lalu coba lagi.';
                 } finally {
                     this.memeriksa = false;
                 }

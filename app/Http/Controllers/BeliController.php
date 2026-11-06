@@ -7,6 +7,7 @@ use App\Models\Transaksi;
 use App\Models\DetailTransaksi;
 use App\Models\Pembayaran;
 use App\Models\Pengiriman;
+use App\Models\AlamatPengiriman;
 use App\Services\RajaOngkir;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,18 +27,22 @@ class BeliController extends Controller
 
         $user = auth()->user();
 
-        $dataKurang = [];
-        if (empty($user->no_hp)) $dataKurang[] = 'Nomor WhatsApp';
-        if (empty($user->alamat)) $dataKurang[] = 'Alamat Lengkap';
-        if (empty($user->provinsi_nama)) $dataKurang[] = 'Provinsi';
-        if (empty($user->kota_nama)) $dataKurang[] = 'Kota/Kabupaten';
-        if (empty($user->kecamatan)) $dataKurang[] = 'Kecamatan';
-        if (empty($user->kode_pos)) $dataKurang[] = 'Kode Pos';
+        // --- LOGIKA BARU DARI CLAUDE: Cek Alamat Utama di tabel alamat_pengiriman ---
+        $alamatUtama = AlamatPengiriman::where('user_id', $user->id)
+            ->orderByDesc('is_utama')
+            ->orderByDesc('id')
+            ->first();
 
-        if (!empty($dataKurang)) {
-            return redirect()->route('akun.profil.edit')
-                ->with('error', 'Lengkapi data profil Anda terlebih dahulu: ' . implode(', ', $dataKurang) . '.');
+        if (! $alamatUtama) {
+            return redirect(route('akun.dashboard') . '#alamat')
+                ->with('error', 'Tambahkan alamat pengiriman di "Alamat Saya" terlebih dahulu.');
         }
+
+        if (empty($user->no_hp) && empty($alamatUtama->no_hp)) {
+            return redirect(route('akun.dashboard') . '#profil')
+                ->with('error', 'Lengkapi nomor telepon Anda terlebih dahulu.');
+        }
+        // --------------------------------------------------------------------------
 
         $beliData = session('beli_data');
         if (!$beliData) {
@@ -63,17 +68,16 @@ class BeliController extends Controller
                 ->withErrors(['stok' => 'Stok tidak mencukupi. Tersedia: ' . $stok . ' unit.']);
         }
 
-        // Harga sudah termasuk diskon jual (sama seperti di halaman admin & detail produk)
+        // Harga sudah termasuk diskon jual
         $subtotal = $produk->hargaJualNet() * $qty;
 
-        // Ongkir belum dihitung di sini: pembeli memilih tujuan dulu di halaman checkout,
-        // lalu daftar layanan diambil lewat route beli.ongkir.
         $ongkir       = 0;
         $daftarOngkir = [];
         $total        = $subtotal;
 
+        // Mengirimkan $alamatUtama ke view
         return view('customer.beli-checkout', compact(
-            'produk', 'beliData', 'qty', 'varian', 'subtotal', 'ongkir', 'total', 'user', 'daftarOngkir'
+            'produk', 'beliData', 'qty', 'varian', 'subtotal', 'ongkir', 'total', 'user', 'daftarOngkir', 'alamatUtama'
         ));
     }
 
@@ -177,14 +181,14 @@ class BeliController extends Controller
 
         $subtotal = $produk->hargaJualNet() * $qty;
 
-        // Ukuran & warna dicatat di awal catatan transaksi (belum ada kolom khusus di detail_transaksi)
+        // Ukuran & warna dicatat di awal catatan transaksi
         $spesifikasi = collect([
             $ukuran ? 'Ukuran: ' . $ukuran : null,
             $varian ? 'Warna: ' . $varian : null,
         ])->filter()->implode(' · ');
         $spesifikasi = $spesifikasi !== '' ? '[' . $spesifikasi . ']' : '';
 
-        // ==== HITUNG ULANG ONGKIR DI SERVER (angka dari browser tidak dipercaya) ====
+        // ==== HITUNG ULANG ONGKIR DI SERVER ====
         try {
             $berat = $ro->beratKeranjang([['id' => $produk->id, 'qty' => $qty]]);
             $opsi  = $ro->hitungOngkir(
@@ -210,7 +214,7 @@ class BeliController extends Controller
         $ongkir = (int) $dipilih['biaya'];
         $total  = $subtotal + $ongkir;
 
-        $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih, $spesifikasi) {
+        $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih, $spesifikasi, $ukuran, $varian) {
             $transaksi = Transaksi::create([
                 'kode_transaksi'    => 'ALN-BL-' . strtoupper(substr(uniqid(), -8)),
                 'user_id'           => auth()->id(),
@@ -227,6 +231,8 @@ class BeliController extends Controller
                 'produk_id'    => $produk->id,
                 'jumlah'       => $qty,
                 'harga_satuan' => $produk->hargaJualNet(),
+                'ukuran'       => $ukuran ? mb_substr((string) $ukuran, 0, 20) : null,
+                'warna'        => $varian ? mb_substr((string) $varian, 0, 100) : null,
             ]);
 
             Pembayaran::create([
@@ -240,19 +246,27 @@ class BeliController extends Controller
 
             $tujuan = $validated['tujuan_label'] ?? null;
 
+            // Ekstrak kota & provinsi dari tujuan_label (jika formatnya "Kecamatan, Kota, Provinsi")
+            $bagianLabel = array_map('trim', explode(',', (string) $tujuan));
+            $kecamatanTujuan = count($bagianLabel) >= 1 ? $bagianLabel[0] : auth()->user()->kecamatan;
+            $kotaTujuan = count($bagianLabel) >= 2 ? $bagianLabel[1] : auth()->user()->kota_nama;
+            $provinsiTujuan = count($bagianLabel) >= 3 ? $bagianLabel[2] : auth()->user()->provinsi_nama;
+
             Pengiriman::create([
                 'transaksi_id'     => $transaksi->id,
-                'provinsi_tujuan'  => auth()->user()->provinsi_nama ?? '-',
-                'kota_tujuan'      => auth()->user()->kota_nama ?? '-',
-                'kecamatan_tujuan' => auth()->user()->kecamatan ?? '-',
+                'provinsi_tujuan'  => $provinsiTujuan ?? '-',
+                'kota_tujuan'      => $kotaTujuan ?? '-',
+                'kecamatan_tujuan' => $kecamatanTujuan ?? '-',
                 'kode_pos_tujuan'  => auth()->user()->kode_pos ?? null,
                 'alamat_tujuan'    => $validated['alamat'] . ($tujuan ? ' | Tujuan: ' . $tujuan : ''),
                 'status_kirim'     => 'menunggu',
                 'kurir'            => $dipilih['kurir'],
                 'layanan_ongkir'   => $dipilih['layanan'],
                 'biaya_kirim'      => $ongkir,
+                'nama_penerima'    => $validated['nama_penerima'],
+                'no_wa_penerima'   => $validated['no_wa'],
             ]);
-
+            
             return $transaksi;
         });
 
@@ -270,7 +284,7 @@ class BeliController extends Controller
 
         $produk   = $transaksi->detail->first()->produk;
         $qty      = $transaksi->detail->first()->jumlah;
-        // Ukuran & warna tiap item dibaca dari awal catatan transaksi: "[Ukuran: M · Warna: Merah]"
+        
         $spesifikasi = [];
         if (preg_match('/^(?:\s*\[[^\]]*\])+/u', (string) $transaksi->catatan, $awal)) {
             preg_match_all('/\[([^\]]*)\]/u', $awal[0], $mm);

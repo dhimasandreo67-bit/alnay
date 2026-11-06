@@ -19,6 +19,7 @@ Route::middleware('auth:web')->prefix('akun')->name('akun.')->group(function () 
     Route::put('/profil/password', [ProfilController::class, 'updatePassword'])->name('profil.password');
     Route::post('/alamat', [AlamatController::class, 'store'])->name('alamat.store');
     Route::patch('/alamat/{id}/utama', [AlamatController::class, 'jadikanUtama'])->name('alamat.utama');
+    Route::put('/alamat/{id}', [AlamatController::class, 'update'])->name('alamat.update');
     Route::delete('/alamat/{id}', [AlamatController::class, 'destroy'])->name('alamat.destroy');
 
     Route::get('/pesanan', [AkunController::class, 'pesanan'])->name('pesanan.index');

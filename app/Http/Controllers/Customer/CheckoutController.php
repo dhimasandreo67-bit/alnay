@@ -79,7 +79,7 @@ class CheckoutController extends Controller
 
         $subtotal = array_reduce($baris, fn ($c, $b) => $c + ($b['harga'] * $b['qty']), 0);
         $ongkir    = 0;
-        $infoKirim = 'Ambil di studio';
+        $infoKirim = 'Ambil di toko';
 
         if ($request->metode_penerimaan === 'kirim') {
             try {
@@ -137,6 +137,8 @@ class CheckoutController extends Controller
                     'produk_id'    => $b['produk_id'],
                     'jumlah'       => $b['qty'],
                     'harga_satuan' => $b['harga'],
+                    'ukuran'       => $b['ukuran'] ? mb_substr((string) $b['ukuran'], 0, 20) : null,
+                    'warna'        => $b['warna'] ? mb_substr((string) $b['warna'], 0, 100) : null,
                 ]);
             }
 

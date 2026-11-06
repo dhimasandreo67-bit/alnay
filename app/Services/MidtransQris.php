@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Produk;
 use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Midtrans\Config;
 use Midtrans\CoreApi;
@@ -235,15 +237,17 @@ class MidtransQris
             ]);
 
             // ==== KURANGI STOK PRODUK (Hanya untuk transaksi BELI) ====
+            // Stok jual dikurangi per ukuran & warna yang dibeli (disimpan di detail_transaksi).
+            // Stok SEWA tidak dikurangi: ketersediaannya dihitung per tanggal (lihat Support\KetersediaanSewa).
             if ($t->jenis === 'beli') {
-                foreach ($t->detail as $detail) {
-                    $produk = $detail->produk;
-                    if ($produk) {
-                        $produk->update([
-                            'stok' => max(0, $produk->stok - $detail->jumlah)
-                        ]);
+                DB::transaction(function () use ($t) {
+                    foreach ($t->detail as $detail) {
+                        $produk = Produk::whereKey($detail->produk_id)->lockForUpdate()->first();
+                        if ($produk) {
+                            $produk->kurangiStok('jual', $detail->ukuran, $detail->warna, (int) $detail->jumlah);
+                        }
                     }
-                }
+                });
             }
             // ==========================================================
 

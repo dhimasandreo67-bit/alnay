@@ -55,7 +55,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-gray-900">Reservasi Fitting</h1>
-            <p class="text-xs text-gray-500 mt-1">Daftar jadwal kedatangan pelanggan untuk pengukuran busana di studio.</p>
+            <p class="text-xs text-gray-500 mt-1">Daftar jadwal kedatangan pelanggan untuk pengukuran busana di toko ALNAY.</p>
         </div>
     </div>
 
@@ -97,11 +97,21 @@
                         @php
                             $namaPelanggan = $r->user->name ?? 'User Terhapus';
                             $inisial = strtoupper(mb_substr(trim($namaPelanggan) ?: '?', 0, 1));
+                            
+                            $fotoUser = $r->user->foto_profil ?? null;
+                            $fotoUserUrl = $fotoUser 
+                                ? (\Illuminate\Support\Str::startsWith($fotoUser, ['http://', 'https://']) ? $fotoUser : asset('storage/' . $fotoUser)) 
+                                : null;
                         @endphp
-                        <tr class="hover:bg-amber-50/30 transition-colors">
+                        <tr id="baris-{{ $r->id }}" class="hover:bg-amber-50/30 transition-colors">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
+                                    @if($fotoUserUrl)
+                                        <img src="{{ $fotoUserUrl }}" alt="{{ $namaPelanggan }}" class="h-10 w-10 shrink-0 rounded-2xl object-cover border border-gray-200">
+                                    @else
+                                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
+                                    @endif
+
                                     <div class="min-w-0">
                                         <p class="text-sm font-bold text-gray-900 truncate">{{ $namaPelanggan }}</p>
                                         <p class="text-xs text-gray-500">{{ $r->user->no_hp ?? '-' }}</p>
@@ -131,10 +141,10 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <form action="{{ route('admin.fitting.update-status', $r->id) }}" method="POST" class="inline">
+                                <form id="form-status-{{ $r->id }}" action="{{ route('admin.fitting.update-status', $r->id) }}" method="POST" class="inline">
                                     @csrf
                                     @method('PATCH')
-                                    <select name="status" onchange="this.form.submit()" aria-label="Ubah status reservasi"
+                                    <select name="status" onchange="simpanPosisiScroll(this.closest('tr')); this.form.submit()" aria-label="Ubah status reservasi"
                                             class="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all hover:border-amber-300">
                                         <option value="pending" {{ $r->status == 'pending' ? 'selected' : '' }}>Tandai Pending</option>
                                         <option value="hadir" {{ $r->status == 'hadir' ? 'selected' : '' }}>Hadir</option>
@@ -156,4 +166,79 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    const KUNCI = 'fittingScrollState';
+
+    // Cari wadah yang benar-benar bisa di-scroll secara vertikal (bukan selalu window).
+    function cariWadah(el) {
+        let node = el ? el.parentElement : null;
+        while (node && node !== document.body) {
+            const oy = getComputedStyle(node).overflowY;
+            if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight) return node;
+            node = node.parentElement;
+        }
+        return document.scrollingElement || document.documentElement;
+    }
+
+    function atasWadah(wadah) {
+        return (wadah === document.scrollingElement || wadah === document.documentElement)
+            ? 0
+            : wadah.getBoundingClientRect().top;
+    }
+
+    // Dipanggil sebelum form dikirim: catat baris yang diubah dan jaraknya dari atas layar.
+    window.simpanPosisiScroll = function (baris) {
+        if (!baris) return;
+        const wadah = cariWadah(baris);
+        sessionStorage.setItem(KUNCI, JSON.stringify({
+            path: location.pathname,
+            barisId: baris.id,
+            offset: baris.getBoundingClientRect().top - atasWadah(wadah),
+            top: wadah.scrollTop,
+        }));
+    };
+
+    function pulihkan() {
+        const raw = sessionStorage.getItem(KUNCI);
+        if (!raw) return;
+
+        let s;
+        try { s = JSON.parse(raw); } catch (e) { sessionStorage.removeItem(KUNCI); return; }
+        if (s.path !== location.pathname) { sessionStorage.removeItem(KUNCI); return; }
+
+        const tabel = document.querySelector('table');
+        if (!tabel) return;
+
+        const terapkan = function () {
+            const wadah = cariWadah(tabel);
+            const baris = document.getElementById(s.barisId);
+
+            if (baris) {
+                // Jaga baris yang sama tetap di jarak yang sama dari atas,
+                // walau ada alert "berhasil" yang menambah tinggi halaman.
+                const selisih = (baris.getBoundingClientRect().top - atasWadah(wadah)) - s.offset;
+                wadah.scrollTop += selisih;
+            } else {
+                wadah.scrollTop = s.top;
+            }
+        };
+
+        terapkan();
+
+        // Ulangi beberapa kali untuk mengalahkan layout shift (font/gambar telat muat).
+        let n = 0;
+        const timer = setInterval(function () {
+            terapkan();
+            if (++n >= 8) {
+                clearInterval(timer);
+                sessionStorage.removeItem(KUNCI);
+            }
+        }, 100);
+    }
+
+    pulihkan();
+})();
+</script>
 @endsection

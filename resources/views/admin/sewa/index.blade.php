@@ -199,16 +199,53 @@
                         @php
                             $namaPelanggan = $sewa->nama_pelanggan;
                             $inisial = strtoupper(mb_substr(trim($namaPelanggan) ?: '?', 0, 1));
+                            
+                            // LOGIKA BARU: Ambil data produk & foto
+                            $produk = $sewa->transaksi->detail->first()->produk ?? null;
+                            $foto = $produk->foto_produk ?? null;
+                            if (is_array($foto)) { $foto = $foto[0] ?? null; }
+                            if (is_string($foto) && str_starts_with($foto, '[')) {
+                                $decoded = json_decode($foto, true);
+                                $foto = is_array($decoded) ? ($decoded[0] ?? null) : $foto;
+                            }
                         @endphp
                         <tr class="hover:bg-amber-50/30 transition-colors">
                             <td class="px-6 py-4">
-                                <p class="text-xs text-gray-400 mb-1">#SEWA-{{ $sewa->id }}</p>
-                                <p class="font-bold text-gray-900">{{ $sewa->transaksi->detail->first()->produk->nama ?? 'Produk' }}</p>
-                                <p class="text-xs text-gray-500">SKU: {{ $sewa->transaksi->detail->first()->produk->sku ?? '-' }}</p>
+                                <div class="flex items-center gap-3">
+                                    {{-- TAMPILKAN FOTO PRODUK DI SINI --}}
+                                    <div class="w-12 h-12 rounded-lg bg-gray-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center">
+                                        @if($foto)
+                                            <img src="{{ asset('storage/' . ltrim($foto, '/')) }}" class="w-full h-full object-cover">
+                                        @else
+                                            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        @endif
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-xs text-gray-400 mb-0.5">#SEWA-{{ $sewa->id }}</p>
+                                        <p class="font-bold text-gray-900 truncate">{{ $produk->nama ?? 'Produk' }}</p>
+                                        <p class="text-xs text-gray-500">SKU: {{ $produk->sku ?? '-' }}</p>
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
+                                    {{-- LOGIKA FOTO PROFIL --}}
+                                    @php
+                                        $fotoUser = $sewa->transaksi->user->foto_profil ?? null;
+                                        $fotoUserUrl = $fotoUser 
+                                            ? (\Illuminate\Support\Str::startsWith($fotoUser, ['http://', 'https://']) 
+                                                ? $fotoUser 
+                                                : asset('storage/' . $fotoUser)) 
+                                            : null;
+                                    @endphp
+
+                                    @if($fotoUserUrl)
+                                        <img src="{{ $fotoUserUrl }}" alt="{{ $namaPelanggan }}" class="h-10 w-10 shrink-0 rounded-2xl object-cover border border-gray-200">
+                                    @else
+                                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
+                                    @endif
+                                    {{-- END FOTO PROFIL --}}
+
                                     <div class="min-w-0">
                                         <p class="font-bold text-gray-900 truncate">{{ $namaPelanggan }}@if ($sewa->is_tamu) <span class="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-gray-500">Tamu</span>@endif</p>
                                         <p class="text-xs text-gray-500">{{ $sewa->no_hp_pelanggan ?: '-' }}</p>

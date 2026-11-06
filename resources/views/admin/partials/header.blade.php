@@ -17,7 +17,7 @@
         <div class="flex items-center gap-4 text-cream/70">
             <span class="hidden sm:inline-flex items-center gap-1.5">
                 <x-icon name="clock" :size="14" />
-                {{ config('alnay.studio.jam_buka') }}
+                {{ config('alnay.toko.jam_buka') }}
             </span>
             <span class="inline-flex items-center gap-1.5">
                 <x-icon name="whatsapp" :size="14" />
