@@ -258,6 +258,18 @@
                             </div>
                         </div>
                     </label>
+
+                    {{-- Tunai: hanya untuk Ambil di Toko (dikontrol JS di refresh()) --}}
+                    <label id="opsi-tunai" class="cursor-pointer block hidden">
+                        <input type="radio" name="metode_bayar" value="tunai" disabled class="opsi-radio peer sr-only">
+                        <div class="opsi-card flex items-center gap-3 p-4 rounded-xl border border-gray-200 peer-checked:border-[#c99a32] peer-checked:bg-[#c99a32]/5 hover:border-[#c99a32]/60 transition-all duration-300">
+                            <span class="radio-dot w-4 h-4 rounded-full border-2 border-gray-300 shrink-0 transition-all"></span>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-gray-800">Tunai di Toko</p>
+                                <p class="text-xs text-gray-500">Bayar langsung saat mengambil pesanan di toko</p>
+                            </div>
+                        </div>
+                    </label>
                 </div>
             </div>
         </div>
@@ -343,6 +355,18 @@
         $('row-ongkir').textContent = !kirim ? 'Gratis' : (pilih ? rupiah(biaya) : 'Belum dipilih');
         $('txt-total').textContent  = rupiah(SUBTOTAL + biaya);
         $('btn-submit').disabled    = kirim && !pilih;
+
+        // Tunai hanya tersedia untuk Ambil di Toko
+        const boxTunai = $('opsi-tunai');
+        const inTunai  = boxTunai.querySelector('input');
+        boxTunai.classList.toggle('hidden', kirim);
+        inTunai.disabled = kirim;
+        if (kirim && inTunai.checked) {
+            document.querySelector('input[name="metode_bayar"][value="qris"]').checked = true;
+        }
+
+        const tunai = !kirim && inTunai.checked;
+        $('btn-submit').textContent = tunai ? 'Buat Pesanan' : 'Buat Pesanan & Bayar';
     }
 
     function resetLayanan() {
@@ -366,6 +390,8 @@
         p.textContent = teks;
         $('opsi-ongkir').replaceChildren(p);
     }
+
+    document.querySelectorAll('input[name="metode_bayar"]').forEach(r => r.addEventListener('change', refresh));
 
     // Tampilkan / sembunyikan blok pengiriman
     document.querySelectorAll('input[name="metode_penerimaan"]').forEach(radio => {

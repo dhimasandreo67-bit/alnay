@@ -141,7 +141,7 @@ class CheckoutController extends Controller
         $request->validate([
             'alamat_id'         => 'nullable|string|max:20',
             'metode_penerimaan' => 'required|in:ambil,kirim',
-            'metode_bayar'      => 'required|in:qris,va,ewallet',
+            'metode_bayar'      => 'required|in:qris,va,ewallet,tunai',
             'nama_penerima'     => 'required_if:metode_penerimaan,kirim|nullable|string|max:100',
             'no_wa'             => 'required_if:metode_penerimaan,kirim|nullable|string|max:20',
             'alamat'            => 'required_if:metode_penerimaan,kirim|nullable|string|max:500',
@@ -154,6 +154,11 @@ class CheckoutController extends Controller
             'kurir.required_if'     => 'Pilih layanan pengiriman.',
             'layanan.required_if'   => 'Pilih layanan pengiriman.',
         ]);
+
+        // Tunai hanya boleh untuk ambil di toko
+        if ($request->metode_bayar === 'tunai' && $request->metode_penerimaan !== 'ambil') {
+            return back()->withInput()->with('error', 'Pembayaran tunai hanya tersedia untuk ambil di toko.');
+        }
 
         // Alamat baru yang diisi manual: wilayah wajib lengkap seperti form di profil.
         $alamatManual = $request->metode_penerimaan === 'kirim' && ! $alamatDipilih;
@@ -302,6 +307,13 @@ class CheckoutController extends Controller
         });
 
         session()->forget('cart');
+
+        // Tunai: tidak ada pembayaran online. Pesanan langsung tercatat (pending) di admin,
+        // pelanggan membayar saat ambil di toko, lalu admin menekan "Tandai Lunas".
+        if ($request->metode_bayar === 'tunai') {
+            return redirect()->route('akun.dashboard')
+                ->with('success', 'Pemesanan berhasil! Kode ' . $transaksi->kode_transaksi . '. Silakan bayar tunai saat mengambil pesanan di toko.');
+        }
 
         return redirect()->route('beli.konfirmasi', $transaksi->id);
     }

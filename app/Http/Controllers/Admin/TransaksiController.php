@@ -546,6 +546,10 @@ class TransaksiController extends Controller
         // Ubah status di tabel pembayaran (jika ada tagihan DP/Pending)
         $transaksi->pembayaran()->update(['status_midtrans' => 'success']);
 
+        // Pembayaran tunai: tanggal bayar = saat admin menerima uang di toko
+        // (sebelumnya terisi otomatis saat pesanan dibuat).
+        $transaksi->pembayaran()->where('metode', 'tunai')->update(['tanggal_bayar' => now()]);
+
         return redirect()->back()->with('success', 'Status pembayaran berhasil diubah menjadi LUNAS.');
     }
 
