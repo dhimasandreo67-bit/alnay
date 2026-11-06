@@ -87,9 +87,40 @@ class Produk extends Model
         return ['stok' => 'stok', 'ukuran' => 'ukuran', 'warna' => 'warna'];
     }
 
+    /**
+     * Total stok satu set (jual / sewa).
+     *
+     * Bila produk punya variasi ukuran, total SELALU dihitung dari variasi itu (stok per warna bila ada
+     * rincian warna, selain itu stok ukuran) dan bukan dari kolom stok. Dengan begitu angka di Kelola
+     * Produk, kasir, dan halaman pelanggan tidak bisa berbeda walau kolom stok belum sinkron.
+     * Tanpa variasi ukuran, dipakai kolom stok.
+     *
+     * Untuk sewa ini adalah KAPASITAS (unit yang dimiliki); sisa pada tanggal tertentu
+     * dihitung oleh Support\KetersediaanSewa.
+     */
     public function stokUntuk(string $jenis): int
     {
-        return (int) $this->{$this->kolomStok($jenis)['stok']};
+        $adaVarian = false;
+        $total = 0;
+
+        foreach ($this->ukuranUntuk($jenis) as $r) {
+            // Data lama berupa teks biasa / tanpa nama ukuran tidak punya angka stok
+            if (! is_array($r) || trim((string) ($r['ukuran'] ?? '')) === '') {
+                continue;
+            }
+
+            $adaVarian = true;
+            $perWarna = array_filter(
+                (array) ($r['warna'] ?? []),
+                fn ($w) => is_array($w) && trim((string) ($w['nama'] ?? '')) !== ''
+            );
+
+            $total += $perWarna
+                ? array_sum(array_map(fn ($w) => max(0, (int) ($w['stok'] ?? 0)), $perWarna))
+                : max(0, (int) ($r['stok'] ?? 0));
+        }
+
+        return $adaVarian ? $total : (int) $this->{$this->kolomStok($jenis)['stok']};
     }
 
     public function ukuranUntuk(string $jenis): array
