@@ -36,6 +36,85 @@ class CheckoutController extends Controller
         return view('customer.checkout', compact('cartItems', 'total', 'user', 'alamatList'));
     }
 
+    /**
+     * Simpan alamat yang diisi di checkout ke "Alamat Saya".
+     * Aturan sama dengan AlamatController@store: alamat pertama otomatis menjadi utama.
+     */
+    private function simpanAlamatBaru(Request $request): AlamatPengiriman
+    {
+        $userId = Auth::id();
+        $sudahAda = AlamatPengiriman::where('user_id', $userId)->exists();
+        $jadiUtama = $sudahAda ? $request->boolean('jadikan_utama') : true;
+
+        if ($jadiUtama) {
+            AlamatPengiriman::where('user_id', $userId)->update(['is_utama' => false]);
+        }
+
+        return AlamatPengiriman::create([
+            'user_id'             => $userId,
+            'label'               => $request->input('label') ?: 'Rumah',
+            'nama_penerima'       => $request->nama_penerima,
+            'no_hp'               => $request->no_wa,
+            'provinsi'            => $request->provinsi,
+            'kota_kabupaten'      => $request->kota_kabupaten,
+            'kecamatan'           => $request->kecamatan,
+            'kode_pos'            => $request->kode_pos,
+            'alamat'              => $request->alamat,
+            'ongkir_tujuan_id'    => (int) $request->tujuan_id,
+            'ongkir_tujuan_label' => $request->tujuan_label ?: (string) $request->tujuan_id,
+            'is_utama'            => $jadiUtama,
+        ]);
+    }
+
+    /**
+     * Simpan alamat dari halaman checkout (AJAX) ke "Alamat Saya".
+     * Mengembalikan JSON agar kartu alamat baru bisa langsung ditampilkan & dipilih.
+     */
+    public function simpanAlamat(Request $request)
+    {
+        $request->validate([
+            'label'          => 'nullable|string|max:50',
+            'nama_penerima'  => 'required|string|max:100',
+            'no_wa'          => 'required|string|max:20',
+            'provinsi'       => 'required|string|max:100',
+            'kota_kabupaten' => 'required|string|max:100',
+            'kecamatan'      => 'required|string|max:100',
+            'kode_pos'       => 'nullable|string|max:10',
+            'alamat'         => 'required|string|max:500',
+            'tujuan_id'      => 'required|integer',
+            'tujuan_label'   => 'nullable|string|max:255',
+            'jadikan_utama'  => 'nullable|boolean',
+        ], [
+            'nama_penerima.required'  => 'Nama penerima wajib diisi.',
+            'no_wa.required'          => 'No. WhatsApp wajib diisi.',
+            'provinsi.required'       => 'Pilih provinsi.',
+            'kota_kabupaten.required' => 'Pilih kota/kabupaten.',
+            'kecamatan.required'      => 'Pilih kecamatan.',
+            'alamat.required'         => 'Alamat lengkap wajib diisi.',
+            'tujuan_id.required'      => 'Pilih kelurahan tujuan pengiriman.',
+        ]);
+
+        $alamat = DB::transaction(fn () => $this->simpanAlamatBaru($request));
+
+        return response()->json([
+            'message' => 'Alamat berhasil disimpan.',
+            'alamat'  => [
+                'id'             => $alamat->id,
+                'label'          => $alamat->label,
+                'nama_penerima'  => $alamat->nama_penerima,
+                'no_hp'          => $alamat->no_hp,
+                'alamat'         => $alamat->alamat,
+                'kecamatan'      => $alamat->kecamatan,
+                'kota_kabupaten' => $alamat->kota_kabupaten,
+                'provinsi'       => $alamat->provinsi,
+                'kode_pos'       => $alamat->kode_pos,
+                'is_utama'       => (bool) $alamat->is_utama,
+                'tujuan_id'      => $alamat->ongkir_tujuan_id,
+                'tujuan_label'   => $alamat->ongkir_tujuan_label,
+            ],
+        ]);
+    }
+
     public function store(Request $request, RajaOngkir $ro)
     {
         // Kalau user memilih alamat tersimpan, data penerima, alamat, dan tujuan ongkir diambil dari
@@ -75,6 +154,26 @@ class CheckoutController extends Controller
             'kurir.required_if'     => 'Pilih layanan pengiriman.',
             'layanan.required_if'   => 'Pilih layanan pengiriman.',
         ]);
+
+        // Alamat baru yang diisi manual: wilayah wajib lengkap seperti form di profil.
+        $alamatManual = $request->metode_penerimaan === 'kirim' && ! $alamatDipilih;
+        if ($alamatManual) {
+            $request->validate([
+                'label'          => 'nullable|string|max:50',
+                'provinsi'       => 'required|string|max:100',
+                'kota_kabupaten' => 'required|string|max:100',
+                'kecamatan'      => 'required|string|max:100',
+                'kode_pos'       => 'nullable|string|max:10',
+                'simpan_alamat'  => 'nullable|boolean',
+                'jadikan_utama'  => 'nullable|boolean',
+            ], [
+                'provinsi.required'       => 'Pilih provinsi.',
+                'kota_kabupaten.required' => 'Pilih kota/kabupaten.',
+                'kecamatan.required'      => 'Pilih kecamatan.',
+            ]);
+        }
+        // Opsional: simpan alamat baru ke "Alamat Saya" (dilakukan di dalam transaksi di bawah)
+        $simpanAlamat = $alamatManual && $request->boolean('simpan_alamat');
 
         $cartItems = session('cart', []);
         if (empty($cartItems)) {
@@ -148,7 +247,11 @@ class CheckoutController extends Controller
         })->implode(' ');
         $infoKirim = $rincian . ' ' . $infoKirim;
 
-        $transaksi = DB::transaction(function () use ($request, $baris, $total, $infoKirim, $ongkir, $alamatDipilih) {
+        $transaksi = DB::transaction(function () use ($request, $baris, $total, $infoKirim, $ongkir, $alamatDipilih, $simpanAlamat) {
+            if ($simpanAlamat) {
+                $this->simpanAlamatBaru($request);
+            }
+
             $transaksi = Transaksi::create([
                 'kode_transaksi'    => 'ALN-BLI-' . strtoupper(substr(uniqid(), -8)),
                 'user_id'           => Auth::id(),
@@ -183,10 +286,10 @@ class CheckoutController extends Controller
             if ($request->metode_penerimaan === 'kirim') {
                 Pengiriman::create([
                     'transaksi_id'     => $transaksi->id,
-                    'provinsi_tujuan'  => $alamatDipilih?->provinsi ?? auth()->user()->provinsi_nama ?? '-',
-                    'kota_tujuan'      => $alamatDipilih?->kota_kabupaten ?? auth()->user()->kota_nama ?? '-',
+                    'provinsi_tujuan'  => $alamatDipilih?->provinsi ?? $request->provinsi ?? auth()->user()->provinsi_nama ?? '-',
+                    'kota_tujuan'      => $alamatDipilih?->kota_kabupaten ?? $request->kota_kabupaten ?? auth()->user()->kota_nama ?? '-',
                     'kecamatan_tujuan' => $request->tujuan_label ?? '-',
-                    'kode_pos_tujuan'  => $alamatDipilih?->kode_pos ?? auth()->user()->kode_pos ?? null,
+                    'kode_pos_tujuan'  => $alamatDipilih?->kode_pos ?? $request->kode_pos ?? auth()->user()->kode_pos ?? null,
                     'alamat_tujuan'    => $request->alamat,
                     'status_kirim'     => 'menunggu',
                     'kurir'            => $request->kurir,
