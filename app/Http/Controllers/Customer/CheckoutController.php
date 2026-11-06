@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\AlamatPengiriman;
 use App\Models\DetailTransaksi;
 use App\Models\Pembayaran;
 use App\Models\Produk;
@@ -26,12 +27,40 @@ class CheckoutController extends Controller
         $total = array_reduce($cartItems, fn($c, $i) => $c + ($i['harga'] * $i['qty']), 0);
         $user = auth()->user();
 
-        return view('customer.checkout', compact('cartItems', 'total', 'user'));
+        // Alamat tersimpan di "Alamat Saya" (alamat utama tampil pertama) supaya tidak perlu input ulang
+        $alamatList = AlamatPengiriman::where('user_id', $user->id)
+            ->orderByDesc('is_utama')
+            ->orderByDesc('updated_at')
+            ->get();
+
+        return view('customer.checkout', compact('cartItems', 'total', 'user', 'alamatList'));
     }
 
     public function store(Request $request, RajaOngkir $ro)
     {
+        // Kalau user memilih alamat tersimpan, data penerima, alamat, dan tujuan ongkir diambil dari
+        // database (bukan dari form), dan hanya alamat milik user yang sedang login yang boleh dipakai.
+        $alamatDipilih = null;
+        $idAlamat = $request->input('alamat_id');
+
+        if ($request->input('metode_penerimaan') === 'kirim' && $idAlamat && $idAlamat !== 'baru') {
+            $alamatDipilih = AlamatPengiriman::where('user_id', Auth::id())->find($idAlamat);
+
+            if (! $alamatDipilih) {
+                return back()->withInput()->with('error', 'Alamat pengiriman yang dipilih tidak ditemukan.');
+            }
+
+            $request->merge([
+                'nama_penerima' => $alamatDipilih->nama_penerima,
+                'no_wa'         => $alamatDipilih->no_hp,
+                'alamat'        => $alamatDipilih->alamat,
+                'tujuan_id'     => $alamatDipilih->ongkir_tujuan_id,
+                'tujuan_label'  => $alamatDipilih->ongkir_tujuan_label,
+            ]);
+        }
+
         $request->validate([
+            'alamat_id'         => 'nullable|string|max:20',
             'metode_penerimaan' => 'required|in:ambil,kirim',
             'metode_bayar'      => 'required|in:qris,va,ewallet',
             'nama_penerima'     => 'required_if:metode_penerimaan,kirim|nullable|string|max:100',
@@ -119,7 +148,7 @@ class CheckoutController extends Controller
         })->implode(' ');
         $infoKirim = $rincian . ' ' . $infoKirim;
 
-        $transaksi = DB::transaction(function () use ($request, $baris, $total, $infoKirim, $ongkir) {
+        $transaksi = DB::transaction(function () use ($request, $baris, $total, $infoKirim, $ongkir, $alamatDipilih) {
             $transaksi = Transaksi::create([
                 'kode_transaksi'    => 'ALN-BLI-' . strtoupper(substr(uniqid(), -8)),
                 'user_id'           => Auth::id(),
@@ -154,10 +183,10 @@ class CheckoutController extends Controller
             if ($request->metode_penerimaan === 'kirim') {
                 Pengiriman::create([
                     'transaksi_id'     => $transaksi->id,
-                    'provinsi_tujuan'  => auth()->user()->provinsi_nama ?? '-',
-                    'kota_tujuan'      => auth()->user()->kota_nama ?? '-',
+                    'provinsi_tujuan'  => $alamatDipilih?->provinsi ?? auth()->user()->provinsi_nama ?? '-',
+                    'kota_tujuan'      => $alamatDipilih?->kota_kabupaten ?? auth()->user()->kota_nama ?? '-',
                     'kecamatan_tujuan' => $request->tujuan_label ?? '-',
-                    'kode_pos_tujuan'  => auth()->user()->kode_pos ?? null,
+                    'kode_pos_tujuan'  => $alamatDipilih?->kode_pos ?? auth()->user()->kode_pos ?? null,
                     'alamat_tujuan'    => $request->alamat,
                     'status_kirim'     => 'menunggu',
                     'kurir'            => $request->kurir,
