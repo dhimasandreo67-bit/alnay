@@ -260,7 +260,7 @@
                                     {{-- Edit --}}
                                     <button type="button" data-modal-open="modal-edit-pengguna"
                                             data-id="{{ $u->id }}"
-                                            data-user="{{ json_encode($u->only(['name','email','no_hp','alamat','provinsi','kota_kabupaten','kecamatan','kode_pos'])) }}"
+                                            data-user="{{ json_encode($dataEdit[$u->id] ?? []) }}"
                                             title="Edit akun" aria-label="Edit akun {{ $u->name }}"
                                             class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 shadow-sm transition-all hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -378,35 +378,11 @@
             <p class="mt-1 text-[11px] text-gray-400">Kosongkan jika pelanggan masuk lewat kode OTP atau akun Google.</p>
         </div>
 
-        {{-- Alamat & wilayah — opsional, sama seperti field di halaman Profil pelanggan --}}
-        <div>
-            <label for="tp-alamat" class="text-xs font-bold text-gray-500">Alamat lengkap (opsional)</label>
-            <textarea id="tp-alamat" name="alamat" rows="2" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none">{{ old('alamat') }}</textarea>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-                <label for="tp-provinsi" class="text-xs font-bold text-gray-500">Provinsi</label>
-                <select id="tp-provinsi" name="provinsi" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
-                    <option value="">Pilih Provinsi</option>
-                </select>
-            </div>
-            <div>
-                <label for="tp-kota" class="text-xs font-bold text-gray-500">Kota/Kabupaten</label>
-                <select id="tp-kota" name="kota_kabupaten" disabled class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="">Pilih Kota/Kabupaten</option>
-                </select>
-            </div>
-            <div>
-                <label for="tp-kecamatan" class="text-xs font-bold text-gray-500">Kecamatan</label>
-                <select id="tp-kecamatan" name="kecamatan" disabled class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="">Pilih Kecamatan</option>
-                </select>
-            </div>
-        </div>
-        <div>
-            <label for="tp-kodepos" class="text-xs font-bold text-gray-500">Kode pos (opsional)</label>
-            <input type="text" id="tp-kodepos" name="kode_pos" value="{{ old('kode_pos') }}" maxlength="10" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
-        </div>
+        {{-- Alamat pengiriman (opsional) — tersimpan sebagai alamat utama di menu "Alamat Saya" pelanggan --}}
+        @include('admin.pengguna._form-alamat', [
+            'p' => 'tp',
+            'catatan' => 'Opsional. Jika diisi, disimpan sebagai alamat utama pelanggan dan tampil di menu Alamat Saya.',
+        ])
 
         <input type="hidden" name="verifikasi_email" value="0">
         <label class="flex cursor-pointer items-start gap-3 text-xs text-gray-700">
@@ -464,34 +440,12 @@
             <input type="password" id="ep-pass" name="password" minlength="8" autocomplete="new-password" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
             <p class="mt-1 text-[11px] text-gray-400">Kosongkan jika tidak ingin mengubah kata sandi.</p>
         </div>
-        <div>
-            <label for="ep-alamat" class="text-xs font-bold text-gray-500">Alamat lengkap</label>
-            <textarea id="ep-alamat" name="alamat" rows="2" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none"></textarea>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-                <label for="ep-provinsi" class="text-xs font-bold text-gray-500">Provinsi</label>
-                <select id="ep-provinsi" name="provinsi" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
-                    <option value="">Pilih Provinsi</option>
-                </select>
-            </div>
-            <div>
-                <label for="ep-kota" class="text-xs font-bold text-gray-500">Kota/Kabupaten</label>
-                <select id="ep-kota" name="kota_kabupaten" disabled class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="">Pilih Kota/Kabupaten</option>
-                </select>
-            </div>
-            <div>
-                <label for="ep-kecamatan" class="text-xs font-bold text-gray-500">Kecamatan</label>
-                <select id="ep-kecamatan" name="kecamatan" disabled class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="">Pilih Kecamatan</option>
-                </select>
-            </div>
-        </div>
-        <div>
-            <label for="ep-kodepos" class="text-xs font-bold text-gray-500">Kode pos</label>
-            <input type="text" id="ep-kodepos" name="kode_pos" maxlength="10" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
-        </div>
+        {{-- Alamat utama pelanggan (tabel alamat_pengiriman, sama dengan menu "Alamat Saya") --}}
+        <input type="hidden" name="ubah_alamat" id="ep-ubah" value="0">
+        @include('admin.pengguna._form-alamat', [
+            'p' => 'ep',
+            'catatan' => 'Perubahan di sini memperbarui alamat utama pelanggan (menu Alamat Saya).',
+        ])
     </form>
 
     <x-slot:footer>
@@ -565,84 +519,185 @@
         var URL_UPDATE = @json(route('admin.pengguna.update', '__ID__'));
         var OLD_EDIT = @json(old('_form') === 'edit' ? old() : null);
 
-        // Wilayah berjenjang untuk modal edit (diisi ulang setiap modal dibuka)
-        var isiWilayahEdit = (function () {
-            var selProv = $('ep-provinsi'), selKota = $('ep-kota'), selKec = $('ep-kecamatan');
-            var provinces = [], cities = [], promiseProv = null;
+        // ---------- Alamat pengiriman (terhubung ke "Alamat Saya" pelanggan) ----------
+        // Dropdown wilayah & pencarian kelurahan memakai sumber data RajaOngkir yang sama dengan
+        // halaman Checkout dan Alamat Saya, supaya alamat dari admin langsung bisa dipakai ongkir.
+        var URL_PROVINSI = @json(route('admin.pengguna.ongkir.provinsi'));
+        var URL_KOTA = @json(route('admin.pengguna.ongkir.kota', '__ID__'));
+        var URL_KECAMATAN = @json(route('admin.pengguna.ongkir.kecamatan', '__ID__'));
+        var URL_TUJUAN = @json(route('admin.pengguna.ongkir.tujuan'));
 
-            function toList(json) {
-                if (Array.isArray(json)) return json;
-                if (json && Array.isArray(json.data)) return json.data;
-                return [];
+        function pasangAlamat(p, saatDiubah) {
+            var el = function (s) { return $(p + '-' + s); };
+            var selProv = el('provinsi'), selKota = el('kota'), selKec = el('kecamatan');
+            var inCari = el('tujuan-q'), kotak = el('tujuan-hasil'), info = el('tujuan-info');
+            var idTujuan = el('tujuan-id'), labelTujuan = el('tujuan-label'), kodePos = el('kodepos');
+            var radios = selProv.form.querySelectorAll('input[name="label"]');
+            var daftarProvinsi = [], timer = null;
+            var ubah = function () { if (saatDiubah) saatDiubah(); };
+
+            function sama(a, b) { return String(a || '').toLowerCase() === String(b || '').toLowerCase(); }
+
+            async function ambil(url) {
+                var res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) throw new Error(url + ' -> HTTP ' + res.status);
+                var json = await res.json();
+                return Array.isArray(json) ? json : (json && Array.isArray(json.data) ? json.data : []);
             }
-            function idOf(item) { return item.id ?? item.code ?? item.kode; }
-            function sama(a, b) { return (a || '').toString().toLowerCase() === (b || '').toString().toLowerCase(); }
-            function ambilDaftar(url) {
-                return fetch(url, { headers: { 'Accept': 'application/json' } }).then(function (res) {
-                    if (!res.ok) throw new Error(url + ' -> HTTP ' + res.status);
-                    return res.json();
-                }).then(toList);
-            }
-            function isiSelect(select, items, placeholder, terpilih) {
+
+            function isiPilihan(select, items, placeholder, terpilih) {
                 select.innerHTML = '';
-                var kosong = document.createElement('option');
-                kosong.value = '';
-                kosong.textContent = placeholder;
-                select.appendChild(kosong);
+                select.add(new Option(placeholder, ''));
                 items.forEach(function (item) {
-                    var opt = document.createElement('option');
-                    opt.value = item.name;
-                    opt.textContent = item.name;
-                    if (terpilih && sama(item.name, terpilih)) opt.selected = true;
-                    select.appendChild(opt);
+                    var opt = new Option(item.name, item.name, false, !!terpilih && sama(item.name, terpilih));
+                    opt.dataset.id = item.id;
+                    select.add(opt);
                 });
                 select.disabled = items.length === 0;
             }
-            function muatProvinsi() {
-                if (!promiseProv) {
-                    promiseProv = ambilDaftar('/api/wilayah/provinces').then(function (list) {
-                        provinces = list;
-                    }).catch(function (err) { promiseProv = null; console.error('Gagal memuat provinsi:', err); });
+
+            function gagal(select, pesan) {
+                select.innerHTML = '';
+                select.add(new Option(pesan, ''));
+                select.disabled = true;
+            }
+
+            async function muatProvinsi(terpilih) {
+                try {
+                    if (!daftarProvinsi.length) daftarProvinsi = await ambil(URL_PROVINSI);
+                    isiPilihan(selProv, daftarProvinsi, 'Pilih Provinsi', terpilih);
+                } catch (e) {
+                    console.error(e);
+                    gagal(selProv, 'Gagal memuat provinsi');
                 }
-                return promiseProv;
-            }
-            function muatKota(namaProv, kotaTerpilih) {
-                cities = [];
-                isiSelect(selKota, [], 'Pilih Kota/Kabupaten');
-                isiSelect(selKec, [], 'Pilih Kecamatan');
-                var prov = provinces.filter(function (p) { return sama(p.name, namaProv); })[0];
-                if (!prov) return Promise.resolve();
-                return ambilDaftar('/api/wilayah/cities/' + idOf(prov)).then(function (list) {
-                    cities = list;
-                    isiSelect(selKota, cities, 'Pilih Kota/Kabupaten', kotaTerpilih);
-                }).catch(function (err) { console.error('Gagal memuat kota:', err); });
-            }
-            function muatKecamatan(namaKota, kecTerpilih) {
-                isiSelect(selKec, [], 'Pilih Kecamatan');
-                var kota = cities.filter(function (c) { return sama(c.name, namaKota); })[0];
-                if (!kota) return Promise.resolve();
-                return ambilDaftar('/api/wilayah/districts/' + idOf(kota)).then(function (list) {
-                    isiSelect(selKec, list, 'Pilih Kecamatan', kecTerpilih);
-                }).catch(function (err) { console.error('Gagal memuat kecamatan:', err); });
             }
 
-            selProv.addEventListener('change', function (e) { muatKota(e.target.value); });
-            selKota.addEventListener('change', function (e) { muatKecamatan(e.target.value); });
+            async function muatKota(terpilih) {
+                isiPilihan(selKota, [], 'Pilih Kota/Kabupaten');
+                isiPilihan(selKec, [], 'Pilih Kecamatan');
+                var opt = selProv.selectedOptions[0];
+                if (!opt || !opt.dataset.id) return;
+                try {
+                    isiPilihan(selKota, await ambil(URL_KOTA.replace('__ID__', opt.dataset.id)), 'Pilih Kota/Kabupaten', terpilih);
+                } catch (e) {
+                    console.error(e);
+                    gagal(selKota, 'Gagal memuat kota');
+                }
+            }
 
-            return function (prov, kota, kec) {
-                return muatProvinsi().then(function () {
-                    isiSelect(selProv, provinces, 'Pilih Provinsi', prov);
-                    if (!prov) {
-                        isiSelect(selKota, [], 'Pilih Kota/Kabupaten');
-                        isiSelect(selKec, [], 'Pilih Kecamatan');
-                        return;
-                    }
-                    return muatKota(prov, kota).then(function () {
-                        if (kota) return muatKecamatan(kota, kec);
+            async function muatKecamatan(terpilih) {
+                isiPilihan(selKec, [], 'Pilih Kecamatan');
+                var opt = selKota.selectedOptions[0];
+                if (!opt || !opt.dataset.id) return;
+                try {
+                    isiPilihan(selKec, await ambil(URL_KECAMATAN.replace('__ID__', opt.dataset.id)), 'Pilih Kecamatan', terpilih);
+                } catch (e) {
+                    console.error(e);
+                    gagal(selKec, 'Gagal memuat kecamatan');
+                }
+            }
+
+            function resetTujuan() {
+                idTujuan.value = '';
+                labelTujuan.value = '';
+                info.textContent = '';
+            }
+
+            function tampilHasil(list) {
+                kotak.replaceChildren();
+                if (!list.length) {
+                    var kosong = document.createElement('p');
+                    kosong.className = 'px-3 py-2 text-xs text-gray-400';
+                    kosong.textContent = 'Tujuan tidak ditemukan.';
+                    kotak.appendChild(kosong);
+                }
+                list.forEach(function (t) {
+                    var b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'block w-full border-b border-gray-50 px-3 py-2 text-left text-xs text-gray-700 last:border-0 hover:bg-amber-50';
+                    b.textContent = t.label;
+                    b.addEventListener('click', function () {
+                        idTujuan.value = t.id;
+                        labelTujuan.value = t.label;
+                        inCari.value = t.label;
+                        kotak.classList.add('hidden');
+                        info.textContent = 'Tujuan dipilih.';
+                        if (t.zip_code) kodePos.value = t.zip_code;
+                        ubah();
                     });
+                    kotak.appendChild(b);
                 });
+                kotak.classList.remove('hidden');
+            }
+
+            // Cari kelurahan saat mengetik (debounce 350 ms), sama seperti di Checkout
+            inCari.addEventListener('input', function () {
+                resetTujuan();
+                ubah();
+                clearTimeout(timer);
+                var q = inCari.value.trim();
+                if (q.length < 3) { kotak.classList.add('hidden'); return; }
+                timer = setTimeout(async function () {
+                    try {
+                        tampilHasil(await ambil(URL_TUJUAN + '?q=' + encodeURIComponent(q)));
+                    } catch (e) {
+                        console.error(e);
+                        info.textContent = 'Gagal mencari tujuan. Coba lagi.';
+                    }
+                }, 350);
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!kotak.contains(e.target) && e.target !== inCari) kotak.classList.add('hidden');
+            });
+
+            // Ganti wilayah = tujuan ongkir harus dipilih ulang
+            selProv.addEventListener('change', function () { inCari.value = ''; kodePos.value = ''; resetTujuan(); muatKota(); ubah(); });
+            selKota.addEventListener('change', function () { inCari.value = ''; kodePos.value = ''; resetTujuan(); muatKecamatan(); ubah(); });
+            selKec.addEventListener('change', function () {
+                resetTujuan();
+                ubah();
+                if (selKec.value) {
+                    // Isi pencarian kelurahan dengan nama kecamatan lalu cari otomatis, seperti di Checkout
+                    inCari.value = selKec.value;
+                    inCari.dispatchEvent(new Event('input'));
+                } else {
+                    inCari.value = '';
+                }
+            });
+            el('alamat').addEventListener('input', ubah);
+            kodePos.addEventListener('input', ubah);
+            radios.forEach(function (r) { r.addEventListener('change', ubah); });
+
+            return {
+                // Isi form dari data: { label, alamat, provinsi, kota_kabupaten, kecamatan, kode_pos, tujuan_id, tujuan_label }
+                isi: async function (d) {
+                    d = d || {};
+                    el('alamat').value = d.alamat || '';
+                    kodePos.value = d.kode_pos || '';
+                    idTujuan.value = d.tujuan_id || '';
+                    labelTujuan.value = d.tujuan_label || '';
+                    inCari.value = d.tujuan_label || '';
+                    kotak.classList.add('hidden');
+                    info.textContent = d.tujuan_label
+                        ? 'Tujuan tersimpan.'
+                        : (d.provinsi ? 'Kelurahan tujuan belum tersimpan. Cari ulang bila alamat ini diubah.' : '');
+                    radios.forEach(function (r) { r.checked = r.value === (d.label || 'Rumah'); });
+
+                    await muatProvinsi(d.provinsi);
+                    if (d.provinsi) {
+                        await muatKota(d.kota_kabupaten);
+                        if (d.kota_kabupaten) await muatKecamatan(d.kecamatan);
+                    } else {
+                        isiPilihan(selKota, [], 'Pilih Kota/Kabupaten');
+                        isiPilihan(selKec, [], 'Pilih Kecamatan');
+                    }
+                }
             };
-        })();
+        }
+
+        // Modal edit: perubahan apa pun pada alamat menandai ubah_alamat = 1 (server baru menyimpan alamat bila ditandai)
+        var alamatEdit = pasangAlamat('ep', function () { $('ep-ubah').value = '1'; });
 
         function isiFormEdit(id, d) {
             $('form-edit-pengguna').action = URL_UPDATE.replace('__ID__', id);
@@ -651,9 +706,16 @@
             $('ep-email').value = d.email || '';
             $('ep-hp').value = d.no_hp || '';
             $('ep-pass').value = '';
-            $('ep-alamat').value = d.alamat || '';
-            $('ep-kodepos').value = d.kode_pos || '';
-            isiWilayahEdit(d.provinsi, d.kota_kabupaten, d.kecamatan);
+            $('ep-ubah').value = String(d.ubah_alamat) === '1' ? '1' : '0';
+
+            var n = parseInt(d.jumlah_alamat || 0, 10);
+            $('ep-catatan').textContent = n > 1
+                ? 'Pelanggan punya ' + n + ' alamat tersimpan. Perubahan di sini hanya memperbarui alamat utama (menu Alamat Saya).'
+                : (n === 1
+                    ? 'Perubahan di sini memperbarui alamat utama pelanggan (menu Alamat Saya).'
+                    : 'Pelanggan belum punya alamat tersimpan. Jika diisi, disimpan sebagai alamat utama di menu Alamat Saya.');
+
+            alamatEdit.isi(d);
         }
 
         $('modal-edit-pengguna').addEventListener('modal:open', function (e) {
@@ -779,106 +841,17 @@
             document.addEventListener('DOMContentLoaded', function () { window.openModal('modal-tambah-pengguna'); });
         @endif
 
-        // ---------- Wilayah berjenjang (provinsi -> kota -> kecamatan) di modal Tambah Akun ----------
-        // Logikanya sama seperti wilayahForm() di halaman Profil pelanggan, cuma
-        // ditulis plain JS (bukan Alpine) supaya tidak nambah dependency di panel admin.
-        (function () {
-            var selProv = $('tp-provinsi');
-            var selKota = $('tp-kota');
-            var selKec = $('tp-kecamatan');
-            if (!selProv || !selKota || !selKec) return;
+        // ---------- Alamat di modal Tambah Akun ----------
+        var alamatTambah = pasangAlamat('tp');
+        var OLD_TAMBAH = @json(old('_form') === 'tambah' ? old() : null);
+        var tambahDimuat = false;
 
-            var provinces = [];
-            var cities = [];
-            var sudahDimuat = false;
-
-            var provinsiLama = @json(old('provinsi'));
-            var kotaLama = @json(old('kota_kabupaten'));
-            var kecamatanLama = @json(old('kecamatan'));
-
-            function toList(json) {
-                if (Array.isArray(json)) return json;
-                if (json && Array.isArray(json.data)) return json.data;
-                return [];
-            }
-            function idOf(item) { return item.id ?? item.code ?? item.kode; }
-            function sama(a, b) { return (a || '').toString().toLowerCase() === (b || '').toString().toLowerCase(); }
-
-            function ambilDaftar(url) {
-                return fetch(url, { headers: { 'Accept': 'application/json' } }).then(function (res) {
-                    if (!res.ok) throw new Error(url + ' -> HTTP ' + res.status);
-                    return res.json();
-                }).then(toList);
-            }
-
-            function isiSelect(select, items, placeholder, namaTerpilih) {
-                select.innerHTML = '';
-                var kosong = document.createElement('option');
-                kosong.value = '';
-                kosong.textContent = placeholder;
-                select.appendChild(kosong);
-                items.forEach(function (item) {
-                    var opt = document.createElement('option');
-                    opt.value = item.name;
-                    opt.textContent = item.name;
-                    if (namaTerpilih && sama(item.name, namaTerpilih)) opt.selected = true;
-                    select.appendChild(opt);
-                });
-                select.disabled = items.length === 0;
-            }
-
-            function muatKota(namaProvinsi, kotaTerpilih) {
-                cities = [];
-                isiSelect(selKota, [], 'Pilih Kota/Kabupaten');
-                isiSelect(selKec, [], 'Pilih Kecamatan');
-
-                var prov = provinces.filter(function (p) { return sama(p.name, namaProvinsi); })[0];
-                if (!prov) return Promise.resolve();
-
-                return ambilDaftar('/api/wilayah/cities/' + idOf(prov)).then(function (list) {
-                    cities = list;
-                    isiSelect(selKota, cities, 'Pilih Kota/Kabupaten', kotaTerpilih);
-                }).catch(function (err) { console.error('Gagal memuat kota:', err); });
-            }
-
-            function muatKecamatan(namaKota, kecamatanTerpilih) {
-                isiSelect(selKec, [], 'Pilih Kecamatan');
-
-                var kota = cities.filter(function (c) { return sama(c.name, namaKota); })[0];
-                if (!kota) return Promise.resolve();
-
-                return ambilDaftar('/api/wilayah/districts/' + idOf(kota)).then(function (list) {
-                    isiSelect(selKec, list, 'Pilih Kecamatan', kecamatanTerpilih);
-                }).catch(function (err) { console.error('Gagal memuat kecamatan:', err); });
-            }
-
-            function muatProvinsi() {
-                if (sudahDimuat) return;
-                sudahDimuat = true;
-
-                ambilDaftar('/api/wilayah/provinces').then(function (list) {
-                    provinces = list;
-                    isiSelect(selProv, provinces, 'Pilih Provinsi', provinsiLama);
-
-                    if (provinsiLama) {
-                        return muatKota(provinsiLama, kotaLama).then(function () {
-                            if (kotaLama) return muatKecamatan(kotaLama, kecamatanLama);
-                        });
-                    }
-                }).catch(function (err) { console.error('Gagal memuat provinsi:', err); });
-            }
-
-            selProv.addEventListener('change', function (e) { muatKota(e.target.value); });
-            selKota.addEventListener('change', function (e) { muatKecamatan(e.target.value); });
-
-            // Muat daftar provinsi begitu modal tambah akun dibuka (sekali saja, biar hemat request)
-            $('modal-tambah-pengguna').addEventListener('modal:open', muatProvinsi);
-
-            // Kalau validasi server gagal dan modal ini otomatis kebuka lagi, langsung muat juga
-            @if ($errors->any() && old('_form') === 'tambah')
-                muatProvinsi();
-            @endif
-        })();
+        // Dimuat saat modal pertama kali dibuka (hemat request); isi ulang dari old() bila validasi gagal
+        $('modal-tambah-pengguna').addEventListener('modal:open', function () {
+            if (tambahDimuat) return;
+            tambahDimuat = true;
+            alamatTambah.isi(OLD_TAMBAH || {});
+        });
     })();
 </script>
 @endsection

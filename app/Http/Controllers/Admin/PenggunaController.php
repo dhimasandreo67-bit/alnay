@@ -252,7 +252,7 @@ class PenggunaController extends Controller
 
         return back()->with('success', $aktif
             ? "Akun {$user->name} diaktifkan kembali."
-            : "Akun {$user->name} dinonaktifkan. Sesi login yang berjalan sudah diakhiri.");
+            : "Akun {$user->name} dinonaktifkan. Pengguna yang sedang login akan otomatis keluar saat membuka halaman berikutnya.");
     }
 
     /**
@@ -383,9 +383,9 @@ class PenggunaController extends Controller
             'dinonaktifkan_pada' => $aktif ? null : now(),
             'updated_at' => now(),
         ];
-        if (! $aktif && Schema::hasColumn('users', 'remember_token')) {
-            $data['remember_token'] = null; // matikan "ingat saya"
-        }
+        // Sesi & "ingat saya" sengaja TIDAK dihapus di sini: pengguna yang sedang login akan
+        // dikeluarkan otomatis oleh listener BlokirAkunNonaktif pada request berikutnya, lalu
+        // melihat halaman keterangan akun dinonaktifkan (bukan sekadar terlempar ke tamu).
 
         DB::table('users')->whereIn('id', $ids)->update($data);
 
@@ -394,10 +394,6 @@ class PenggunaController extends Controller
             Audit::catat('status', ($aktif ? 'mengaktifkan' : 'menonaktifkan') . " akun \"{$u->name}\"", $u, [
                 ['field' => 'Status akun', 'lama' => $aktif ? 'Nonaktif' : 'Aktif', 'baru' => $aktif ? 'Aktif' : 'Nonaktif'],
             ]);
-        }
-
-        if (! $aktif) {
-            $this->akhiriSesi($ids);
         }
     }
 
