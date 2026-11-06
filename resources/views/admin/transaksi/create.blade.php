@@ -235,9 +235,10 @@
                             <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-600"></span> Dipilih</span>
                             <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-200"></span> Rentang sewa</span>
                             <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-rose-200"></span> Penuh dibooking</span>
+                            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-rose-50 ring-1 ring-rose-300"></span> Sebagian dibooking (masih ada unit)</span>
                         </div>
                     </div>
-                    <p id="kal-hint" class="mt-2 text-[11px] text-gray-500">Tambahkan produk ke keranjang dulu agar tanggal yang sudah penuh dibooking (online &amp; kasir) ditandai merah. Klik tanggal yang sama dua kali untuk sewa 1 hari.</p>
+                    <p id="kal-hint" class="mt-2 text-[11px] text-gray-500">Tambahkan produk ke keranjang dulu agar tanggal yang sudah dibooking (online &amp; kasir) ditandai merah. Klik tanggal yang sama dua kali untuk sewa 1 hari.</p>
                     <div class="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-amber-50/60 px-4 py-3 text-xs ring-1 ring-amber-100">
                         <div><p class="text-[10px] text-gray-400">Ambil</p><p id="kal-ambil" class="font-bold text-gray-800">Klik tanggal</p></div>
                         <div><p class="text-[10px] text-gray-400">Kembali</p><p id="kal-kembali" class="font-bold text-gray-800">-</p></div>
@@ -456,8 +457,8 @@
 <script>
     // ================= DATA =================
     const PRODUK = @json($produkJs);
-    // Tanggal yang sudah penuh dibooking pelanggan online: { produk_id: { "ukuran|warna": [tanggal...] } }
-    const TANGGAL_PENUH = @json((object) ($tanggalPenuh ?? []));
+    // Kapasitas & unit terbooking per tanggal (online + kasir): { produk_id: { "ukuran|warna": { kapasitas, hitung: { tanggal: jumlah } } } }
+    const KETERSEDIAAN = @json((object) ($ketersediaan ?? []));
     const KATEGORI = @json($kategoriJs);
     const USERS = @json($usersJs);
     const OLD_ITEMS = @json($oldItems);
@@ -517,7 +518,25 @@
         return r.length ? r : p.warna.map((w) => ({ nama: w, stok: null }));
     }
 
+    // Stok SEWA = unit tersedia pada tanggal yang dipilih (atau hari ini): total unit dikurangi booking terbanyak
+    // di rentang itu (online + kasir). Stok beli tetap dari data produk.
+    function terbookingSewa(p, ukuran, warna) {
+        if (jenisAktif() !== 'sewa') return 0;
+        const peta = KETERSEDIAAN[p.id];
+        const d = peta && peta[kunciTanggal(p, ukuran, warna)];
+        if (!d) return 0;
+        const a = el('tanggal_pinjam').value || hariIniIso();
+        const b = el('tanggal_kembali_rencana').value || a;
+        let maks = 0;
+        Object.keys(d.hitung).forEach((t) => { if (t >= a && t <= b && d.hitung[t] > maks) maks = d.hitung[t]; });
+        return maks;
+    }
+
     function stokUntuk(p, ukuran, warna) {
+        return Math.max(0, stokDasar(p, ukuran, warna) - terbookingSewa(p, ukuran, warna));
+    }
+
+    function stokDasar(p, ukuran, warna) {
         if (!punyaUkuran(p)) return p.stok;
         if (!ukuran) return p.ukuran.reduce((a, v) => a + v.stok, 0);
         const v = barisUkuran(p, ukuran);
@@ -571,6 +590,17 @@
         return p.ukuran.some((v) => sisaUkuranTersedia(p, v.ukuran));
     }
 
+    // Total unit yang masih bisa dipilih untuk produk ini: sudah memperhitungkan tanggal sewa (booking
+    // online + kasir) dan isi keranjang, sama dengan yang dipakai pilihan ukuran/warna dan tombol "+ Tambah".
+    function totalSisa(p) {
+        if (!punyaUkuran(p)) return sisaStok(p, '', '');
+        return p.ukuran.reduce((jml, v) => {
+            const r = rincianWarna(p, v.ukuran);
+            if (r.length) return jml + r.reduce((s, w) => s + sisaStok(p, v.ukuran, w.nama), 0);
+            return jml + sisaStok(p, v.ukuran, '');
+        }, 0);
+    }
+
     function bisaDipilih(p) { return adaStokTersisa(p) && !STATUS_BLOKIR.includes(p.status); }
 
     function warnaHex(nama) {
@@ -614,7 +644,7 @@
 
         const ukuran = punyaUkuran(p)
             ? '<div class="flex flex-wrap gap-1">' + p.ukuran.map((v) =>
-                '<span class="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ' + (v.stok > 0 ? 'border-gray-200 text-gray-600' : 'border-gray-100 text-gray-300 line-through') + '">' + esc(v.ukuran) + '</span>'
+                '<span class="rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ' + (sisaUkuranTersedia(p, v.ukuran) ? 'border-gray-200 text-gray-600' : 'border-gray-100 text-gray-300 line-through') + '">' + esc(v.ukuran) + '</span>'
               ).join('') + '</div>'
             : '';
 
@@ -629,7 +659,7 @@
 
         return '<article class="flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-500/10 ' + (ok ? '' : 'opacity-60') + '">'
             + '<div class="relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-gray-50">' + foto + badgeStatus
-            + '<span class="absolute bottom-2 right-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-gray-700 shadow-sm">Stok ' + p.stok + '</span></div>'
+            + '<span class="absolute bottom-2 right-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold text-gray-700 shadow-sm">Stok ' + totalSisa(p) + '</span></div>'
             + '<div class="flex flex-1 flex-col gap-1.5 p-3">'
             + '<div><p class="line-clamp-2 text-sm font-bold leading-snug text-gray-900">' + esc(p.nama) + '</p>'
             + '<p class="mt-0.5 text-[10px] text-gray-400">' + esc(p.sku || '-') + (p.kategori ? ' &middot; ' + esc(p.kategori) : '') + '</p></div>'
@@ -724,7 +754,7 @@
                     // Ukuran yang sedang dipakai baris ini selalu boleh dipilih (dihitung via stokMaks di atas);
                     // ukuran lain baru dicek sisanya tanpa mengecualikan baris ini (karena baris ini belum memakainya).
                     const tersedia = v.ukuran === r.ukuran ? true : sisaUkuranTersedia(p, v.ukuran, idx);
-                    return '<option value="' + esc(v.ukuran) + '" ' + (tersedia ? '' : 'disabled') + ' ' + (v.ukuran === r.ukuran ? 'selected' : '') + '>' + esc(v.ukuran) + ' (stok ' + v.stok + ')</option>';
+                    return '<option value="' + esc(v.ukuran) + '" ' + (tersedia ? '' : 'disabled') + ' ' + (v.ukuran === r.ukuran ? 'selected' : '') + '>' + esc(v.ukuran) + ' (stok ' + stokUntuk(p, v.ukuran, '') + ')</option>';
                 }).join('')
               + '</select></div>'
             : '<input type="hidden" name="items[' + idx + '][ukuran]" value="">';
@@ -736,7 +766,7 @@
               + daftar.map((w) => {
                     const tersedia = w.nama === r.warna ? true : (!rinci || sisaStok(p, r.ukuran, w.nama, idx) > 0);
                     return '<option value="' + esc(w.nama) + '" ' + (tersedia ? '' : 'disabled') + ' ' + (w.nama === r.warna ? 'selected' : '') + '>'
-                        + esc(w.nama) + (w.stok !== null ? ' (stok ' + w.stok + ')' : '') + '</option>';
+                        + esc(w.nama) + (w.stok !== null ? ' (stok ' + stokUntuk(p, r.ukuran, w.nama) + ')' : '') + '</option>';
                 }).join('')
               + '</select></div>'
             : '<input type="hidden" name="items[' + idx + '][warna]" value="">';
@@ -909,8 +939,17 @@
     }
     const tglPendek = (t) => new Date(t + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 
-    // Peringatan bila rentang sewa menabrak tanggal yang sudah penuh dibooking pelanggan online.
-    // (Server tetap memeriksa ulang saat disimpan, termasuk jumlah unit.)
+    // Data kalender satu item keranjang: kapasitas & unit terbooking per tanggal untuk ukuran/warna-nya
+    function dataItem(r) {
+        const p = pById(r.produk_id);
+        const peta = p && KETERSEDIAAN[p.id];
+        return peta ? (peta[kunciTanggal(p, r.ukuran, r.warna)] || null) : null;
+    }
+    // Tanggal tidak cukup unit: terpakai + jumlah yang diminta melebihi kapasitas
+    const kurangUnit = (d, qty, t) => (d.hitung[t] || 0) + qty > d.kapasitas;
+
+    // Peringatan bila rentang sewa menabrak tanggal yang sudah penuh dibooking (online maupun kasir).
+    // (Server tetap memeriksa ulang saat disimpan.)
     function cekBentrokTanggal() {
         const box = el('info-bentrok');
         const pesan = [];
@@ -918,19 +957,20 @@
             const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
             if (a && b && b >= a) {
                 state.cart.forEach((r) => {
-                    const p = pById(r.produk_id);
-                    const peta = p && TANGGAL_PENUH[p.id];
-                    if (!peta) return;
-                    const penuh = (peta[kunciTanggal(p, r.ukuran, r.warna)] || []).filter((t) => t >= a && t <= b);
+                    const d = dataItem(r);
+                    if (!d) return;
+                    const qty = Math.max(1, Number(r.qty) || 1);
+                    const penuh = Object.keys(d.hitung).filter((t) => t >= a && t <= b && kurangUnit(d, qty, t)).sort();
                     if (!penuh.length) return;
+                    const p = pById(r.produk_id);
                     const varian = [r.ukuran, r.warna].filter(Boolean).join(', ');
                     const daftar = penuh.slice(0, 4).map(tglPendek).join(', ') + (penuh.length > 4 ? ' +' + (penuh.length - 4) + ' lainnya' : '');
-                    pesan.push('"' + p.nama + '"' + (varian ? ' (' + varian + ')' : '') + ' sudah penuh dibooking pada ' + daftar + '.');
+                    pesan.push('"' + p.nama + '"' + (varian ? ' (' + varian + ')' : '') + ' tidak cukup unit kosong (' + qty + ' unit) pada ' + daftar + '.');
                 });
             }
         }
         box.innerHTML = pesan.length
-            ? '<p class="mb-1 font-bold">Tanggal bentrok dengan booking online. Ganti tanggal atau pilih ukuran/warna lain:</p>' + pesan.map((m) => '<p>' + esc(m) + '</p>').join('')
+            ? '<p class="mb-1 font-bold">Tanggal bentrok dengan booking lain. Ganti tanggal atau pilih ukuran/warna lain:</p>' + pesan.map((m) => '<p>' + esc(m) + '</p>').join('')
             : '';
         box.classList.toggle('hidden', !pesan.length);
         return pesan;
@@ -943,24 +983,27 @@
     const hariIniIso = () => { const t = new Date(); return isoTgl(t.getFullYear(), t.getMonth(), t.getDate()); };
     const tglPanjang = (t) => new Date(t + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 
-    // Tanggal penuh = penuh untuk SALAH SATU item di keranjang (ukuran/warna yang dipilih)
-    function tanggalPenuhKeranjang() {
-        const hasil = new Set();
-        if (jenisAktif() !== 'sewa') return hasil;
+    // Per tanggal untuk semua item keranjang: 'penuh' (tidak cukup unit) atau 'sebagian' (ada yang terbooking, masih cukup)
+    function statusTanggalKeranjang() {
+        const penuh = new Set(), sebagian = new Map();
+        if (jenisAktif() !== 'sewa') return { penuh, sebagian };
         state.cart.forEach((r) => {
-            const p = pById(r.produk_id);
-            const peta = p && TANGGAL_PENUH[p.id];
-            if (!peta) return;
-            (peta[kunciTanggal(p, r.ukuran, r.warna)] || []).forEach((t) => hasil.add(t));
+            const d = dataItem(r);
+            if (!d) return;
+            const qty = Math.max(1, Number(r.qty) || 1);
+            Object.keys(d.hitung).forEach((t) => {
+                if (kurangUnit(d, qty, t)) penuh.add(t);
+                else if (!sebagian.has(t)) sebagian.set(t, d.hitung[t] + ' dari ' + d.kapasitas + ' unit sudah dibooking');
+            });
         });
-        return hasil;
+        return { penuh, sebagian };
     }
 
     function renderKalender() {
         const grid = el('kal-grid');
         if (!grid || !kal.tahun) return;
         const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
-        const penuh = tanggalPenuhKeranjang();
+        const { penuh, sebagian } = statusTanggalKeranjang();
         const hariIni = hariIniIso();
 
         el('kal-judul').textContent = new Date(Date.UTC(kal.tahun, kal.bulan, 1))
@@ -978,17 +1021,18 @@
         if (sel.slice(35).every((c) => c.luar)) sel = sel.slice(0, 35);
 
         grid.innerHTML = sel.map((c) => {
-            const lalu = c.t < hariIni, isPenuh = penuh.has(c.t);
+            const lalu = c.t < hariIni, isPenuh = penuh.has(c.t), isSebagian = sebagian.has(c.t);
             const dipilih = c.t === a || c.t === b;
             const dalam = a && b && c.t > a && c.t < b;
             let kelas = 'h-10 mx-px rounded-lg text-xs font-medium transition-all duration-200 ';
-            let mati = false;
+            let mati = false, judul = '';
             if (dipilih) kelas += 'relative z-10 scale-105 bg-amber-600 font-bold text-white shadow-md';
             else if (dalam) kelas += 'bg-amber-100 font-semibold text-amber-900';
             else if (c.luar || lalu) { kelas += 'cursor-default text-gray-300'; mati = true; }
-            else if (isPenuh) { kelas += 'cursor-not-allowed bg-rose-50 text-rose-400 line-through decoration-rose-300'; mati = true; }
+            else if (isPenuh) { kelas += 'cursor-not-allowed bg-rose-100 text-rose-500 line-through decoration-rose-400'; mati = true; judul = 'Penuh dibooking'; }
+            else if (isSebagian) { kelas += 'bg-rose-50 text-rose-500 ring-1 ring-rose-200 hover:bg-rose-100 hover:scale-110 active:scale-95'; judul = sebagian.get(c.t); }
             else kelas += 'text-gray-700 hover:scale-110 hover:bg-amber-50 active:scale-95' + (c.t === hariIni ? ' ring-1 ring-amber-400' : '');
-            return '<button type="button" data-t="' + c.t + '" class="' + kelas + '"' + ((mati && !dipilih) || c.luar ? ' disabled' : '') + '>' + c.hari + '</button>';
+            return '<button type="button" data-t="' + c.t + '" class="' + kelas + '"' + (judul ? ' title="' + esc(judul) + '"' : '') + ((mati && !dipilih) || c.luar ? ' disabled' : '') + '>' + c.hari + '</button>';
         }).join('');
 
         el('kal-ambil').textContent = a ? tglPanjang(a) : 'Klik tanggal';
@@ -998,7 +1042,7 @@
     }
 
     function pilihTanggalKasir(t) {
-        const penuh = tanggalPenuhKeranjang();
+        const { penuh } = statusTanggalKeranjang();
         if (t < hariIniIso() || penuh.has(t)) return;
         const A = el('tanggal_pinjam'), B = el('tanggal_kembali_rencana');
         const a = A.value, b = B.value;
@@ -1008,7 +1052,13 @@
         else if ([...penuh].some((x) => x > a && x < t)) { A.value = t; B.value = ''; } // rentang menabrak tanggal penuh
         else { B.value = t; }
 
+        // Stok sewa bergantung pada tanggal: segarkan batas jumlah & label stok di keranjang
+        state.cart.forEach((r, idx) => {
+            const p = pById(r.produk_id);
+            if (p) r.qty = Math.max(1, Math.min(r.qty, sisaStok(p, r.ukuran, r.warna, idx) || 1));
+        });
         hitungDurasi();
+        renderCart();
     }
 
     function hitungDurasi() {

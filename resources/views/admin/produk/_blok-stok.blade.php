@@ -147,12 +147,16 @@ Parameter:
         <div class="space-y-2 max-w-xs" x-show="{{ $set }}.ukuranVariasi.length === 0">
             <label class="block text-xs font-bold uppercase tracking-wider text-ink/70">Stok (unit) <span class="text-rose-500">*</span></label>
             <input type="number" step="1" min="0" name="stok{{ $akhiran }}" x-model.number="{{ $set }}.stok"
-                   :required="{{ $set }}.ukuranVariasi.length === 0" placeholder="1"
+                   :required="{{ $set }}.ukuranVariasi.length === 0"
+                   :disabled="{{ $set }}.ukuranVariasi.length > 0" placeholder="1"
                    class="input-elegant w-full px-4 py-3 bg-cream/40 border border-line rounded-xl text-sm focus:bg-white focus:outline-none">
         </div>
         <div class="flex items-center justify-between bg-gold/5 border border-gold/20 rounded-xl px-5 py-3.5" x-show="{{ $set }}.ukuranVariasi.length > 0">
             <span class="text-xs font-bold text-ink/70 uppercase tracking-wider">Total stok dari variasi</span>
             <span class="text-lg font-black text-gold" x-text="totalStok({{ $set }}) + ' unit'"></span>
+            {{-- Dengan variasi: kolom stok diisi total variasi (bukan angka lama yang tersembunyi) --}}
+            <input type="hidden" name="stok{{ $akhiran }}" :value="totalStok({{ $set }})"
+                   :disabled="{{ $set }}.ukuranVariasi.length === 0">
         </div>
     </div>
 </div>

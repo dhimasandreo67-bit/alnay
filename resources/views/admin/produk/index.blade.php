@@ -54,8 +54,21 @@
             // jadi dipakai angka tetap dulu — gampang diubah di sini kalau mau disesuaikan.
             $batasStokMenipis = 3;
             // Produk dijual & disewa punya dua stok terpisah -> pakai yang paling sedikit.
-            $produkStokHabis = $produkList->filter(fn ($p) => $p->stokTerendah() <= 0);
-            $produkStokMenipis = $produkList->filter(fn ($p) => $p->stokTerendah() >= 1 && $p->stokTerendah() <= $batasStokMenipis);
+            // Stok sewa yang dihitung = unit yang TERSEDIA hari ini (total unit dikurangi yang sedang disewa).
+            $sewaTerpakai = $sewaTerpakai ?? [];
+            $stokTersedia = function ($p) use ($sewaTerpakai) {
+                $nilai = [];
+                if ($p->bisa_disewa) {
+                    $nilai[] = max(0, $p->stokUntuk('sewa') - ($sewaTerpakai[$p->id] ?? 0));
+                }
+                if ($p->dapat_dijual) {
+                    $nilai[] = $p->stokUntuk('jual');
+                }
+
+                return $nilai ? min($nilai) : (int) $p->stok;
+            };
+            $produkStokHabis = $produkList->filter(fn ($p) => $stokTersedia($p) <= 0);
+            $produkStokMenipis = $produkList->filter(fn ($p) => $stokTersedia($p) >= 1 && $stokTersedia($p) <= $batasStokMenipis);
             $produkPerluRestock = $produkStokHabis->merge($produkStokMenipis);
         @endphp
 
@@ -117,10 +130,10 @@
                     </div>
                 </div>
                 <div class="mt-3 flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold tracking-tight text-amber-950">{{ $totalKoleksi }}</span>
+                    <span class="text-3xl font-extrabold tracking-tight text-amber-950">{{ $totalUnit }}</span>
                     <span class="text-sm font-bold text-amber-800/60">Unit</span>
                 </div>
-                <p class="mt-1 text-xs font-semibold text-amber-700/80">{{ $totalKategori }} Kategori Tersedia</p>
+                <p class="mt-1 text-xs font-semibold text-amber-700/80">{{ $totalKoleksi }} Model &middot; {{ $totalKategori }} Kategori</p>
             </div>
 
             {{-- Card 2: Siap Sewa / Jual --}}
@@ -153,7 +166,7 @@
                     <span class="text-3xl font-extrabold tracking-tight text-sky-950">{{ $disewaCount }}</span>
                     <span class="text-sm font-bold text-sky-800/60">Unit</span>
                 </div>
-                <p class="mt-2 text-xs font-medium text-sky-700/80">Dalam masa reservasi</p>
+                <p class="mt-2 text-xs font-medium text-sky-700/80">Sedang keluar hari ini</p>
             </div>
 
             {{-- Card 4: Perawatan / Reparasi --}}
@@ -264,8 +277,11 @@
                                     'rusak'    => 'bg-rose-50 text-rose-700 border-rose-200',
                                     default    => 'bg-gray-50 text-gray-500 border-gray-200',
                                 };
-                                $stokHabis = $produk->stokTerendah() <= 0;
-                                $stokMenipis = !$stokHabis && $produk->stokTerendah() <= $batasStokMenipis;
+                                $stokHabis = $stokTersedia($produk) <= 0;
+                                $stokMenipis = !$stokHabis && $stokTersedia($produk) <= $batasStokMenipis;
+                                $sewaTotal = $produk->bisa_disewa ? $produk->stokUntuk('sewa') : 0;
+                                $sewaOut = $sewaTerpakai[$produk->id] ?? 0;
+                                $sewaSisa = max(0, $sewaTotal - $sewaOut);
                                 $rowStokClass = $stokHabis ? 'bg-rose-50/50 hover:bg-rose-50/80' : ($stokMenipis ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-cream/40');
                             @endphp
                             <tr data-cari="{{ \Illuminate\Support\Str::lower(implode(' ', [$produk->nama, $produk->sku, $produk->motif, $produk->bahan, $produk->kategori->nama_kategori ?? ''])) }}"
@@ -352,11 +368,16 @@
                                                 <span class="text-xs font-normal text-muted">unit</span>
                                             </span>
                                             <span class="text-xs font-black text-ink">
-                                                <span class="text-[10px] font-bold uppercase text-sky-600">Sewa</span> {{ $produk->stokUntuk('sewa') }}
-                                                <span class="text-xs font-normal text-muted">unit</span>
+                                                <span class="text-[10px] font-bold uppercase text-sky-600">Sewa</span> {{ $sewaSisa }}
+                                                <span class="text-xs font-normal text-muted">/ {{ $sewaTotal }} unit</span>
                                             </span>
+                                        @elseif($produk->bisa_disewa)
+                                            <span class="text-xs font-black text-ink">{{ $sewaSisa }} <span class="text-xs font-normal text-muted">/ {{ $sewaTotal }} unit</span></span>
                                         @else
-                                            <span class="text-xs font-black text-ink">{{ $produk->stok }} <span class="text-xs font-normal text-muted">unit</span></span>
+                                            <span class="text-xs font-black text-ink">{{ $produk->stokUntuk('jual') }} <span class="text-xs font-normal text-muted">unit</span></span>
+                                        @endif
+                                        @if($produk->bisa_disewa && $sewaOut > 0)
+                                            <span class="text-[10px] font-semibold text-sky-600">{{ $sewaOut }} sedang disewa</span>
                                         @endif
                                         @if($stokHabis)
                                             <span class="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-bold text-rose-700 border border-rose-200 animate-pulse" title="Stok produk ini kosong">

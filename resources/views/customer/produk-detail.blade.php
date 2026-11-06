@@ -195,8 +195,8 @@
             'hargaSewa' => $produk->hargaSewaNet(),
             'hargaJual' => $produk->hargaJualNet(),
             'tarifTambahan' => $produk->tarifTambahanSewa(),
-            // Tanggal penuh per kombinasi ukuran/warna: { "M|Merah Marun": [...], "M|": [...], "|": [...] }
-            'tanggalPenuh' => (object) ($tanggalPenuh ?? []),
+            // Per kombinasi ukuran/warna: { "M|Merah Marun": { kapasitas: 3, hitung: { "2026-11-10": 1 } }, "|": ... }
+            'ketersediaan' => (object) ($ketersediaan ?? []),
             'jumlahFoto' => $jumlahFoto,
             'fotoUrls' => collect($fotoList)->map(fn ($f) => asset('storage/' . $f))->values()->all(),
         ];
@@ -402,7 +402,7 @@
                             {{-- Stok sewa (terpisah dari stok jual bila produk dijual & disewa) --}}
                             <p class="mt-2 text-xs text-ink/60 flex items-center gap-1.5">
                                 <span class="inline-block w-1.5 h-1.5 rounded-full" :class="stok > 0 ? 'bg-emerald-500' : 'bg-rose-500'"></span>
-                                <span x-text="stok <= 0 ? 'Stok sewa habis' : (stok <= 3 ? 'Stok sewa tinggal ' + stok + ' unit' : 'Stok sewa: ' + stok + ' unit')"></span>
+                                <span x-text="(stok <= 0 ? 'Tidak ada unit tersedia' : (stok <= 3 ? 'Tersisa ' + stok + ' unit' : 'Tersedia ' + stok + ' unit')) + (tanggalAmbil ? ' pada tanggal terpilih' : ' hari ini')"></span>
                             </p>
                             @if ($produk->dp > 0)
                                 <p class="mt-1 text-xs text-ink/60">DP / uang muka: <strong class="text-ink/80 font-semibold">Rp {{ number_format($produk->dp, 0, ',', '.') }}</strong></p>
@@ -470,13 +470,13 @@
                         <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Ukuran">
                             <template x-for="o in set.ukuran" :key="jenis + '-' + o.label">
                                 <button type="button" role="radio" :aria-checked="ukuran === o.label" @click="ukuran = o.label"
-                                    :disabled="o.stok <= 0"
-                                    :class="[ukuran === o.label ? 'bg-ink/90 text-gold border-ink/90 shadow-md' : 'bg-white text-ink/65 border-line/60 hover:border-gold hover:text-ink hover:-translate-y-0.5', o.stok <= 0 ? 'opacity-40 line-through cursor-not-allowed' : '']"
+                                    :disabled="sisaUkuran(o) <= 0"
+                                    :class="[ukuran === o.label ? 'bg-ink/90 text-gold border-ink/90 shadow-md' : 'bg-white text-ink/65 border-line/60 hover:border-gold hover:text-ink hover:-translate-y-0.5', sisaUkuran(o) <= 0 ? 'opacity-40 line-through cursor-not-allowed' : '']"
                                     class="relative min-w-[56px] min-h-[44px] px-4 py-1.5 rounded-xl border text-[13px] font-semibold active:scale-95 transition-all duration-200">
                                     <span class="block leading-tight" x-text="o.label"></span>
                                     <span class="block text-[10px] font-normal leading-tight"
-                                        :class="o.stok <= 0 ? 'text-rose-500' : 'opacity-60'"
-                                        x-text="o.stok <= 0 ? 'habis' : 'stok ' + o.stok"></span>
+                                        :class="sisaUkuran(o) <= 0 ? 'text-rose-500' : 'opacity-60'"
+                                        x-text="sisaUkuran(o) <= 0 ? 'habis' : (mode === 'sewa' ? 'tersedia ' : 'stok ') + sisaUkuran(o)"></span>
                                     <span x-show="ukuran === o.label" x-cloak
                                         class="pd-pop absolute -top-1.5 -right-1.5 flex w-4 h-4 items-center justify-center rounded-full bg-gold text-white text-[9px] leading-none">✓</span>
                                 </button>
@@ -497,22 +497,22 @@
                         <div class="flex flex-wrap gap-x-3 gap-y-4" role="radiogroup" aria-label="Warna">
                             <template x-for="w in warnaTampil" :key="jenis + '-' + ukuran + '-' + w.label">
                                 <label class="w-[76px] flex flex-col items-center gap-1.5 text-center"
-                                    :class="habis(w.stok) ? 'cursor-not-allowed' : 'cursor-pointer'">
+                                    :class="habis(sisaWarna(w)) ? 'cursor-not-allowed' : 'cursor-pointer'">
                                     <input type="radio" name="pilih_warna" :value="w.label" class="peer sr-only"
-                                        x-model="varianWarna" :disabled="habis(w.stok)">
+                                        x-model="varianWarna" :disabled="habis(sisaWarna(w))">
                                     <span class="relative block w-12 h-12 rounded-full border border-black/10 ring-2 ring-offset-2 ring-offset-white ring-transparent shadow-inner hover:scale-110 peer-checked:ring-gold peer-checked:scale-110 transition-all duration-300"
-                                        :class="habis(w.stok) ? 'opacity-40' : ''"
+                                        :class="habis(sisaWarna(w)) ? 'opacity-40' : ''"
                                         :style="'background: ' + w.hex">
                                         <span x-show="varianWarna === w.label" x-cloak
                                             class="pd-pop absolute -top-1 -right-1 flex w-4 h-4 items-center justify-center rounded-full bg-gold text-white text-[9px] leading-none">✓</span>
-                                        <span x-show="habis(w.stok)" x-cloak aria-hidden="true" class="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full">
+                                        <span x-show="habis(sisaWarna(w))" x-cloak aria-hidden="true" class="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full">
                                             <span class="block w-[130%] h-[2px] bg-rose-500/80 -rotate-45"></span>
                                         </span>
                                     </span>
                                     <span class="text-[11px] leading-tight text-ink/75 peer-checked:text-gold peer-checked:font-semibold" x-text="w.label"></span>
-                                    <span x-show="w.stok !== null" x-cloak class="text-[10px] -mt-1"
-                                        :class="habis(w.stok) ? 'font-medium text-rose-500' : 'text-ink/45'"
-                                        x-text="habis(w.stok) ? 'Habis' : 'stok ' + w.stok"></span>
+                                    <span x-show="sisaWarna(w) !== null" x-cloak class="text-[10px] -mt-1"
+                                        :class="habis(sisaWarna(w)) ? 'font-medium text-rose-500' : 'text-ink/45'"
+                                        x-text="habis(sisaWarna(w)) ? 'Habis' : (mode === 'sewa' ? 'tersedia ' : 'stok ') + sisaWarna(w)"></span>
                                 </label>
                             </template>
                         </div>
@@ -551,6 +551,7 @@
                                     <template x-for="c in sel" :key="c.t">
                                         <button type="button" @click="pilihTanggal(c.t)" :disabled="c.luar || nonaktif(c.t)"
                                             :class="kelas(c)"
+                                            :title="penuh(c.t) ? 'Penuh dibooking' : (sebagian(c.t) ? terpakai(c.t) + ' dari ' + dataKal.kapasitas + ' unit sudah dibooking' : null)"
                                             class="h-10 sm:h-10 mx-px sm:mx-0.5 rounded-lg text-xs font-medium transition-all duration-200 ease-out">
                                             <span x-text="c.hari"></span>
                                         </button>
@@ -565,6 +566,8 @@
                                         Rentang sewa</div>
                                     <div class="flex items-center gap-1.5"><span
                                             class="w-2.5 h-2.5 rounded-full bg-rose-200"></span> Penuh dibooking</div>
+                                    <div class="flex items-center gap-1.5"><span
+                                            class="w-2.5 h-2.5 rounded-full bg-rose-50 ring-1 ring-rose-300"></span> Sebagian dibooking (masih ada unit)</div>
                                 </div>
                             </div>
 
@@ -925,7 +928,7 @@
                 hargaSewaPerHari: cfg.hargaSewa,
                 tarifTambahan: cfg.tarifTambahan,
                 hargaJual: cfg.hargaJual,
-                tanggalPenuh: cfg.tanggalPenuh || {},
+                ketersediaan: cfg.ketersediaan || {},
                 ukuran: '',
                 tanggalAmbil: null,
                 tanggalKembali: null,
@@ -1094,8 +1097,15 @@
                     const b = this.barisUkuran;
                     return b && b.warna.length ? this.ukuran + '|' + this.varianWarna : this.ukuran + '|';
                 },
-                // Tanggal yang sudah penuh dibooking untuk ukuran/warna yang dipilih
-                get dibooking() { return this.tanggalPenuh[this.kunciKetersediaan] || []; },
+                // Kapasitas & unit terbooking per tanggal untuk ukuran/warna yang dipilih
+                get dataKal() { return this.ketersediaan[this.kunciKetersediaan] || { kapasitas: 0, hitung: {} }; },
+                terpakai(t) { return (this.dataKal.hitung || {})[t] || 0; },
+                sebagian(t) { const n = this.terpakai(t); return n > 0 && n < this.dataKal.kapasitas; },
+                // Tanggal yang sudah penuh (semua unit terbooking)
+                get dibooking() {
+                    const d = this.dataKal, h = d.hitung || {};
+                    return Object.keys(h).filter((t) => h[t] >= d.kapasitas).sort();
+                },
                 bersihkanTanggal() {
                     if (!this.tanggalAmbil) return;
                     const penuh = this.dibooking;
@@ -1121,20 +1131,38 @@
                 habis(stok) { return stok !== null && stok !== undefined && stok <= 0; },
 
                 pilihDefault() {
-                    const u = this.set.ukuran.find((x) => x.stok > 0) || this.set.ukuran[0];
+                    const u = this.set.ukuran.find((x) => this.sisaUkuran(x) > 0) || this.set.ukuran[0];
                     this.ukuran = u ? u.label : '';
                     this.varianWarna = '';
                     this.pilihWarnaDefault();
                 },
                 pilihWarnaDefault() {
                     const daftar = this.warnaTampil;
-                    if (daftar.some((w) => w.label === this.varianWarna && !this.habis(w.stok))) return;
-                    const pertama = daftar.find((w) => !this.habis(w.stok)) || daftar[0];
+                    if (daftar.some((w) => w.label === this.varianWarna && !this.habis(this.sisaWarna(w)))) return;
+                    const pertama = daftar.find((w) => !this.habis(this.sisaWarna(w))) || daftar[0];
                     this.varianWarna = pertama ? pertama.label : '';
                 },
 
                 // Stok yang berlaku: warna terpilih (bila ada rincian) > ukuran terpilih > total set
+                // Sewa: unit TERSEDIA = kapasitas dikurangi unit terbooking terbanyak pada rentang terpilih
+                // (atau hari ini bila tanggal belum dipilih). Stok jual: dari data produk.
+                sisaSewa(kunci) {
+                    const d = this.ketersediaan[kunci];
+                    if (!d) return 0;
+                    const a = this.tanggalAmbil || this.hariIni;
+                    const b = this.tanggalKembali || a;
+                    let maks = 0;
+                    const h = d.hitung || {};
+                    for (const t in h) { if (t >= a && t <= b && h[t] > maks) maks = h[t]; }
+                    return Math.max(0, d.kapasitas - maks);
+                },
+                sisaUkuran(o) { return this.mode === 'sewa' ? this.sisaSewa(o.label + '|') : o.stok; },
+                sisaWarna(w) {
+                    if (w.stok === null) return null;
+                    return this.mode === 'sewa' ? this.sisaSewa(this.ukuran + '|' + w.label) : w.stok;
+                },
                 get stok() {
+                    if (this.mode === 'sewa') return this.sisaSewa(this.kunciKetersediaan);
                     const b = this.barisUkuran;
                     if (!b) return this.set.stok;
                     if (b.warna.length && this.varianWarna) {
@@ -1193,7 +1221,8 @@
                     return t < this.hariIni;
                 },
                 penuh(t) {
-                    return this.dibooking.includes(t);
+                    const n = this.terpakai(t);
+                    return n > 0 && n >= this.dataKal.kapasitas;
                 },
                 nonaktif(t) {
                     return this.lalu(t) || this.penuh(t);
@@ -1202,7 +1231,8 @@
                     if (this.isSelected(c.t)) return 'bg-ink/90 text-gold font-semibold scale-105 shadow-md relative z-10';
                     if (this.isInRange(c.t)) return 'bg-gold/15 text-ink/85 font-medium';
                     if (c.luar || this.lalu(c.t)) return 'text-ink/25 cursor-default';
-                    if (this.penuh(c.t)) return 'bg-rose-50 text-rose-400 cursor-not-allowed line-through decoration-rose-300';
+                    if (this.penuh(c.t)) return 'bg-rose-100 text-rose-500 cursor-not-allowed line-through decoration-rose-400';
+                    if (this.sebagian(c.t)) return 'bg-rose-50 text-rose-500 ring-1 ring-rose-200 hover:bg-rose-100 hover:scale-110 active:scale-95';
                     const cincin = c.t === this.hariIni ? ' ring-1 ring-gold/60 text-ink' : '';
                     return 'text-ink/70 hover:bg-cream hover:text-ink hover:scale-110 active:scale-95' + cincin;
                 },
