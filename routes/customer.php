@@ -44,6 +44,7 @@ Route::middleware('auth:web')->group(function () {
     // --- CHECKOUT ---
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::post('/checkout/alamat', [CheckoutController::class, 'simpanAlamat'])->name('checkout.alamat.simpan');
 
     // --- FITTING ---
     Route::get('/fitting', [FittingController::class, 'create'])->name('fitting.create');
