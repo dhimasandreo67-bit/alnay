@@ -79,8 +79,55 @@
                 {{-- Pengiriman (muncul jika pilih Kirim) --}}
                 <div id="alamat-container" class="mt-4 hidden space-y-4">
 
+                    {{-- Alamat tersimpan dari menu "Alamat Saya" --}}
+                    @if ($alamatList->isNotEmpty())
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs font-semibold text-gray-600">Alamat Pengiriman</p>
+                                <a href="{{ route('akun.dashboard') }}#alamat" class="text-xs font-semibold hover:underline" style="color: #c99a32;">Kelola alamat</a>
+                            </div>
+
+                            @foreach ($alamatList as $a)
+                                <label class="cursor-pointer block">
+                                    <input type="radio" name="alamat_id" value="{{ $a->id }}"
+                                        @checked((string) old('alamat_id', $alamatList->first()->id) === (string) $a->id)
+                                        class="opsi-radio peer sr-only">
+                                    <div class="opsi-card flex items-start gap-3 p-4 rounded-xl border border-gray-200 peer-checked:border-[#c99a32] peer-checked:bg-[#c99a32]/5 hover:border-[#c99a32]/60 transition-all duration-300">
+                                        <span class="radio-dot mt-0.5 w-4 h-4 rounded-full border-2 border-gray-300 shrink-0 transition-all"></span>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-semibold text-gray-800">
+                                                {{ $a->label ?: 'Alamat' }}
+                                                @if ($a->is_utama)
+                                                    <span class="ml-1 rounded-full bg-[#c99a32]/10 px-2 py-0.5 text-[10px] font-bold" style="color: #c99a32;">Utama</span>
+                                                @endif
+                                            </p>
+                                            <p class="text-xs text-gray-600 mt-0.5">{{ $a->nama_penerima }} &middot; {{ $a->no_hp }}</p>
+                                            <p class="text-xs text-gray-500 mt-0.5">{{ $a->alamat }}</p>
+                                            <p class="text-xs text-gray-400">{{ collect([$a->kecamatan, $a->kota_kabupaten, $a->provinsi, $a->kode_pos])->filter()->implode(', ') }}</p>
+                                        </div>
+                                    </div>
+                                </label>
+                            @endforeach
+
+                            <label class="cursor-pointer block">
+                                <input type="radio" name="alamat_id" value="baru"
+                                    @checked(old('alamat_id') === 'baru') class="opsi-radio peer sr-only">
+                                <div class="opsi-card flex items-center gap-3 p-4 rounded-xl border border-dashed border-gray-300 peer-checked:border-[#c99a32] peer-checked:bg-[#c99a32]/5 hover:border-[#c99a32]/60 transition-all duration-300">
+                                    <span class="radio-dot w-4 h-4 rounded-full border-2 border-gray-300 shrink-0 transition-all"></span>
+                                    <p class="text-sm font-semibold text-gray-800">Gunakan alamat lain</p>
+                                </div>
+                            </label>
+                        </div>
+                    @else
+                        <p class="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                            Anda belum punya alamat tersimpan. Isi di bawah, atau tambahkan di
+                            <a href="{{ route('akun.dashboard') }}#alamat" class="font-bold underline">Alamat Saya</a>
+                            agar pesanan berikutnya tidak perlu input ulang.
+                        </p>
+                    @endif
+
                         {{-- TAMBAHKAN BLOK INI --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div data-manual class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
             <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Penerima</label>
             <input type="text" name="nama_penerima" value="{{ old('nama_penerima', auth()->user()->name ?? '') }}" required
@@ -94,7 +141,7 @@
     </div>
     {{-- SAMPAI SINI --}}
 
-                    <div class="relative">
+                    <div data-manual class="relative">
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Kelurahan / Kecamatan Tujuan</label>
                         <input type="text" id="q-tujuan" autocomplete="off"
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#c99a32]/20 focus:border-[#c99a32] outline-none transition-all"
@@ -105,8 +152,10 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Alamat Lengkap</label>
-                        <textarea name="alamat" rows="2" class="..." placeholder="...">{{ old('alamat', auth()->user()->alamat ?? '') }}</textarea>
+                        <label data-manual class="block text-xs font-semibold text-gray-600 mb-1">Alamat Lengkap</label>
+                        <textarea data-manual name="alamat" rows="2" required
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#c99a32]/20 focus:border-[#c99a32] outline-none transition-all"
+                            placeholder="Nama jalan, nomor rumah, RT/RW, patokan">{{ old('alamat', auth()->user()->alamat ?? '') }}</textarea>
                     </div>
 
                     <div>
@@ -211,6 +260,16 @@
     </form>
 </section>
 
+@php
+    $alamatJs = $alamatList->map(function ($a) {
+        return [
+            'id'           => $a->id,
+            'tujuan_id'    => $a->ongkir_tujuan_id,
+            'tujuan_label' => $a->ongkir_tujuan_label,
+        ];
+    })->values();
+@endphp
+
 <script>
 (function () {
     const SUBTOTAL   = {{ (int) $total }};
@@ -262,6 +321,7 @@
     document.querySelectorAll('input[name="metode_penerimaan"]').forEach(radio => {
         radio.addEventListener('change', () => {
             $('alamat-container').classList.toggle('hidden', !isKirim());
+            terapkanAlamat();
             refresh();
         });
     });
@@ -393,6 +453,50 @@
             wrap.appendChild(label);
         });
     }
+
+    // ===== Alamat tersimpan (dari "Alamat Saya") =====
+    const ALAMAT = @json($alamatJs);
+
+    let alamatTerhitung = null;
+
+    const alamatDipilih = () => {
+        const r = document.querySelector('input[name="alamat_id"]:checked');
+        return r ? r.value : '';
+    };
+
+    // Alamat tersimpan: form manual disembunyikan & dinonaktifkan (tidak ikut validasi/terkirim),
+    // tujuan ongkir diisi otomatis lalu ongkir langsung dihitung.
+    // Form manual hanya aktif bila kirim ke alamat lain / belum punya alamat tersimpan.
+    function terapkanAlamat() {
+        const kirim = isKirim();
+        const id = alamatDipilih();
+        const pakaiTersimpan = kirim && id !== '' && id !== 'baru';
+        const tampilManual = kirim && !pakaiTersimpan;
+
+        document.querySelectorAll('[data-manual]').forEach(el => {
+            el.classList.toggle('hidden', !tampilManual);
+            const fields = el.matches('input, textarea') ? [el] : el.querySelectorAll('input, textarea');
+            fields.forEach(f => { f.disabled = !tampilManual; });
+        });
+
+        if (pakaiTersimpan) {
+            const a = ALAMAT.find(x => String(x.id) === String(id));
+            if (a && alamatTerhitung !== id) {
+                alamatTerhitung = id;
+                $('in-tujuan-id').value    = a.tujuan_id;
+                $('in-tujuan-label').value = a.tujuan_label;
+                $('info-tujuan').textContent = '';
+                hitungOngkir(a.tujuan_id);
+            }
+        } else if (kirim && alamatTerhitung !== null) {
+            alamatTerhitung = null;
+            $('q-tujuan').value = '';
+            resetTujuan();
+        }
+    }
+
+    document.querySelectorAll('input[name="alamat_id"]').forEach(r => r.addEventListener('change', terapkanAlamat));
+    terapkanAlamat();
 
     // Tutup daftar hasil saat klik di luar
     document.addEventListener('click', e => {
