@@ -1,35 +1,24 @@
 @extends('admin.layouts.admin')
-@section('title', 'Kelola Pengguna')
+@section('title', 'Pengguna Tidak Aktif (≥360 Hari)')
 
 @section('content')
 @php
     $tgl = fn ($v) => $v ? \Illuminate\Support\Carbon::parse($v)->locale('id') : null;
-    $adaFilter = request()->filled('search') || $status !== '' || $inaktif > 0;
+    // Paksa filter setahun (360 hari) — view hanya menampilkan akun yang tidak aktif ≥ 360 hari.
+    // Controller diharapkan membaca ?inaktif=360 dan memfilter $users sesuai nilai tersebut.
+    $batasLama = 360;
+    $adaFilter = request()->filled('search') || $status !== '';
 @endphp
 
 <div class="p-6 space-y-6 transition-all duration-500 animate-fade-in">
 
     <style>
-        .group-shine {
-            position: relative;
-            overflow: hidden;
-        }
-
+        .group-shine { position: relative; overflow: hidden; }
         .group-shine::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -60%;
-            width: 20%;
-            height: 200%;
-            background: rgba(255, 255, 255, 0.25);
-            transform: rotate(30deg);
-            transition: all 0.6s ease;
+            content: ''; position: absolute; top: -50%; left: -60%; width: 20%; height: 200%;
+            background: rgba(255, 255, 255, 0.25); transform: rotate(30deg); transition: all 0.6s ease;
         }
-
-        .group-shine:hover::after {
-            left: 130%;
-        }
+        .group-shine:hover::after { left: 130%; }
     </style>
 
     {{-- Flash messages --}}
@@ -59,8 +48,8 @@
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Kelola Pengguna</h1>
-            <p class="text-xs text-gray-500 mt-1">Pantau akun pelanggan, tinjau yang lama tidak aktif, lalu nonaktifkan atau hapus bila perlu.</p>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Pengguna Tidak Aktif (≥360 Hari)</h1>
+            <p class="text-xs text-gray-500 mt-1">Hanya menampilkan akun pelanggan yang tidak aktif ≥ 360 hari (setahun). Tinjau, nonaktifkan, atau hapus bila perlu.</p>
         </div>
         <button type="button" data-modal-open="modal-tambah-pengguna"
                 class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold py-2.5 px-5 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all duration-200 text-sm cursor-pointer">
@@ -126,11 +115,11 @@
             <p class="mt-2 text-xs font-medium text-slate-500">Akses dibatasi sementara</p>
         </div>
 
-        {{-- Card 4: Tidak Aktif >= X Hari (link) --}}
+        {{-- Card 4: Tidak Aktif ≥ 360 Hari (link) --}}
         <a href="{{ route('admin.pengguna.index', ['inaktif' => $batasLama, 'status' => 'aktif']) }}"
            class="group group-shine relative overflow-hidden rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50/80 via-white to-rose-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-rose-800/80">Tidak Aktif &ge; {{ $batasLama }} Hari</span>
+                <span class="text-xs font-semibold uppercase tracking-wider text-rose-800/80">Tidak Aktif ≥ {{ $batasLama }} Hari</span>
                 <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-pink-500 text-white shadow-md shadow-rose-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -147,6 +136,9 @@
 
     {{-- Filter --}}
     <form method="GET" action="{{ route('admin.pengguna.index') }}" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4">
+        {{-- Filter setahun dipaksa lewat hidden input agar setiap submit tetap membawa nilainya --}}
+        <input type="hidden" name="inaktif" value="{{ $batasLama }}">
+
         <div class="relative w-full lg:w-80">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -156,20 +148,18 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Tidak aktif ≥ {{ $batasLama }} hari
+            </span>
             <select name="status" onchange="this.form.submit()" aria-label="Status akun" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer">
                 <option value="">Semua Status</option>
                 <option value="aktif" {{ $status === 'aktif' ? 'selected' : '' }}>Aktif</option>
                 <option value="nonaktif" {{ $status === 'nonaktif' ? 'selected' : '' }}>Dinonaktifkan</option>
             </select>
-            <select name="inaktif" onchange="this.form.submit()" aria-label="Lama tidak aktif" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer">
-                <option value="">Semua Aktivitas</option>
-                @foreach ([30, 60, 90, 180] as $hari)
-                    <option value="{{ $hari }}" {{ $inaktif === $hari ? 'selected' : '' }}>Tidak aktif &ge; {{ $hari }} hari</option>
-                @endforeach
-            </select>
             <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-800 transition-all">Cari</button>
             @if ($adaFilter)
-                <a href="{{ route('admin.pengguna.index') }}" class="text-xs font-bold text-gray-500 hover:text-amber-600">Reset</a>
+                <a href="{{ route('admin.pengguna.index', ['inaktif' => $batasLama]) }}" class="text-xs font-bold text-gray-500 hover:text-amber-600">Reset</a>
             @endif
         </div>
     </form>
@@ -177,7 +167,7 @@
     {{-- Tabel --}}
     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
 
-        {{-- Bar aksi massal (muncul saat ada yang dicentang) --}}
+        {{-- Bar aksi massal --}}
         <div id="bar-massal" class="hidden items-center justify-between gap-3 border-b border-amber-100 bg-amber-50/70 px-6 py-3">
             <p class="text-xs font-semibold text-amber-900"><span id="jumlah-dipilih">0</span> akun dipilih</p>
             <div class="flex items-center gap-2">
@@ -297,7 +287,9 @@
                     @empty
                         <tr>
                             <td colspan="7" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
-                                {{ $adaFilter ? 'Tidak ada pengguna yang cocok dengan filter ini.' : 'Belum ada akun pengguna.' }}
+                                {{ $adaFilter
+                                    ? 'Tidak ada pengguna yang cocok dengan filter ini.'
+                                    : 'Tidak ada akun yang tidak aktif ≥ '.$batasLama.' hari.' }}
                             </td>
                         </tr>
                     @endforelse
@@ -305,7 +297,7 @@
             </table>
         </div>
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
-            {{ $users->links() }}
+            {{ $users->appends(['inaktif' => $batasLama])->links() }}
         </div>
     </div>
 </div>
@@ -378,7 +370,6 @@
             <p class="mt-1 text-[11px] text-gray-400">Kosongkan jika pelanggan masuk lewat kode OTP atau akun Google.</p>
         </div>
 
-        {{-- Alamat pengiriman (opsional) — tersimpan sebagai alamat utama di menu "Alamat Saya" pelanggan --}}
         @include('admin.pengguna._form-alamat', [
             'p' => 'tp',
             'catatan' => 'Opsional. Jika diisi, disimpan sebagai alamat utama pelanggan dan tampil di menu Alamat Saya.',
@@ -440,7 +431,6 @@
             <input type="password" id="ep-pass" name="password" minlength="8" autocomplete="new-password" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
             <p class="mt-1 text-[11px] text-gray-400">Kosongkan jika tidak ingin mengubah kata sandi.</p>
         </div>
-        {{-- Alamat utama pelanggan (tabel alamat_pengiriman, sama dengan menu "Alamat Saya") --}}
         <input type="hidden" name="ubah_alamat" id="ep-ubah" value="0">
         @include('admin.pengguna._form-alamat', [
             'p' => 'ep',
@@ -454,7 +444,7 @@
     </x-slot:footer>
 </x-modal>
 
-{{-- ================= MODAL: KONFIRMASI (satu modal untuk semua aksi) ================= --}}
+{{-- ================= MODAL: KONFIRMASI ================= --}}
 <x-modal id="modal-konfirmasi-pengguna" title="Konfirmasi" size="sm">
     <form id="form-konfirmasi-pengguna" method="POST" action="#" class="space-y-3">
         @csrf
@@ -519,9 +509,7 @@
         var URL_UPDATE = @json(route('admin.pengguna.update', '__ID__'));
         var OLD_EDIT = @json(old('_form') === 'edit' ? old() : null);
 
-        // ---------- Alamat pengiriman (terhubung ke "Alamat Saya" pelanggan) ----------
-        // Dropdown wilayah & pencarian kelurahan memakai sumber data RajaOngkir yang sama dengan
-        // halaman Checkout dan Alamat Saya, supaya alamat dari admin langsung bisa dipakai ongkir.
+        // ---------- Alamat pengiriman ----------
         var URL_PROVINSI = @json(route('admin.pengguna.ongkir.provinsi'));
         var URL_KOTA = @json(route('admin.pengguna.ongkir.kota', '__ID__'));
         var URL_KECAMATAN = @json(route('admin.pengguna.ongkir.kecamatan', '__ID__'));
@@ -630,7 +618,6 @@
                 kotak.classList.remove('hidden');
             }
 
-            // Cari kelurahan saat mengetik (debounce 350 ms), sama seperti di Checkout
             inCari.addEventListener('input', function () {
                 resetTujuan();
                 ubah();
@@ -651,14 +638,12 @@
                 if (!kotak.contains(e.target) && e.target !== inCari) kotak.classList.add('hidden');
             });
 
-            // Ganti wilayah = tujuan ongkir harus dipilih ulang
             selProv.addEventListener('change', function () { inCari.value = ''; kodePos.value = ''; resetTujuan(); muatKota(); ubah(); });
             selKota.addEventListener('change', function () { inCari.value = ''; kodePos.value = ''; resetTujuan(); muatKecamatan(); ubah(); });
             selKec.addEventListener('change', function () {
                 resetTujuan();
                 ubah();
                 if (selKec.value) {
-                    // Isi pencarian kelurahan dengan nama kecamatan lalu cari otomatis, seperti di Checkout
                     inCari.value = selKec.value;
                     inCari.dispatchEvent(new Event('input'));
                 } else {
@@ -670,7 +655,6 @@
             radios.forEach(function (r) { r.addEventListener('change', ubah); });
 
             return {
-                // Isi form dari data: { label, alamat, provinsi, kota_kabupaten, kecamatan, kode_pos, tujuan_id, tujuan_label }
                 isi: async function (d) {
                     d = d || {};
                     el('alamat').value = d.alamat || '';
@@ -696,7 +680,6 @@
             };
         }
 
-        // Modal edit: perubahan apa pun pada alamat menandai ubah_alamat = 1 (server baru menyimpan alamat bila ditandai)
         var alamatEdit = pasangAlamat('ep', function () { $('ep-ubah').value = '1'; });
 
         function isiFormEdit(id, d) {
@@ -727,7 +710,7 @@
             if (b && b.dataset.user) {
                 isiFormEdit(b.dataset.id, JSON.parse(b.dataset.user));
             } else if (OLD_EDIT) {
-                isiFormEdit(OLD_EDIT._id, OLD_EDIT); // dibuka ulang setelah validasi gagal
+                isiFormEdit(OLD_EDIT._id, OLD_EDIT);
             }
         });
 
@@ -741,7 +724,7 @@
             document.addEventListener('DOMContentLoaded', function () { window.openModal('modal-edit-pengguna'); });
         }
 
-        // ---------- Konfirmasi (aksi tunggal & massal) ----------
+        // ---------- Konfirmasi ----------
         var form = $('form-konfirmasi-pengguna');
         var tombol = $('btn-konfirmasi-pengguna');
         var TEKS = {
@@ -846,7 +829,6 @@
         var OLD_TAMBAH = @json(old('_form') === 'tambah' ? old() : null);
         var tambahDimuat = false;
 
-        // Dimuat saat modal pertama kali dibuka (hemat request); isi ulang dari old() bila validasi gagal
         $('modal-tambah-pengguna').addEventListener('modal:open', function () {
             if (tambahDimuat) return;
             tambahDimuat = true;
