@@ -1,9 +1,89 @@
+{{-- ============================================================
+     HEADER ALNAY.ID — tema gelap-emas senada footer
+     (Hanya tampilan berubah; route, data, & logika tetap sama)
+     ============================================================ --}}
 <style>
     @keyframes wiggle {
         0%, 100% { transform: rotate(0deg); }
         25% { transform: rotate(-15deg); }
         50% { transform: rotate(10deg); }
         75% { transform: rotate(-5deg); }
+    }
+
+    :root {
+        --al-gold: #c99a32;
+        --al-gold-soft: #e6c877;
+        --al-bg: #ffffff;
+        --al-cream: #f5efe0;
+        --al-muted: #b9ae96;
+        --al-line: rgba(201, 154, 50, .28);
+    }
+
+    /* Efek kaca + glow emas saat scroll */
+    .al-header { border-bottom: 1px solid var(--al-gold); background: rgba(255, 255, 255, .98); transition: background-color .3s ease, box-shadow .3s ease; }
+    .al-header.is-scrolled {
+        background: rgba(255, 255, 255, .86);
+        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
+        box-shadow: 0 12px 32px -14px rgba(201, 154, 50, .40);
+    }
+    .al-main { transition: padding .3s ease; }
+    .al-header.is-scrolled .al-main { padding-top: .45rem; padding-bottom: .45rem; }
+
+    /* Tombol ikon bulat (gaya ikon sosmed footer) */
+    .al-icon-btn {
+        background: #fbf6e9;
+        border: 1px solid rgba(201, 154, 50, .28);
+        color: #15233d;
+        transition: border-color .25s ease, color .25s ease, transform .25s ease, background-color .25s ease;
+    }
+    .al-icon-btn:hover { border-color: var(--al-gold); color: #9a6f12; background: #fff; transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(201, 154, 50, .55); }
+
+    /* Latar menu: motif kain tapis (pucuk rebung + belah ketupat) */
+    .al-tapis { position: relative; background: #fdf8ea; overflow: hidden; }
+    .al-tapis::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='44'%3E%3Cg fill='none' stroke='%23c99a32' stroke-width='1.1'%3E%3Cpath d='M0 1.5H64M0 42.5H64'/%3E%3Cpath d='M32 11 L45 22 L32 33 L19 22Z'/%3E%3Cpath d='M32 16 L39.5 22 L32 28 L24.5 22Z' fill='%23c99a32' fill-opacity='.55'/%3E%3Cpath d='M0 1.5 L8 13 L16 1.5M48 1.5 L56 13 L64 1.5M0 42.5 L8 31 L16 42.5M48 42.5 L56 31 L64 42.5'/%3E%3C/g%3E%3Ccircle cx='8' cy='22' r='1.8' fill='%23c99a32'/%3E%3Ccircle cx='56' cy='22' r='1.8' fill='%23c99a32'/%3E%3C/svg%3E") repeat center / 64px 44px;
+        opacity: .38;
+        -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
+        mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
+        pointer-events: none;
+    }
+    .al-tapis > div { position: relative; z-index: 1; }
+
+    /* Menu desktop: pill emas + garis bawah meluncur */
+    .al-nav {
+        position: relative;
+        color: #3b4358;
+        border-radius: 999px;
+        transition: color .25s ease, background-color .25s ease;
+    }
+    .al-nav::after {
+        content: '';
+        position: absolute; left: 1rem; right: 1rem; bottom: 6px; height: 1px;
+        background: var(--al-gold);
+        transform: scaleX(0); transform-origin: left;
+        transition: transform .35s cubic-bezier(.22, .8, .3, 1);
+    }
+    .al-nav:hover { color: #8a6410; background: rgba(255, 255, 255, .88); }
+    .al-nav:hover::after { transform: scaleX(1); }
+    .al-nav.is-active {
+        color: #8a6410;
+        background: #f7e9bd;
+        box-shadow: inset 0 0 0 1px var(--al-line);
+    }
+    .al-nav.is-active::after { display: none; }
+
+    /* Dropdown gelap */
+    .al-dd-panel { background: #fff; border: 1px solid var(--al-line); box-shadow: 0 24px 48px -18px rgba(21, 35, 61, .22), 0 0 0 1px rgba(201, 154, 50, .06); }
+    .al-dd-link { color: #15233d; transition: background-color .2s ease, color .2s ease, padding-left .2s ease; }
+    .al-dd-link:hover { background: rgba(201, 154, 50, .10); color: #8a6410; padding-left: 1.25rem; }
+
+    .al-search:focus { box-shadow: 0 0 0 3px rgba(201, 154, 50, .18); }
+
+    @media (prefers-reduced-motion: reduce) {
+        .al-header, .al-main, .al-nav, .al-nav::after, .al-icon-btn { transition: none !important; }
     }
 </style>
 
@@ -20,18 +100,18 @@
 @endphp
 
 {{-- PROMO BAR --}}
-<div class="bg-[#17140f] text-white text-xs">
+<div class="bg-[#fbf6e9] text-[#15233d] text-xs border-b border-[#c99a32]/25">
     <div class="max-w-7xl mx-auto px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-1">
-        <p class="text-center sm:text-left flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-gold inline-block"></span>
+        <p class="text-center sm:text-left flex items-center gap-2 text-[#8a6410]">
+            <span class="w-2 h-2 rounded-full bg-gold inline-block shadow-[0_0_8px_rgba(201,154,50,.9)]"></span>
             {{ config('alnay.promo_bar.teks') }}
         </p>
-        <div class="flex items-center gap-4 text-cream/70">
+        <div class="flex items-center gap-4 text-[#6b7280]">
             <span class="hidden sm:inline-flex items-center gap-1.5">
-                Studio: {{ config('alnay.studio.jam_buka') }}
+                <span class="text-[#a97c1a]">Studio:</span> {{ config('alnay.studio.jam_buka') }}
             </span>
             <span class="inline-flex items-center gap-1.5">
-                <x-icon name="whatsapp" :size="14" />
+                <span class="text-[#a97c1a]"><x-icon name="whatsapp" :size="14" /></span>
                 WA CS: {{ config('alnay.kontak.wa_cs_display') }}
             </span>
         </div>
@@ -39,37 +119,41 @@
 </div>
 
 {{-- HEADER UTAMA --}}
-<header x-data="{ mobileOpen: false, koleksiOpen: false }" class="bg-panel border-b border-line sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-4">
+<header x-data="{ mobileOpen: false, koleksiOpen: false, scrolled: false }"
+    @scroll.window.passive="scrolled = window.scrollY > 30"
+    :class="{ 'is-scrolled': scrolled }"
+    class="al-header sticky top-0 z-50">
+
+    <div class="al-main max-w-7xl mx-auto px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-4">
 
         {{-- Logo --}}
-        <a href="{{ route('beranda') }}" class="flex items-center gap-2 shrink-0 min-h-[44px]">
+        <a href="{{ route('beranda') }}" class="flex items-center gap-2.5 shrink-0 min-h-[44px]">
             <img src="{{ asset('images/home/alnaylogo.png') }}" alt="ALNAY.ID"
-                class="w-10 h-10 sm:w-11 sm:h-11 rounded-md border border-[#c99a32] bg-[#fbf6e9] object-contain p-1">
+                class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl border border-[#c99a32] bg-[#fbf6e9] object-contain p-1 shadow-[0_6px_20px_-6px_rgba(201,154,50,.65)]">
             <span class="hidden sm:block leading-tight">
-                <span class="block font-display font-bold text-ink text-lg tracking-tight">ALNAY.ID</span>
-                <span class="block text-[9px] uppercase tracking-[0.2em] text-muted">Jas & Gown Berbudaya</span>
+                <span class="block font-display font-bold text-[#15233d] text-lg tracking-tight">ALNAY.ID</span>
+                <span class="block text-[9px] uppercase tracking-[0.24em] text-[#a97c1a]">Jas & Gown Berbudaya</span>
             </span>
         </a>
 
         {{-- Search --}}
         <form action="{{ route('koleksi.index') }}" method="GET" class="relative flex-1 min-w-0">
             <x-icon name="search" :size="18"
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-[#a97c1a] pointer-events-none" />
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari produk..."
-                class="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 rounded-full border border-line bg-cream text-base placeholder:text-muted focus:outline-none focus:border-gold">
+                class="al-search w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 rounded-full border border-[#c99a32]/25 bg-[#fbf6e9] text-[#15233d] text-base placeholder:text-[#9a9384] focus:outline-none focus:border-[#c99a32] transition-shadow">
         </form>
 
-                {{-- Aksi kanan --}}
-        <div class="flex items-center gap-0.5 sm:gap-2 shrink-0 ml-auto">
+        {{-- Aksi kanan --}}
+        <div class="flex items-center gap-1 sm:gap-2 shrink-0 ml-auto">
 
             {{-- Keranjang (Gabungan Beli & Sewa) --}}
             <a href="{{ route('keranjang.index') }}"
-                class="relative inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2 rounded-lg text-ink hover:bg-cream transition-colors"
+                class="al-icon-btn relative inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-11 sm:px-4 sm:gap-2 rounded-full"
                 aria-label="Keranjang">
                 <x-icon name="cart" :size="20" />
                 <span class="hidden sm:inline text-sm font-medium">Keranjang</span>
-                
+
                 {{-- Hitung Total dari Keranjang Beli + Keranjang Sewa --}}
                 @php
                     $totalKeranjang = 0;
@@ -82,7 +166,7 @@
                 @endphp
 
                 @if ($totalKeranjang > 0)
-                    <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gold text-white text-[10px] font-bold flex items-center justify-center">
+                    <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gold text-[#1a1408] text-[10px] font-bold flex items-center justify-center border-2 border-white">
                         {{ $totalKeranjang }}
                     </span>
                 @endif
@@ -91,13 +175,13 @@
             {{-- Notifikasi --}}
             <div class="relative" x-data="{ notifOpen: false }">
                 <button type="button" @click="notifOpen = !notifOpen"
-                    class="group relative w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-ink hover:bg-cream transition-colors active:scale-95"
+                    class="al-icon-btn group relative w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center active:scale-95"
                     aria-label="Notifikasi">
                     <div class="group-active:animate-[wiggle_0.3s_ease-in-out]">
                         <x-icon name="bell" :size="20" />
                     </div>
                     @if (isset($jumlahNotifikasi) && $jumlahNotifikasi > 0)
-                        <span class="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-panel">
+                        <span class="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white">
                             {{ $jumlahNotifikasi }}
                         </span>
                     @endif
@@ -112,11 +196,11 @@
                     x-transition:leave-end="opacity-0 translate-y-4 scale-90"
                     @click.outside="notifOpen = false"
                     x-cloak
-                    class="fixed sm:absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 top-[60px] sm:top-full mt-0 sm:mt-2 w-[calc(100vw-2rem)] max-w-[320px] bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden origin-top-center sm:origin-top-right ring-1 ring-black/5">
+                    class="al-dd-panel fixed sm:absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 top-[60px] sm:top-full mt-0 sm:mt-2 w-[calc(100vw-2rem)] max-w-[320px] rounded-2xl z-50 overflow-hidden origin-top-center sm:origin-top-right">
 
-                    <div class="px-5 py-4 border-b border-gray-50 flex items-center justify-between bg-white sticky top-0 z-10">
-                        <h3 class="text-[13px] font-bold text-gray-900">Notifikasi</h3>
-                        <button type="button" @click="notifOpen = false" class="text-gray-400 hover:text-gray-600 p-1 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors" aria-label="Tutup">
+                    <div class="px-5 py-4 border-b border-[#c99a32]/15 flex items-center justify-between bg-white sticky top-0 z-10">
+                        <h3 class="text-[13px] font-bold text-[#15233d]">Notifikasi</h3>
+                        <button type="button" @click="notifOpen = false" class="text-[#6b7280] hover:text-[#8a6410] p-1 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors" aria-label="Tutup">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
@@ -124,7 +208,7 @@
                     <div class="max-h-[320px] overflow-y-auto custom-scrollbar">
                         @forelse($notifikasi ?? [] as $n)
                             <a href="{{ route('akun.pesanan.detail', $n->id) }}"
-                            class="flex items-center gap-3.5 px-5 py-3.5 hover:bg-gray-50/80 transition-colors group">
+                            class="flex items-center gap-3.5 px-5 py-3.5 hover:bg-[#c99a32]/10 transition-colors group">
                                 <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0
                                     {{ $n->jenis === 'sewa' ? 'bg-amber-50 text-amber-500' : 'bg-sky-50 text-sky-500' }}">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,27 +221,27 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center justify-between gap-2">
-                                        <p class="text-[12px] font-bold text-gray-800 truncate">{{ $n->kode_transaksi }}</p>
-                                        <span class="text-[9px] text-gray-400 whitespace-nowrap">{{ $n->created_at->diffForHumans() }}</span>
+                                        <p class="text-[12px] font-bold text-[#15233d] truncate">{{ $n->kode_transaksi }}</p>
+                                        <span class="text-[9px] text-[#9a9384] whitespace-nowrap">{{ $n->created_at->diffForHumans() }}</span>
                                     </div>
                                     <div class="flex items-center gap-2 mt-1">
-                                        <span class="text-[10px] text-gray-500">Pesanan {{ strtoupper($n->jenis) }}</span>
+                                        <span class="text-[10px] text-[#6b7280]">Pesanan {{ strtoupper($n->jenis) }}</span>
                                         @if(strtolower($n->status_pembayaran) === 'pending')
                                             <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 text-amber-600 border border-amber-100">PENDING</span>
                                         @elseif(in_array(strtolower($n->status_pembayaran), ['lunas', 'success']))
                                             <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">LUNAS</span>
                                         @else
-                                            <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-gray-50 text-gray-500 border border-gray-200">{{ strtoupper($n->status_pembayaran) }}</span>
+                                            <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-gray-50 text-[#6b7280] border border-gray-200">{{ strtoupper($n->status_pembayaran) }}</span>
                                         @endif
                                     </div>
                                 </div>
                             </a>
                         @empty
                             <div class="py-12 text-center">
-                                <div class="w-12 h-12 rounded-full bg-gray-50 text-gray-300 flex items-center justify-center mx-auto mb-3">
+                                <div class="w-12 h-12 rounded-full bg-gray-50 text-[#9a9384] flex items-center justify-center mx-auto mb-3">
                                     <x-icon name="bell" :size="24" />
                                 </div>
-                                <p class="text-xs text-gray-400">Belum ada notifikasi baru.</p>
+                                <p class="text-xs text-[#9a9384]">Belum ada notifikasi baru.</p>
                             </div>
                         @endforelse
                     </div>
@@ -166,11 +250,11 @@
 
             @guest
                 <a href="{{ route('masuk') }}"
-                    class="hidden sm:inline-flex items-center px-5 py-2.5 text-sm font-semibold uppercase tracking-wide text-ink hover:text-gold transition-colors min-h-[44px]">
+                    class="hidden sm:inline-flex items-center px-5 py-2.5 text-sm font-semibold uppercase tracking-wide text-[#15233d] hover:text-[#8a6410] transition-colors min-h-[44px]">
                     Masuk
                 </a>
                 <a href="{{ route('daftar') }}"
-                    class="inline-flex items-center justify-center px-2.5 sm:px-5 py-2 rounded-md bg-gold text-white text-[10px] sm:text-sm font-semibold uppercase tracking-normal sm:tracking-wide hover:bg-gold/90 transition-colors min-h-[40px] sm:min-h-[44px]">
+                    class="inline-flex items-center justify-center px-2.5 sm:px-5 py-2 rounded-full bg-gradient-to-b from-[#e2b93e] to-[#b8860b] text-[#1a1408] text-[10px] sm:text-sm font-bold uppercase tracking-normal sm:tracking-wide shadow-[0_8px_20px_-8px_rgba(201,154,50,.8)] hover:brightness-110 transition min-h-[40px] sm:min-h-[44px]">
                     Daftar
                 </a>
             @endguest
@@ -192,7 +276,7 @@
                 @endphp
 
                 <a href="{{ $profileRoute }}"
-                    class="inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2.5 rounded-full sm:rounded-none text-sm font-medium text-ink hover:text-gold hover:bg-cream sm:hover:bg-transparent transition-colors">
+                    class="inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-11 sm:px-4 rounded-full border border-[#c99a32]/40 text-sm font-semibold text-[#8a6410] hover:bg-[#c99a32]/15 transition-colors">
                     <x-icon name="user" :size="18" />
                     <span class="hidden sm:inline ml-1.5">{{ $profileText }}</span>
                 </a>
@@ -200,7 +284,7 @@
                 <form method="POST" action="{{ route('keluar') }}" class="inline">
                     @csrf
                     <button type="submit"
-                        class="inline-flex items-center justify-center gap-1.5 w-9 h-9 sm:w-auto sm:h-auto sm:px-3 sm:py-2.5 rounded-full border border-line text-sm font-medium text-ink hover:bg-cream hover:border-gold transition-colors">
+                        class="al-icon-btn inline-flex items-center justify-center gap-1.5 w-9 h-9 sm:w-auto sm:h-11 sm:px-4 rounded-full text-sm font-medium">
                         <span class="hidden sm:inline">Keluar</span>
                         <svg class="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                     </button>
@@ -209,7 +293,7 @@
 
             {{-- Hamburger --}}
             <button type="button" @click="mobileOpen = !mobileOpen"
-                class="md:hidden w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-ink hover:bg-cream transition-colors"
+                class="al-icon-btn md:hidden w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center"
                 aria-label="Menu">
                 <template x-if="!mobileOpen"><x-icon name="menu" :size="22" /></template>
                 <template x-if="mobileOpen"><x-icon name="close" :size="22" /></template>
@@ -218,14 +302,13 @@
     </div>
 
     {{-- NAV DESKTOP --}}
-    <nav class="hidden md:block border-t border-line">
-        <div class="max-w-7xl mx-auto px-4 flex items-center justify-center gap-4">
+    <nav class="al-tapis hidden md:block border-t border-[#c99a32]/20">
+        <div class="max-w-7xl mx-auto px-4 py-1.5 flex items-center justify-center gap-2">
             @foreach ($navItems as $item)
                 @if ($item['label'] === 'Koleksi')
                     <div class="relative" @mouseenter="koleksiOpen = true" @mouseleave="koleksiOpen = false">
                         <a href="{{ route($item['route']) }}"
-                            class="px-4 py-3 text-xs font-semibold uppercase tracking-wide transition-colors min-h-[50px] inline-flex items-center gap-1.5
-                              {{ $item['active'] ? 'text-gold border-b-2 border-gold' : 'text-ink hover:text-gold' }}">
+                            class="al-nav px-4 py-2.5 text-xs font-semibold uppercase tracking-wide inline-flex items-center gap-1.5 {{ $item['active'] ? 'is-active' : '' }}">
                             <x-icon name="dress" :size="14" />
                             {{ $item['label'] }}
                             <x-icon name="chevron-down" :size="14" />
@@ -237,28 +320,28 @@
                             x-transition:leave="transition ease-in duration-150"
                             x-transition:leave-start="opacity-100 translate-y-0"
                             x-transition:leave-end="opacity-0 -translate-y-2"
-                            class="absolute top-full left-0 mt-0 w-64 bg-panel border border-line rounded-lg shadow-lg z-50 overflow-hidden"
+                            class="al-dd-panel absolute top-full left-0 mt-0 w-64 rounded-xl z-50 overflow-hidden"
                             style="display: none;" x-cloak>
                             <div class="py-2">
                                 <a href="{{ route('koleksi.index', ['kategori' => 'jas-adat']) }}"
-                                    class="block px-4 py-2.5 text-sm text-ink hover:bg-cream hover:text-gold transition-colors">
+                                    class="al-dd-link block px-4 py-2.5 text-sm">
                                     Jas Adat
                                 </a>
                                 <a href="{{ route('koleksi.index', ['kategori' => 'gown-pengantin']) }}"
-                                    class="block px-4 py-2.5 text-sm text-ink hover:bg-cream hover:text-gold transition-colors">
+                                    class="al-dd-link block px-4 py-2.5 text-sm">
                                     Gown Pengantin
                                 </a>
                                 <a href="{{ route('koleksi.index', ['kategori' => 'siger']) }}"
-                                    class="block px-4 py-2.5 text-sm text-ink hover:bg-cream hover:text-gold transition-colors">
+                                    class="al-dd-link block px-4 py-2.5 text-sm">
                                     Siger
                                 </a>
                                 <a href="{{ route('koleksi.index', ['kategori' => 'beskap']) }}"
-                                    class="block px-4 py-2.5 text-sm text-ink hover:bg-cream hover:text-gold transition-colors">
+                                    class="al-dd-link block px-4 py-2.5 text-sm">
                                     Beskap
                                 </a>
-                                <div class="border-t border-line my-2"></div>
+                                <div class="border-t border-[#c99a32]/20 my-2"></div>
                                 <a href="{{ route('koleksi.index') }}"
-                                    class="block px-4 py-2.5 text-sm font-semibold text-gold hover:bg-cream transition-colors">
+                                    class="al-dd-link block px-4 py-2.5 text-sm font-semibold !text-[#a97c1a] hover:!text-[#8a6410]">
                                     Lihat Semua Koleksi →
                                 </a>
                             </div>
@@ -266,8 +349,7 @@
                     </div>
                 @else
                     <a href="{{ route($item['route']) }}"
-                        class="px-4 py-3 text-xs font-semibold uppercase tracking-wide transition-colors min-h-[50px] inline-flex items-center gap-1.5
-                          {{ $item['active'] ? 'text-gold border-b-2 border-gold' : 'text-ink hover:text-gold' }}">
+                        class="al-nav px-4 py-2.5 text-xs font-semibold uppercase tracking-wide inline-flex items-center gap-1.5 {{ $item['active'] ? 'is-active' : '' }}">
                         @if ($item['label'] === 'Beranda')
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -297,12 +379,12 @@
     </nav>
 
     {{-- NAV MOBILE --}}
-    <div x-show="mobileOpen" x-collapse x-cloak class="md:hidden border-t border-line bg-panel">
+    <div x-show="mobileOpen" x-collapse x-cloak class="md:hidden border-t border-[#c99a32]/20 bg-white">
         <nav class="max-w-7xl mx-auto px-4 py-3 flex flex-col">
             @foreach ($navItems as $item)
                 <a href="{{ route($item['route']) }}"
-                    class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors
-                      {{ $item['active'] ? 'text-gold bg-cream' : 'text-ink hover:bg-cream hover:text-gold' }}">
+                    class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors
+                      {{ $item['active'] ? 'text-[#8a6410] bg-[#c99a32]/14 ring-1 ring-[#c99a32]/30' : 'text-[#3b4358] hover:bg-[#c99a32]/10 hover:text-[#8a6410]' }}">
 
                     @if ($item['label'] === 'Beranda')
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -332,10 +414,10 @@
 
             <form action="{{ route('koleksi.index') }}" method="GET" class="mt-3 relative">
                 <x-icon name="search" :size="18"
-                    class="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                    class="absolute left-3 top-1/2 -translate-y-1/2 text-[#a97c1a] pointer-events-none" />
 
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari..."
-                    class="w-full pl-8 pr-2 sm:pl-10 sm:pr-4 py-2 rounded-full border border-line bg-cream text-sm sm:text-base placeholder:text-muted focus:outline-none focus:border-gold">
+                    class="al-search w-full pl-8 pr-2 sm:pl-10 sm:pr-4 py-2 rounded-full border border-[#c99a32]/25 bg-[#fbf6e9] text-[#15233d] text-sm sm:text-base placeholder:text-[#9a9384] focus:outline-none focus:border-[#c99a32]">
             </form>
         </nav>
     </div>

@@ -62,6 +62,11 @@
             --shadow-xl: 0 24px 56px -12px rgba(21, 35, 61, .14), 0 40px 80px -20px rgba(21, 35, 61, .10);
             --shadow-gold: 0 8px 24px -6px rgba(201, 154, 50, .30);
             --shadow-gold-lg: 0 16px 40px -8px rgba(201, 154, 50, .38);
+
+            /* Motif etnik Lampung */
+            --tapis: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='44'%3E%3Cg fill='none' stroke='%23c99a32' stroke-width='1.1'%3E%3Cpath d='M0 1.5H64M0 42.5H64'/%3E%3Cpath d='M32 11 L45 22 L32 33 L19 22Z'/%3E%3Cpath d='M32 16 L39.5 22 L32 28 L24.5 22Z' fill='%23c99a32' fill-opacity='.55'/%3E%3Cpath d='M0 1.5 L8 13 L16 1.5M48 1.5 L56 13 L64 1.5M0 42.5 L8 31 L16 42.5M48 42.5 L56 31 L64 42.5'/%3E%3C/g%3E%3Ccircle cx='8' cy='22' r='1.8' fill='%23c99a32'/%3E%3Ccircle cx='56' cy='22' r='1.8' fill='%23c99a32'/%3E%3C/svg%3E");
+            --tumpal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='12'%3E%3Cpath d='M14 1.5 L23 6 L14 10.5 L5 6Z' fill='none' stroke='%23c99a32' stroke-width='1.2'/%3E%3Cpath d='M14 4.2 L17.4 6 L14 7.8 L10.6 6Z' fill='%23c99a32'/%3E%3C/svg%3E");
+            --ketupat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8'%3E%3Cpath d='M7 .8 L12.5 4 L7 7.2 L1.5 4Z' fill='%23c99a32'/%3E%3C/svg%3E");
         }
 
         html { scroll-behavior: smooth; }
@@ -81,7 +86,7 @@
         .card-shadow h3, .card-shadow p,
         section h1, section h2, section h3 { overflow-wrap: anywhere; }
 
-        /* ---------- Header section seragam (lebih berkarakter) ---------- */
+        /* ---------- Header section seragam: ornamen ketupat ---------- */
         .sec-eyebrow {
             font-size: 11px;
             font-weight: 700;
@@ -92,22 +97,16 @@
             align-items: center;
             gap: 10px;
         }
-        .sec-eyebrow::before {
-            content: '';
-            width: 22px;
-            height: 1px;
-            background: linear-gradient(90deg, var(--gold), transparent);
-            display: inline-block;
-        }
+        .sec-eyebrow::before,
         .sec-eyebrow.center::before,
         .sec-eyebrow.center::after {
             content: '';
-            width: 22px;
-            height: 1px;
             display: inline-block;
+            width: 7px; height: 7px;
+            background: var(--gold);
+            transform: rotate(45deg);
+            border-radius: 1px;
         }
-        .sec-eyebrow.center::before { background: linear-gradient(90deg, transparent, var(--gold)); }
-        .sec-eyebrow.center::after { background: linear-gradient(90deg, var(--gold), transparent); }
 
         .sec-title {
             font-family: 'Playfair Display', serif;
@@ -122,11 +121,10 @@
         .sec-title::after {
             content: '';
             display: block;
-            width: 46px;
-            height: 3px;
+            width: 56px;
+            height: 8px;
             margin-top: 14px;
-            border-radius: 999px;
-            background: linear-gradient(90deg, var(--gold) 0%, var(--gold-soft) 70%, transparent 100%);
+            background: var(--ketupat) repeat-x left center / 14px 8px;
         }
         .sec-title.center::after { margin-left: auto; margin-right: auto; }
 
@@ -188,7 +186,7 @@
             50%      { transform: translateY(-6px); }
         }
 
-        /* ---------- Hero background (ukuran tetap) ---------- */
+        /* ---------- Hero background: tekstur tapis + pita tumpal ---------- */
         .hero-bg {
             position: relative;
             background:
@@ -200,21 +198,24 @@
             content: '';
             position: absolute;
             inset: 0;
-            background-image: radial-gradient(rgba(201, 154, 50, .10) 1px, transparent 1px);
-            background-size: 26px 26px;
-            -webkit-mask-image: radial-gradient(ellipse at 72% 30%, black 0%, transparent 65%);
-            mask-image: radial-gradient(ellipse at 72% 30%, black 0%, transparent 65%);
+            background-image: var(--tapis);
+            background-size: 64px 44px;
+            -webkit-mask-image: radial-gradient(ellipse at 75% 40%, black 0%, transparent 68%);
+            mask-image: radial-gradient(ellipse at 75% 40%, black 0%, transparent 68%);
             pointer-events: none;
-            opacity: .8;
+            opacity: .22;
         }
         .hero-bg::after {
             content: '';
             position: absolute;
             left: 0; right: 0; bottom: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(201, 154, 50, .35), transparent);
+            height: 14px;
+            border-top: 1px solid rgba(201, 154, 50, .7);
+            border-bottom: 1px solid var(--gold);
+            background: var(--tumpal) repeat-x center / 28px 12px, var(--dark);
             pointer-events: none;
         }
+        .hero-bg > div { padding-bottom: 2.75rem; }
 
         /* ---------- Carousel (ukuran TIDAK berubah) ---------- */
         .stage {
@@ -292,7 +293,7 @@
         }
         .dot.on { width: 22px; background: var(--gold); }
 
-        /* ---------- Kategori bulat dengan ring emas ---------- */
+        /* ---------- Kategori bulat: cincin sulam putus-putus ---------- */
         .cat-circle {
             border: 2px solid var(--line-soft);
             transition: border-color .3s ease, box-shadow .4s var(--ease), transform .4s var(--ease);
@@ -301,10 +302,11 @@
         .cat-circle::after {
             content: '';
             position: absolute;
-            inset: -4px;
+            inset: 4px;
             border-radius: 50%;
-            border: 1.5px solid transparent;
-            transition: border-color .4s ease, transform .4s var(--ease);
+            border: 1.5px dashed rgba(230, 200, 119, .95);
+            filter: drop-shadow(0 0 1px rgba(0, 0, 0, .35));
+            transition: transform .6s var(--ease), border-color .4s ease;
             pointer-events: none;
         }
         .cat-item:hover .cat-circle {
@@ -312,7 +314,7 @@
             box-shadow: var(--shadow-gold), inset 0 0 0 2px #fff;
             transform: scale(1.02);
         }
-        .cat-item:hover .cat-circle::after { border-color: var(--gold-soft); }
+        .cat-item:hover .cat-circle::after { border-style: solid; border-color: var(--gold-soft); transform: rotate(8deg); }
         .cat-item:hover .cat-name { color: var(--gold); }
 
         .hide-scrollbar::-webkit-scrollbar { display: none; }
@@ -340,12 +342,15 @@
             opacity: .12; pointer-events: none;
         }
 
-        /* ---------- Event banner ---------- */
+        /* ---------- Event banner: pita tumpal di tepi bawah ---------- */
         .event-card {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(135deg, var(--dark-2) 0%, #221c14 55%, var(--dark-2) 100%);
+            background:
+                var(--tumpal) repeat-x left bottom / 28px 12px,
+                linear-gradient(135deg, var(--dark-2) 0%, #221c14 55%, var(--dark-2) 100%);
             border: 1px solid rgba(201, 154, 50, .12);
+            padding-bottom: 3rem;
         }
         .event-card::before {
             content: '';
@@ -398,27 +403,39 @@
         .reveal.is-visible { opacity: 1; transform: translateY(0) scale(1); }
         .stagger > .reveal { transition-duration: .75s; }
 
-        /* ---------- Garis pemisah halus antar section ---------- */
+        /* ---------- Pemisah antar section: ketupat emas ---------- */
         .section-rule {
-            max-width: 260px;
+            max-width: 320px;
             margin: 0 auto;
             height: 1px;
-            background: linear-gradient(90deg, transparent, var(--line) 20%, var(--line) 80%, transparent);
+            background: linear-gradient(90deg, transparent, rgba(201, 154, 50, .45) 25%, rgba(201, 154, 50, .45) 75%, transparent);
         }
         .section-rule::after {
             content: '';
             display: block;
-            width: 6px; height: 6px;
-            margin: -3px auto 0;
-            border-radius: 50%;
-            background: var(--gold-soft);
-            box-shadow: 0 0 0 4px rgba(230, 200, 119, .18);
+            width: 9px; height: 9px;
+            margin: -5px auto 0;
+            border-radius: 1px;
+            background: var(--gold);
+            transform: rotate(45deg);
+            box-shadow: 0 0 0 4px rgba(201, 154, 50, .15);
         }
 
-        /* ---------- Area latar lembut ---------- */
+        /* ---------- Area latar lembut + watermark tapis ---------- */
         .section-soft {
+            position: relative;
             background: linear-gradient(180deg, #fdfbf7 0%, #ffffff 100%);
         }
+        .section-soft::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: var(--tapis) repeat center / 64px 44px;
+            opacity: .09;
+            -webkit-mask-image: radial-gradient(ellipse at 100% 0%, #000, transparent 55%);
+            mask-image: radial-gradient(ellipse at 100% 0%, #000, transparent 55%);
+            pointer-events: none;
+        }
+        .section-soft > * { position: relative; }
 
         @media (prefers-reduced-motion: reduce) {
             .reveal, .hero-in {
@@ -506,7 +523,7 @@
         </div>
     </section>
 
-    {{-- ============================================================
+        {{-- ============================================================
      2. KATEGORI
      ============================================================ --}}
     <section class="reveal max-w-7xl mx-auto px-4 mt-14 md:mt-20">
@@ -516,15 +533,15 @@
                 @foreach ($kategori as $k)
                     @continue(empty($k['kode_kategori']))
                     <a href="{{ route('koleksi.kategori', ['kode' => $k['kode_kategori']]) }}"
-                        class="cat-item group flex w-20 sm:w-24 md:w-28 shrink-0 snap-center flex-col items-center gap-2 sm:gap-3 text-center transition-transform duration-500 hover:-translate-y-1.5">
+                        class="cat-item group flex w-24 sm:w-28 md:w-36 shrink-0 snap-center flex-col items-center gap-2 sm:gap-3 text-center transition-transform duration-500 hover:-translate-y-1.5">
 
                         <div
-                            class="cat-circle relative h-20 w-20 shrink-0 md:h-24 md:w-24 overflow-hidden rounded-full bg-white shadow-sm">
+                            class="cat-circle relative h-24 w-24 shrink-0 md:h-32 md:w-32 overflow-hidden rounded-full bg-white shadow-sm">
                             @if (!empty($k['foto']))
                                 <img src="{{ asset($k['foto']) }}" alt="{{ $k['nama_kategori'] }}" loading="lazy"
                                     class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110">
                             @else
-                                <div class="flex h-full w-full items-center justify-center font-display text-2xl"
+                                <div class="flex h-full w-full items-center justify-center font-display text-3xl md:text-4xl"
                                     style="color: var(--gold); background: var(--gold-bg);">
                                     {{ mb_substr($k['nama_kategori'], 0, 1) }}
                                 </div>
@@ -532,7 +549,7 @@
                         </div>
 
                         <div class="w-full">
-                            <p class="cat-name text-xs font-semibold leading-tight transition-colors"
+                            <p class="cat-name text-sm font-semibold leading-tight transition-colors"
                                 style="color: var(--ink);">
                                 {{ $k['nama_kategori'] }}
                             </p>
@@ -545,6 +562,7 @@
             </div>
         </div>
     </section>
+
 
     {{-- ============================================================
      3. PRODUK TERBARU
@@ -561,18 +579,164 @@
             </a>
         </div>
 
-        @if (count($produkTerbaru) > 0)
-            <div class="stagger grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 items-stretch">
-                @foreach ($produkTerbaru as $index => $p)
+               @if (count($produkTerbaru) > 0)
+            @php
+                /* Ambil nilai pertama yang tidak kosong dari daftar nama kolom kandidat */
+                $ambil = function ($item, array $kunci, $default = null) {
+                    foreach ($kunci as $k) {
+                        $v = data_get($item, $k);
+                        if ($v !== null && $v !== '') {
+                            return $v;
+                        }
+                    }
+                    return $default;
+                };
+
+                /* Harga dari database (angka), dibulatkan ke integer */
+                $angka = fn ($v) => (int) round((float) ($v ?? 0));
+            @endphp
+
+            <div class="stagger mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-5 items-stretch">
+                @foreach ($produkTerbaru as $p)
+                    @php
+                        $nama      = $ambil($p, ['nama_produk', 'nama', 'name'], '-');
+
+                        $fotoRaw   = $ambil($p, ['sampul_url', 'foto', 'foto_utama', 'gambar', 'image', 'thumbnail']);
+                        $foto      = is_string($fotoRaw) && $fotoRaw !== ''
+                            ? (\Illuminate\Support\Str::startsWith($fotoRaw, ['http://', 'https://']) ? $fotoRaw : asset($fotoRaw))
+                            : null;
+
+                        $status    = strtoupper((string) $ambil($p, ['status', 'status_ketersediaan', 'status_produk'], 'TERSEDIA'));
+
+                        /* Penanda produk khusus sewa: dari kolom tipe/jenis, atau kolom bisa_dijual bernilai 0 */
+                        $tipe      = strtolower((string) $ambil($p, ['tipe', 'tipe_produk', 'jenis', 'jenis_produk', 'kategori_jual'], ''));
+                        $bisaJual  = $ambil($p, ['bisa_dijual', 'is_dijual', 'dapat_dijual'], null);
+                        $khusus    = str_contains($tipe, 'khusus') || ($bisaJual !== null && ! (bool) $bisaJual);
+
+                        $hargaSewa = $angka($ambil($p, ['harga_sewa', 'harga_sewa_3hari', 'harga_rental'], 0));
+                        $hargaBeli = $angka($ambil($p, ['harga_beli', 'harga_jual'], 0));
+
+                        $rating    = (float) $ambil($p, ['rating_rata_rata', 'rating'], 0);
+                        $ulasan    = (int) $ambil($p, ['jumlah_rating', 'jumlah_ulasan'], 0);
+                        $urlDetail = $ambil($p, ['url', 'link'], '#');
+
+                        $warnaRaw  = $ambil($p, ['warna', 'colors'], []);
+                        $warna     = is_array($warnaRaw) ? $warnaRaw : [];
+
+                        $badgeStatus = $status === 'TERSEDIA' ? 'bg-neutral-900' : 'bg-red-600';
+                        $labelTipe   = $khusus ? 'Khusus Sewa' : 'Sewa & Beli';
+                    @endphp
+
                     <div class="reveal h-full">
-                        <x-product-card :produk="$p" :delay="min(0.1 + $index * 0.08, 0.8)" />
+                        <div class="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-500 hover:-translate-y-1 hover:shadow-lg">
+
+                            {{-- FOTO + BADGE --}}
+                            <div class="relative aspect-[3/4] overflow-hidden bg-[#efe9dc]">
+                                <a href="{{ $urlDetail }}" class="block h-full w-full" aria-label="Lihat detail {{ $nama }}">
+                                    @if ($foto)
+                                        <img src="{{ $foto }}" alt="{{ $nama }}" loading="lazy"
+                                            class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
+                                    @endif
+                                </a>
+
+                                <span class="absolute left-2.5 top-2.5 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white {{ $badgeStatus }}">
+                                    {{ $status }}
+                                </span>
+
+                                <span class="absolute bottom-2.5 left-2.5 rounded bg-black/55 px-2 py-1 text-[10px] text-white backdrop-blur-sm">
+                                    {{ $labelTipe }}
+                                </span>
+                            </div>
+
+                            <div class="flex flex-1 flex-col p-3 sm:p-4">
+
+                                {{-- NAMA --}}
+                                <h3 class="truncate font-display text-sm font-bold sm:text-base" style="color: var(--ink);">
+                                    {{ $nama }}
+                                </h3>
+
+                                {{-- RATING --}}
+                                <div class="mt-1.5 flex items-center gap-1.5 text-[11px]">
+                                    <div class="stars" style="font-size: 12px;" role="img"
+                                        aria-label="Rating {{ number_format($rating, 1, ',', '.') }} dari 5">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <svg class="ico {{ $i <= round($rating) ? 'on' : 'off' }}" aria-hidden="true">
+                                                <use href="#i-star" />
+                                            </svg>
+                                        @endfor
+                                    </div>
+                                    <span class="font-medium text-gray-700">{{ number_format($rating, 1, ',', '.') }}</span>
+                                    <span class="text-gray-400">({{ $ulasan }})</span>
+                                </div>
+
+                                <div class="my-3 border-t" style="border-color: var(--line);"></div>
+
+                                {{-- HARGA --}}
+                                <div class="space-y-1.5 text-[11px] sm:text-xs">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="text-gray-500">Sewa:</span>
+                                        <span class="whitespace-nowrap" style="color: var(--ink);">
+                                            <span class="font-display text-sm font-bold sm:text-base">Rp {{ number_format($hargaSewa, 0, ',', '.') }}</span>
+                                            <span class="text-[10px] text-gray-400">/3hr</span>
+                                        </span>
+                                    </div>
+
+                                    @if ($khusus)
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="font-medium text-red-700">Status Jual:</span>
+                                            <span class="text-right text-red-700">Tidak Dijual (Koleksi Sewa)</span>
+                                        </div>
+                                    @else
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-gray-500">Beli Baru:</span>
+                                            <span class="whitespace-nowrap font-semibold" style="color: var(--ink);">
+                                                Rp {{ number_format($hargaBeli, 0, ',', '.') }}
+                                            </span>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                {{-- PILIHAN WARNA --}}
+                                @if (count($warna))
+                                    <div class="mt-3 flex items-center gap-1.5">
+                                        @foreach ($warna as $hex)
+                                            <span class="h-3.5 w-3.5 rounded-full border border-black/10" style="background-color: {{ $hex }};"></span>
+                                        @endforeach
+                                    </div>
+                                @endif
+
+                                {{-- TOMBOL --}}
+                                <div class="mt-auto pt-4">
+                                    @if ($khusus)
+                                        <a href="{{ $urlDetail }}?mode=sewa"
+                                            class="btn-smooth block py-2.5 text-center text-[11px] font-bold uppercase tracking-wider"
+                                            style="background: var(--gold); color: var(--dark);">
+                                            Sewa Sekarang
+                                        </a>
+                                    @else
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <a href="{{ $urlDetail }}?mode=sewa"
+                                                class="block border py-2.5 text-center text-[11px] font-bold uppercase tracking-wider transition-colors hover:bg-gray-50"
+                                                style="border-color: var(--gold); color: var(--ink);">
+                                                Sewa
+                                            </a>
+                                            <a href="{{ $urlDetail }}?mode=beli"
+                                                class="btn-smooth block py-2.5 text-center text-[11px] font-bold uppercase tracking-wider"
+                                                style="background: var(--gold); color: var(--dark);">
+                                                Beli Baru
+                                            </a>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 @endforeach
             </div>
         @endif
     </section>
 
-    {{-- ============================================================
+        {{-- ============================================================
      4. PRODUK TERPOPULER (latar lembut)
      ============================================================ --}}
     <section class="section-soft border-y" style="border-color: var(--line-soft);">
@@ -588,11 +752,160 @@
                 </a>
             </div>
 
+            @php
+                $ambil = function ($item, array $kunci, $default = null) {
+                    foreach ($kunci as $k) {
+                        $v = data_get($item, $k);
+                        if ($v !== null && $v !== '') {
+                            return $v;
+                        }
+                    }
+                    return $default;
+                };
+
+                $angka = fn ($v) => (int) round((float) ($v ?? 0));
+            @endphp
+
             @if (count($produkTerpopuler) > 0)
-                <div class="stagger grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 items-stretch">
+                <div class="stagger mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-5 items-stretch">
                     @foreach ($produkTerpopuler as $index => $p)
+                        @php
+                            $nama      = $ambil($p, ['nama_produk', 'nama', 'name'], '-');
+
+                            $fotoRaw   = $ambil($p, ['sampul_url', 'foto', 'foto_utama', 'gambar', 'image', 'thumbnail']);
+                            $foto      = is_string($fotoRaw) && $fotoRaw !== ''
+                                ? (\Illuminate\Support\Str::startsWith($fotoRaw, ['http://', 'https://']) ? $fotoRaw : asset($fotoRaw))
+                                : null;
+
+                            $status    = strtoupper((string) $ambil($p, ['status', 'status_ketersediaan', 'status_produk'], 'TERSEDIA'));
+
+                            $tipe      = strtolower((string) $ambil($p, ['tipe', 'tipe_produk', 'jenis', 'jenis_produk', 'kategori_jual'], ''));
+                            $bisaJual  = $ambil($p, ['dapat_dijual', 'bisa_dijual', 'is_dijual'], null);
+                            $khusus    = str_contains($tipe, 'khusus') || ($bisaJual !== null && ! (bool) $bisaJual);
+
+                            $hargaSewa = $angka($ambil($p, ['harga_sewa', 'harga_sewa_3hari', 'harga_rental'], 0));
+                            $hargaBeli = $angka($ambil($p, ['harga_jual', 'harga_beli'], 0));
+
+                            $rating    = (float) $ambil($p, ['rating_rata_rata', 'rating'], 0);
+                            $ulasan    = (int) $ambil($p, ['jumlah_rating', 'jumlah_ulasan'], 0);
+                            $urlDetail = $ambil($p, ['url', 'link'], '#');
+
+                            $warnaRaw  = $ambil($p, ['warna', 'colors'], []);
+                            $warna     = is_array($warnaRaw) ? $warnaRaw : [];
+
+                            $badgeStatus = $status === 'TERSEDIA' ? 'bg-neutral-900' : 'bg-red-600';
+                            $labelTipe   = $khusus ? 'Khusus Sewa' : 'Sewa & Beli';
+                        @endphp
+
                         <div class="reveal h-full">
-                            <x-product-card :produk="$p" :delay="min(0.1 + $index * 0.08, 0.8)" :peringkat="$index + 1" />
+                            <div class="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-500 hover:-translate-y-1 hover:shadow-lg">
+
+                                {{-- FOTO + BADGE --}}
+                                <div class="relative aspect-[3/4] overflow-hidden bg-[#efe9dc]">
+                                    <a href="{{ $urlDetail }}" class="block h-full w-full" aria-label="Lihat detail {{ $nama }}">
+                                        @if ($foto)
+                                            <img src="{{ $foto }}" alt="{{ $nama }}" loading="lazy"
+                                                class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
+                                        @endif
+                                    </a>
+
+                                    <span class="absolute left-2.5 top-2.5 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white {{ $badgeStatus }}">
+                                        {{ $status }}
+                                    </span>
+
+                                    {{-- Peringkat --}}
+                                    <span class="absolute right-2.5 top-2.5 px-2 py-1 text-[10px] font-bold text-white"
+                                        style="background: var(--gold);">
+                                        #{{ $index + 1 }}
+                                    </span>
+
+                                    <span class="absolute bottom-2.5 left-2.5 rounded bg-black/55 px-2 py-1 text-[10px] text-white backdrop-blur-sm">
+                                        {{ $labelTipe }}
+                                    </span>
+                                </div>
+
+                                <div class="flex flex-1 flex-col p-3 sm:p-4">
+
+                                    {{-- NAMA --}}
+                                    <h3 class="truncate font-display text-sm font-bold sm:text-base" style="color: var(--ink);">
+                                        {{ $nama }}
+                                    </h3>
+
+                                    {{-- RATING --}}
+                                    <div class="mt-1.5 flex items-center gap-1.5 text-[11px]">
+                                        <div class="stars" style="font-size: 12px;" role="img"
+                                            aria-label="Rating {{ number_format($rating, 1, ',', '.') }} dari 5">
+                                            @for ($i = 1; $i <= 5; $i++)
+                                                <svg class="ico {{ $i <= round($rating) ? 'on' : 'off' }}" aria-hidden="true">
+                                                    <use href="#i-star" />
+                                                </svg>
+                                            @endfor
+                                        </div>
+                                        <span class="font-medium text-gray-700">{{ number_format($rating, 1, ',', '.') }}</span>
+                                        <span class="text-gray-400">({{ $ulasan }})</span>
+                                    </div>
+
+                                    <div class="my-3 border-t" style="border-color: var(--line);"></div>
+
+                                    {{-- HARGA --}}
+                                    <div class="space-y-1.5 text-[11px] sm:text-xs">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-gray-500">Sewa:</span>
+                                            <span class="whitespace-nowrap" style="color: var(--ink);">
+                                                <span class="font-display text-sm font-bold sm:text-base">Rp {{ number_format($hargaSewa, 0, ',', '.') }}</span>
+                                                <span class="text-[10px] text-gray-400">/3hr</span>
+                                            </span>
+                                        </div>
+
+                                        @if ($khusus)
+                                            <div class="flex items-center justify-between gap-2">
+                                                <span class="font-medium text-red-700">Status Jual:</span>
+                                                <span class="text-right text-red-700">Tidak Dijual (Koleksi Sewa)</span>
+                                            </div>
+                                        @else
+                                            <div class="flex items-center justify-between gap-2">
+                                                <span class="text-gray-500">Beli Baru:</span>
+                                                <span class="whitespace-nowrap font-semibold" style="color: var(--ink);">
+                                                    Rp {{ number_format($hargaBeli, 0, ',', '.') }}
+                                                </span>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    {{-- PILIHAN WARNA --}}
+                                    @if (count($warna))
+                                        <div class="mt-3 flex items-center gap-1.5">
+                                            @foreach ($warna as $hex)
+                                                <span class="h-3.5 w-3.5 rounded-full border border-black/10" style="background-color: {{ $hex }};"></span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    {{-- TOMBOL --}}
+                                    <div class="mt-auto pt-4">
+                                        @if ($khusus)
+                                            <a href="{{ $urlDetail }}?mode=sewa"
+                                                class="btn-smooth block py-2.5 text-center text-[11px] font-bold uppercase tracking-wider"
+                                                style="background: var(--dark); color: var(--gold);">
+                                                Sewa Sekarang
+                                            </a>
+                                        @else
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <a href="{{ $urlDetail }}?mode=sewa"
+                                                    class="block border py-2.5 text-center text-[11px] font-bold uppercase tracking-wider transition-colors hover:bg-gray-50"
+                                                    style="border-color: var(--gold); color: var(--ink);">
+                                                    Sewa
+                                                </a>
+                                                <a href="{{ $urlDetail }}?mode=beli"
+                                                    class="btn-smooth block py-2.5 text-center text-[11px] font-bold uppercase tracking-wider"
+                                                    style="background: var(--dark); color: var(--gold);">
+                                                    Beli Baru
+                                                </a>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     @endforeach
                 </div>

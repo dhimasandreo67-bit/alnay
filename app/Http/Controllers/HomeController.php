@@ -30,7 +30,7 @@ class HomeController extends Controller
 
         // 2. Produk Terbaru
         $produkTerbaru = Produk::latest()
-            ->limit(4)
+            ->limit(5)
             ->get()
             ->map(fn ($p) => $this->produkKeArray($p))
             ->toArray();
@@ -39,7 +39,7 @@ class HomeController extends Controller
         $produkTerpopuler = Produk::withCount(['detailTransaksi'])
             ->orderByDesc('detail_transaksi_count')
             ->orderByDesc('jumlah_rating')
-            ->limit(4)
+            ->limit(5)
             ->get()
             ->map(fn ($p) => $this->produkKeArray($p))
             ->toArray();

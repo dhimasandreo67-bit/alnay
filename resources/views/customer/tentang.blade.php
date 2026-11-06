@@ -7,6 +7,13 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
+        :root {
+            /* Motif etnik Lampung (sama dengan header, beranda & footer) */
+            --tapis: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='44'%3E%3Cg fill='none' stroke='%23c99a32' stroke-width='1.1'%3E%3Cpath d='M0 1.5H64M0 42.5H64'/%3E%3Cpath d='M32 11 L45 22 L32 33 L19 22Z'/%3E%3Cpath d='M32 16 L39.5 22 L32 28 L24.5 22Z' fill='%23c99a32' fill-opacity='.55'/%3E%3Cpath d='M0 1.5 L8 13 L16 1.5M48 1.5 L56 13 L64 1.5M0 42.5 L8 31 L16 42.5M48 42.5 L56 31 L64 42.5'/%3E%3C/g%3E%3Ccircle cx='8' cy='22' r='1.8' fill='%23c99a32'/%3E%3Ccircle cx='56' cy='22' r='1.8' fill='%23c99a32'/%3E%3C/svg%3E");
+            --tumpal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='12'%3E%3Cpath d='M14 1.5 L23 6 L14 10.5 L5 6Z' fill='none' stroke='%23c99a32' stroke-width='1.2'/%3E%3Cpath d='M14 4.2 L17.4 6 L14 7.8 L10.6 6Z' fill='%23c99a32'/%3E%3C/svg%3E");
+            --ketupat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='8'%3E%3Cpath d='M7 .8 L12.5 4 L7 7.2 L1.5 4Z' fill='%23c99a32'/%3E%3C/svg%3E");
+        }
+
         .font-display { font-family: 'Playfair Display', serif; }
         body { font-family: 'Inter', sans-serif; }
 
@@ -41,25 +48,78 @@
             }
         }
 
+        /* Pembatas judul: deretan belah ketupat */
         .gold-divider {
-            width: 60px;
-            height: 3px;
-            background: linear-gradient(90deg, #c99a32, #e6c877);
+            width: 56px;
+            height: 8px;
             margin: 0 auto;
-            position: relative;
-            overflow: hidden;
+            background: var(--ketupat) repeat-x left center / 14px 8px;
         }
-        .gold-divider::after {
+
+        /* Eyebrow dengan ornamen ketupat */
+        .eyebrow-k { display: inline-flex; align-items: center; gap: 10px; }
+        .eyebrow-k::before,
+        .eyebrow-k.eyebrow-c::after {
             content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 100%; height: 100%;
-            background: white;
-            animation: shine 3s infinite;
+            width: 6px; height: 6px;
+            background: #c99a32;
+            transform: rotate(45deg);
+            border-radius: 1px;
+            flex-shrink: 0;
         }
-        @keyframes shine {
-            100% { left: 100%; }
+
+        /* HERO: tekstur tapis + pita tumpal di dasar */
+        .k-hero::before {
+            content: '';
+            position: absolute; inset: 0; z-index: 1;
+            background: var(--tapis) repeat center / 64px 44px;
+            opacity: .2;
+            -webkit-mask-image: radial-gradient(ellipse at 50% 45%, #000 0%, transparent 72%);
+            mask-image: radial-gradient(ellipse at 50% 45%, #000 0%, transparent 72%);
+            pointer-events: none;
         }
+        .k-hero::after,
+        .k-cta::before {
+            content: '';
+            position: absolute; left: 0; right: 0; z-index: 2;
+            height: 14px;
+            border-top: 1px solid rgba(201, 154, 50, .7);
+            border-bottom: 1px solid #c99a32;
+            background: var(--tumpal) repeat-x center / 28px 12px, #17140f;
+            pointer-events: none;
+        }
+        .k-hero::after { bottom: 0; }
+        .k-cta::before { top: 0; }
+
+        /* Bingkai foto: pita tumpal di tepi bawah gambar */
+        .tapis-frame::after {
+            content: '';
+            position: absolute; left: 0; right: 0; bottom: 0;
+            height: 14px;
+            border-top: 1px solid rgba(201, 154, 50, .8);
+            background: var(--tumpal) repeat-x center / 28px 12px, #17140f;
+            pointer-events: none;
+        }
+
+        /* Section gelap & krem: watermark tapis sangat tipis */
+        .k-dark, .k-soft { position: relative; overflow: hidden; }
+        .k-dark::before, .k-soft::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: var(--tapis) repeat center / 64px 44px;
+            pointer-events: none;
+        }
+        .k-dark::before {
+            opacity: .1;
+            -webkit-mask-image: radial-gradient(ellipse at 0% 0%, #000, transparent 55%);
+            mask-image: radial-gradient(ellipse at 0% 0%, #000, transparent 55%);
+        }
+        .k-soft::before {
+            opacity: .08;
+            -webkit-mask-image: radial-gradient(ellipse at 100% 0%, #000, transparent 55%);
+            mask-image: radial-gradient(ellipse at 100% 0%, #000, transparent 55%);
+        }
+        .k-dark > div, .k-soft > div { position: relative; z-index: 1; }
 
         .stat-card, .value-card {
             transition: all 0.4s ease;
@@ -104,10 +164,15 @@
             50% { transform: translateY(-10px); }
             100% { transform: translateY(0px); }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fade-up { opacity: 1; transform: none; transition: none; }
+            .hero-img, .float-animation { animation: none; }
+        }
     </style>
 
     {{-- HERO SECTION --}}
-    <section class="relative h-[50vh] md:h-[70vh] min-h-[350px] md:min-h-[500px] flex items-center justify-center overflow-hidden">
+    <section class="k-hero relative h-[50vh] md:h-[70vh] min-h-[350px] md:min-h-[500px] flex items-center justify-center overflow-hidden">
         <div class="absolute inset-0">
             <img src="https://images.unsplash.com/photo-1594736797933-d0501ba2fe65?auto=format&fit=crop&q=80&w=1600"
                 alt="Busana Adat" class="w-full h-full object-cover hero-img">
@@ -133,10 +198,10 @@
     <section class="py-12 md:py-24" style="background-color: #faf7f0;">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
-                
+
                 <div class="fade-up relative group order-1 md:order-1">
-                    {{-- Tambahkan tinggi tetap (h-[300px] md:h-[500px]) dan overflow-hidden di sini --}}
-                    <div class="relative w-full h-[300px] md:h-[500px] rounded-2xl overflow-hidden shadow-xl md:shadow-2xl bg-gray-100">
+                    {{-- Tinggi tetap (h-[300px] md:h-[500px]) dan overflow-hidden --}}
+                    <div class="tapis-frame relative w-full h-[300px] md:h-[500px] rounded-2xl overflow-hidden shadow-xl md:shadow-2xl bg-gray-100">
                         <img src="{{ asset('images/tentang/cerita-kami.png') }}" alt="Cerita ALNAY.ID"
                             class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
                     </div>
@@ -145,7 +210,7 @@
                 </div>
 
                 <div class="fade-up order-2 md:order-2" style="transition-delay: 200ms;">
-                    <span class="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Cerita Kami</span>
+                    <span class="eyebrow-k text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Cerita Kami</span>
                     <h2 class="font-display text-2xl md:text-4xl font-bold mt-2 md:mt-3 mb-4 md:mb-6 leading-snug" style="color: #15233d;">
                         Dari Cinta pada Budaya,<br>Lahir Sebuah Mahakarya
                     </h2>
@@ -165,10 +230,10 @@
     </section>
 
     {{-- VISI & MISI --}}
-    <section class="py-12 md:py-24" style="background-color: #17140f; color: white;">
+    <section class="k-dark py-12 md:py-24" style="background-color: #17140f; color: white;">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
             <div class="text-center mb-8 md:mb-16 fade-up">
-                <span class="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Arah Kami</span>
+                <span class="eyebrow-k eyebrow-c text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Arah Kami</span>
                 <h2 class="font-display text-2xl md:text-4xl font-bold mt-2">Visi & Misi</h2>
                 <div class="gold-divider mt-4 md:mt-6"></div>
             </div>
@@ -216,10 +281,10 @@
     </section>
 
     {{-- NILAI-NILAI BRAND --}}
-    <section class="py-12 md:py-24" style="background-color: #faf7f0;">
+    <section class="k-soft py-12 md:py-24" style="background-color: #faf7f0;">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
             <div class="text-center mb-8 md:mb-16 fade-up">
-                <span class="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Yang Kami Pegang Teguh</span>
+                <span class="eyebrow-k eyebrow-c text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Yang Kami Pegang Teguh</span>
                 <h2 class="font-display text-2xl md:text-4xl font-bold mt-2 md:mt-3" style="color: #15233d;">Nilai-Nilai ALNAY.ID</h2>
                 <div class="gold-divider mt-4 md:mt-6"></div>
             </div>
@@ -278,7 +343,7 @@
         <div class="max-w-6xl mx-auto px-5 md:px-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
                 <div class="fade-up order-2 md:order-1">
-                    <span class="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Tim Kami</span>
+                    <span class="eyebrow-k text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Tim Kami</span>
                     <h2 class="font-display text-2xl md:text-4xl font-bold mt-2 md:mt-3 mb-4 md:mb-6" style="color: #15233d;">Dibalik Setiap Mahakarya</h2>
                     <div class="gold-divider mb-4 md:mb-6" style="margin: 0 0 16px 0;"></div>
                     <p class="text-xs md:text-sm leading-relaxed mb-6" style="color: #4b5563;">
@@ -309,8 +374,8 @@
                     </div>
                 </div>
                 <div class="fade-up relative group order-1 md:order-2" style="transition-delay: 200ms;">
-                    {{-- Tambahkan tinggi tetap (h-[300px] md:h-[500px]) dan overflow-hidden di sini --}}
-                    <div class="relative w-full h-[300px] md:h-[500px] rounded-2xl overflow-hidden shadow-xl md:shadow-2xl bg-gray-100">
+                    {{-- Tinggi tetap (h-[300px] md:h-[500px]) dan overflow-hidden --}}
+                    <div class="tapis-frame relative w-full h-[300px] md:h-[500px] rounded-2xl overflow-hidden shadow-xl md:shadow-2xl bg-gray-100">
                         <img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=800"
                             alt="Tim ALNAY"
                             class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
@@ -323,21 +388,21 @@
     </section>
 
     {{-- CTA SECTION --}}
-    <section class="py-16 md:py-28 relative overflow-hidden" style="background-color: #17140f;">
+    <section class="k-cta py-16 md:py-28 relative overflow-hidden" style="background-color: #17140f;">
         <div class="absolute top-0 left-0 w-64 h-64 rounded-full opacity-10 animate-pulse"
             style="background-color: #c99a32; filter: blur(80px);"></div>
         <div class="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-10 animate-pulse"
             style="background-color: #c99a32; filter: blur(80px); animation-delay: 1s;"></div>
 
         <div class="relative z-10 max-w-4xl mx-auto px-5 md:px-6 text-center fade-up">
-            <span class="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Bergabung Bersama Kami</span>
+            <span class="eyebrow-k eyebrow-c text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Bergabung Bersama Kami</span>
             <h2 class="font-display text-2xl md:text-5xl font-bold mt-2 md:mt-3 mb-4 md:mb-6 text-white leading-tight">
                 Jadikan Momen Anda<br>
                 <span style="color: #c99a32;">Abadi & Berbudaya</span>
             </h2>
             <div class="gold-divider mb-6 md:mb-8"></div>
             <p class="text-xs md:text-base mb-8 md:mb-10 max-w-2xl mx-auto font-light" style="color: #d1d5db;">
-                Jelajahi koleksi kami atau konsultasikan kebutuhan busana adat Anda. 
+                Jelajahi koleksi kami atau konsultasikan kebutuhan busana adat Anda.
                 Tim ALNAY.ID siap membantu mewujudkan penampilan impian Anda.
             </p>
 
