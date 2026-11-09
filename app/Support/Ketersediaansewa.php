@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Models\DetailTransaksi;
 use App\Models\Produk;
-use App\Models\Sewa;
 use Carbon\Carbon;
 
 /**
@@ -42,56 +41,46 @@ class KetersediaanSewa
             return [];
         }
 
-        $ids = DetailTransaksi::whereIn('produk_id', $produkIds)
+        // Tiap baris detail membawa rentang tanggalnya sendiri (detail_transaksi.tanggal_pinjam /
+        // tanggal_kembali_rencana), jadi produk, ukuran, dan warna selalu terhubung ke tanggal yang benar.
+        // Data lama yang kolomnya kosong memakai rentang di baris Sewa transaksinya (satu transaksi = satu Sewa).
+        $detail = DetailTransaksi::whereIn('produk_id', $produkIds)
             // Online DAN kasir dihitung bersama, jadi kalender kedua sisi selalu sama.
-            ->whereHas('transaksi', fn ($q) => $q->whereIn('status_pembayaran', self::STATUS_BAYAR)->whereHas('sewa'))
-            ->pluck('transaksi_id')
-            ->unique()
-            ->values();
+            ->whereHas('transaksi', fn ($q) => $q
+                ->whereIn('status_pembayaran', self::STATUS_BAYAR)
+                ->whereHas('sewa', fn ($s) => $s->whereIn('status', self::STATUS_SEWA)))
+            ->with('transaksi.sewa')
+            ->get();
 
-        if ($ids->isEmpty()) {
-            return [];
-        }
-
-        // Satu transaksi bisa berisi beberapa item; tiap item punya baris Sewa sendiri (urut sama).
-        // Transaksi kasir memakai satu baris Sewa untuk semua item.
-        $detailPerTransaksi = DetailTransaksi::whereIn('transaksi_id', $ids)->orderBy('id')->get()->groupBy('transaksi_id');
-        $sewaPerTransaksi = Sewa::whereIn('transaksi_id', $ids)->orderBy('id')->get()->groupBy('transaksi_id');
         $hariIni = Carbon::today();
-
         $hasil = [];
-        foreach ($detailPerTransaksi as $tid => $baris) {
-            $daftarSewa = $sewaPerTransaksi->get($tid, collect())->values();
 
-            foreach ($baris->values() as $i => $d) {
-                if (! in_array((int) $d->produk_id, array_map('intval', $produkIds), true)) {
-                    continue;
-                }
-
-                $sewa = $daftarSewa[$i] ?? $daftarSewa->first();
-                if (! $sewa || ! in_array($sewa->status, self::STATUS_SEWA, true)) {
-                    continue;
-                }
-
-                $ukuran = $d->ukuran ?: null;
-                if ($ukuran !== null && strcasecmp($ukuran, 'All Size') === 0) {
-                    $ukuran = null;   // tanpa varian: dihitung untuk semua kombinasi
-                }
-
-                $selesai = Carbon::parse($sewa->tanggal_kembali_rencana)->startOfDay();
-                // Belum dikembalikan padahal lewat jadwal: unit masih keluar sampai hari ini
-                if ($sewa->status === 'aktif' && empty($sewa->tanggal_kembali_aktual) && $selesai->lt($hariIni)) {
-                    $selesai = $hariIni->copy();
-                }
-
-                $hasil[(int) $d->produk_id][] = [
-                    'ukuran'  => $ukuran,
-                    'warna'   => $d->warna ?: null,
-                    'mulai'   => Carbon::parse($sewa->tanggal_pinjam)->toDateString(),
-                    'selesai' => $selesai->toDateString(),
-                    'jumlah'  => max(1, (int) $d->jumlah),
-                ];
+        foreach ($detail as $d) {
+            $sewa = $d->transaksi?->sewa;
+            if (! $sewa) {
+                continue;
             }
+
+            $mulai = Carbon::parse($d->tanggal_pinjam ?? $sewa->tanggal_pinjam)->startOfDay();
+            $selesai = Carbon::parse($d->tanggal_kembali_rencana ?? $sewa->tanggal_kembali_rencana)->startOfDay();
+
+            // Belum dikembalikan padahal lewat jadwal: unit masih keluar sampai hari ini
+            if ($sewa->status === 'aktif' && empty($sewa->tanggal_kembali_aktual) && $selesai->lt($hariIni)) {
+                $selesai = $hariIni->copy();
+            }
+
+            $ukuran = trim((string) $d->ukuran) ?: null;
+            if ($ukuran !== null && strcasecmp($ukuran, 'All Size') === 0) {
+                $ukuran = null;   // tanpa varian: dihitung untuk semua kombinasi
+            }
+
+            $hasil[(int) $d->produk_id][] = [
+                'ukuran'  => $ukuran,
+                'warna'   => trim((string) $d->warna) ?: null,
+                'mulai'   => $mulai->toDateString(),
+                'selesai' => $selesai->toDateString(),
+                'jumlah'  => max(1, (int) $d->jumlah),
+            ];
         }
 
         return $hasil;
@@ -139,6 +128,32 @@ class KetersediaanSewa
             }
 
             $hasil[(int) $produk->id] = $terpakai;
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * Unit yang sedang keluar HARI INI untuk tiap kombinasi (kunci sama dengan kombinasi()):
+     * "ukuran|warna", "ukuran|", atau "|". Dipakai halaman Edit Produk supaya admin melihat sisa unit
+     * yang sebenarnya, tanpa mengubah angka stok (kapasitas) yang disimpan.
+     *
+     * @return array<string, int>
+     */
+    public static function pemakaianHariIni(Produk $produk): array
+    {
+        $hariIni = Carbon::today()->toDateString();
+        $pesanan = array_values(array_filter(
+            self::pemesananAktif($produk),
+            fn ($p) => $p['mulai'] <= $hariIni && $p['selesai'] >= $hariIni
+        ));
+
+        $hasil = [];
+        foreach (self::kombinasi($produk) as $kunci => $k) {
+            $hasil[$kunci] = array_sum(array_map(
+                fn ($p) => self::cocok($k, $p) ? $p['jumlah'] : 0,
+                $pesanan
+            ));
         }
 
         return $hasil;
