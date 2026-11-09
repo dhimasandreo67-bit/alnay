@@ -528,18 +528,15 @@
         return r.length ? r : p.warna.map((w) => ({ nama: w, stok: null }));
     }
 
-    // Stok SEWA = unit tersedia pada tanggal yang dipilih (atau hari ini): total unit dikurangi booking terbanyak
-    // di rentang itu (online + kasir). Stok beli tetap dari data produk.
+    // Stok SEWA = unit yang dimiliki (kapasitas) dikurangi unit yang BELUM DIKEMBALIKAN. Angkanya sama
+    // dengan Kelola Produk dan TIDAK berubah mengikuti tanggal yang dipilih. Bentrok tanggal tetap dicek
+    // terpisah lewat kalender (cekBentrokTanggal) dan validasi server. Stok beli tetap dari data produk.
     function terbookingSewa(p, ukuran, warna) {
         if (jenisAktif() !== 'sewa') return 0;
         const peta = KETERSEDIAAN[p.id];
         const d = peta && peta[kunciTanggal(p, ukuran, warna)];
         if (!d) return 0;
-        const a = el('tanggal_pinjam').value || hariIniIso();
-        const b = el('tanggal_kembali_rencana').value || a;
-        let maks = 0;
-        Object.keys(d.hitung).forEach((t) => { if (t >= a && t <= b && d.hitung[t] > maks) maks = d.hitung[t]; });
-        return maks;
+        return (d.rentang || []).reduce((n, r) => n + (Number(r.jumlah) || 0), 0);
     }
 
     function stokUntuk(p, ukuran, warna) {
