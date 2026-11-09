@@ -10,10 +10,10 @@
         75% { transform: rotate(-5deg); }
     }
 
-    /* Satu putaran = 2 petak gambar (asli + cermin) = 4224px, jalan konstan tanpa jeda */
+    /* Satu putaran = tepat 1 petak motif (307px), jalan konstan tanpa jeda */
     @keyframes tapis-geser {
         from { transform: translateX(0); }
-        to   { transform: translateX(-4224px); }
+        to   { transform: translateX(-307px); }
     }
 
     :root {
@@ -66,8 +66,9 @@
         transition: transform .5s cubic-bezier(.4, 0, .2, 1), clip-path .5s cubic-bezier(.4, 0, .2, 1), opacity .38s ease, visibility 0s linear .5s;
     }
 
-    /* Motif tapis (gambar asli tapis.png) dalam dua petak bergantian: asli lalu cermin.
-       Karena tiap sambungan antar petak bertemu sisi yang identik, loop mulus tanpa bagian putus.
+    /* Motif tapis (gambar asli tapis.png). Pola gambar ini berulang setiap 323px (ukuran asli);
+       satu potongan sepanjang itu diambil lewat CSS (tanpa gambar baru) lalu diulang berderet.
+       Karena potongannya satu periode penuh, sambungan antar petak menyatu, jadi loop mulus.
        Geser konstan (linear) dan pelan; fasenya disimpan agar tidak mulai ulang saat pindah halaman. */
     .al-tapis-motif {
         position: absolute; inset: 0; display: block; overflow: hidden;
@@ -79,14 +80,13 @@
     }
     .al-tapis-track {
         display: flex; width: max-content; height: 100%;
-        animation: tapis-geser 150s linear infinite;
+        animation: tapis-geser 11s linear infinite;
         will-change: transform;
     }
     .al-tapis-track i {
-        display: block; flex: none; width: 2112px; height: 100%;
-        background: url("{{ asset('images/home/tapis.png') }}") 0 bottom / auto 130% no-repeat;
+        display: block; flex: none; width: 307px; height: 100%;
+        background: url("{{ asset('images/home/tapis.png') }}") -323.16px bottom / 2111.1px 63.68px no-repeat;
     }
-    .al-tapis-track i.m { transform: scaleX(-1); }
 
     /* Lapisan krem tipis agar tulisan menu tetap jelas */
     .al-tapis::after {
@@ -364,7 +364,7 @@
     {{-- NAV DESKTOP --}}
     <nav class="al-tapis hidden md:block" :class="{ 'is-hidden': hideMenu }">
         <span class="al-tapis-motif" aria-hidden="true">
-            <span class="al-tapis-track" id="alTapisTrack"><i></i><i class="m"></i><i></i><i class="m"></i></span>
+            <span class="al-tapis-track" id="alTapisTrack">@for ($t = 0; $t < 14; $t++)<i></i>@endfor</span>
         </span>
         <div class="max-w-7xl mx-auto px-4 h-full flex items-center justify-center gap-2">
             @foreach ($navItems as $item)
@@ -489,10 +489,10 @@
 
 <script>
     // Jaga fase animasi tapis agar tidak mulai ulang (berhenti sebentar) tiap pindah halaman.
-    // Angka 150 harus sama dengan durasi .al-tapis-track di CSS.
+    // Angka 11 harus sama dengan durasi (detik) .al-tapis-track di CSS.
     (function () {
         try {
-            var D = 150, k = 'alnayTapisStart', s = sessionStorage.getItem(k);
+            var D = 11, k = 'alnayTapisStart', s = sessionStorage.getItem(k);
             if (!s) { s = String(Date.now()); sessionStorage.setItem(k, s); }
             var t = document.getElementById('alTapisTrack');
             if (t) t.style.animationDelay = (-(((Date.now() - Number(s)) / 1000) % D)) + 's';
