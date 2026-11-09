@@ -7,6 +7,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use App\Models\AlamatPengiriman;
 use App\Services\SinkronAlamatUtama;
+use App\Http\View\Composers\NotifikasiComposer;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,13 +24,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Share data jumlah keranjang ke SEMUA view (termasuk header)
+        // 1. Share data jumlah keranjang ke SEMUA view (termasuk header)
         View::composer('*', function ($view) {
             $cartItems = session('cart', []);
             $view->with('cartCount', count($cartItems));
         });
 
-        // Pasang perekam audit log (created/updated/deleted + login/logout)
+        // 2. Daftarkan Notifikasi hanya untuk Layout Admin
+        View::composer('partials.admin-topbar', NotifikasiComposer::class);
+
+        // 3. Pasang perekam audit log (created/updated/deleted + login/logout)
         Audit::daftarkan();
     }
 }
