@@ -401,9 +401,20 @@
 
                             {{-- Stok sewa (terpisah dari stok jual bila produk dijual & disewa) --}}
                             <p class="mt-2 text-xs text-ink/60 flex items-center gap-1.5">
-                                <span class="inline-block w-1.5 h-1.5 rounded-full" :class="stok > 0 ? 'bg-emerald-500' : 'bg-rose-500'"></span>
-                                <span x-text="(stok <= 0 ? 'Tidak ada unit tersedia' : (stok <= 3 ? 'Tersisa ' + stok + ' unit' : 'Tersedia ' + stok + ' unit')) + (tanggalAmbil ? ' pada tanggal terpilih' : ' hari ini')"></span>
+                                <span class="inline-block w-1.5 h-1.5 rounded-full" :class="sewaTanpaTanggal ? (kapasitasSewa <= 0 ? 'bg-rose-500' : (sisaHariIniDipilih <= 0 ? 'bg-amber-500' : 'bg-emerald-500')) : (stok > 0 ? 'bg-emerald-500' : 'bg-rose-500')"></span>
+                                <span x-text="sewaTanpaTanggal ? (kapasitasSewa <= 0 ? 'Stok sewa kosong' : (sisaHariIniDipilih <= 0 ? 'Semua unit sedang disewa hari ini' : 'Tersedia ' + sisaHariIniDipilih + ' dari ' + kapasitasSewa + ' unit hari ini')) : ((stok <= 0 ? 'Tidak ada unit tersedia' : (stok <= 3 ? 'Tersisa ' + stok + ' unit' : 'Tersedia ' + stok + ' unit')) + (mode === 'sewa' ? ' pada tanggal terpilih' : ''))"></span>
                             </p>
+                            <div x-show="sewaTanpaTanggal && kapasitasSewa > 0 && sisaHariIniDipilih <= 0" x-cloak
+                                 class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] leading-snug text-amber-800">
+                                Semua unit pilihan ini sedang disewa hari ini.
+                                <span x-show="tanggalKosongBerikut">Tersedia kembali mulai <b x-text="formatTanggal(tanggalKosongBerikut)"></b>.</span>
+                                Pilih tanggal di kalender untuk menyewa di hari lain.
+                            </div>
+                            <div x-show="sewaTanpaTanggal && kapasitasSewa > 0 && sisaHariIniDipilih > 0 && sisaHariIniDipilih < kapasitasSewa" x-cloak
+                                 class="mt-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] leading-snug text-sky-800">
+                                <b x-text="kapasitasSewa - sisaHariIniDipilih"></b> unit sedang disewa hari ini, masih ada
+                                <b x-text="sisaHariIniDipilih"></b> unit yang bisa disewa.
+                            </div>
                             @if ($produk->dp > 0)
                                 <p class="mt-1 text-xs text-ink/60">DP / uang muka: <strong class="text-ink/80 font-semibold">Rp {{ number_format($produk->dp, 0, ',', '.') }}</strong></p>
                             @endif
@@ -476,7 +487,7 @@
                                     <span class="block leading-tight" x-text="o.label"></span>
                                     <span class="block text-[10px] font-normal leading-tight"
                                         :class="sisaUkuran(o) <= 0 ? 'text-rose-500' : 'opacity-60'"
-                                        x-text="sisaUkuran(o) <= 0 ? 'habis' : (mode === 'sewa' ? 'tersedia ' : 'stok ') + sisaUkuran(o)"></span>
+                                        x-text="sisaUkuran(o) <= 0 ? 'habis' : (mode === 'sewa' ? labelSewa(o.label + '|') : 'stok ' + sisaUkuran(o))"></span>
                                     <span x-show="ukuran === o.label" x-cloak
                                         class="pd-pop absolute -top-1.5 -right-1.5 flex w-4 h-4 items-center justify-center rounded-full bg-gold text-white text-[9px] leading-none">✓</span>
                                 </button>
@@ -512,7 +523,7 @@
                                     <span class="text-[11px] leading-tight text-ink/75 peer-checked:text-gold peer-checked:font-semibold" x-text="w.label"></span>
                                     <span x-show="sisaWarna(w) !== null" x-cloak class="text-[10px] -mt-1"
                                         :class="habis(sisaWarna(w)) ? 'font-medium text-rose-500' : 'text-ink/45'"
-                                        x-text="habis(sisaWarna(w)) ? 'Habis' : (mode === 'sewa' ? 'tersedia ' : 'stok ') + sisaWarna(w)"></span>
+                                        x-text="habis(sisaWarna(w)) ? 'Habis' : (mode === 'sewa' ? labelSewa(ukuran + '|' + w.label) : 'stok ' + sisaWarna(w))"></span>
                                 </label>
                             </template>
                         </div>
@@ -567,7 +578,7 @@
                                     <div class="flex items-center gap-1.5"><span
                                             class="w-2.5 h-2.5 rounded-full bg-rose-200"></span> Penuh dibooking</div>
                                     <div class="flex items-center gap-1.5"><span
-                                            class="w-2.5 h-2.5 rounded-full bg-rose-50 ring-1 ring-rose-300"></span> Sebagian dibooking (masih ada unit)</div>
+                                            class="w-2.5 h-2.5 rounded-full bg-sky-50 ring-1 ring-sky-300"></span> Sebagian dibooking (masih ada unit, bisa dipilih)</div>
                                 </div>
                             </div>
 
@@ -1052,6 +1063,12 @@
                         this.peringatiTanggal();
                         return;
                     }
+                    if (this.rentangBentrok()) {
+                        this.pesanTanggal = 'Ada tanggal yang sudah penuh dibooking di rentang ini. Pilih tanggal lain.';
+                        this.tanggalAmbil = null;
+                        this.tanggalKembali = null;
+                        return;
+                    }
                     if (!this.$refs.formSewa) return;
                     this.pesanTanggal = '';
                     this.memuat = true;
@@ -1074,6 +1091,12 @@
                     // Jika mode sewa tapi tanggal belum dipilih, cegah submit
                     if (this.mode === 'sewa' && (!this.tanggalAmbil || !this.tanggalKembali)) {
                         this.peringatiTanggal();
+                        return;
+                    }
+                    if (this.mode === 'sewa' && this.rentangBentrok()) {
+                        this.pesanTanggal = 'Ada tanggal yang sudah penuh dibooking di rentang ini. Pilih tanggal lain.';
+                        this.tanggalAmbil = null;
+                        this.tanggalKembali = null;
                         return;
                     }
                     this.memuat = true;
@@ -1099,12 +1122,46 @@
                 },
                 // Kapasitas & unit terbooking per tanggal untuk ukuran/warna yang dipilih
                 get dataKal() { return this.ketersediaan[this.kunciKetersediaan] || { kapasitas: 0, hitung: {} }; },
+                // --- Info ketersediaan sewa HARI INI (saat belum ada tanggal dipilih) ---
+                get sewaTanpaTanggal() { return this.mode === 'sewa' && !this.tanggalAmbil; },
+                get kapasitasSewa() { return this.dataKal.kapasitas || 0; },
+                sisaHariIni(kunci) {
+                    const d = this.ketersediaan[kunci];
+                    if (!d) return 0;
+                    return Math.max(0, d.kapasitas - ((d.hitung || {})[this.hariIni] || 0));
+                },
+                get sisaHariIniDipilih() { return this.sisaHariIni(this.kunciKetersediaan); },
+                // Tanggal pertama (mulai hari ini) yang masih punya unit kosong untuk pilihan ini
+                get tanggalKosongBerikut() {
+                    const d = this.dataKal;
+                    if (!d.kapasitas) return null;
+                    const h = d.hitung || {};
+                    const mulai = new Date(this.hariIni + 'T00:00:00Z');
+                    for (let i = 0; i < 400; i++) {
+                        const x = new Date(mulai.getTime() + i * 86400000);
+                        const t = iso(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate());
+                        if ((h[t] || 0) < d.kapasitas) return t;
+                    }
+                    return null;
+                },
+                // Teks di bawah chip ukuran/warna pada mode sewa
+                labelSewa(kunci) {
+                    const d = this.ketersediaan[kunci];
+                    if (!d || d.kapasitas <= 0) return 'habis';
+                    if (this.tanggalAmbil) return 'tersedia ' + this.sisaSewa(kunci);
+                    const n = this.sisaHariIni(kunci);
+                    return n <= 0 ? 'disewa semua' : 'tersedia ' + n + ' hari ini';
+                },
                 terpakai(t) { return (this.dataKal.hitung || {})[t] || 0; },
                 sebagian(t) { const n = this.terpakai(t); return n > 0 && n < this.dataKal.kapasitas; },
                 // Tanggal yang sudah penuh (semua unit terbooking)
                 get dibooking() {
                     const d = this.dataKal, h = d.hitung || {};
                     return Object.keys(h).filter((t) => h[t] >= d.kapasitas).sort();
+                },
+                rentangBentrok() {
+                    if (!this.tanggalAmbil || !this.tanggalKembali) return false;
+                    return this.dibooking.some((b) => b >= this.tanggalAmbil && b <= this.tanggalKembali);
                 },
                 bersihkanTanggal() {
                     if (!this.tanggalAmbil) return;
@@ -1149,7 +1206,10 @@
                 sisaSewa(kunci) {
                     const d = this.ketersediaan[kunci];
                     if (!d) return 0;
-                    const a = this.tanggalAmbil || this.hariIni;
+                    // Belum ada tanggal dipilih: tampilkan jumlah unit yang dimiliki (kapasitas), BUKAN sisa hari ini.
+                    // Kalau hari ini penuh, ukuran/warna tetap bisa dipilih karena tanggal lain mungkin masih kosong.
+                    if (!this.tanggalAmbil) return d.kapasitas;
+                    const a = this.tanggalAmbil;
                     const b = this.tanggalKembali || a;
                     let maks = 0;
                     const h = d.hitung || {};
@@ -1232,7 +1292,7 @@
                     if (this.isInRange(c.t)) return 'bg-gold/15 text-ink/85 font-medium';
                     if (c.luar || this.lalu(c.t)) return 'text-ink/25 cursor-default';
                     if (this.penuh(c.t)) return 'bg-rose-100 text-rose-500 cursor-not-allowed line-through decoration-rose-400';
-                    if (this.sebagian(c.t)) return 'bg-rose-50 text-rose-500 ring-1 ring-rose-200 hover:bg-rose-100 hover:scale-110 active:scale-95';
+                    if (this.sebagian(c.t)) return 'bg-sky-50 text-sky-700 ring-1 ring-sky-200 hover:bg-sky-100 hover:scale-110 active:scale-95';
                     const cincin = c.t === this.hariIni ? ' ring-1 ring-gold/60 text-ink' : '';
                     return 'text-ink/70 hover:bg-cream hover:text-ink hover:scale-110 active:scale-95' + cincin;
                 },
