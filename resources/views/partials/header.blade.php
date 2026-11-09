@@ -183,7 +183,7 @@
     </div>
 
     {{-- Tampilan DESKTOP: Statis Rapi (Seperti sebelumnya) --}}
-    <div class="hidden md:block max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
+    <div class="hidden md:flex max-w-7xl mx-auto px-4 py-2 items-center justify-between">
         <p class="flex items-center gap-2 text-[#8a6410]">
             <span class="w-2 h-2 rounded-full bg-gold inline-block shadow-[0_0_8px_rgba(201,154,50,.9)]"></span>
             {{ config('alnay.promo_bar.teks') }}
