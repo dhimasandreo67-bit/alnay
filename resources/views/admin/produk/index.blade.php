@@ -68,7 +68,18 @@
                 return $nilai ? min($nilai) : (int) $p->stok;
             };
             $produkStokHabis = $produkList->filter(fn ($p) => $stokTersedia($p) <= 0);
-            $produkStokMenipis = $produkList->filter(fn ($p) => $stokTersedia($p) >= 1 && $stokTersedia($p) <= $batasStokMenipis);
+
+            // "Hampir habis" hanya untuk produk yang DIJUAL, dihitung dari stok jual saja.
+            // Produk khusus sewa tidak pernah masuk peringatan ini.
+            $produkStokMenipis = $produkList->filter(function ($p) use ($batasStokMenipis, $stokTersedia) {
+                if (! $p->dapat_dijual || $stokTersedia($p) <= 0) {
+                    return false; // bukan produk jual, atau sudah masuk daftar "habis"
+                }
+                $stokJual = $p->stokUntuk('jual');
+
+                return $stokJual >= 1 && $stokJual <= $batasStokMenipis;
+            });
+
             $produkPerluRestock = $produkStokHabis->merge($produkStokMenipis);
         @endphp
 
@@ -278,7 +289,11 @@
                                     default    => 'bg-gray-50 text-gray-500 border-gray-200',
                                 };
                                 $stokHabis = $stokTersedia($produk) <= 0;
-                                $stokMenipis = !$stokHabis && $stokTersedia($produk) <= $batasStokMenipis;
+                                // "Hampir habis" hanya untuk produk yang dijual, berdasarkan stok jual.
+                                $stokMenipis = !$stokHabis
+                                    && $produk->dapat_dijual
+                                    && $produk->stokUntuk('jual') >= 1
+                                    && $produk->stokUntuk('jual') <= $batasStokMenipis;
                                 $sewaTotal = $produk->bisa_disewa ? $produk->stokUntuk('sewa') : 0;
                                 $sewaOut = $sewaTerpakai[$produk->id] ?? 0;
                                 $sewaSisa = max(0, $sewaTotal - $sewaOut);

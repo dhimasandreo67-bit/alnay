@@ -2,6 +2,10 @@
 @section('title', 'Rating & Ulasan')
 
 @section('content')
+@php
+    $jumlahFilter = collect(['q', 'produk_id', 'komentar', 'dari', 'sampai', 'bintang'])->filter(fn ($k) => request()->filled($k))->count()
+        + (request('urut', 'terbaru') !== 'terbaru' ? 1 : 0);
+@endphp
 <div class="p-6 space-y-6 max-w-6xl mx-auto transition-all duration-500 animate-fade-in">
 
     <style>
@@ -74,7 +78,7 @@
                 <span class="text-3xl font-extrabold tracking-tight text-amber-950 tabular-nums">{{ number_format($rataRata, 1) }}</span>
                 <span class="text-sm font-bold text-amber-800/60">/ 5.0</span>
             </div>
-            <p class="mt-2 text-xs font-medium text-amber-700/80">Kepuasan pelanggan</p>
+            <p class="mt-2 text-xs font-medium text-amber-700/80">{{ $jumlahFilter > 0 ? 'Sesuai filter' : 'Kepuasan pelanggan' }}</p>
         </div>
 
         {{-- Card 2: Total Ulasan (Sky) --}}
@@ -120,17 +124,86 @@
     </div>
 
     {{-- Filter --}}
-    <form method="GET" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex gap-4 items-center">
-        <select name="bintang" onchange="this.form.submit()" aria-label="Filter bintang"
-                class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all cursor-pointer">
-            <option value="">Semua Bintang</option>
-            <option value="5" {{ request('bintang') == '5' ? 'selected' : '' }}>Bintang 5</option>
-            <option value="4" {{ request('bintang') == '4' ? 'selected' : '' }}>Bintang 4</option>
-            <option value="3" {{ request('bintang') == '3' ? 'selected' : '' }}>Bintang 3</option>
-            <option value="2" {{ request('bintang') == '2' ? 'selected' : '' }}>Bintang 2</option>
-            <option value="1" {{ request('bintang') == '1' ? 'selected' : '' }}>Bintang 1</option>
-        </select>
-    </form>
+    @php
+        $urutAktif = request('urut', 'terbaru');
+        $kelasInput = 'w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all';
+    @endphp
+    <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+        <form method="GET" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <input type="hidden" name="bintang" value="{{ request('bintang') }}">
+
+            <div class="sm:col-span-2">
+                <label for="f-q" class="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-400">Cari</label>
+                <input type="search" id="f-q" name="q" value="{{ request('q') }}" placeholder="Isi ulasan, nama pelanggan, atau produk"
+                       class="{{ $kelasInput }}">
+            </div>
+
+            <div>
+                <label for="f-produk" class="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-400">Produk</label>
+                <select id="f-produk" name="produk_id" onchange="this.form.submit()" class="{{ $kelasInput }} cursor-pointer">
+                    <option value="">Semua Produk</option>
+                    @foreach($produkList as $p)
+                        <option value="{{ $p->id }}" {{ (string) request('produk_id') === (string) $p->id ? 'selected' : '' }}>{{ $p->nama }}{{ $p->sku ? ' (' . $p->sku . ')' : '' }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="f-urut" class="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-400">Urutkan</label>
+                <select id="f-urut" name="urut" onchange="this.form.submit()" class="{{ $kelasInput }} cursor-pointer">
+                    <option value="terbaru" {{ $urutAktif === 'terbaru' ? 'selected' : '' }}>Terbaru</option>
+                    <option value="terlama" {{ $urutAktif === 'terlama' ? 'selected' : '' }}>Terlama</option>
+                    <option value="tertinggi" {{ $urutAktif === 'tertinggi' ? 'selected' : '' }}>Rating tertinggi</option>
+                    <option value="terendah" {{ $urutAktif === 'terendah' ? 'selected' : '' }}>Rating terendah</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="f-komentar" class="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-400">Komentar</label>
+                <select id="f-komentar" name="komentar" onchange="this.form.submit()" class="{{ $kelasInput }} cursor-pointer">
+                    <option value="">Semua</option>
+                    <option value="ada" {{ request('komentar') === 'ada' ? 'selected' : '' }}>Ada komentar</option>
+                    <option value="tanpa" {{ request('komentar') === 'tanpa' ? 'selected' : '' }}>Tanpa komentar</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="f-dari" class="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-400">Dari tanggal</label>
+                <input type="date" id="f-dari" name="dari" value="{{ request('dari') }}" onchange="this.form.submit()" class="{{ $kelasInput }}">
+            </div>
+
+            <div>
+                <label for="f-sampai" class="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-400">Sampai tanggal</label>
+                <input type="date" id="f-sampai" name="sampai" value="{{ request('sampai') }}" onchange="this.form.submit()" class="{{ $kelasInput }}">
+            </div>
+
+            <div class="flex items-end gap-3">
+                <button type="submit" class="inline-flex items-center rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-4 py-2 text-xs font-bold text-white shadow-md shadow-amber-500/20 transition-all hover:from-amber-700 hover:to-amber-600 active:scale-95">Terapkan</button>
+                @if($jumlahFilter > 0)
+                    <a href="{{ route('admin.rating.index') }}" class="text-xs font-bold text-gray-500 hover:text-amber-600">Reset ({{ $jumlahFilter }})</a>
+                @endif
+            </div>
+        </form>
+
+        {{-- Chip bintang: jumlah mengikuti filter lain --}}
+        <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3" role="group" aria-label="Filter bintang">
+            @php $bintangAktif = (string) request('bintang'); @endphp
+            <a href="{{ request()->fullUrlWithQuery(['bintang' => null, 'page' => null]) }}"
+               class="inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors {{ $bintangAktif === '' ? 'border-amber-600 bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-md shadow-amber-500/20' : 'border-gray-200 bg-white text-gray-600 hover:border-amber-400 hover:text-amber-700' }}">
+                Semua
+                <span class="rounded-full px-2 py-0.5 text-[10px] tabular-nums {{ $bintangAktif === '' ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-500' }}">{{ $totalUlasan }}</span>
+            </a>
+            @foreach([5, 4, 3, 2, 1] as $n)
+                @php $aktif = $bintangAktif === (string) $n; @endphp
+                <a href="{{ request()->fullUrlWithQuery(['bintang' => $n, 'page' => null]) }}"
+                   class="inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors {{ $aktif ? 'border-amber-600 bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-md shadow-amber-500/20' : 'border-gray-200 bg-white text-gray-600 hover:border-amber-400 hover:text-amber-700' }}">
+                    <svg class="h-3.5 w-3.5 {{ $aktif ? 'text-white' : 'text-amber-400' }}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                    {{ $n }}
+                    <span class="rounded-full px-2 py-0.5 text-[10px] tabular-nums {{ $aktif ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-500' }}">{{ $perBintang[$n] ?? 0 }}</span>
+                </a>
+            @endforeach
+        </div>
+    </div>
 
     {{-- List Ulasan --}}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -165,9 +238,16 @@
                     </div>
                 </div>
                 <p class="text-sm text-gray-700 italic mb-3">"{{ $r->ulasan ?? 'Tanpa komentar.' }}"</p>
-                <div class="inline-flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50/60 px-2.5 py-1 text-[11px] text-amber-800">
-                    Produk: <strong class="font-bold text-amber-900">{{ $r->produk->nama ?? '-' }}</strong>
-                </div>
+                @if($r->produk_id)
+                    <a href="{{ request()->fullUrlWithQuery(['produk_id' => $r->produk_id, 'page' => null]) }}" title="Lihat semua ulasan produk ini"
+                       class="inline-flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50/60 px-2.5 py-1 text-[11px] text-amber-800 transition-colors hover:border-amber-300 hover:bg-amber-100">
+                        Produk: <strong class="font-bold text-amber-900">{{ $r->produk->nama ?? '-' }}</strong>
+                    </a>
+                @else
+                    <div class="inline-flex items-center gap-1.5 rounded-full border border-amber-100 bg-amber-50/60 px-2.5 py-1 text-[11px] text-amber-800">
+                        Produk: <strong class="font-bold text-amber-900">-</strong>
+                    </div>
+                @endif
             </div>
         @empty
             <div class="col-span-2 text-center py-16 bg-white rounded-3xl border border-gray-100 shadow-sm">
@@ -176,7 +256,7 @@
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                     </svg>
                 </div>
-                <p class="text-sm font-medium text-gray-400">Belum ada ulasan.</p>
+                <p class="text-sm font-medium text-gray-400">{{ $jumlahFilter > 0 ? 'Tidak ada ulasan yang cocok dengan filter ini.' : 'Belum ada ulasan.' }}</p>
             </div>
         @endforelse
     </div>
