@@ -10,9 +10,10 @@
         75% { transform: rotate(-5deg); }
     }
 
+    /* Satu putaran = 2 petak gambar (asli + cermin) = 4224px, jalan konstan tanpa jeda */
     @keyframes tapis-geser {
-        from { background-position: 0% bottom; }
-        to   { background-position: 100% bottom; }
+        from { transform: translateX(0); }
+        to   { transform: translateX(-4224px); }
     }
 
     :root {
@@ -65,20 +66,27 @@
         transition: transform .5s cubic-bezier(.4, 0, .2, 1), clip-path .5s cubic-bezier(.4, 0, .2, 1), opacity .38s ease, visibility 0s linear .5s;
     }
 
-    /* Motif tapis (gambar asli tapis.png). Gambar dibuat sedikit lebih lebar dari baris menu, lalu
-       digeser pelan MAJU-MUNDUR (bukan diulang terus), sehingga ujung gambar tidak pernah terlihat
-       dan tidak ada bagian yang "putus". Pita emas di tepi atas gambar ikut terpotong. */
-    .al-tapis::before {
-        content: '';
-        position: absolute; inset: 0;
-        background: url("{{ asset('images/home/tapis.png') }}") 0% bottom / max(2112px, 118%) auto no-repeat;
+    /* Motif tapis (gambar asli tapis.png) dalam dua petak bergantian: asli lalu cermin.
+       Karena tiap sambungan antar petak bertemu sisi yang identik, loop mulus tanpa bagian putus.
+       Geser konstan (linear) dan pelan; fasenya disimpan agar tidak mulai ulang saat pindah halaman. */
+    .al-tapis-motif {
+        position: absolute; inset: 0; display: block; overflow: hidden;
         opacity: .42;
         mix-blend-mode: multiply;
         -webkit-mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,.55) 12%, transparent 30%, transparent 70%, rgba(0,0,0,.55) 88%, #000 100%);
         mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,.55) 12%, transparent 30%, transparent 70%, rgba(0,0,0,.55) 88%, #000 100%);
         pointer-events: none;
-        animation: tapis-geser 45s ease-in-out infinite alternate;
     }
+    .al-tapis-track {
+        display: flex; width: max-content; height: 100%;
+        animation: tapis-geser 150s linear infinite;
+        will-change: transform;
+    }
+    .al-tapis-track i {
+        display: block; flex: none; width: 2112px; height: 100%;
+        background: url("{{ asset('images/home/tapis.png') }}") 0 bottom / auto 130% no-repeat;
+    }
+    .al-tapis-track i.m { transform: scaleX(-1); }
 
     /* Lapisan krem tipis agar tulisan menu tetap jelas */
     .al-tapis::after {
@@ -104,29 +112,27 @@
         font-weight: 800;
         border-radius: 999px;
         text-shadow: 0 0 6px rgba(253, 248, 234, .95);
-        transition: color .25s ease, background-color .25s ease;
+        /* Garis bawah hover digambar lewat background (bukan ::after) supaya tidak bisa
+           tertimpa/terpotong aturan lain, dan melebar halus dari kiri ke kanan. */
+        background-image: linear-gradient(var(--al-gold), var(--al-gold));
+        background-repeat: no-repeat;
+        background-position: 1rem calc(100% - 7px);
+        background-size: 0 2px;
+        transition: color .25s ease, background-color .25s ease, background-size .4s cubic-bezier(.22, .8, .3, 1);
     }
-    .al-nav::after {
-        content: '';
-        position: absolute; left: 1rem; right: 1rem; bottom: 6px; height: 1px;
-        background: var(--al-gold);
-        transform: scaleX(0); transform-origin: left;
-        transition: transform .35s cubic-bezier(.22, .8, .3, 1);
-    }
-    .al-nav:hover { color: #000; background: rgba(255, 255, 255, .92); }
-    .al-nav:hover::after { transform: scaleX(1); }
+    .al-nav:hover { color: #000; background-color: rgba(255, 255, 255, .92); background-size: calc(100% - 2rem) 2px; }
     /* Tab terpilih: latar sama seperti semula, hanya warna teks yang mengikuti tema.
        Ganti --al-active-text kalau mau warna lain. */
     .al-nav.is-active {
         --al-active-text: #8a6410;
         color: var(--al-active-text);
-        background: #f7e9bd;
+        background-color: #f7e9bd;
+        background-size: 0 2px;
         box-shadow: inset 0 0 0 1px var(--al-gold);
         text-shadow: none;
     }
     .al-nav.is-active, .al-nav.is-active * { color: var(--al-active-text) !important; text-shadow: none !important; }
-    .al-nav.is-active:hover { background: #f7e9bd; }
-    .al-nav.is-active::after { display: none; }
+    .al-nav.is-active:hover { background-color: #f7e9bd; background-size: 0 2px; }
 
     /* Dropdown */
     .al-dd-panel { background: #fff; border: 1px solid var(--al-line); box-shadow: 0 24px 48px -18px rgba(21, 35, 61, .22), 0 0 0 1px rgba(201, 154, 50, .06); }
@@ -136,8 +142,8 @@
     .al-search:focus { box-shadow: 0 0 0 3px rgba(201, 154, 50, .18); }
 
     @media (prefers-reduced-motion: reduce) {
-        .al-header, .al-main, .al-nav, .al-nav::after, .al-icon-btn, .al-tapis, .al-tapis.is-hidden, .al-tapis > div { transition: none !important; }
-        .al-tapis::before { animation: none; }
+        .al-header, .al-main, .al-nav, .al-icon-btn, .al-tapis, .al-tapis.is-hidden, .al-tapis > div { transition: none !important; }
+        .al-tapis-track { animation: none; }
     }
 </style>
 
@@ -357,6 +363,9 @@
 
     {{-- NAV DESKTOP --}}
     <nav class="al-tapis hidden md:block" :class="{ 'is-hidden': hideMenu }">
+        <span class="al-tapis-motif" aria-hidden="true">
+            <span class="al-tapis-track" id="alTapisTrack"><i></i><i class="m"></i><i></i><i class="m"></i></span>
+        </span>
         <div class="max-w-7xl mx-auto px-4 h-full flex items-center justify-center gap-2">
             @foreach ($navItems as $item)
                 @if ($item['label'] === 'Koleksi')
@@ -477,6 +486,19 @@
     </div>
 
 </header>
+
+<script>
+    // Jaga fase animasi tapis agar tidak mulai ulang (berhenti sebentar) tiap pindah halaman.
+    // Angka 150 harus sama dengan durasi .al-tapis-track di CSS.
+    (function () {
+        try {
+            var D = 150, k = 'alnayTapisStart', s = sessionStorage.getItem(k);
+            if (!s) { s = String(Date.now()); sessionStorage.setItem(k, s); }
+            var t = document.getElementById('alTapisTrack');
+            if (t) t.style.animationDelay = (-(((Date.now() - Number(s)) / 1000) % D)) + 's';
+        } catch (e) {}
+    })();
+</script>
 
 {{-- Pemesan ruang baris menu (49px = tinggi .al-tapis) supaya halaman tidak melompat saat menu disembunyikan --}}
 <div class="hidden md:block h-[49px]" aria-hidden="true"></div>
