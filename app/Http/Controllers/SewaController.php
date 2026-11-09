@@ -9,16 +9,13 @@ use App\Models\Sewa;
 use App\Models\JaminanSewa;
 use App\Models\Pembayaran;
 use App\Models\Pengiriman;
-use App\Models\AlamatPengiriman; // Tambahan untuk Buku Alamat
+use App\Models\AlamatPengiriman;
 use App\Support\KetersediaanSewa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class SewaController extends Controller
 {
-    /**
-     * Menampilkan halaman checkout sewa.
-     */
     public function checkout(Request $request)
     {
         if (!Auth::check()) {
@@ -27,16 +24,12 @@ class SewaController extends Controller
 
         $user = Auth::user();
         
-        // AMBIL DAFTAR ALAMAT TERSIMPAN
-        $alamatList = AlamatPengiriman::where('user_id', $user->id)
-            ->orderBy('is_utama', 'desc')
-            ->get();
+        $alamatList = AlamatPengiriman::where('user_id', $user->id)->orderBy('is_utama', 'desc')->get();
         $alamatUtama = $alamatList->firstWhere('is_utama', true) ?? $alamatList->first();
 
         $dataKurang = [];
         if (empty($user->no_hp)) $dataKurang[] = 'Nomor WhatsApp';
         
-        // Cek alamat profil HANYA JIKA user belum punya alamat tersimpan
         if ($alamatList->isEmpty()) {
             if (empty($user->alamat)) $dataKurang[] = 'Alamat Lengkap';
         }
@@ -45,7 +38,6 @@ class SewaController extends Controller
             return redirect(route('akun.dashboard') . '#alamat')->with('error', 'Lengkapi alamat Anda: ' . implode(', ', $dataKurang));
         }
 
-        // Cek apakah dari Keranjang atau Langsung Beli
         $keranjangSewa = session('keranjang_sewa', []);
         $sewaData = session('sewa_data');
 
@@ -53,20 +45,14 @@ class SewaController extends Controller
             return redirect()->route('koleksi.index')->withErrors(['error' => 'Keranjang kosong. Silakan pilih produk.']);
         }
 
-        // Harga net, DP, dan stok dihitung ulang dari database
         $sumber = ! empty($keranjangSewa) ? array_values($keranjangSewa) : [$sewaData];
         $items = [];
         foreach ($sumber as $data) {
             $produk = Produk::with('kategori')->findOrFail($data['produk_id']);
 
-            $tersedia = $produk->bisa_disewa
-                ? $produk->stokTersedia('sewa', $data['ukuran'] ?? null, $data['warna'] ?? null)
-                : 0;
+            $tersedia = $produk->bisa_disewa ? $produk->stokTersedia('sewa', $data['ukuran'] ?? null, $data['warna'] ?? null) : 0;
             if ($tersedia <= 0) {
-                $tujuan = ! empty($keranjangSewa)
-                    ? redirect()->route('sewa.keranjang.index')
-                    : redirect()->route('produk.detail', ['sku' => $produk->sku]);
-
+                $tujuan = ! empty($keranjangSewa) ? redirect()->route('sewa.keranjang.index') : redirect()->route('produk.detail', ['sku' => $produk->sku]);
                 return $tujuan->with('error', $produk->nama . ': stok sewa untuk pilihan ini sudah habis.');
             }
 
@@ -89,9 +75,6 @@ class SewaController extends Controller
         return view('customer.sewa-checkout', compact('items', 'totalKeseluruhan', 'deposit', 'alamatList', 'alamatUtama'));
     }
 
-    /**
-     * Menyimpan data dari halaman Detail Produk ke Session.
-     */
     public function simpanSession(Request $request)
     {
         $validated = $request->validate([
@@ -111,10 +94,8 @@ class SewaController extends Controller
         if (! KetersediaanSewa::tersedia($produk, $validated['ukuran'], $validated['warna'] ?? null, $validated['tanggal_ambil'], $validated['tanggal_kembali'])) {
             return back()->withErrors(['tanggal' => 'Maaf, pada tanggal tersebut semua unit pilihan ini sudah dibooking. Silakan pilih tanggal lain.']);
         }
-        // =======================================================
 
-        $validated['durasi'] = max(1, (int) \Carbon\Carbon::parse($validated['tanggal_ambil'])->startOfDay()
-            ->diffInDays(\Carbon\Carbon::parse($validated['tanggal_kembali'])->startOfDay(), true));
+        $validated['durasi'] = max(1, (int) \Carbon\Carbon::parse($validated['tanggal_ambil'])->startOfDay()->diffInDays(\Carbon\Carbon::parse($validated['tanggal_kembali'])->startOfDay(), true));
         $validated['total_sewa'] = $produk->totalSewa($validated['durasi']);
 
         session(['sewa_data' => $validated]);
@@ -122,9 +103,6 @@ class SewaController extends Controller
         return redirect()->route('sewa.checkout');
     }
 
-    /**
-     * Memproses Checkout & Menyimpan Transaksi ke Database.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -134,7 +112,7 @@ class SewaController extends Controller
             'nama_penerima' => ['required_if:metode_penerimaan,kirim', 'nullable', 'string'],
             'no_wa' => ['required_if:metode_penerimaan,kirim', 'nullable', 'string'],
             'alamat' => ['required_if:metode_penerimaan,kirim', 'nullable', 'string'],
-            'provinsi' => ['nullable', 'string'], // Tangkap dari hidden input
+            'provinsi' => ['nullable', 'string'],
             'kota_kabupaten' => ['nullable', 'string'],
             'kecamatan' => ['nullable', 'string'],
             'kode_pos' => ['nullable', 'string'],
@@ -157,12 +135,10 @@ class SewaController extends Controller
             $produk = Produk::findOrFail($item->produk_id);
 
             if (! $produk->bisa_disewa || $produk->stokTersedia('sewa', $item->ukuran ?? null, $item->warna ?? null) <= 0) {
-                return redirect()->route('sewa.keranjang.index')
-                    ->with('error', $produk->nama . ': stok sewa untuk pilihan ini sudah habis.');
+                return redirect()->route('sewa.keranjang.index')->with('error', $produk->nama . ': stok sewa untuk pilihan ini sudah habis.');
             }
             if (! KetersediaanSewa::tersedia($produk, $item->ukuran ?? null, $item->warna ?? null, $item->tanggal_ambil, $item->tanggal_kembali)) {
-                return redirect()->route('sewa.keranjang.index')
-                    ->with('error', $produk->nama . ': tanggal yang dipilih sudah penuh dibooking. Hapus item dan pilih tanggal lain.');
+                return redirect()->route('sewa.keranjang.index')->with('error', $produk->nama . ': tanggal yang dipilih sudah penuh dibooking. Hapus item dan pilih tanggal lain.');
             }
 
             $item->total_sewa = $produk->totalSewa((int) $item->durasi);
@@ -235,7 +211,6 @@ class SewaController extends Controller
             'tanggal_bayar' => now(),
         ]);
 
-        // 4. Pengiriman (UPDATED)
         if ($validated['metode_penerimaan'] === 'kirim') {
             Pengiriman::create([
                 'transaksi_id' => $transaksi->id,
@@ -245,8 +220,8 @@ class SewaController extends Controller
                 'kode_pos_tujuan' => $validated['kode_pos'] ?? Auth::user()->kode_pos ?? null,
                 'alamat_tujuan' => $validated['alamat'],
                 'status_kirim' => 'menunggu',
-                'nama_penerima' => $validated['nama_penerima'], // Simpan nama
-                'no_wa_penerima' => $validated['no_wa'],        // Simpan WA
+                'nama_penerima' => $validated['nama_penerima'],
+                'no_wa_penerima' => $validated['no_wa'],
             ]);
         }
 
@@ -262,9 +237,7 @@ class SewaController extends Controller
 
     public function konfirmasi($id)
     {
-        $transaksi = Transaksi::with(['detail.produk', 'sewa', 'pembayaran'])
-            ->where('user_id', Auth::id())
-            ->findOrFail($id);
+        $transaksi = Transaksi::with(['detail.produk', 'sewa', 'pembayaran'])->where('user_id', Auth::id())->findOrFail($id);
 
         $produk = $transaksi->detail->first()->produk;
         $total = $transaksi->total;
@@ -348,8 +321,7 @@ class SewaController extends Controller
             return back()->withErrors(['tanggal' => 'Maaf, pada tanggal tersebut semua unit pilihan ini sudah dibooking. Silakan pilih tanggal lain.']);
         }
 
-        $durasi = max(1, (int) \Carbon\Carbon::parse($request->tanggal_ambil)->startOfDay()
-            ->diffInDays(\Carbon\Carbon::parse($request->tanggal_kembali)->startOfDay(), true));
+        $durasi = max(1, (int) \Carbon\Carbon::parse($request->tanggal_ambil)->startOfDay()->diffInDays(\Carbon\Carbon::parse($request->tanggal_kembali)->startOfDay(), true));
 
         $keranjangSewa = session()->get('keranjang_sewa', []);
         $itemId = $produk->id . '_' . $request->tanggal_ambil . '_' . $request->ukuran . '_' . ($request->warna ?? '');

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 
 class User extends Authenticatable
@@ -82,6 +83,46 @@ class User extends Authenticatable
         }
 
         return in_array($key, $this->admin_permissions ?? [], true);
+    }
+
+    // Status akun (aktif / dinonaktifkan)
+
+    /**
+     * Akun boleh dipakai login? Mengikuti kolom `is_active` yang dikelola
+     * lewat halaman Kelola Pengguna. Kolom kosong (null) dianggap aktif.
+     */
+    public function akunAktif(): bool
+    {
+        $nilai = $this->attributes['is_active'] ?? null;
+
+        return $nilai === null ? true : (bool) $nilai;
+    }
+
+    /**
+     * Info yang ditampilkan di halaman "Akun Dinonaktifkan".
+     * Alasan "tidak aktif" hanya dipakai kalau selisih aktivitas terakhir sampai
+     * akun dinonaktifkan >= config('akun.batas_hari_tidak_aktif') (default 365 hari).
+     */
+    public function infoNonaktif(): array
+    {
+        $batas = (int) config('akun.batas_hari_tidak_aktif', 365);
+        $terakhir = $this->attributes['last_active_at'] ?? $this->created_at;
+        $dinonaktifkan = ! empty($this->attributes['dinonaktifkan_pada'])
+            ? Carbon::parse($this->attributes['dinonaktifkan_pada'])
+            : now();
+
+        $hari = $terakhir ? (int) abs(Carbon::parse($terakhir)->diffInDays($dinonaktifkan)) : 0;
+        $fmt = fn ($v) => $v ? Carbon::parse($v)->locale('id')->translatedFormat('d F Y') : null;
+
+        return [
+            'name' => $this->name,
+            'email' => $this->email,
+            'karena_tidak_aktif' => $hari >= $batas,
+            'hari_tidak_aktif' => $hari,
+            'tahun_tidak_aktif' => intdiv($hari, 365),
+            'terakhir_aktif' => $fmt($terakhir),
+            'dinonaktifkan_pada' => $fmt($dinonaktifkan),
+        ];
     }
 
     // Scope

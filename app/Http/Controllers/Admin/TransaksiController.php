@@ -134,13 +134,13 @@ class TransaksiController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Tanggal penuh dibooking pelanggan online, per produk & kombinasi ukuran/warna (untuk peringatan di form)
-        $tanggalPenuh = $produks->filter(fn ($p) => $p->bisa_disewa)
-            ->mapWithKeys(fn ($p) => [$p->id => KetersediaanSewa::tanggalPenuh($p)])
-            ->filter(fn ($peta) => collect($peta)->flatten()->isNotEmpty())
+        // Kapasitas & unit terbooking per tanggal (online + kasir), per produk & kombinasi ukuran/warna
+        $ketersediaan = $produks->filter(fn ($p) => $p->bisa_disewa)
+            ->mapWithKeys(fn ($p) => [$p->id => KetersediaanSewa::ringkasan($p)])
+            ->filter(fn ($peta) => collect($peta)->contains(fn ($v) => ! empty($v['hitung'])))
             ->all();
 
-        return view('admin.transaksi.create', compact('produks', 'kategoris', 'users', 'tanggalPenuh'));
+        return view('admin.transaksi.create', compact('produks', 'kategoris', 'users', 'ketersediaan'));
     }
 
     /**
@@ -545,6 +545,10 @@ class TransaksiController extends Controller
 
         // Ubah status di tabel pembayaran (jika ada tagihan DP/Pending)
         $transaksi->pembayaran()->update(['status_midtrans' => 'success']);
+
+        // Pembayaran tunai: tanggal bayar = saat admin menerima uang di toko
+        // (sebelumnya terisi otomatis saat pesanan dibuat).
+        $transaksi->pembayaran()->where('metode', 'tunai')->update(['tanggal_bayar' => now()]);
 
         return redirect()->back()->with('success', 'Status pembayaran berhasil diubah menjadi LUNAS.');
     }

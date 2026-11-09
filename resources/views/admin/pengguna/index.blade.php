@@ -1,35 +1,24 @@
 @extends('admin.layouts.admin')
-@section('title', 'Kelola Pengguna')
+@section('title', 'Pengguna Tidak Aktif (≥360 Hari)')
 
 @section('content')
 @php
     $tgl = fn ($v) => $v ? \Illuminate\Support\Carbon::parse($v)->locale('id') : null;
-    $adaFilter = request()->filled('search') || $status !== '' || $inaktif > 0;
+    // Paksa filter setahun (360 hari) — view hanya menampilkan akun yang tidak aktif ≥ 360 hari.
+    // Controller diharapkan membaca ?inaktif=360 dan memfilter $users sesuai nilai tersebut.
+    $batasLama = 360;
+    $adaFilter = request()->filled('search') || $status !== '';
 @endphp
 
 <div class="p-6 space-y-6 transition-all duration-500 animate-fade-in">
 
     <style>
-        .group-shine {
-            position: relative;
-            overflow: hidden;
-        }
-
+        .group-shine { position: relative; overflow: hidden; }
         .group-shine::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -60%;
-            width: 20%;
-            height: 200%;
-            background: rgba(255, 255, 255, 0.25);
-            transform: rotate(30deg);
-            transition: all 0.6s ease;
+            content: ''; position: absolute; top: -50%; left: -60%; width: 20%; height: 200%;
+            background: rgba(255, 255, 255, 0.25); transform: rotate(30deg); transition: all 0.6s ease;
         }
-
-        .group-shine:hover::after {
-            left: 130%;
-        }
+        .group-shine:hover::after { left: 130%; }
     </style>
 
     {{-- Flash messages --}}
@@ -59,8 +48,8 @@
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Kelola Pengguna</h1>
-            <p class="text-xs text-gray-500 mt-1">Pantau akun pelanggan, tinjau yang lama tidak aktif, lalu nonaktifkan atau hapus bila perlu.</p>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Pengguna Tidak Aktif (≥360 Hari)</h1>
+            <p class="text-xs text-gray-500 mt-1">Hanya menampilkan akun pelanggan yang tidak aktif ≥ 360 hari (setahun). Tinjau, nonaktifkan, atau hapus bila perlu.</p>
         </div>
         <button type="button" data-modal-open="modal-tambah-pengguna"
                 class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold py-2.5 px-5 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all duration-200 text-sm cursor-pointer">
@@ -126,11 +115,11 @@
             <p class="mt-2 text-xs font-medium text-slate-500">Akses dibatasi sementara</p>
         </div>
 
-        {{-- Card 4: Tidak Aktif >= X Hari (link) --}}
+        {{-- Card 4: Tidak Aktif ≥ 360 Hari (link) --}}
         <a href="{{ route('admin.pengguna.index', ['inaktif' => $batasLama, 'status' => 'aktif']) }}"
            class="group group-shine relative overflow-hidden rounded-2xl border border-rose-200/60 bg-gradient-to-br from-rose-50/80 via-white to-rose-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-rose-800/80">Tidak Aktif &ge; {{ $batasLama }} Hari</span>
+                <span class="text-xs font-semibold uppercase tracking-wider text-rose-800/80">Tidak Aktif ≥ {{ $batasLama }} Hari</span>
                 <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-pink-500 text-white shadow-md shadow-rose-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -147,6 +136,9 @@
 
     {{-- Filter --}}
     <form method="GET" action="{{ route('admin.pengguna.index') }}" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4">
+        {{-- Filter setahun dipaksa lewat hidden input agar setiap submit tetap membawa nilainya --}}
+        <input type="hidden" name="inaktif" value="{{ $batasLama }}">
+
         <div class="relative w-full lg:w-80">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -156,20 +148,18 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Tidak aktif ≥ {{ $batasLama }} hari
+            </span>
             <select name="status" onchange="this.form.submit()" aria-label="Status akun" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer">
                 <option value="">Semua Status</option>
                 <option value="aktif" {{ $status === 'aktif' ? 'selected' : '' }}>Aktif</option>
                 <option value="nonaktif" {{ $status === 'nonaktif' ? 'selected' : '' }}>Dinonaktifkan</option>
             </select>
-            <select name="inaktif" onchange="this.form.submit()" aria-label="Lama tidak aktif" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer">
-                <option value="">Semua Aktivitas</option>
-                @foreach ([30, 60, 90, 180] as $hari)
-                    <option value="{{ $hari }}" {{ $inaktif === $hari ? 'selected' : '' }}>Tidak aktif &ge; {{ $hari }} hari</option>
-                @endforeach
-            </select>
             <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-800 transition-all">Cari</button>
             @if ($adaFilter)
-                <a href="{{ route('admin.pengguna.index') }}" class="text-xs font-bold text-gray-500 hover:text-amber-600">Reset</a>
+                <a href="{{ route('admin.pengguna.index', ['inaktif' => $batasLama]) }}" class="text-xs font-bold text-gray-500 hover:text-amber-600">Reset</a>
             @endif
         </div>
     </form>
@@ -177,7 +167,7 @@
     {{-- Tabel --}}
     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
 
-        {{-- Bar aksi massal (muncul saat ada yang dicentang) --}}
+        {{-- Bar aksi massal --}}
         <div id="bar-massal" class="hidden items-center justify-between gap-3 border-b border-amber-100 bg-amber-50/70 px-6 py-3">
             <p class="text-xs font-semibold text-amber-900"><span id="jumlah-dipilih">0</span> akun dipilih</p>
             <div class="flex items-center gap-2">
@@ -260,7 +250,7 @@
                                     {{-- Edit --}}
                                     <button type="button" data-modal-open="modal-edit-pengguna"
                                             data-id="{{ $u->id }}"
-                                            data-user="{{ json_encode($u->only(['name','email','no_hp','alamat','provinsi','kota_kabupaten','kecamatan','kode_pos'])) }}"
+                                            data-user="{{ json_encode($dataEdit[$u->id] ?? []) }}"
                                             title="Edit akun" aria-label="Edit akun {{ $u->name }}"
                                             class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 shadow-sm transition-all hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -297,7 +287,9 @@
                     @empty
                         <tr>
                             <td colspan="7" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
-                                {{ $adaFilter ? 'Tidak ada pengguna yang cocok dengan filter ini.' : 'Belum ada akun pengguna.' }}
+                                {{ $adaFilter
+                                    ? 'Tidak ada pengguna yang cocok dengan filter ini.'
+                                    : 'Tidak ada akun yang tidak aktif ≥ '.$batasLama.' hari.' }}
                             </td>
                         </tr>
                     @endforelse
@@ -305,7 +297,7 @@
             </table>
         </div>
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
-            {{ $users->links() }}
+            {{ $users->appends(['inaktif' => $batasLama])->links() }}
         </div>
     </div>
 </div>
@@ -378,35 +370,10 @@
             <p class="mt-1 text-[11px] text-gray-400">Kosongkan jika pelanggan masuk lewat kode OTP atau akun Google.</p>
         </div>
 
-        {{-- Alamat & wilayah — opsional, sama seperti field di halaman Profil pelanggan --}}
-        <div>
-            <label for="tp-alamat" class="text-xs font-bold text-gray-500">Alamat lengkap (opsional)</label>
-            <textarea id="tp-alamat" name="alamat" rows="2" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none">{{ old('alamat') }}</textarea>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-                <label for="tp-provinsi" class="text-xs font-bold text-gray-500">Provinsi</label>
-                <select id="tp-provinsi" name="provinsi" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
-                    <option value="">Pilih Provinsi</option>
-                </select>
-            </div>
-            <div>
-                <label for="tp-kota" class="text-xs font-bold text-gray-500">Kota/Kabupaten</label>
-                <select id="tp-kota" name="kota_kabupaten" disabled class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="">Pilih Kota/Kabupaten</option>
-                </select>
-            </div>
-            <div>
-                <label for="tp-kecamatan" class="text-xs font-bold text-gray-500">Kecamatan</label>
-                <select id="tp-kecamatan" name="kecamatan" disabled class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="">Pilih Kecamatan</option>
-                </select>
-            </div>
-        </div>
-        <div>
-            <label for="tp-kodepos" class="text-xs font-bold text-gray-500">Kode pos (opsional)</label>
-            <input type="text" id="tp-kodepos" name="kode_pos" value="{{ old('kode_pos') }}" maxlength="10" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
-        </div>
+        @include('admin.pengguna._form-alamat', [
+            'p' => 'tp',
+            'catatan' => 'Opsional. Jika diisi, disimpan sebagai alamat utama pelanggan dan tampil di menu Alamat Saya.',
+        ])
 
         <input type="hidden" name="verifikasi_email" value="0">
         <label class="flex cursor-pointer items-start gap-3 text-xs text-gray-700">
@@ -464,34 +431,11 @@
             <input type="password" id="ep-pass" name="password" minlength="8" autocomplete="new-password" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
             <p class="mt-1 text-[11px] text-gray-400">Kosongkan jika tidak ingin mengubah kata sandi.</p>
         </div>
-        <div>
-            <label for="ep-alamat" class="text-xs font-bold text-gray-500">Alamat lengkap</label>
-            <textarea id="ep-alamat" name="alamat" rows="2" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none"></textarea>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-                <label for="ep-provinsi" class="text-xs font-bold text-gray-500">Provinsi</label>
-                <select id="ep-provinsi" name="provinsi" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
-                    <option value="">Pilih Provinsi</option>
-                </select>
-            </div>
-            <div>
-                <label for="ep-kota" class="text-xs font-bold text-gray-500">Kota/Kabupaten</label>
-                <select id="ep-kota" name="kota_kabupaten" disabled class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="">Pilih Kota/Kabupaten</option>
-                </select>
-            </div>
-            <div>
-                <label for="ep-kecamatan" class="text-xs font-bold text-gray-500">Kecamatan</label>
-                <select id="ep-kecamatan" name="kecamatan" disabled class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                    <option value="">Pilih Kecamatan</option>
-                </select>
-            </div>
-        </div>
-        <div>
-            <label for="ep-kodepos" class="text-xs font-bold text-gray-500">Kode pos</label>
-            <input type="text" id="ep-kodepos" name="kode_pos" maxlength="10" class="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm">
-        </div>
+        <input type="hidden" name="ubah_alamat" id="ep-ubah" value="0">
+        @include('admin.pengguna._form-alamat', [
+            'p' => 'ep',
+            'catatan' => 'Perubahan di sini memperbarui alamat utama pelanggan (menu Alamat Saya).',
+        ])
     </form>
 
     <x-slot:footer>
@@ -500,7 +444,7 @@
     </x-slot:footer>
 </x-modal>
 
-{{-- ================= MODAL: KONFIRMASI (satu modal untuk semua aksi) ================= --}}
+{{-- ================= MODAL: KONFIRMASI ================= --}}
 <x-modal id="modal-konfirmasi-pengguna" title="Konfirmasi" size="sm">
     <form id="form-konfirmasi-pengguna" method="POST" action="#" class="space-y-3">
         @csrf
@@ -565,84 +509,178 @@
         var URL_UPDATE = @json(route('admin.pengguna.update', '__ID__'));
         var OLD_EDIT = @json(old('_form') === 'edit' ? old() : null);
 
-        // Wilayah berjenjang untuk modal edit (diisi ulang setiap modal dibuka)
-        var isiWilayahEdit = (function () {
-            var selProv = $('ep-provinsi'), selKota = $('ep-kota'), selKec = $('ep-kecamatan');
-            var provinces = [], cities = [], promiseProv = null;
+        // ---------- Alamat pengiriman ----------
+        var URL_PROVINSI = @json(route('admin.pengguna.ongkir.provinsi'));
+        var URL_KOTA = @json(route('admin.pengguna.ongkir.kota', '__ID__'));
+        var URL_KECAMATAN = @json(route('admin.pengguna.ongkir.kecamatan', '__ID__'));
+        var URL_TUJUAN = @json(route('admin.pengguna.ongkir.tujuan'));
 
-            function toList(json) {
-                if (Array.isArray(json)) return json;
-                if (json && Array.isArray(json.data)) return json.data;
-                return [];
+        function pasangAlamat(p, saatDiubah) {
+            var el = function (s) { return $(p + '-' + s); };
+            var selProv = el('provinsi'), selKota = el('kota'), selKec = el('kecamatan');
+            var inCari = el('tujuan-q'), kotak = el('tujuan-hasil'), info = el('tujuan-info');
+            var idTujuan = el('tujuan-id'), labelTujuan = el('tujuan-label'), kodePos = el('kodepos');
+            var radios = selProv.form.querySelectorAll('input[name="label"]');
+            var daftarProvinsi = [], timer = null;
+            var ubah = function () { if (saatDiubah) saatDiubah(); };
+
+            function sama(a, b) { return String(a || '').toLowerCase() === String(b || '').toLowerCase(); }
+
+            async function ambil(url) {
+                var res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) throw new Error(url + ' -> HTTP ' + res.status);
+                var json = await res.json();
+                return Array.isArray(json) ? json : (json && Array.isArray(json.data) ? json.data : []);
             }
-            function idOf(item) { return item.id ?? item.code ?? item.kode; }
-            function sama(a, b) { return (a || '').toString().toLowerCase() === (b || '').toString().toLowerCase(); }
-            function ambilDaftar(url) {
-                return fetch(url, { headers: { 'Accept': 'application/json' } }).then(function (res) {
-                    if (!res.ok) throw new Error(url + ' -> HTTP ' + res.status);
-                    return res.json();
-                }).then(toList);
-            }
-            function isiSelect(select, items, placeholder, terpilih) {
+
+            function isiPilihan(select, items, placeholder, terpilih) {
                 select.innerHTML = '';
-                var kosong = document.createElement('option');
-                kosong.value = '';
-                kosong.textContent = placeholder;
-                select.appendChild(kosong);
+                select.add(new Option(placeholder, ''));
                 items.forEach(function (item) {
-                    var opt = document.createElement('option');
-                    opt.value = item.name;
-                    opt.textContent = item.name;
-                    if (terpilih && sama(item.name, terpilih)) opt.selected = true;
-                    select.appendChild(opt);
+                    var opt = new Option(item.name, item.name, false, !!terpilih && sama(item.name, terpilih));
+                    opt.dataset.id = item.id;
+                    select.add(opt);
                 });
                 select.disabled = items.length === 0;
             }
-            function muatProvinsi() {
-                if (!promiseProv) {
-                    promiseProv = ambilDaftar('/api/wilayah/provinces').then(function (list) {
-                        provinces = list;
-                    }).catch(function (err) { promiseProv = null; console.error('Gagal memuat provinsi:', err); });
+
+            function gagal(select, pesan) {
+                select.innerHTML = '';
+                select.add(new Option(pesan, ''));
+                select.disabled = true;
+            }
+
+            async function muatProvinsi(terpilih) {
+                try {
+                    if (!daftarProvinsi.length) daftarProvinsi = await ambil(URL_PROVINSI);
+                    isiPilihan(selProv, daftarProvinsi, 'Pilih Provinsi', terpilih);
+                } catch (e) {
+                    console.error(e);
+                    gagal(selProv, 'Gagal memuat provinsi');
                 }
-                return promiseProv;
-            }
-            function muatKota(namaProv, kotaTerpilih) {
-                cities = [];
-                isiSelect(selKota, [], 'Pilih Kota/Kabupaten');
-                isiSelect(selKec, [], 'Pilih Kecamatan');
-                var prov = provinces.filter(function (p) { return sama(p.name, namaProv); })[0];
-                if (!prov) return Promise.resolve();
-                return ambilDaftar('/api/wilayah/cities/' + idOf(prov)).then(function (list) {
-                    cities = list;
-                    isiSelect(selKota, cities, 'Pilih Kota/Kabupaten', kotaTerpilih);
-                }).catch(function (err) { console.error('Gagal memuat kota:', err); });
-            }
-            function muatKecamatan(namaKota, kecTerpilih) {
-                isiSelect(selKec, [], 'Pilih Kecamatan');
-                var kota = cities.filter(function (c) { return sama(c.name, namaKota); })[0];
-                if (!kota) return Promise.resolve();
-                return ambilDaftar('/api/wilayah/districts/' + idOf(kota)).then(function (list) {
-                    isiSelect(selKec, list, 'Pilih Kecamatan', kecTerpilih);
-                }).catch(function (err) { console.error('Gagal memuat kecamatan:', err); });
             }
 
-            selProv.addEventListener('change', function (e) { muatKota(e.target.value); });
-            selKota.addEventListener('change', function (e) { muatKecamatan(e.target.value); });
+            async function muatKota(terpilih) {
+                isiPilihan(selKota, [], 'Pilih Kota/Kabupaten');
+                isiPilihan(selKec, [], 'Pilih Kecamatan');
+                var opt = selProv.selectedOptions[0];
+                if (!opt || !opt.dataset.id) return;
+                try {
+                    isiPilihan(selKota, await ambil(URL_KOTA.replace('__ID__', opt.dataset.id)), 'Pilih Kota/Kabupaten', terpilih);
+                } catch (e) {
+                    console.error(e);
+                    gagal(selKota, 'Gagal memuat kota');
+                }
+            }
 
-            return function (prov, kota, kec) {
-                return muatProvinsi().then(function () {
-                    isiSelect(selProv, provinces, 'Pilih Provinsi', prov);
-                    if (!prov) {
-                        isiSelect(selKota, [], 'Pilih Kota/Kabupaten');
-                        isiSelect(selKec, [], 'Pilih Kecamatan');
-                        return;
-                    }
-                    return muatKota(prov, kota).then(function () {
-                        if (kota) return muatKecamatan(kota, kec);
+            async function muatKecamatan(terpilih) {
+                isiPilihan(selKec, [], 'Pilih Kecamatan');
+                var opt = selKota.selectedOptions[0];
+                if (!opt || !opt.dataset.id) return;
+                try {
+                    isiPilihan(selKec, await ambil(URL_KECAMATAN.replace('__ID__', opt.dataset.id)), 'Pilih Kecamatan', terpilih);
+                } catch (e) {
+                    console.error(e);
+                    gagal(selKec, 'Gagal memuat kecamatan');
+                }
+            }
+
+            function resetTujuan() {
+                idTujuan.value = '';
+                labelTujuan.value = '';
+                info.textContent = '';
+            }
+
+            function tampilHasil(list) {
+                kotak.replaceChildren();
+                if (!list.length) {
+                    var kosong = document.createElement('p');
+                    kosong.className = 'px-3 py-2 text-xs text-gray-400';
+                    kosong.textContent = 'Tujuan tidak ditemukan.';
+                    kotak.appendChild(kosong);
+                }
+                list.forEach(function (t) {
+                    var b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'block w-full border-b border-gray-50 px-3 py-2 text-left text-xs text-gray-700 last:border-0 hover:bg-amber-50';
+                    b.textContent = t.label;
+                    b.addEventListener('click', function () {
+                        idTujuan.value = t.id;
+                        labelTujuan.value = t.label;
+                        inCari.value = t.label;
+                        kotak.classList.add('hidden');
+                        info.textContent = 'Tujuan dipilih.';
+                        if (t.zip_code) kodePos.value = t.zip_code;
+                        ubah();
                     });
+                    kotak.appendChild(b);
                 });
+                kotak.classList.remove('hidden');
+            }
+
+            inCari.addEventListener('input', function () {
+                resetTujuan();
+                ubah();
+                clearTimeout(timer);
+                var q = inCari.value.trim();
+                if (q.length < 3) { kotak.classList.add('hidden'); return; }
+                timer = setTimeout(async function () {
+                    try {
+                        tampilHasil(await ambil(URL_TUJUAN + '?q=' + encodeURIComponent(q)));
+                    } catch (e) {
+                        console.error(e);
+                        info.textContent = 'Gagal mencari tujuan. Coba lagi.';
+                    }
+                }, 350);
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!kotak.contains(e.target) && e.target !== inCari) kotak.classList.add('hidden');
+            });
+
+            selProv.addEventListener('change', function () { inCari.value = ''; kodePos.value = ''; resetTujuan(); muatKota(); ubah(); });
+            selKota.addEventListener('change', function () { inCari.value = ''; kodePos.value = ''; resetTujuan(); muatKecamatan(); ubah(); });
+            selKec.addEventListener('change', function () {
+                resetTujuan();
+                ubah();
+                if (selKec.value) {
+                    inCari.value = selKec.value;
+                    inCari.dispatchEvent(new Event('input'));
+                } else {
+                    inCari.value = '';
+                }
+            });
+            el('alamat').addEventListener('input', ubah);
+            kodePos.addEventListener('input', ubah);
+            radios.forEach(function (r) { r.addEventListener('change', ubah); });
+
+            return {
+                isi: async function (d) {
+                    d = d || {};
+                    el('alamat').value = d.alamat || '';
+                    kodePos.value = d.kode_pos || '';
+                    idTujuan.value = d.tujuan_id || '';
+                    labelTujuan.value = d.tujuan_label || '';
+                    inCari.value = d.tujuan_label || '';
+                    kotak.classList.add('hidden');
+                    info.textContent = d.tujuan_label
+                        ? 'Tujuan tersimpan.'
+                        : (d.provinsi ? 'Kelurahan tujuan belum tersimpan. Cari ulang bila alamat ini diubah.' : '');
+                    radios.forEach(function (r) { r.checked = r.value === (d.label || 'Rumah'); });
+
+                    await muatProvinsi(d.provinsi);
+                    if (d.provinsi) {
+                        await muatKota(d.kota_kabupaten);
+                        if (d.kota_kabupaten) await muatKecamatan(d.kecamatan);
+                    } else {
+                        isiPilihan(selKota, [], 'Pilih Kota/Kabupaten');
+                        isiPilihan(selKec, [], 'Pilih Kecamatan');
+                    }
+                }
             };
-        })();
+        }
+
+        var alamatEdit = pasangAlamat('ep', function () { $('ep-ubah').value = '1'; });
 
         function isiFormEdit(id, d) {
             $('form-edit-pengguna').action = URL_UPDATE.replace('__ID__', id);
@@ -651,9 +689,16 @@
             $('ep-email').value = d.email || '';
             $('ep-hp').value = d.no_hp || '';
             $('ep-pass').value = '';
-            $('ep-alamat').value = d.alamat || '';
-            $('ep-kodepos').value = d.kode_pos || '';
-            isiWilayahEdit(d.provinsi, d.kota_kabupaten, d.kecamatan);
+            $('ep-ubah').value = String(d.ubah_alamat) === '1' ? '1' : '0';
+
+            var n = parseInt(d.jumlah_alamat || 0, 10);
+            $('ep-catatan').textContent = n > 1
+                ? 'Pelanggan punya ' + n + ' alamat tersimpan. Perubahan di sini hanya memperbarui alamat utama (menu Alamat Saya).'
+                : (n === 1
+                    ? 'Perubahan di sini memperbarui alamat utama pelanggan (menu Alamat Saya).'
+                    : 'Pelanggan belum punya alamat tersimpan. Jika diisi, disimpan sebagai alamat utama di menu Alamat Saya.');
+
+            alamatEdit.isi(d);
         }
 
         $('modal-edit-pengguna').addEventListener('modal:open', function (e) {
@@ -665,7 +710,7 @@
             if (b && b.dataset.user) {
                 isiFormEdit(b.dataset.id, JSON.parse(b.dataset.user));
             } else if (OLD_EDIT) {
-                isiFormEdit(OLD_EDIT._id, OLD_EDIT); // dibuka ulang setelah validasi gagal
+                isiFormEdit(OLD_EDIT._id, OLD_EDIT);
             }
         });
 
@@ -679,7 +724,7 @@
             document.addEventListener('DOMContentLoaded', function () { window.openModal('modal-edit-pengguna'); });
         }
 
-        // ---------- Konfirmasi (aksi tunggal & massal) ----------
+        // ---------- Konfirmasi ----------
         var form = $('form-konfirmasi-pengguna');
         var tombol = $('btn-konfirmasi-pengguna');
         var TEKS = {
@@ -779,106 +824,16 @@
             document.addEventListener('DOMContentLoaded', function () { window.openModal('modal-tambah-pengguna'); });
         @endif
 
-        // ---------- Wilayah berjenjang (provinsi -> kota -> kecamatan) di modal Tambah Akun ----------
-        // Logikanya sama seperti wilayahForm() di halaman Profil pelanggan, cuma
-        // ditulis plain JS (bukan Alpine) supaya tidak nambah dependency di panel admin.
-        (function () {
-            var selProv = $('tp-provinsi');
-            var selKota = $('tp-kota');
-            var selKec = $('tp-kecamatan');
-            if (!selProv || !selKota || !selKec) return;
+        // ---------- Alamat di modal Tambah Akun ----------
+        var alamatTambah = pasangAlamat('tp');
+        var OLD_TAMBAH = @json(old('_form') === 'tambah' ? old() : null);
+        var tambahDimuat = false;
 
-            var provinces = [];
-            var cities = [];
-            var sudahDimuat = false;
-
-            var provinsiLama = @json(old('provinsi'));
-            var kotaLama = @json(old('kota_kabupaten'));
-            var kecamatanLama = @json(old('kecamatan'));
-
-            function toList(json) {
-                if (Array.isArray(json)) return json;
-                if (json && Array.isArray(json.data)) return json.data;
-                return [];
-            }
-            function idOf(item) { return item.id ?? item.code ?? item.kode; }
-            function sama(a, b) { return (a || '').toString().toLowerCase() === (b || '').toString().toLowerCase(); }
-
-            function ambilDaftar(url) {
-                return fetch(url, { headers: { 'Accept': 'application/json' } }).then(function (res) {
-                    if (!res.ok) throw new Error(url + ' -> HTTP ' + res.status);
-                    return res.json();
-                }).then(toList);
-            }
-
-            function isiSelect(select, items, placeholder, namaTerpilih) {
-                select.innerHTML = '';
-                var kosong = document.createElement('option');
-                kosong.value = '';
-                kosong.textContent = placeholder;
-                select.appendChild(kosong);
-                items.forEach(function (item) {
-                    var opt = document.createElement('option');
-                    opt.value = item.name;
-                    opt.textContent = item.name;
-                    if (namaTerpilih && sama(item.name, namaTerpilih)) opt.selected = true;
-                    select.appendChild(opt);
-                });
-                select.disabled = items.length === 0;
-            }
-
-            function muatKota(namaProvinsi, kotaTerpilih) {
-                cities = [];
-                isiSelect(selKota, [], 'Pilih Kota/Kabupaten');
-                isiSelect(selKec, [], 'Pilih Kecamatan');
-
-                var prov = provinces.filter(function (p) { return sama(p.name, namaProvinsi); })[0];
-                if (!prov) return Promise.resolve();
-
-                return ambilDaftar('/api/wilayah/cities/' + idOf(prov)).then(function (list) {
-                    cities = list;
-                    isiSelect(selKota, cities, 'Pilih Kota/Kabupaten', kotaTerpilih);
-                }).catch(function (err) { console.error('Gagal memuat kota:', err); });
-            }
-
-            function muatKecamatan(namaKota, kecamatanTerpilih) {
-                isiSelect(selKec, [], 'Pilih Kecamatan');
-
-                var kota = cities.filter(function (c) { return sama(c.name, namaKota); })[0];
-                if (!kota) return Promise.resolve();
-
-                return ambilDaftar('/api/wilayah/districts/' + idOf(kota)).then(function (list) {
-                    isiSelect(selKec, list, 'Pilih Kecamatan', kecamatanTerpilih);
-                }).catch(function (err) { console.error('Gagal memuat kecamatan:', err); });
-            }
-
-            function muatProvinsi() {
-                if (sudahDimuat) return;
-                sudahDimuat = true;
-
-                ambilDaftar('/api/wilayah/provinces').then(function (list) {
-                    provinces = list;
-                    isiSelect(selProv, provinces, 'Pilih Provinsi', provinsiLama);
-
-                    if (provinsiLama) {
-                        return muatKota(provinsiLama, kotaLama).then(function () {
-                            if (kotaLama) return muatKecamatan(kotaLama, kecamatanLama);
-                        });
-                    }
-                }).catch(function (err) { console.error('Gagal memuat provinsi:', err); });
-            }
-
-            selProv.addEventListener('change', function (e) { muatKota(e.target.value); });
-            selKota.addEventListener('change', function (e) { muatKecamatan(e.target.value); });
-
-            // Muat daftar provinsi begitu modal tambah akun dibuka (sekali saja, biar hemat request)
-            $('modal-tambah-pengguna').addEventListener('modal:open', muatProvinsi);
-
-            // Kalau validasi server gagal dan modal ini otomatis kebuka lagi, langsung muat juga
-            @if ($errors->any() && old('_form') === 'tambah')
-                muatProvinsi();
-            @endif
-        })();
+        $('modal-tambah-pengguna').addEventListener('modal:open', function () {
+            if (tambahDimuat) return;
+            tambahDimuat = true;
+            alamatTambah.isi(OLD_TAMBAH || {});
+        });
     })();
 </script>
 @endsection

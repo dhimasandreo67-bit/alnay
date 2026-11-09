@@ -43,26 +43,34 @@ class PengirimanController extends Controller
         ));
     }
 
-        public function updateStatus(Request $request, $id)
+            public function updateStatus(Request $request, $id)
     {
-        $pengiriman = Pengiriman::findOrFail($id);
-        
-        $data = ['status_kirim' => $request->status_kirim];
-        
-        // Jika status berubah menjadi 'dikirim', wajib isi kurir & resi
-        if ($request->status_kirim === 'dikirim') {
-            $request->validate([
-                'kurir' => 'required|string|max:50',
-                'layanan_ongkir' => 'required|string|max:30',
-                'no_resi' => 'required|string|max:100',
-            ]);
-            $data['kurir'] = $request->kurir;
-            $data['layanan_ongkir'] = $request->layanan_ongkir;
-            $data['no_resi'] = $request->no_resi;
+        // 1. Validasi dasar
+        $request->validate([
+            'status_kirim' => 'required|string'
+        ]);
+
+        $pengiriman = \App\Models\Pengiriman::findOrFail($id);
+
+        // 2. Siapkan data
+        $data = [
+            'status_kirim' => $request->status_kirim,
+        ];
+
+        // 3. Jika status berubah jadi 'dikirim', simpan tanggal kirim
+        if ($request->status_kirim === 'dikirim' && !$pengiriman->tanggal_kirim) {
+            $data['tanggal_kirim'] = now();
         }
-                
+
+        // 4. Jika status berubah jadi 'diterima', simpan tanggal terima
+        if ($request->status_kirim === 'diterima' && !$pengiriman->tanggal_diterima) {
+            $data['tanggal_diterima'] = now();
+        }
+
+        // 5. Update ke database
         $pengiriman->update($data);
 
+        // 6. Kembalikan ke halaman sebelumnya dengan pesan sukses
         return back()->with('success', 'Status pengiriman berhasil diperbarui!');
     }
 

@@ -76,45 +76,6 @@
             @endif
 
             {{-- ============ BANNER STATUS ============ --}}
-            <div class="kb-up mb-6" style="--d: .1s;">
-                {{-- Menunggu --}}
-                <div x-show="status === 'menunggu'" x-cloak x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="rounded-xl border border-amber-300 bg-amber-50 px-5 py-4 shadow-sm">
-                    <div class="flex items-start gap-3.5">
-                        <span class="kb-dot mt-1.5 w-3 h-3 rounded-full bg-amber-500 text-amber-500 shrink-0"></span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-[15px] md:text-base font-semibold text-amber-900">Menunggu pembayaran DP & Deposit</p>
-                            <p class="text-[13px] text-amber-800/80 mt-0.5 leading-relaxed">Pesanan sewa Anda belum diproses sampai pembayaran kami terima. Halaman ini memeriksa status secara otomatis.</p>
-                        </div>
-                    </div>
-                    <div class="mt-3.5 h-1.5 rounded-full bg-amber-200/70 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:w-[40%] after:bg-gradient-to-r after:from-transparent after:via-white/75 after:to-transparent after:animate-[kb-sweep_1.8s_ease-in-out_infinite]"></div>
-                </div>
-
-                {{-- Lunas / DP Diterima --}}
-                <div x-show="status === 'lunas'" x-cloak x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 shadow-sm">
-                    <div class="flex items-center gap-3.5">
-                        <span class="w-9 h-9 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        </span>
-                        <div>
-                            <p class="text-[15px] md:text-base font-semibold text-emerald-900">Pembayaran DP Diterima</p>
-                            <p class="text-[13px] text-emerald-800/80 mt-0.5">Terima kasih, jadwal sewa Anda sudah kami kunci.</p>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Gagal --}}
-                <div x-show="status === 'gagal'" x-cloak x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="rounded-xl border border-rose-300 bg-rose-50 px-5 py-4 shadow-sm">
-                    <div class="flex items-start gap-3.5">
-                        <span class="w-9 h-9 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6L6 18" /></svg>
-                        </span>
-                        <div>
-                            <p class="text-[15px] md:text-base font-semibold text-rose-900">Pembayaran tidak berhasil</p>
-                            <p class="text-[13px] text-rose-800/80 mt-0.5 leading-relaxed">Kode pembayaran sudah kedaluwarsa atau dibatalkan. Silakan buat pesanan baru dari katalog.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 lg:gap-8">
 

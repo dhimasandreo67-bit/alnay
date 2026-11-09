@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Produk;
-use App\Models\Transaksi;
-use Carbon\Carbon;
+use App\Support\KetersediaanSewa;
 
 class ProdukController extends Controller
 {
@@ -18,37 +17,12 @@ class ProdukController extends Controller
             ->take(4)
             ->get();
 
-        // --- LOGIKA MENCARI TANGGAL YANG SUDAH DIBOOKING ---
-        $dibooking = [];
+        // Kapasitas & jumlah unit terbooking per tanggal, per kombinasi ukuran/warna (online + kasir).
+        $ketersediaan = $produk->bisa_disewa ? KetersediaanSewa::ringkasan($produk) : [];
 
-        // Ambil semua transaksi yang memiliki produk ini, statusnya aktif, dan memiliki data sewa
-        $transaksiAktif = Transaksi::whereHas('detail', function ($query) use ($produk) {
-                $query->where('produk_id', $produk->id);
-            })
-            ->whereIn('status_pembayaran', ['pending', 'dp', 'dp_dibayar', 'lunas', 'success', 'dibayar'])
-            ->whereHas('sewa', function($q) {
-                $q->whereIn('status', ['aktif', 'pending']); // Hanya sewa yang masih aktif
-            })
-            ->with('sewa')
-            ->get();
+        // Daftar tanggal yang sudah penuh per kombinasi (dipakai kalender di halaman detail)
+        $tanggalPenuh = $produk->bisa_disewa ? KetersediaanSewa::tanggalPenuh($produk) : [];
 
-        foreach ($transaksiAktif as $trx) {
-            if ($trx->sewa) {
-                $start = Carbon::parse($trx->sewa->tanggal_pinjam);
-                $end = Carbon::parse($trx->sewa->tanggal_kembali_rencana);
-                
-                // Masukkan semua tanggal dalam rentang sewa ke array
-                while ($start->lte($end)) {
-                    $dibooking[] = $start->format('Y-m-d');
-                    $start->addDay();
-                }
-            }
-        }
-
-        // Bersihkan duplikat dan urutkan
-        $dibooking = array_values(array_unique($dibooking));
-        sort($dibooking);
-
-        return view('customer.produk-detail', compact('produk', 'serupa', 'dibooking'));
+        return view('customer.produk-detail', compact('produk', 'serupa', 'ketersediaan', 'tanggalPenuh'));
     }
 }

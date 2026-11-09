@@ -44,6 +44,7 @@ Route::middleware('auth:web')->group(function () {
     // --- CHECKOUT ---
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::post('/checkout/alamat', [CheckoutController::class, 'simpanAlamat'])->name('checkout.alamat.simpan');
 
     // --- FITTING ---
     Route::get('/fitting', [FittingController::class, 'create'])->name('fitting.create');
@@ -84,6 +85,17 @@ Route::middleware('auth:web')->group(function () {
 
 
 });
+
+// Halaman info untuk akun yang dinonaktifkan (diisi oleh listener BlokirAkunNonaktif saat login)
+Route::get('/akun-nonaktif', function () {
+    $info = session('akun_nonaktif');
+
+    if (! $info) {
+        return redirect('/');
+    }
+
+    return view('auth.akun-nonaktif', ['info' => $info]);
+})->name('akun.nonaktif');
 
 // Webhook Midtrans
 Route::post('/midtrans/webhook', [SewaController::class, 'webhook'])->name('midtrans.webhook');

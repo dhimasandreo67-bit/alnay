@@ -12,7 +12,9 @@ use App\Http\Controllers\Admin\PenggunaController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\LaporanController;
 use App\Http\Controllers\Admin\PengirimanController;
+use App\Http\Controllers\OngkirController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\SewaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -115,6 +117,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('pengguna')->name('pengguna.')->group(function () {
             Route::get('/', [PenggunaController::class, 'index'])->name('index');
             Route::post('/', [PenggunaController::class, 'store'])->name('store');
+
+            // Data wilayah & pencarian kelurahan RajaOngkir untuk form alamat pengguna
+            // (sumber yang sama dengan halaman Checkout / Alamat Saya pelanggan)
+            Route::get('/ongkir/tujuan', [OngkirController::class, 'tujuan'])->name('ongkir.tujuan');
+            Route::get('/ongkir/provinsi', [OngkirController::class, 'provinsi'])->name('ongkir.provinsi');
+            Route::get('/ongkir/kota/{provinsiId}', [OngkirController::class, 'kota'])->name('ongkir.kota');
+            Route::get('/ongkir/kecamatan/{kotaId}', [OngkirController::class, 'kecamatan'])->name('ongkir.kecamatan');
             Route::put('/{id}', [PenggunaController::class, 'update'])->name('update');
             Route::get('/{id}', fn () => redirect()->route('admin.pengguna.index'))->whereNumber('id');
             Route::post('/massal', [PenggunaController::class, 'massal'])->name('massal');
@@ -132,5 +141,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('sewa/{id}/sinkron-denda-telat', [App\Http\Controllers\Admin\SewaController::class, 'sinkronDendaTelat'])->name('sewa.sinkron-denda-telat');
         Route::put('/pengecekan/{id}', [App\Http\Controllers\Admin\SewaController::class, 'updateQC'])->name('sewa.update-qc');
         Route::delete('/pengecekan/{id}', [App\Http\Controllers\Admin\SewaController::class, 'hapusQC'])->name('sewa.hapus-qc');
+        
+        // Denda
+        Route::post('/sewa/{id}/tambah-denda', [SewaController::class, 'tambahDenda'])->name('sewa.tambah-denda');
+        Route::patch('/denda/{id}/lunasi', [SewaController::class, 'lunasiDenda'])->name('sewa.lunasi-denda');
+        Route::delete('/denda/{id}/hapus', [SewaController::class, 'hapusDenda'])->name('sewa.hapus-denda'); // Route Hapus Baru
+        Route::post('/sewa/{id}/sinkron-denda-telat', [SewaController::class, 'sinkronDendaTelat'])->name('sewa.sinkron-denda-telat');
+        
+        // Lainnya
+        Route::patch('/sewa/{id}/ubah-status', [SewaController::class, 'ubahStatus'])->name('sewa.ubah-status');
+        Route::put('/pengecekan/{id}', [SewaController::class, 'updateQC'])->name('sewa.update-qc');
+        Route::delete('/pengecekan/{id}', [SewaController::class, 'hapusQC'])->name('sewa.hapus-qc');
     });
 });

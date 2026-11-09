@@ -24,15 +24,40 @@ class ProdukController extends Controller
 
         $produkList = $query->orderByDesc('id')->get();
 
+        // Kartu statistik dihitung dalam UNIT dari seluruh katalog (bukan jumlah baris produk, dan
+        // tidak terpengaruh filter), supaya ikut berubah saat ada transaksi beli/sewa dari kasir
+        // maupun online. Unit sewa yang sedang keluar hari ini dipakai juga untuk kolom stok tabel.
+        $semuaProduk  = Produk::all();
+        $sewaTerpakai = \App\Support\KetersediaanSewa::terpakaiHariIni($semuaProduk);
+
+        $totalUnit = $siapUnit = $disewaUnit = $perawatanUnit = 0;
+
+        foreach ($semuaProduk as $p) {
+            $unitJual   = $p->dapat_dijual ? $p->stokUntuk('jual') : 0;
+            $kapSewa    = $p->bisa_disewa ? $p->stokUntuk('sewa') : 0;
+            $keluar     = min($kapSewa, (int) ($sewaTerpakai[$p->id] ?? 0));
+            $totalUnit += $unitJual + $kapSewa;
+
+            if (in_array($p->status, ['dicuci', 'rusak'], true)) {
+                $perawatanUnit += $unitJual + $kapSewa;
+                continue;
+            }
+
+            $siapUnit   += $unitJual + ($kapSewa - $keluar);
+            $disewaUnit += $keluar;
+        }
+
         return view('admin.produk.index', [
             'produkList'      => $produkList,
+            'sewaTerpakai'    => $sewaTerpakai,
             'categories'      => Kategori::where('is_active', true)->orderBy('nama_kategori')->get(),
             'opsiStatus'      => Produk::opsiStatus(),
-            'totalKoleksi'    => Produk::count(),
+            'totalKoleksi'    => $semuaProduk->count(),
+            'totalUnit'       => $totalUnit,
             'totalKategori'   => Kategori::where('is_active', true)->count(),
-            'siapCount'       => Produk::where('status', 'tersedia')->count(),
-            'disewaCount'     => Produk::where('status', 'disewa')->count(),
-            'perawatanCount'  => Produk::whereIn('status', ['dicuci', 'rusak'])->count(),
+            'siapCount'       => $siapUnit,
+            'disewaCount'     => $disewaUnit,
+            'perawatanCount'  => $perawatanUnit,
             'filters'         => $request->only(['q', 'kategori_id', 'status', 'jenis']),
         ]);
     }
