@@ -627,7 +627,7 @@
         </div>
 
         @if (count($produkTerbaru) > 0)
-            <div class="stagger mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-5 items-stretch">
+            <div class="stagger mx-auto grid max-w-7xl grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 lg:grid-cols-5 items-stretch">
                 @foreach ($produkTerbaru as $p)
                     <div class="reveal h-full">
                         <x-product-card :produk="$p" />
@@ -668,7 +668,7 @@
             @endphp
 
                         @if (count($produkTerpopuler) > 0)
-                <div class="stagger mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-5 items-stretch">
+                        <div class="stagger mx-auto grid max-w-7xl grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 lg:grid-cols-5 items-stretch">
                     @foreach ($produkTerpopuler as $index => $p)
                         <div class="reveal h-full">
                             <x-product-card :produk="$p" :peringkat="$index + 1" />
@@ -896,7 +896,7 @@
                             @endif
 
                             <div
-                                class="relative z-20 w-full md:w-[60%] pointer-events-none flex flex-col justify-between h-full">
+                                class="relative z-20 w-full md:w-[60%] flex flex-col justify-between h-full">
                                 <div>
                                     <div class="stars" role="img" aria-label="Rating {{ $t['bintang'] }} dari 5">
                                         @for ($i = 1; $i <= 5; $i++)

@@ -21,8 +21,14 @@
     .opsi-radio:focus-visible + .opsi-card { outline: 2px solid var(--color-gold, #ba8320); outline-offset: 2px; }
     .opsi-radio:disabled + .opsi-card { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
     @media (prefers-reduced-motion: reduce) { .pd-up, .pd-swap, .pd-shake { animation: none !important; } .pd-shine::after { transition: none !important; } }
-</style>
 
+        /* Menaikkan tombol back-to-top agar tidak menutupi tombol Bayar di HP */
+    @media (max-width: 1024px) {
+        .back-to-top, #back-to-top, [x-data*="backToTop"] {
+            bottom: 6rem !important; /* Pindahkan ke atas bar melayang */
+        }
+    }
+</style>
 @php
     $user = auth()->user();
     
@@ -161,7 +167,7 @@
                                         <span class="radio-dot w-3.5 h-3.5 rounded-full border-2 border-line shrink-0 transition-all"></span>
                                         <p class="text-[13px] font-semibold text-ink/85">Ambil di Toko</p>
                                     </div>
-                                    <p class="text-xs text-ink/60 leading-relaxed">Tidak tersedia untuk KTP Digital.</p>
+                                    <p class="text-[13px] text-ink/60 leading-relaxed">Tidak tersedia untuk KTP Digital.</p>
                                 </div>
                             </label>
 
@@ -172,7 +178,7 @@
                                         <span class="radio-dot w-3.5 h-3.5 rounded-full border-2 border-line shrink-0 transition-all"></span>
                                         <p class="text-[13px] font-semibold text-ink/85">Dikirim ke Alamat</p>
                                     </div>
-                                    <p class="text-xs text-ink/60 leading-relaxed">Diantar oleh kurir ke alamat Anda.</p>
+                                    <p class="text-[13px] text-ink/60 leading-relaxed">Diantar oleh kurir ke alamat Anda.</p>
                                 </div>
                             </label>
                         </div>
@@ -214,23 +220,23 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                             <div>
                                 <label class="block text-xs font-medium text-ink/70 mb-1">Nama Penerima</label>
-                                <input type="text" name="nama_penerima" x-model="namaPenerima" class="w-full px-3 py-2.5 rounded-md border border-line/60 bg-white text-[13px] text-ink/85 focus:outline-none focus:border-gold transition-all">
+                                <input type="text" name="nama_penerima" x-model="namaPenerima" class="w-full px-3 py-3 rounded-xl border border-line/60 bg-white text-sm text-ink/85 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all">
                                 @error('nama_penerima') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-ink/70 mb-1">No. WhatsApp Aktif</label>
-                                <input type="text" name="no_wa" x-model="noWa" inputmode="tel" class="w-full px-3 py-2.5 rounded-md border border-line/60 bg-white text-[13px] text-ink/85 focus:outline-none focus:border-gold transition-all">
+                                <input type="text" name="no_wa" x-model="noWa" inputmode="tel" class="w-full px-3 py-3 rounded-xl border border-line/60 bg-white text-sm text-ink/85 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all">
                                 @error('no_wa') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="block text-xs font-medium text-ink/70 mb-1">Alamat Lengkap</label>
-                            <textarea name="alamat" rows="2" x-model="alamat" class="w-full px-3 py-2.5 rounded-md border border-line/60 bg-white text-[13px] text-ink/85 focus:outline-none focus:border-gold transition-all resize-none"></textarea>
+                            <textarea name="alamat" rows="2" x-model="alamat" class="w-full px-3 py-3 rounded-xl border border-line/60 bg-white text-sm text-ink/85 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all resize-none"></textarea>
                             @error('alamat') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-ink/70 mb-1">Catatan untuk Kurir (opsional)</label>
-                            <input type="text" name="catatan" x-model="catatan" class="w-full px-3 py-2.5 rounded-md border border-line/60 bg-white text-[13px] text-ink/85 focus:outline-none focus:border-gold transition-all">
+                            <input type="text" name="catatan" x-model="catatan" class="w-full px-3 py-3 rounded-xl border border-line/60 bg-white text-sm text-ink/85 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all">
                         </div>
 
                         {{-- Hidden Inputs untuk data wilayah --}}
@@ -251,7 +257,7 @@
                                 <div class="opsi-card flex items-center gap-3 p-3.5 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all duration-300">
                                     <span class="radio-dot w-4 h-4 rounded-full border-2 border-line shrink-0 transition-all"></span>
                                     <div class="flex-1">
-                                        <p class="text-[13px] font-semibold text-ink/85">QRIS (Semua Bank & Dompet Digital)</p>
+                                        <p class="text-sm font-semibold text-ink/85">QRIS (Semua Bank & Dompet Digital)</p>
                                         <p class="text-xs text-ink/55">BCA, Mandiri, OVO, GoPay, ShopeePay, Dana</p>
                                     </div>
                                 </div>
@@ -313,7 +319,7 @@
 
                         <p x-ref="errorBox" x-show="errorMetode" x-cloak x-transition x-text="errorMetode" class="mb-3 p-2.5 rounded-md bg-rose-50 border border-rose-200 text-xs text-rose-700"></p>
 
-                        <button type="submit" :disabled="sedangKirim" class="pd-shine w-full h-[46px] rounded-lg bg-gold text-white text-[13px] font-semibold tracking-wide hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300">
+                        <button type="submit" :disabled="sedangKirim" class="pd-shine w-full h-12 rounded-xl bg-gold text-white text-sm font-bold tracking-wide hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300">
                             <span x-show="!sedangKirim">Lanjutkan Pembayaran</span>
                             <span x-show="sedangKirim" x-cloak class="inline-flex items-center justify-center gap-2">Memproses…</span>
                         </button>
@@ -323,12 +329,12 @@
             </div>
             
             {{-- Bar Bawah HP --}}
-            <div class="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-line/50 px-4 py-3 flex items-center gap-3">
+            <div class="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-line/50 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center gap-3">
                 <div class="flex-1 min-w-0">
-                    <p class="text-[11px] text-ink/55">Total dibayar sekarang</p>
-                    <p class="font-display text-lg font-semibold text-ink tabular-nums truncate" x-text="formatRupiah(totalTampil)"></p>
+                    <p class="text-xs text-ink/55">Total dibayar</p>
+                    <p class="font-display text-xl font-bold text-gold tabular-nums truncate" x-text="formatRupiah(totalTampil)"></p>
                 </div>
-                <button type="submit" :disabled="sedangKirim" class="shrink-0 h-11 px-5 rounded-lg bg-gold text-white text-[13px] font-semibold transition-all">
+                <button type="submit" :disabled="sedangKirim" class="shrink-0 h-12 px-6 rounded-xl bg-gold text-white text-sm font-bold shadow-md shadow-gold/30 active:scale-95 transition-all">
                     <span x-text="sedangKirim ? 'Memproses…' : 'Bayar'"></span>
                 </button>
             </div>

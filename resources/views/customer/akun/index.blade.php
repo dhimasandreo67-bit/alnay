@@ -89,7 +89,7 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 grid md:grid-cols-[280px_1fr] gap-6 items-start">
 
         <aside class="space-y-5 md:sticky md:top-6">
-            <div class="ak-rise {{ $kartu }} p-5 flex items-center gap-4">
+            <div class="ak-rise {{ $kartu }} p-5 flex items-center gap-4 border-l-4 border-l-gold">
                 <div class="shrink-0">
                     @if ($adaFoto)
                         <img src="{{ asset('storage/' . $user->foto_profil) }}" alt="{{ $user->name }}" data-lihat-foto
@@ -111,11 +111,20 @@
                 <p class="px-3 pt-3 pb-2 text-xs font-semibold tracking-wider text-ink/50">AKUN SAYA</p>
                 @foreach ($menuSidebar as $menu)
                     <button type="button" data-panel="{{ $menu['panel'] }}"
-                            class="panel-nav w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm text-ink/80 hover:bg-cream text-left">
-                        <span class="flex items-center gap-3"><x-icon name="{{ $menu['icon'] }}" :size="16" /> {{ $menu['label'] }}</span>
-                        @if (! is_null($menu['jumlah']) && $menu['jumlah'] > 0)
-                            <span class="text-xs font-semibold bg-gold text-white rounded-full px-2 py-0.5">{{ $menu['jumlah'] }}</span>
-                        @endif
+                            class="panel-nav w-full flex items-center justify-between px-3 py-3.5 rounded-xl text-sm text-ink/80 hover:bg-cream hover:text-gold text-left group transition-colors">
+                        <span class="flex items-center gap-3">
+                            <x-icon name="{{ $menu['icon'] }}" :size="18" class="text-ink/50 group-hover:text-gold transition-colors" /> 
+                            {{ $menu['label'] }}
+                        </span>
+                        <div class="flex items-center gap-2">
+                            @if (! is_null($menu['jumlah']) && $menu['jumlah'] > 0)
+                                <span class="text-xs font-semibold bg-gold text-white rounded-full px-2 py-0.5">{{ $menu['jumlah'] }}</span>
+                            @endif
+                            {{-- Tambahan Ikon Chevron --}}
+                            <svg class="w-4 h-4 text-ink/30 group-hover:text-gold group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </div>
                     </button>
                 @endforeach
             </nav>
@@ -757,7 +766,7 @@
             return PANEL_DEFAULT;
         }
 
-        function tampilkan(nama) {
+                function tampilkan(nama) {
             if (!document.querySelector(`[data-panel-content="${nama}"]`)) nama = PANEL_DEFAULT;
 
             panels.forEach(p => {
@@ -779,6 +788,15 @@
             });
 
             history.replaceState(null, '', '#' + nama);
+
+            // TAMBAHKAN INI: Geser layar ke area konten secara halus
+            setTimeout(() => {
+                const target = document.querySelector(`[data-panel-content="${nama}"]`);
+                if (target) {
+                    const y = target.getBoundingClientRect().top + window.scrollY - 80; // 80px offset untuk header
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                }
+            }, 50);
         }
 
         document.querySelectorAll('[data-panel]').forEach(el => {

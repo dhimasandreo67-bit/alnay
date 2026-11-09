@@ -6,7 +6,7 @@
     <meta name="description" content="@yield('meta_description', config('alnay.brand.nama') . ' — ' . config('alnay.brand.tagline'))">
 
     <title>@yield('title', config('alnay.brand.nama'))</title>
-
+    <link rel="icon" type="image/png" href="{{ asset('images/home/alnaylogo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
