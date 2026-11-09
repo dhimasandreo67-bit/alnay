@@ -437,8 +437,8 @@
                     <label for="create_nama" class="block text-xs font-bold uppercase tracking-wider text-gray-700">
                         Nama Kategori <span class="text-rose-500">*</span>
                     </label>
-                    <input type="text" name="nama_kategori" id="create_nama" required
-                        placeholder="Contoh: Kebaya Pengantin"
+                    <input type="text" name="nama_kategori" id="create_nama" required autocomplete="off"
+                        placeholder="Contoh: Kebaya Pengantin" oninput="rekomendasiKategori()"
                         class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm">
                 </div>
 
@@ -446,16 +446,19 @@
                     <label for="create_kode" class="block text-xs font-bold uppercase tracking-wider text-gray-700">
                         Kode Kategori <span class="text-rose-500">*</span>
                     </label>
-                    <input type="text" name="kode_kategori" id="create_kode" required
-                        placeholder="Contoh: JSB (3 huruf kapital)" maxlength="10"
-                        class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm">
+                    <input type="text" name="kode_kategori" id="create_kode" required autocomplete="off"
+                        placeholder="Contoh: JSB (3 huruf kapital)" maxlength="10" oninput="ubahManual('kode')"
+                        class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm uppercase font-mono tracking-wider">
+                    <p class="text-[10px] text-gray-400">Rekomendasi otomatis dari nama, tetap bisa diubah.</p>
                 </div>
 
                 <div class="space-y-1.5">
                     <label for="create_slug" class="block text-xs font-bold uppercase tracking-wider text-gray-700">Slug
                         (Opsional)</label>
-                    <input type="text" name="slug" id="create_slug" placeholder="otomatis dibuat jika dikosongkan"
+                    <input type="text" name="slug" id="create_slug" autocomplete="off"
+                        placeholder="otomatis dibuat dari nama kategori" oninput="ubahManual('slug')"
                         class="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 outline-none transition-all text-sm">
+                    <p class="text-[10px] text-gray-400">Kosongkan kolom untuk kembali ke rekomendasi otomatis.</p>
                 </div>
 
                 <div class="space-y-1.5">
@@ -607,9 +610,83 @@
     </div>
 
     <script>
+        // ===== Rekomendasi otomatis kode & slug (modal Tambah Kategori) =====
+        // Daftar kode/slug yang sudah dipakai (dari seluruh kategori, bukan hanya hasil filter)
+        const KODE_ADA = new Set(@json($kodeAda ?? []).map(k => String(k).toUpperCase()));
+        const SLUG_ADA = new Set(@json($slugAda ?? []).map(s => String(s).toLowerCase()));
+        const KATA_SAMBUNG = ['DAN', 'DI', 'DARI', 'UNTUK', 'YANG', 'DENGAN'];
+
+        // true = pengguna sudah mengetik sendiri, jadi rekomendasi tidak menimpanya
+        const isiManual = { kode: false, slug: false };
+
+        function bersihkanTeks(teks) {
+            return String(teks || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function buatSlug(nama) {
+            return bersihkanTeks(nama).toLowerCase()
+                .replace(/&/g, ' dan ')
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+        }
+
+        function slugUnik(dasar) {
+            if (!dasar) return '';
+            let slug = dasar, i = 2;
+            while (SLUG_ADA.has(slug)) slug = dasar + '-' + i++;
+            return slug;
+        }
+
+        // Kode 3 huruf: inisial tiap kata (maks 3), kekurangannya diambil dari huruf berikutnya.
+        // "Kebaya Pengantin" -> KPE, "Beskap" -> BES, "Jas Songket Batik" -> JSB
+        function kodeUnik(nama) {
+            let kata = bersihkanTeks(nama).toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+            const penting = kata.filter(k => !KATA_SAMBUNG.includes(k));
+            if (penting.length) kata = penting;
+            if (!kata.length) return '';
+
+            const inisial = kata.slice(0, 3).map(k => k[0]).join('');
+            const sisa = kata[0].slice(1) + kata.slice(1).map(k => k.slice(1)).join('');
+            const dasar = (inisial + sisa).slice(0, 3);
+
+            if (!KODE_ADA.has(dasar)) return dasar;
+
+            // Bentrok: ganti huruf ke-3 dengan huruf lain dari nama, lalu pakai angka
+            const dua = dasar.slice(0, 2);
+            for (const huruf of sisa) {
+                if (!KODE_ADA.has(dua + huruf)) return dua + huruf;
+            }
+            for (let n = 1; n <= 99; n++) {
+                const calon = dua + n;
+                if (!KODE_ADA.has(calon)) return calon;
+            }
+            return dasar;
+        }
+
+        function rekomendasiKategori() {
+            const nama = document.getElementById('create_nama').value;
+            const kode = document.getElementById('create_kode');
+            const slug = document.getElementById('create_slug');
+
+            if (!isiManual.kode) kode.value = kodeUnik(nama);
+            if (!isiManual.slug) slug.value = slugUnik(buatSlug(nama));
+        }
+
+        function ubahManual(kolom) {
+            const el = document.getElementById(kolom === 'kode' ? 'create_kode' : 'create_slug');
+            if (kolom === 'kode') el.value = el.value.toUpperCase();
+
+            // Kolom dikosongkan -> kembali ke rekomendasi otomatis
+            isiManual[kolom] = el.value.trim() !== '';
+            if (!isiManual[kolom]) rekomendasiKategori();
+        }
+
         function openCreateModal() {
+            isiManual.kode = false;
+            isiManual.slug = false;
             document.getElementById('modalCreate').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
+            rekomendasiKategori();
             document.getElementById('create_nama')?.focus();
         }
 
