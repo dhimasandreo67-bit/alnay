@@ -25,7 +25,7 @@
         {{-- Header Tab --}}
         <div class="kr-rise mb-8">
             <div class="flex flex-col items-center justify-center w-full border-b border-gray-200 relative pb-4">
-                <div class="flex items-center gap-8 sm:gap-12 -mb-[1px]">
+                <div class="flex items-center gap-4 sm:gap-12 -mb-[1px]">
                     <a href="{{ route('keranjang.index') }}" class="pb-4 text-sm font-medium transition-all flex items-center gap-2 border-b-2 border-transparent text-gray-400 hover:text-gray-700">
                         Keranjang Beli
                     </a>
@@ -87,14 +87,14 @@
                         @foreach ($keranjangSewa as $id => $item)
                             <div class="kr-rise" style="--d: {{ min($loop->index, 6) * 0.06 + 0.1 }}s;">
                                 <article data-item class="kr-item rounded-2xl border bg-white p-4 shadow-sm md:p-5" style="border-color: #f0ece2;">
-                                    <div class="flex gap-4">
+                                    <div class="flex gap-3 md:gap-4">
                                         {{-- Checkbox --}}
                                         <div class="flex items-start pt-1">
                                             <input type="checkbox" class="kr-check item-checkbox" value="{{ $id }}" aria-label="Pilih {{ $item['nama'] }}">
                                         </div>
 
                                         {{-- Gambar --}}
-                                        <div class="h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-gray-100 md:h-36 md:w-28">
+                                        <div class="h-24 w-20 sm:h-28 sm:w-24 shrink-0 overflow-hidden rounded-xl bg-gray-100 md:h-36 md:w-28">
                                             @php
                                                 $fotoItem = $item['foto_produk'];
                                                 if (is_array($fotoItem)) $fotoItem = $fotoItem[0] ?? null;
@@ -130,7 +130,7 @@
                                             <div class="mt-auto flex items-end justify-between gap-3 pt-3">
                                                 <div>
                                                     <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Total Sewa</p>
-                                                    <p class="text-lg font-bold tabular-nums md:text-xl" style="color: #c99a32;">Rp {{ number_format($item['total_sewa'], 0, ',', '.') }}</p>
+                                                    <p class="text-base sm:text-lg font-bold tabular-nums md:text-xl" style="color: #c99a32;">Rp {{ number_format($item['total_sewa'], 0, ',', '.') }}</p>
                                                     <p class="text-xs text-rose-500 font-bold mt-1 bg-rose-50 inline-block px-2 py-0.5 rounded-md">DP: Rp {{ number_format($item['dp'], 0, ',', '.') }}</p>
                                                     @if (($item['diskon'] ?? 0) > 0)
                                                         <p class="mt-1 text-[11px] font-semibold text-emerald-600">Sudah termasuk diskon sewa {{ rtrim(rtrim(number_format($item['diskon'], 2, '.', ''), '0'), '.') }}%</p>
@@ -149,18 +149,23 @@
                 </div>
 
                 {{-- Ringkasan Checkout --}}
-                <div class="kr-rise lg:col-span-1" style="--d: .18s;">
-                    <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm lg:sticky lg:top-24">
-                        <h2 class="font-display mb-6 text-xl font-bold" style="color: #15233d;">Ringkasan Sewa</h2>
-                        <div class="mb-4 flex items-center justify-between">
-                            <span class="text-sm text-gray-500">Total Pembayaran Sewa</span>
-                            <span class="text-2xl font-bold tabular-nums" style="color: #c99a32;">Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}</span>
+                <div class="kr-rise lg:col-span-1 fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 p-3 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] lg:static lg:border-0 lg:p-0 lg:shadow-none lg:bg-transparent lg:z-auto" style="--d: .18s;">
+                    <div class="lg:rounded-2xl lg:border lg:border-gray-100 lg:bg-white lg:p-6 lg:shadow-sm lg:sticky lg:top-24">
+                        <h2 class="hidden lg:block font-display mb-6 text-xl font-bold" style="color: #15233d;">Ringkasan Sewa</h2>
+                        
+                        <div class="flex items-center justify-between lg:mb-4">
+                            <div class="lg:block">
+                                <span class="block text-[11px] lg:text-sm text-gray-500">Total Pembayaran</span>
+                                <span class="text-xl lg:text-2xl font-bold tabular-nums" style="color: #c99a32;">Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}</span>
+                            </div>
+                            <a href="{{ route('sewa.checkout') }}" class="flex w-auto lg:w-full items-center justify-center gap-2 rounded-xl px-6 py-2.5 lg:py-3.5 text-sm font-bold text-white shadow-lg shadow-amber-500/30 transition hover:-translate-y-1 hover:shadow-amber-500/50 active:translate-y-0" style="background-color: #c99a32;">
+                                Checkout <span class="hidden sm:inline">Sewa</span>
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>
+                            </a>
                         </div>
-                        <div class="my-5 border-t border-dashed border-gray-200"></div>
-                        <a href="{{ route('sewa.checkout') }}" class="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg shadow-amber-500/30 transition hover:-translate-y-1 hover:shadow-amber-500/50 active:translate-y-0" style="background-color: #c99a32;">
-                            Lanjut ke Checkout Sewa
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>
-                        </a>
+                        
+                        <div class="hidden lg:block my-5 border-t border-dashed border-gray-200"></div>
+                        <p class="hidden lg:block text-xs text-center text-gray-400">Pastikan jadwal dan ukuran sudah sesuai.</p>
                     </div>
                 </div>
             </div>

@@ -9,6 +9,7 @@
     <script>document.documentElement.classList.add('pd-js');</script>
 
     <style>
+ 
         [x-cloak] { display: none !important; }
 
         @keyframes pd-up   { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
@@ -64,6 +65,8 @@
             .pd-reveal, .pd-shine::after, .pd-zoom-inner { transition: none !important; }
             .pd-zoom:hover .pd-zoom-inner { transform: none !important; }
         }
+
+        /* Sembunyikan tombol back to top di HP karena sudah ada bar bayar */
     </style>
 
     @php
@@ -238,7 +241,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)] gap-6 lg:gap-12">
 
                 {{-- ==================== KOLOM KIRI: GALERI ==================== --}}
-                <div class="lg:sticky lg:top-24 lg:self-start w-full max-w-[300px] sm:max-w-[380px] lg:max-w-[400px] mx-auto lg:mx-0">
+                <div class="lg:sticky lg:top-24 lg:self-start w-full max-w-[340px] sm:max-w-[380px] lg:max-w-[400px] mx-auto lg:mx-0">
 
                     {{-- Gambar utama --}}
                     <div class="pd-up group relative aspect-[4/5] rounded-2xl overflow-hidden border border-line/40 shadow-sm lg:hover:shadow-2xl transition-shadow duration-500 touch-pan-y select-none"
@@ -345,8 +348,7 @@
                         </a>
                     </div>
 
-                    <h1 class="pd-up font-display text-[26px] sm:text-3xl lg:text-[34px] font-semibold text-ink/90 leading-tight mt-3"
-                        style="--d: .1s;">{{ $produk->nama }}</h1>
+                    <h1 class="pd-up font-display text-2xl min-[375px]:text-[28px] sm:text-3xl lg:text-[34px] font-semibold text-ink/90 leading-tight mt-3" style="--d: .1s;">{{ $produk->nama }}</h1>
                     <span class="pd-line block h-[2px] bg-gold/70 rounded-full mt-3 mb-3"></span>
 
                     {{-- Rating --}}
@@ -396,7 +398,7 @@
                                     <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200">-{{ $fmtDiskon($diskonSewa) }}%</span>
                                 </p>
                             @endif
-                            <p class="font-display text-[28px] font-medium text-ink leading-none lining-nums tabular-nums">
+                            <p class="font-display text-2xl sm:text-[28px] font-medium text-ink leading-none lining-nums tabular-nums">
                                 <span x-text="formatRupiah(hargaTampil)"></span>
                                 <span class="font-sans text-xs font-normal text-ink/50">/ <span
                                         x-text="durasi > 0 ? durasi + ' hari' : 'sewa'"></span></span>
@@ -462,9 +464,7 @@
                                     <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200">-{{ $fmtDiskon($diskonJual) }}%</span>
                                 </p>
                             @endif
-                            <p
-                                class="font-display text-[28px] font-semibold text-ink/90 leading-none lining-nums tabular-nums">
-                                Rp {{ number_format($produk->hargaJualNet(), 0, ',', '.') }}</p>
+                            <p class="font-display text-2xl sm:text-[28px] font-semibold text-ink/90 leading-none lining-nums tabular-nums">Rp {{ number_format($produk->hargaJualNet(), 0, ',', '.') }}</p>
                             <p class="mt-2 text-xs text-ink/60 flex items-center gap-1.5">
                                 <span class="inline-block w-1.5 h-1.5 rounded-full" :class="stok > 0 ? 'bg-emerald-500' : 'bg-rose-500'"></span>
                                 <span x-text="stok > 0 ? 'Tersedia untuk dibeli' : 'Stok habis'"></span>
@@ -572,7 +572,7 @@
                                         <button type="button" @click="pilihTanggal(c.t)" :disabled="c.luar || lalu(c.t) || terkunci" :aria-disabled="penuh(c.t) ? 'true' : null"
                                             :class="kelas(c)"
                                             :title="judulTanggal(c)"
-                                            class="h-11 mx-px sm:mx-0.5 rounded-lg text-xs font-medium transition-all duration-200 ease-out flex flex-col items-center justify-center leading-none">
+                                            class="h-11 mx-0.5 rounded-lg text-[13px] sm:text-xs font-medium transition-all duration-200 ease-out flex flex-col items-center justify-center leading-none">
                                             <span x-text="c.hari"></span>
                                             <span x-show="labelPeran(c)" x-cloak class="mt-0.5 text-[8px] font-semibold uppercase tracking-tight opacity-80" x-text="labelPeran(c)"></span>
                                         </button>
@@ -862,9 +862,9 @@
                         <x-section-heading title="Produk Serupa"
                             subtitle="Pilihan lain dari kategori {{ $produk->kategori->nama_kategori }}" />
                     </div>
-                    <div class="pd-reveal flex md:grid md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 overflow-x-auto md:overflow-visible snap-x snap-mandatory pd-noscroll -mx-4 px-4 md:mx-0 md:px-0 pb-2">
+                    <div class="pd-reveal grid grid-flow-col auto-cols-[calc(50%-0.375rem)] sm:auto-cols-[40%] md:grid-flow-row md:grid-cols-3 lg:grid-cols-4 md:auto-cols-auto gap-3 md:gap-4 overflow-x-auto md:overflow-visible snap-x snap-mandatory pd-noscroll -mx-4 px-4 md:mx-0 md:px-0 pb-2 items-stretch">
                         @foreach ($serupa as $i => $s)
-                            <div class="h-full shrink-0 w-[62%] sm:w-[40%] md:w-auto snap-start">
+                            <div class="h-full snap-start">
                                 <x-product-card :produk="$s" />
                             </div>
                         @endforeach
@@ -940,7 +940,7 @@
             x-transition:leave="transition ease-in duration-200"
             x-transition:leave-start="translate-y-0 opacity-100"
             x-transition:leave-end="translate-y-full opacity-0"
-            class="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-line/40 bg-white/90 backdrop-blur-md px-4 pt-3 pb-[calc(.75rem+env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(0,0,0,.08)]">
+            class="lg:hidden fixed inset-x-0 bottom-0 z-[60] border-t border-line/40 bg-white/90 backdrop-blur-md px-4 pt-3 pb-[calc(.75rem+env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(0,0,0,.08)]">
             <div class="flex items-center gap-3 max-w-[1180px] mx-auto">
                 <div class="min-w-0 flex-1">
                     <p class="text-[11px] text-ink/50 truncate"
