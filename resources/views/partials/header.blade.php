@@ -10,9 +10,9 @@
         75% { transform: rotate(-5deg); }
     }
 
-    @keyframes tapis-drift {
-        from { background-position: 0 center; }
-        to   { background-position: 240px center; }
+    @keyframes tapis-geser {
+        from { background-position: 0% bottom; }
+        to   { background-position: 100% bottom; }
     }
 
     :root {
@@ -50,29 +50,34 @@
         background: #fdf8ea;
         border-bottom: 1px solid var(--al-gold);
         box-shadow: 0 14px 24px -18px rgba(201, 154, 50, .45);
+        opacity: 1;
         clip-path: inset(0 -60px -500px -60px);
-        transition: transform .55s cubic-bezier(.22, .8, .3, 1), clip-path .55s cubic-bezier(.22, .8, .3, 1), visibility 0s linear 0s;
-        will-change: transform, clip-path;
+        transition: transform .6s cubic-bezier(.22, .8, .3, 1), clip-path .6s cubic-bezier(.22, .8, .3, 1), opacity .5s ease, visibility 0s linear 0s;
+        will-change: transform, clip-path, opacity;
     }
+    /* Sembunyi: memudar sambil naik, masuk ke belakang header atas */
     .al-tapis.is-hidden {
-        transform: translateY(-101%);
+        transform: translateY(-100%);
+        opacity: 0;
         clip-path: inset(100% -60px -500px -60px);
         visibility: hidden;
         pointer-events: none;
-        transition: transform .45s cubic-bezier(.4, 0, .2, 1), clip-path .45s cubic-bezier(.4, 0, .2, 1), visibility 0s linear .45s;
+        transition: transform .5s cubic-bezier(.4, 0, .2, 1), clip-path .5s cubic-bezier(.4, 0, .2, 1), opacity .38s ease, visibility 0s linear .5s;
     }
 
-        /* Motif tapis (gambar) */
+    /* Motif tapis (gambar asli tapis.png). Gambar dibuat sedikit lebih lebar dari baris menu, lalu
+       digeser pelan MAJU-MUNDUR (bukan diulang terus), sehingga ujung gambar tidak pernah terlihat
+       dan tidak ada bagian yang "putus". Pita emas di tepi atas gambar ikut terpotong. */
     .al-tapis::before {
         content: '';
         position: absolute; inset: 0;
-        background: url("{{ asset('images/home/tapis.png') }}") repeat-x center / auto 100%;
-        opacity: .75;
+        background: url("{{ asset('images/home/tapis.png') }}") 0% bottom / max(2112px, 118%) auto no-repeat;
+        opacity: .42;
         mix-blend-mode: multiply;
-        -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
-        mask-image: linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
+        -webkit-mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,.55) 12%, transparent 30%, transparent 70%, rgba(0,0,0,.55) 88%, #000 100%);
+        mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,.55) 12%, transparent 30%, transparent 70%, rgba(0,0,0,.55) 88%, #000 100%);
         pointer-events: none;
-        animation: tapis-drift 60s linear infinite;
+        animation: tapis-geser 45s ease-in-out infinite alternate;
     }
 
     /* Lapisan krem tipis agar tulisan menu tetap jelas */
@@ -80,10 +85,11 @@
         content: '';
         position: absolute; inset: 0;
         background: linear-gradient(90deg,
-            rgba(253, 248, 234, .15) 0%,
-            rgba(253, 248, 234, .6) 30%,
-            rgba(253, 248, 234, .6) 70%,
-            rgba(253, 248, 234, .15) 100%);
+            rgba(253, 248, 234, 0) 0%,
+            rgba(253, 248, 234, .55) 25%,
+            rgba(253, 248, 234, .85) 50%,
+            rgba(253, 248, 234, .55) 75%,
+            rgba(253, 248, 234, 0) 100%);
         pointer-events: none;
     }
 
@@ -109,11 +115,17 @@
     }
     .al-nav:hover { color: #000; background: rgba(255, 255, 255, .92); }
     .al-nav:hover::after { transform: scaleX(1); }
+    /* Tab terpilih: latar sama seperti semula, hanya warna teks yang mengikuti tema.
+       Ganti --al-active-text kalau mau warna lain. */
     .al-nav.is-active {
-        color: #000;
+        --al-active-text: #8a6410;
+        color: var(--al-active-text);
         background: #f7e9bd;
         box-shadow: inset 0 0 0 1px var(--al-gold);
+        text-shadow: none;
     }
+    .al-nav.is-active, .al-nav.is-active * { color: var(--al-active-text) !important; text-shadow: none !important; }
+    .al-nav.is-active:hover { background: #f7e9bd; }
     .al-nav.is-active::after { display: none; }
 
     /* Dropdown */
@@ -344,7 +356,7 @@
     </div>
 
     {{-- NAV DESKTOP --}}
-    <nav class="al-tapis hidden md:block">
+    <nav class="al-tapis hidden md:block" :class="{ 'is-hidden': hideMenu }">
         <div class="max-w-7xl mx-auto px-4 h-full flex items-center justify-center gap-2">
             @foreach ($navItems as $item)
                 @if ($item['label'] === 'Koleksi')
@@ -475,14 +487,27 @@
             mobileOpen: false,
             koleksiOpen: false,
             scrolled: false,
+            hideMenu: false,
+            last: 0,
 
             init() {
-                this.scrolled = window.scrollY > 30;
+                this.last = window.scrollY;
+                this.scrolled = this.last > 30;
             },
 
-            // Hanya untuk efek kaca saat halaman di-scroll. Menu tidak disembunyikan lagi.
+            // Kaca saat di-scroll; baris menu sembunyi saat turun, muncul lagi saat naik.
             onScroll() {
-                this.scrolled = window.scrollY > 30;
+                const y = window.scrollY;
+                this.scrolled = y > 30;
+
+                if (this.koleksiOpen || y < 80) {
+                    this.hideMenu = false;
+                } else {
+                    const d = y - this.last;
+                    if (d > 6) this.hideMenu = true;
+                    else if (d < -6) this.hideMenu = false;
+                }
+                this.last = y;
             },
         };
     }
