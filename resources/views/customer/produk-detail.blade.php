@@ -1296,12 +1296,10 @@
                     // Belum ada tanggal dipilih: tampilkan jumlah unit yang dimiliki (kapasitas), BUKAN sisa hari ini.
                     // Kalau hari ini penuh, ukuran/warna tetap bisa dipilih karena tanggal lain mungkin masih kosong.
                     if (!this.tanggalAmbil) return d.kapasitas;
-                    const a = this.tanggalAmbil;
-                    const b = this.tanggalKembali || a;
-                    let maks = 0;
-                    const h = d.hitung || {};
-                    for (const t in h) { if (t >= a && t <= b && h[t] > maks) maks = h[t]; }
-                    return Math.max(0, d.kapasitas - maks);
+                    // Tanggal sudah dipilih: stok tetap = kapasitas dikurangi unit yang belum dikembalikan,
+                    // tidak ikut naik/turun mengikuti tanggal. Tanggal yang bentrok sudah ditangani kalender.
+                    const keluar = (d.rentang || []).reduce((n, r) => n + (Number(r.jumlah) || 0), 0);
+                    return Math.max(0, d.kapasitas - keluar);
                 },
                 sisaUkuran(o) { return this.mode === 'sewa' ? this.sisaSewa(o.label + '|') : o.stok; },
                 sisaWarna(w) {
