@@ -235,7 +235,7 @@
                             <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-600"></span> Dipilih</span>
                             <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-200"></span> Rentang sewa</span>
                             <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-rose-200"></span> Penuh dibooking</span>
-                            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-rose-50 ring-1 ring-rose-300"></span> Sebagian dibooking (masih ada unit)</span>
+                            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-sky-50 ring-1 ring-sky-300"></span> Sebagian dibooking (masih ada unit, bisa dipilih)</span>
                         </div>
                     </div>
                     <p id="kal-hint" class="mt-2 text-[11px] text-gray-500">Tambahkan produk ke keranjang dulu agar tanggal yang sudah dibooking (online &amp; kasir) ditandai merah. Klik tanggal yang sama dua kali untuk sewa 1 hari.</p>
@@ -1030,7 +1030,7 @@
             else if (dalam) kelas += 'bg-amber-100 font-semibold text-amber-900';
             else if (c.luar || lalu) { kelas += 'cursor-default text-gray-300'; mati = true; }
             else if (isPenuh) { kelas += 'cursor-not-allowed bg-rose-100 text-rose-500 line-through decoration-rose-400'; mati = true; judul = 'Penuh dibooking'; }
-            else if (isSebagian) { kelas += 'bg-rose-50 text-rose-500 ring-1 ring-rose-200 hover:bg-rose-100 hover:scale-110 active:scale-95'; judul = sebagian.get(c.t); }
+            else if (isSebagian) { kelas += 'bg-sky-50 text-sky-700 ring-1 ring-sky-200 hover:bg-sky-100 hover:scale-110 active:scale-95'; judul = sebagian.get(c.t); }
             else kelas += 'text-gray-700 hover:scale-110 hover:bg-amber-50 active:scale-95' + (c.t === hariIni ? ' ring-1 ring-amber-400' : '');
             return '<button type="button" data-t="' + c.t + '" class="' + kelas + '"' + (judul ? ' title="' + esc(judul) + '"' : '') + ((mati && !dipilih) || c.luar ? ' disabled' : '') + '>' + c.hari + '</button>';
         }).join('');

@@ -15,12 +15,16 @@ class DetailTransaksi extends Model
         'harga_satuan',
         'ukuran',
         'warna',
+        'tanggal_pinjam',
+        'tanggal_kembali_rencana',
     ];
 
     protected function casts(): array
     {
         return [
             'harga_satuan' => 'decimal:2',
+            'tanggal_pinjam' => 'date',
+            'tanggal_kembali_rencana' => 'date',
         ];
     }
 

@@ -365,6 +365,8 @@ class TransaksiController extends Controller
                     'harga_satuan' => $hargaUnit($produk, $validated['jenis']),
                     'ukuran' => $item['ukuran'] ?: null,
                     'warna' => $item['warna'] ?: null,
+                    'tanggal_pinjam' => $validated['jenis'] === 'sewa' ? $validated['tanggal_pinjam'] : null,
+                    'tanggal_kembali_rencana' => $validated['jenis'] === 'sewa' ? $validated['tanggal_kembali_rencana'] : null,
                 ])->save();
             }
 
