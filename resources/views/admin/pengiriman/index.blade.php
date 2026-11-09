@@ -144,8 +144,9 @@
             </div>
         </div>
 
-        {{-- Filter & Search --}}
-        <form method="GET" action="{{ route('admin.pengiriman.index') }}"
+        {{-- Filter & Search (pencarian langsung, tanpa tombol Cari) --}}
+        <form id="formFilterPengiriman" method="GET" action="{{ route('admin.pengiriman.index') }}"
+            onsubmit="event.preventDefault(); muatPengiriman(0)"
             class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="relative w-full sm:w-80">
                 <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
@@ -154,30 +155,27 @@
                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </span>
-                <input type="text" name="search" value="{{ request('search') }}"
-                    placeholder="Cari kode transaksi atau nama..."
+                <input type="search" id="cariPengiriman" name="search" value="{{ request('search') }}"
+                    placeholder="Cari kode transaksi atau nama..." autocomplete="off" oninput="muatPengiriman(300)"
                     class="w-full pl-10 pr-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
             </div>
 
             <div class="flex items-center gap-3 w-full sm:w-auto">
-                <select name="status" onchange="this.form.submit()" aria-label="Status pengiriman"
+                <select id="filterStatusPengiriman" name="status" onchange="muatPengiriman(0)"
+                    aria-label="Status pengiriman"
                     class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
                     <option value="semua" {{ $filter === 'semua' ? 'selected' : '' }}>Semua Status</option>
                     <option value="menunggu" {{ $filter === 'menunggu' ? 'selected' : '' }}>Menunggu</option>
                     <option value="dikirim" {{ $filter === 'dikirim' ? 'selected' : '' }}>Dikirim</option>
                     <option value="diterima" {{ $filter === 'diterima' ? 'selected' : '' }}>Diterima</option>
                 </select>
-                <button type="submit"
-                    class="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-amber-500/20 active:scale-95 transition-all duration-200">Cari</button>
-                @if (request()->filled('search') || request()->filled('status'))
-                    <a href="{{ route('admin.pengiriman.index') }}"
-                        class="text-xs font-bold text-gray-500 hover:text-amber-600 transition-colors">Reset</a>
-                @endif
+                <button type="button" id="btnResetPengiriman" onclick="resetPengiriman()"
+                    class="{{ request()->filled('search') || request()->filled('status') ? '' : 'hidden' }} text-xs font-bold text-gray-500 hover:text-amber-600 transition-colors cursor-pointer">Reset</button>
             </div>
         </form>
 
         {{-- Tabel Pengiriman --}}
-        <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+        <div id="areaTabelPengiriman" class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden transition-opacity duration-150">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm table-fixed">
                     <thead class="bg-gray-50/80">
@@ -260,7 +258,7 @@
                                     @endif
                                 </td>
 
-                                                                {{-- Kolom 5: Aksi --}}
+                                {{-- Kolom 5: Aksi --}}
                                 <td class="px-4 py-4 text-right">
                                     @if ($p->status_kirim === 'menunggu')
                                         
@@ -341,8 +339,9 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">Belum
-                                    ada data pengiriman.</td>
+                                <td colspan="5" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
+                                    {{ request()->filled('search') || request()->filled('status') ? 'Tidak ada pengiriman yang cocok dengan pencarian.' : 'Belum ada data pengiriman.' }}
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -350,7 +349,74 @@
             </div>
         </div>
 
-        <div>{{ $pengirimanList->links() }}</div>
+        <div id="areaPaginasiPengiriman">{{ $pengirimanList->links() }}</div>
 
     </div>
+
+    <script>
+        // ===== Pencarian langsung: tanpa klik "Cari" =====
+        // Mengambil ulang halaman dengan keyword/status yang diketik, lalu mengganti isi tabel & pagination.
+        // Pencarian dilakukan di server, jadi mencakup SEMUA data pengiriman (bukan hanya halaman yang tampil).
+        const formPengiriman = document.getElementById('formFilterPengiriman');
+        const inputCari = document.getElementById('cariPengiriman');
+        const selectStatus = document.getElementById('filterStatusPengiriman');
+        const btnReset = document.getElementById('btnResetPengiriman');
+        let timerCari = null;
+        let permintaan = null;
+
+        function urlFilterPengiriman() {
+            const params = new URLSearchParams();
+            const q = inputCari.value.trim();
+            const st = selectStatus.value;
+            if (q) params.set('search', q);
+            if (st && st !== 'semua') params.set('status', st);
+            const qs = params.toString();
+            return formPengiriman.action + (qs ? '?' + qs : '');
+        }
+
+        function muatPengiriman(tunda = 0) {
+            clearTimeout(timerCari);
+            timerCari = setTimeout(async () => {
+                const url = urlFilterPengiriman();
+                const tabel = document.getElementById('areaTabelPengiriman');
+
+                // Batalkan permintaan sebelumnya supaya hasil lama tidak menimpa yang baru
+                if (permintaan) permintaan.abort();
+                const ctrl = permintaan = new AbortController();
+                tabel.classList.add('opacity-60');
+
+                try {
+                    const res = await fetch(url, {
+                        signal: ctrl.signal,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+                    const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+                    const tabelBaru = doc.getElementById('areaTabelPengiriman');
+                    const paginasiBaru = doc.getElementById('areaPaginasiPengiriman');
+                    if (!tabelBaru || !paginasiBaru) throw new Error('Struktur halaman tidak dikenali');
+
+                    tabel.innerHTML = tabelBaru.innerHTML;
+                    document.getElementById('areaPaginasiPengiriman').innerHTML = paginasiBaru.innerHTML;
+                    history.replaceState(null, '', url);
+                    btnReset.classList.toggle('hidden', !(inputCari.value.trim() || selectStatus.value !== 'semua'));
+                } catch (e) {
+                    // Kalau gagal (bukan karena dibatalkan), pakai cara biasa: muat ulang halaman dengan filter
+                    if (e.name !== 'AbortError') window.location.href = url;
+                } finally {
+                    if (permintaan === ctrl) {
+                        tabel.classList.remove('opacity-60');
+                        permintaan = null;
+                    }
+                }
+            }, tunda);
+        }
+
+        function resetPengiriman() {
+            inputCari.value = '';
+            selectStatus.value = 'semua';
+            muatPengiriman(0);
+        }
+    </script>
 @endsection
