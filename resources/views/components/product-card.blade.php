@@ -1,137 +1,232 @@
-@props(['produk', 'delay' => 0, 'peringkat' => null])
+@props([
+    'produk',
+    'delay' => 0,
+    'peringkat' => null,
+])
 
 @php
-    // Konversi array ke object jika data yang masuk berupa array
-    $p = is_array($produk) ? (object) $produk : $produk;
+    $adalahModel = $produk instanceof \Illuminate\Database\Eloquent\Model;
 
-    $statusLabel = \App\Support\ProdukStatus::label($p->status, $p->dapat_dijual);
-
-    if ($p->dapat_dijual && (!$p->bisa_disewa || $p->harga_sewa <= 0)) {
-        $statusLabel = 'Bisa Dijual';
-    } elseif (!$p->dapat_dijual && $p->bisa_disewa && $p->harga_sewa > 0) {
-        $statusLabel = 'Bisa Disewa';
-    }
-
-    $bisaSewa = $p->bisa_disewa && $p->harga_sewa > 0;
-    $bisaBeli = $p->dapat_dijual && $p->harga_jual > 0;
-
-    $statusVariant = \App\Support\ProdukStatus::variant($p->status, $p->dapat_dijual);
-
-    $badgeClass = match ($statusVariant) {
-        'success' => 'bg-white/90 text-ink border border-line backdrop-blur-sm',
-        'warning' => 'bg-gold-soft/90 text-ink border border-gold/30 backdrop-blur-sm',
-        'danger' => 'bg-red-50 text-red-700 border border-red-200',
-        'ink' => 'bg-ink/90 text-cream border border-ink backdrop-blur-sm',
-        default => 'bg-cream text-muted border border-line',
+    $ambil = function ($item, array $kunci, $default = null) {
+        foreach ($kunci as $k) {
+            $v = data_get($item, $k);
+            if ($v !== null && $v !== '') {
+                return $v;
+            }
+        }
+        return $default;
     };
 
-    $fotoUrl = $p->sampul_url ?? $p->sampulUrl();
+    $angka = fn ($v) => (int) round((float) ($v ?? 0));
+
+    $nama = $ambil($produk, ['nama_produk', 'nama', 'name'], '-');
+
+    // Foto
+    $fotoRaw = $adalahModel
+        ? $produk->sampulUrl()
+        : $ambil($produk, ['sampul_url', 'foto', 'foto_utama', 'gambar', 'image', 'thumbnail']);
+    $foto = is_string($fotoRaw) && $fotoRaw !== ''
+        ? (\Illuminate\Support\Str::startsWith($fotoRaw, ['http://', 'https://']) ? $fotoRaw : asset($fotoRaw))
+        : null;
+
+    // Status
+    $status = strtoupper((string) $ambil($produk, ['status', 'status_ketersediaan', 'status_produk'], 'TERSEDIA'));
+    $badgeStatus = $status === 'TERSEDIA' ? 'bg-neutral-900' : 'bg-red-600';
+
+    // Harga
+    $hargaSewa = $angka($ambil($produk, ['harga_sewa', 'harga_sewa_3hari', 'harga_rental'], 0));
+    $hargaBeli = $angka($ambil($produk, ['harga_jual', 'harga_beli'], 0));
+
+    // Aturan yang sama dengan halaman detail: flag dari database + harga harus > 0
+    $bisaSewa = (bool) $ambil($produk, ['bisa_disewa'], false) && $hargaSewa > 0;
+    $bisaBeli = (bool) $ambil($produk, ['dapat_dijual'], false) && $hargaBeli > 0;
+
+    $labelTipe = match (true) {
+        $bisaSewa && $bisaBeli => 'Sewa & Beli',
+        $bisaSewa => 'Khusus Sewa',
+        $bisaBeli => 'Khusus Jual',
+        default => 'Belum Tersedia',
+    };
+
+    // Rating
+    $rating = (float) $ambil($produk, ['rating_rata_rata', 'rating'], 0);
+    $ulasan = (int) $ambil($produk, ['jumlah_rating', 'jumlah_ulasan'], 0);
+
+    // Link detail produk (route: produk/{sku})
+    $sku = $ambil($produk, ['sku'], null);
+    $urlDetail = ($sku && \Illuminate\Support\Facades\Route::has('produk.detail'))
+        ? route('produk.detail', ['sku' => $sku])
+        : $ambil($produk, ['url', 'link'], '#');
+
+    // Warna: gabungan warna jual + warna sewa (JSON array atau string biasa)
+    $pecahWarna = function ($mentah): array {
+        if (is_array($mentah)) {
+            return $mentah;
+        }
+        if (! is_string($mentah) || trim($mentah) === '') {
+            return [];
+        }
+        $decoded = json_decode($mentah, true);
+        return is_array($decoded) ? $decoded : [$mentah];
+    };
+
+    $namaWarna = collect(array_merge(
+        $pecahWarna($ambil($produk, ['warna'])),
+        $pecahWarna($ambil($produk, ['warna_sewa'])),
+    ))
+        ->filter(fn ($w) => is_string($w) && trim($w) !== '')
+        ->map(fn ($w) => trim($w))
+        ->unique()
+        ->values();
+
+    // Sama dengan logika warna di halaman Koleksi (sidebar)
+    $tebakHex = function (string $w): string {
+        $n = strtolower($w);
+        return match (true) {
+            str_contains($n, 'hitam') => '#1a1a1a',
+            str_contains($n, 'maroon') || str_contains($n, 'marun') || str_contains($n, 'merah') => '#6b1c2a',
+            str_contains($n, 'gold') || str_contains($n, 'emas') || str_contains($n, 'kuning') => '#c99a32',
+            str_contains($n, 'cream') || str_contains($n, 'krem') || str_contains($n, 'putih') => '#f5e6c8',
+            str_contains($n, 'hijau') || str_contains($n, 'green') => '#2a5c3f',
+            str_contains($n, 'coklat') || str_contains($n, 'cokelat') || str_contains($n, 'brown') => '#5c3a21',
+            str_contains($n, 'biru') || str_contains($n, 'blue') || str_contains($n, 'navy') => '#1e3a8a',
+            str_contains($n, 'pink') || str_contains($n, 'rose') => '#f472b6',
+            str_contains($n, 'ungu') || str_contains($n, 'purple') => '#7e22ce',
+            str_contains($n, 'abu') || str_contains($n, 'grey') || str_contains($n, 'silver') => '#9ca3af',
+            default => '#d1d5db',
+        };
+    };
+
+    $palet = \App\Models\Produk::paletWarna();
+    $warna = $namaWarna->map(fn ($w) => $palet[$w] ?? $tebakHex($w))->all();
 @endphp
 
-<article
-    class="pd-up group relative flex flex-col h-full bg-panel border border-line rounded-xl overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-500"
-    style="--d: {{ $delay }}s;">
+<div class="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-500 hover:-translate-y-1 hover:shadow-lg">
 
-    <a href="{{ route('produk.detail', $p->sku) }}" class="absolute inset-0 z-10"
-        aria-label="Lihat {{ $p->nama }}"></a>
+    {{-- FOTO + BADGE --}}
+    <div class="relative aspect-[3/4] overflow-hidden bg-[#efe9dc]">
+        <a href="{{ $urlDetail }}" class="block h-full w-full" aria-label="Lihat detail {{ $nama }}">
+            @if ($foto)
+                <img src="{{ $foto }}" alt="{{ $nama }}" loading="lazy"
+                    class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
+            @endif
+        </a>
 
-    {{-- Gambar --}}
-    <div class="relative aspect-[3/4] bg-cream-dim overflow-hidden shrink-0">
-        @if ($fotoUrl)
-            <img src="{{ $fotoUrl }}" alt="{{ $p->nama }}"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700">
-        @else
-            <div
-                class="w-full h-full flex items-center justify-center bg-cream-dim text-muted text-[10px] uppercase tracking-widest">
-                Foto Produk
-            </div>
-        @endif
-
-        <span
-            class="absolute top-2 left-2 sm:top-3 sm:left-3 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-wider {{ $badgeClass }}">
-            {{ $statusLabel }}
+        <span class="absolute left-2.5 top-2.5 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-white {{ $badgeStatus }}">
+            {{ $status }}
         </span>
 
-        @if ($peringkat)
-            <span
-                class="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-ink text-gold-soft text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">
-                Top #{{ $peringkat }}
+        @if ($peringkat !== null)
+            <span class="absolute right-2.5 top-2.5 px-2 py-1 text-[10px] font-bold text-[#17140f]"
+                style="background: #c99a32;">
+                #{{ $peringkat }}
             </span>
         @endif
+
+        <span class="absolute bottom-2.5 left-2.5 rounded bg-black/55 px-2 py-1 text-[10px] text-white backdrop-blur-sm">
+            {{ $labelTipe }}
+        </span>
     </div>
 
-    {{-- Isi kartu --}}
-    <div class="p-2.5 sm:p-2 flex flex-col flex-1">
+    <div class="flex flex-1 flex-col p-3 sm:p-4">
 
-        <h3
-            class="font-sans font-semibold text-ink text-[12px] sm:text-[13px] leading-snug line-clamp-1 mb-1 group-hover:text-gold transition-colors">
-            {{ $p->nama }}
+        {{-- NAMA --}}
+        <h3 class="truncate text-sm font-bold sm:text-base"
+            style="color: #15233d; font-family: 'Playfair Display', serif;">
+            {{ $nama }}
         </h3>
 
-        <div class="flex items-center gap-1 sm:gap-1.5 mb-1">
-            <div class="flex text-amber-400 gap-0.5">
+        {{-- RATING --}}
+        <div class="mt-1.5 flex items-center gap-1.5 text-[11px]">
+            <div class="flex items-center gap-0.5" role="img"
+                aria-label="Rating {{ number_format($rating, 1, ',', '.') }} dari 5">
                 @for ($i = 1; $i <= 5; $i++)
-                    <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3 {{ $i <= round($p->rating_rata_rata) ? 'text-amber-400' : 'text-gray-300' }}"
-                        fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    <svg class="h-3 w-3 {{ $i <= round($rating) ? 'text-[#c99a32]' : 'text-[#e5dfd0]' }}"
+                        viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
                 @endfor
             </div>
-            <span
-                class="text-[9px] sm:text-[10px] font-semibold text-ink/80">{{ number_format($p->rating_rata_rata, 1) }}</span>
-            <span class="text-[8px] sm:text-[9px] text-ink/50">({{ $p->jumlah_rating }})</span>
+            <span class="font-medium text-gray-700">{{ number_format($rating, 1, ',', '.') }}</span>
+            <span class="text-gray-400">({{ $ulasan }})</span>
         </div>
 
-        {{-- Harga & tombol --}}
-        <div class="mt-auto">
-            <div class="space-y-0.5 mb-1.5 border-t border-line/50 pt-1.5">
-                <div class="flex items-baseline justify-between min-h-[14px] sm:min-h-[16px]">
-                    @if ($bisaBeli)
-                        <span class="text-[9px] uppercase tracking-wider text-muted">Beli</span>
-                        <span class="font-sans font-bold text-[11px] text-ink">
-                            Rp {{ number_format($p->harga_jual, 0, ',', '.') }}
-                        </span>
-                    @endif
+        <div class="my-3 border-t" style="border-color: #f0ece4;"></div>
+
+        {{-- HARGA --}}
+        <div class="space-y-1.5 text-[11px] sm:text-xs">
+            @if ($bisaSewa)
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-gray-500">Sewa:</span>
+                    <span class="whitespace-nowrap" style="color: #15233d;">
+                        <span class="text-sm font-bold sm:text-base"
+                            style="font-family: 'Playfair Display', serif;">Rp {{ number_format($hargaSewa, 0, ',', '.') }}</span>
+                        <span class="text-[10px] text-gray-400">/3hr</span>
+                    </span>
                 </div>
-                <div class="flex items-baseline justify-between min-h-[14px] sm:min-h-[16px]">
-                    @if ($bisaSewa)
-                        <span class="text-[9px] uppercase tracking-wider text-muted">Sewa</span>
-                        <span class="font-sans font-bold text-[11px] text-gold">
-                            Rp {{ number_format($p->harga_sewa, 0, ',', '.') }}
-                        </span>
-                    @endif
+            @else
+                <div class="flex items-center justify-between gap-2">
+                    <span class="font-medium text-red-700">Status Sewa:</span>
+                    <span class="text-right text-red-700">Tidak Disewakan</span>
                 </div>
+            @endif
+
+            @if ($bisaBeli)
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-gray-500">Beli Baru:</span>
+                    <span class="whitespace-nowrap font-semibold" style="color: #15233d;">
+                        Rp {{ number_format($hargaBeli, 0, ',', '.') }}
+                    </span>
+                </div>
+            @else
+                <div class="flex items-center justify-between gap-2">
+                    <span class="font-medium text-red-700">Status Jual:</span>
+                    <span class="text-right text-red-700">Tidak Dijual</span>
+                </div>
+            @endif
+        </div>
+
+        {{-- PILIHAN WARNA --}}
+        @if (count($warna))
+            <div class="mt-3 flex flex-wrap items-center gap-1.5">
+                @foreach ($warna as $hex)
+                    <span class="h-3.5 w-3.5 rounded-full border border-black/10" style="background-color: {{ $hex }};"></span>
+                @endforeach
             </div>
-
-            @php
-                $tbl =
-                    'inline-flex items-center justify-center px-2 sm:px-3 py-2 rounded-lg text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider transition-colors min-h-[40px] sm:min-h-[36px]';
-                $tblEmas = $tbl . ' bg-gold text-white hover:bg-gold/90';
-                $tblOutline = $tbl . ' border border-gold text-gold bg-white hover:bg-gold hover:text-white';
-            @endphp
-
-            @php
-    $stokHabis = ($p->stok ?? 0) <= 0;
-    $tblDisabled = 'inline-flex items-center justify-center px-2 sm:px-3 py-2 rounded-lg text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider bg-gray-200 text-gray-400 cursor-not-allowed min-h-[40px] sm:min-h-[36px]';
-@endphp
-
-<div class="relative z-20 grid {{ $bisaSewa && $bisaBeli ? 'grid-cols-2' : 'grid-cols-1' }} gap-1.5">
-    @if ($stokHabis)
-        {{-- Jika stok habis, tampilkan satu tombol abu-abu --}}
-        <span class="{{ $tblDisabled }}">Stok Habis</span>
-    @else
-        @if ($bisaSewa)
-            <a href="{{ route('produk.detail', ['sku' => $p->sku]) }}" class="{{ $bisaBeli ? $tblOutline : $tblEmas }}">Sewa</a>
         @endif
-        @if ($bisaBeli)
-            <a href="{{ route('produk.detail', ['sku' => $p->sku, 'mode' => 'beli']) }}" class="{{ $tblEmas }}">Beli</a>
-        @endif
-        @unless ($bisaSewa || $bisaBeli)
-            <a href="{{ route('produk.detail', ['sku' => $p->sku]) }}" class="{{ $tblOutline }}">Lihat Detail</a>
-        @endunless
-    @endif
-</div>
+
+        {{-- TOMBOL --}}
+        <div class="mt-auto pt-4">
+            @if ($bisaSewa && $bisaBeli)
+                <div class="grid grid-cols-2 gap-2">
+                    <a href="{{ $urlDetail }}?mode=sewa"
+                        class="block border py-2.5 text-center text-[11px] font-bold uppercase tracking-wider transition-colors hover:bg-gray-50"
+                        style="border-color: #c99a32; color: #15233d;">
+                        Sewa
+                    </a>
+                    <a href="{{ $urlDetail }}?mode=beli"
+                        class="block py-2.5 text-center text-[11px] font-bold uppercase tracking-wider transition duration-300 hover:-translate-y-0.5"
+                        style="background: #c99a32; color: #17140f;">
+                        Beli Baru
+                    </a>
+                </div>
+            @elseif ($bisaSewa)
+                <a href="{{ $urlDetail }}?mode=sewa"
+                    class="block py-2.5 text-center text-[11px] font-bold uppercase tracking-wider transition duration-300 hover:-translate-y-0.5"
+                    style="background: #c99a32; color: #17140f;">
+                    Sewa Sekarang
+                </a>
+            @elseif ($bisaBeli)
+                <a href="{{ $urlDetail }}?mode=beli"
+                    class="block py-2.5 text-center text-[11px] font-bold uppercase tracking-wider transition duration-300 hover:-translate-y-0.5"
+                    style="background: #c99a32; color: #17140f;">
+                    Beli Sekarang
+                </a>
+            @else
+                <span class="block bg-gray-200 py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                    Belum Tersedia
+                </span>
+            @endif
         </div>
     </div>
-</article>
+</div>

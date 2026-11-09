@@ -106,6 +106,8 @@ class HomeController extends Controller
             'bahan'                => $p->bahan,
             'berat'                => $p->berat,
             'ukuran'               => $p->ukuran,
+            'warna'       => $p->warna,
+            'warna_sewa'  => $p->warna_sewa,
             'harga_jual'           => $p->harga_jual,
             'harga_sewa'           => $p->harga_sewa,
             'stok'                 => $p->stok,

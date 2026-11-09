@@ -10,6 +10,11 @@
         75% { transform: rotate(-5deg); }
     }
 
+    @keyframes tapis-drift {
+        from { background-position: 0 center; }
+        to   { background-position: 240px center; }
+    }
+
     :root {
         --al-gold: #c99a32;
         --al-gold-soft: #e6c877;
@@ -19,9 +24,8 @@
         --al-line: rgba(201, 154, 50, .28);
     }
 
-    /* Efek kaca + glow emas saat scroll */
+    /* Header */
     .al-header { border-bottom: 1px solid var(--al-gold); background: rgba(255, 255, 255, .98); transition: background-color .3s ease, box-shadow .3s ease; }
-    /* Efek kaca (liquid glass) saat scroll */
     .al-header.is-scrolled {
         background: rgba(255, 255, 255, .62);
         -webkit-backdrop-filter: blur(22px) saturate(180%);
@@ -29,9 +33,8 @@
         box-shadow: 0 12px 32px -14px rgba(201, 154, 50, .40), inset 0 1px 0 rgba(255, 255, 255, .7);
     }
     .al-main { position: relative; z-index: 2; }
-    /* Tinggi header dijaga tetap supaya isi halaman tidak bergeser saat scroll */
 
-    /* Tombol ikon bulat (gaya ikon sosmed footer) */
+    /* Tombol ikon bulat */
     .al-icon-btn {
         background: #fbf6e9;
         border: 1px solid rgba(201, 154, 50, .28);
@@ -40,47 +43,61 @@
     }
     .al-icon-btn:hover { border-color: var(--al-gold); color: #9a6f12; background: #fff; transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(201, 154, 50, .55); }
 
-    /* Latar menu: motif kain tapis (pucuk rebung + belah ketupat) */
-    /*
-       Baris menu: menggantung tepat di bawah baris utama (absolute) dan ruangnya
-       dipesan oleh spacer, jadi menyembunyikannya TIDAK menggeser halaman.
-       Tidak boleh overflow:hidden agar dropdown Koleksi tidak terpotong.
-    */
+    /* Baris menu desktop */
     .al-tapis {
         position: absolute; left: 0; right: 0; top: calc(100% + 1px);
         height: 49px; z-index: 1;
         background: #fdf8ea;
         border-bottom: 1px solid var(--al-gold);
         box-shadow: 0 14px 24px -18px rgba(201, 154, 50, .45);
-        clip-path: inset(0 -60px -500px -60px);   /* tampil penuh (dropdown & bayangan tetap keluar) */
+        clip-path: inset(0 -60px -500px -60px);
         transition: transform .55s cubic-bezier(.22, .8, .3, 1), clip-path .55s cubic-bezier(.22, .8, .3, 1), visibility 0s linear 0s;
         will-change: transform, clip-path;
     }
-    .al-tapis > div { transition: opacity .4s ease; }
     .al-tapis.is-hidden {
-        transform: translateY(-101%);   /* naik ... */
-        clip-path: inset(100% -60px -500px -60px);   /* ... dan bagian di atas tepi header dipotong: tak tembus kaca */
+        transform: translateY(-101%);
+        clip-path: inset(100% -60px -500px -60px);
         visibility: hidden;
         pointer-events: none;
         transition: transform .45s cubic-bezier(.4, 0, .2, 1), clip-path .45s cubic-bezier(.4, 0, .2, 1), visibility 0s linear .45s;
     }
-    .al-tapis.is-hidden > div { opacity: 0; transition: opacity .25s ease; }
+
+        /* Motif tapis (gambar) */
     .al-tapis::before {
         content: '';
         position: absolute; inset: 0;
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='44'%3E%3Cg fill='none' stroke='%23c99a32' stroke-width='1.1'%3E%3Cpath d='M0 1.5H64M0 42.5H64'/%3E%3Cpath d='M32 11 L45 22 L32 33 L19 22Z'/%3E%3Cpath d='M32 16 L39.5 22 L32 28 L24.5 22Z' fill='%23c99a32' fill-opacity='.55'/%3E%3Cpath d='M0 1.5 L8 13 L16 1.5M48 1.5 L56 13 L64 1.5M0 42.5 L8 31 L16 42.5M48 42.5 L56 31 L64 42.5'/%3E%3C/g%3E%3Ccircle cx='8' cy='22' r='1.8' fill='%23c99a32'/%3E%3Ccircle cx='56' cy='22' r='1.8' fill='%23c99a32'/%3E%3C/svg%3E") repeat center / 64px 44px;
-        opacity: .38;
-        -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
-        mask-image: linear-gradient(90deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
+        background: url("{{ asset('images/home/tapis.png') }}") repeat-x center / auto 100%;
+        opacity: .75;
+        mix-blend-mode: multiply;
+        -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
+        mask-image: linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
+        pointer-events: none;
+        animation: tapis-drift 60s linear infinite;
+    }
+
+    /* Lapisan krem tipis agar tulisan menu tetap jelas */
+    .al-tapis::after {
+        content: '';
+        position: absolute; inset: 0;
+        background: linear-gradient(90deg,
+            rgba(253, 248, 234, .15) 0%,
+            rgba(253, 248, 234, .6) 30%,
+            rgba(253, 248, 234, .6) 70%,
+            rgba(253, 248, 234, .15) 100%);
         pointer-events: none;
     }
-    .al-tapis > div { position: relative; z-index: 1; }
 
-    /* Menu desktop: pill emas + garis bawah meluncur */
+    /* Isi menu di atas motif dan lapisan krem */
+    .al-tapis > div { position: relative; z-index: 1; transition: opacity .4s ease; }
+    .al-tapis.is-hidden > div { opacity: 0; transition: opacity .25s ease; }
+
+       /* Item menu desktop */
     .al-nav {
         position: relative;
-        color: #3b4358;
+        color: #0a0a0a;
+        font-weight: 800;
         border-radius: 999px;
+        text-shadow: 0 0 6px rgba(253, 248, 234, .95);
         transition: color .25s ease, background-color .25s ease;
     }
     .al-nav::after {
@@ -90,16 +107,16 @@
         transform: scaleX(0); transform-origin: left;
         transition: transform .35s cubic-bezier(.22, .8, .3, 1);
     }
-    .al-nav:hover { color: #8a6410; background: rgba(255, 255, 255, .88); }
+    .al-nav:hover { color: #000; background: rgba(255, 255, 255, .92); }
     .al-nav:hover::after { transform: scaleX(1); }
     .al-nav.is-active {
-        color: #8a6410;
+        color: #000;
         background: #f7e9bd;
-        box-shadow: inset 0 0 0 1px var(--al-line);
+        box-shadow: inset 0 0 0 1px var(--al-gold);
     }
     .al-nav.is-active::after { display: none; }
 
-    /* Dropdown gelap */
+    /* Dropdown */
     .al-dd-panel { background: #fff; border: 1px solid var(--al-line); box-shadow: 0 24px 48px -18px rgba(21, 35, 61, .22), 0 0 0 1px rgba(201, 154, 50, .06); }
     .al-dd-link { color: #15233d; transition: background-color .2s ease, color .2s ease, padding-left .2s ease; }
     .al-dd-link:hover { background: rgba(201, 154, 50, .10); color: #8a6410; padding-left: 1.25rem; }
@@ -108,6 +125,7 @@
 
     @media (prefers-reduced-motion: reduce) {
         .al-header, .al-main, .al-nav, .al-nav::after, .al-icon-btn, .al-tapis, .al-tapis.is-hidden, .al-tapis > div { transition: none !important; }
+        .al-tapis::before { animation: none; }
     }
 </style>
 
@@ -326,7 +344,7 @@
     </div>
 
     {{-- NAV DESKTOP --}}
-    <nav class="al-tapis hidden md:block" :class="{ 'is-hidden': navHidden }" :aria-hidden="navHidden ? 'true' : 'false'">
+    <nav class="al-tapis hidden md:block">
         <div class="max-w-7xl mx-auto px-4 h-full flex items-center justify-center gap-2">
             @foreach ($navItems as $item)
                 @if ($item['label'] === 'Koleksi')
@@ -457,35 +475,14 @@
             mobileOpen: false,
             koleksiOpen: false,
             scrolled: false,
-            navHidden: false,
-            lastY: 0,
-            acc: 0,
 
             init() {
-                this.lastY = window.scrollY;
-                this.scrolled = this.lastY > 30;
+                this.scrolled = window.scrollY > 30;
             },
 
-            // Turun ±40px -> menu naik & memudar. Naik ±12px -> menu muncul lagi.
+            // Hanya untuk efek kaca saat halaman di-scroll. Menu tidak disembunyikan lagi.
             onScroll() {
-                const y = Math.max(0, window.scrollY);
-                const d = y - this.lastY;
-                this.lastY = y;
-                this.scrolled = y > 30;
-
-                if (y < 80) { this.navHidden = false; this.acc = 0; return; }
-                if (d === 0) return;
-
-                if ((d > 0) !== (this.acc > 0)) this.acc = 0; // arah berubah: mulai hitung ulang
-                this.acc += d;
-
-                if (this.acc > 40 && !this.koleksiOpen) {
-                    this.navHidden = true;
-                    this.acc = 0;
-                } else if (this.acc < -12) {
-                    this.navHidden = false;
-                    this.acc = 0;
-                }
+                this.scrolled = window.scrollY > 30;
             },
         };
     }
