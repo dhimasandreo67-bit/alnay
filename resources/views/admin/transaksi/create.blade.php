@@ -204,14 +204,65 @@
                     </label>
                 </div>
 
-                <div id="box-tanggal-sewa" class="hidden mt-4">
-                    {{-- Kalender rentang sewa (sama dengan kalender di halaman detail produk).
-                         Nilai tersimpan di dua input tersembunyi supaya form & validasi lama tetap jalan. --}}
-                    <input type="hidden" id="tanggal_pinjam" name="tanggal_pinjam" value="{{ old('tanggal_pinjam') }}">
-                    <input type="hidden" id="tanggal_kembali_rencana" name="tanggal_kembali_rencana" value="{{ old('tanggal_kembali_rencana') }}">
+                {{-- Checklist langkah penyewaan: klik untuk lompat ke bagian yang dimaksud --}}
+                <div id="stepper-sewa" class="hidden mt-4">
+                    <p class="mb-2 text-[11px] font-semibold text-gray-500">Langkah penyewaan (klik untuk lompat)</p>
+                    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <button type="button" data-langkah="sec-produk" data-cek="produk" class="langkah flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition-all"><span class="langkah-ikon flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold">1</span><span class="min-w-0"><span class="block text-[11px] font-bold">Produk</span><span class="langkah-ket block truncate text-[10px]">Belum dipilih</span></span></button>
+                        <button type="button" data-langkah="box-tanggal-sewa" data-cek="tanggal" class="langkah flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition-all"><span class="langkah-ikon flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold">2</span><span class="min-w-0"><span class="block text-[11px] font-bold">Tanggal</span><span class="langkah-ket block truncate text-[10px]">Belum dipilih</span></span></button>
+                        <button type="button" data-langkah="sec-pelanggan" data-cek="pelanggan" class="langkah flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition-all"><span class="langkah-ikon flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold">3</span><span class="min-w-0"><span class="block text-[11px] font-bold">Pelanggan</span><span class="langkah-ket block truncate text-[10px]">Belum diisi</span></span></button>
+                        <button type="button" data-langkah="box-jaminan" data-cek="jaminan" class="langkah flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition-all"><span class="langkah-ikon flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold">4</span><span class="min-w-0"><span class="block text-[11px] font-bold">Jaminan</span><span class="langkah-ket block truncate text-[10px]">KTP &amp; deposit</span></span></button>
+                    </div>
+                </div>
+            </section>
 
-                    <p class="text-xs font-bold text-gray-500 mb-2">Tanggal Sewa <span class="text-rose-600">*</span></p>
-                    <div class="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+            {{-- 2. Katalog produk (dipilih lebih dulu agar kalender menandai tanggal yang sudah dibooking) --}}
+            <section id="sec-produk" class="scroll-mt-24 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div class="flex items-start gap-2">
+                        <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-sm shadow-amber-500/20 shrink-0">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Pilih Produk</p>
+                            <p id="katalog-info" class="text-xs text-gray-500 mt-0.5"></p>
+                        </div>
+                    </div>
+                    <input type="search" id="cari-produk" placeholder="Cari nama, SKU, motif, bahan" class="w-full sm:w-72 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all" autocomplete="off">
+                </div>
+
+                <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div id="chip-kategori" class="flex flex-wrap gap-2"></div>
+                    <label class="inline-flex shrink-0 cursor-pointer items-center gap-2 text-xs font-semibold text-gray-600">
+                        <input type="checkbox" id="hanya-tersedia" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                        Sembunyikan yang stok habis
+                    </label>
+                </div>
+
+                <div id="katalog" class="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[640px] overflow-y-auto pr-1"></div>
+            </section>
+
+            {{-- 3. Tanggal sewa (hanya penyewaan) --}}
+            <section id="box-tanggal-sewa" class="hidden scroll-mt-24 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
+                <div class="flex items-start gap-2 mb-1">
+                    <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-sm shadow-amber-500/20">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Tanggal Sewa <span class="text-rose-600">*</span></p>
+                        <p class="mt-0.5 text-xs text-gray-500">Pakai tombol cepat di kanan, atau klik tanggal di kalender (klik tanggal yang sama dua kali untuk sewa 1 hari).</p>
+                    </div>
+                </div>
+
+                {{-- Nilai tersimpan di dua input tersembunyi supaya form & validasi lama tetap jalan. --}}
+                <input type="hidden" id="tanggal_pinjam" name="tanggal_pinjam" value="{{ old('tanggal_pinjam') }}">
+                <input type="hidden" id="tanggal_kembali_rencana" name="tanggal_kembali_rencana" value="{{ old('tanggal_kembali_rencana') }}">
+
+                <div class="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
+                    {{-- Kiri: kalender --}}
+                    <div class="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm self-start">
                         <div class="mb-2 flex items-center justify-between">
                             <span id="kal-judul" class="text-sm font-bold capitalize text-gray-800"></span>
                             <div class="flex gap-1.5">
@@ -231,58 +282,64 @@
                             <div class="py-1.5 text-[11px] font-medium text-gray-400">Min</div>
                         </div>
                         <div id="kal-grid" class="grid grid-cols-7 gap-y-1 text-center"></div>
-                        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 pt-3 text-[11px] text-gray-500">
-                            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-600"></span> Dipilih</span>
-                            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-200"></span> Rentang sewa</span>
-                            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-rose-200"></span> Penuh dibooking</span>
-                            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-sky-50 ring-1 ring-sky-300"></span> Sebagian dibooking (masih ada unit, bisa dipilih)</span>
-                        </div>
                     </div>
-                    <p id="kal-hint" class="mt-2 text-[11px] text-gray-500">Tambahkan produk ke keranjang dulu agar tanggal yang sudah dibooking (online &amp; kasir) ditandai merah. Klik tanggal yang sama dua kali untuk sewa 1 hari.</p>
-                    <div class="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-amber-50/60 px-4 py-3 text-xs ring-1 ring-amber-100">
-                        <div><p class="text-[10px] text-gray-400">Ambil</p><p id="kal-ambil" class="font-bold text-gray-800">Klik tanggal</p></div>
-                        <div><p class="text-[10px] text-gray-400">Kembali</p><p id="kal-kembali" class="font-bold text-gray-800">-</p></div>
-                        <div><p class="text-[10px] text-gray-400">Durasi</p><p id="kal-durasi" class="font-bold text-amber-700">-</p></div>
-                    </div>
-                    <p id="info-durasi" class="mt-2 text-xs font-semibold text-amber-700"></p>
-                    <div id="info-bentrok" class="hidden mt-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800" role="alert"></div>
 
-                    {{-- Upload KTP penyewa (jaminan) --}}
-                    <div class="mt-4 rounded-2xl border border-dashed border-amber-300 bg-amber-50/40 p-4">
-                        <label for="foto_ktp" class="text-xs font-bold text-gray-700">Foto KTP Penyewa <span class="text-rose-600">*</span></label>
-                        <p class="mt-0.5 text-[11px] text-gray-500">Wajib untuk penyewaan. Format JPG, PNG, atau WEBP, maksimal 2 MB.</p>
-                        <input type="file" id="foto_ktp" name="foto_ktp" accept="image/jpeg,image/png,image/webp"
-                               class="mt-2 block w-full text-xs text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-100 file:px-3 file:py-2 file:text-xs file:font-bold file:text-amber-700 hover:file:bg-amber-200">
-                        <div id="preview-ktp" class="hidden mt-3 items-center gap-3">
-                            <img id="preview-ktp-img" src="" alt="Pratinjau KTP" class="h-20 w-32 rounded-lg border border-gray-200 object-cover bg-white">
-                            <button type="button" id="hapus-ktp" class="text-xs font-bold text-rose-600 hover:text-rose-700">Hapus foto</button>
+                    {{-- Kanan: ringkasan, tombol cepat, jadwal --}}
+                    <div class="min-w-0 space-y-3">
+                        <div class="grid grid-cols-3 gap-2 rounded-xl bg-amber-50/60 px-4 py-3 text-xs ring-1 ring-amber-100">
+                            <div><p class="text-[10px] text-gray-400">Ambil</p><p id="kal-ambil" class="font-bold text-gray-800">Klik tanggal</p></div>
+                            <div><p class="text-[10px] text-gray-400">Kembali</p><p id="kal-kembali" class="font-bold text-gray-800">-</p></div>
+                            <div><p class="text-[10px] text-gray-400">Durasi</p><p id="kal-durasi" class="font-bold text-amber-700">-</p></div>
                         </div>
-                        <p id="error-ktp" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
-                        {{-- Cukup centang: NIK & nama di KTP sudah dicocokkan kasir dengan pelanggan --}}
-                        <label for="ktp_sesuai" class="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-white p-3">
-                            <input type="checkbox" id="ktp_sesuai" name="ktp_sesuai" value="1" @checked(old('ktp_sesuai')) class="mt-0.5 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
-                            <span>
-                                <span class="block text-xs font-bold text-gray-800">NIK & nama di KTP sudah sesuai dengan penyewa <span class="text-rose-600">*</span></span>
-                                <span class="mt-0.5 block text-[11px] text-gray-500">Cocokkan KTP asli dengan pelanggan. Jaminan otomatis tercatat <b>terverifikasi</b> di Kelola Sewa.</span>
-                            </span>
-                        </label>
-                        <p id="error-ktp-sesuai" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
 
-                        {{-- Deposit jaminan (satu paket dengan KTP) --}}
-                        <div class="mt-4 pt-4 border-t border-amber-200">
-                            <label for="jumlah_deposit" class="text-xs font-bold text-gray-700">Jumlah Deposit Jaminan (Rp) <span class="text-rose-600">*</span></label>
-                            <p class="mt-0.5 text-[11px] text-gray-500">Deposit dititipkan pelanggan bersama KTP, dan dikembalikan 100% saat barang sudah kembali &amp; tidak ada denda tertunda.</p>
-                            <input type="number" id="jumlah_deposit" name="jumlah_deposit" min="1" step="1000"
-                                   value="{{ old('jumlah_deposit') }}" placeholder="Contoh: 200000"
-                                   class="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
-                            <p id="error-deposit" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
+                        <div class="rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+                            <p class="mb-2 text-[11px] font-bold text-gray-500">Mulai sewa</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" data-mulai="0" class="chip-cepat rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 transition-all hover:border-amber-400 hover:bg-amber-50 active:scale-95">Hari ini</button>
+                                <button type="button" data-mulai="1" class="chip-cepat rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 transition-all hover:border-amber-400 hover:bg-amber-50 active:scale-95">Besok</button>
+                                <button type="button" data-mulai="2" class="chip-cepat rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 transition-all hover:border-amber-400 hover:bg-amber-50 active:scale-95">Lusa</button>
+                            </div>
+                            <p class="mb-2 mt-3 text-[11px] font-bold text-gray-500">Lama sewa</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" data-durasi="1" class="chip-durasi chip-cepat rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 transition-all hover:border-amber-400 hover:bg-amber-50 active:scale-95">1 hari</button>
+                                <button type="button" data-durasi="2" class="chip-durasi chip-cepat rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 transition-all hover:border-amber-400 hover:bg-amber-50 active:scale-95">2 hari</button>
+                                <button type="button" data-durasi="3" class="chip-durasi chip-cepat rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 transition-all hover:border-amber-400 hover:bg-amber-50 active:scale-95">3 hari</button>
+                                <button type="button" data-durasi="7" class="chip-durasi chip-cepat rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 transition-all hover:border-amber-400 hover:bg-amber-50 active:scale-95">7 hari</button>
+                            </div>
+                            <div class="mt-3 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-3">
+                                <button type="button" data-aksi="terdekat" class="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-700 active:scale-95">Cari tanggal kosong terdekat</button>
+                                <button type="button" data-aksi="reset" class="text-xs font-bold text-gray-500 hover:text-rose-600">Reset tanggal</button>
+                            </div>
                         </div>
+
+                        <p id="kal-hint" class="text-[11px] text-gray-500">Pilih produk dulu (langkah 1) agar tanggal yang sudah dibooking (online &amp; kasir) ditandai merah dan tombol &ldquo;tanggal kosong terdekat&rdquo; bisa dipakai.</p>
+                        <p id="info-durasi" class="text-xs font-semibold text-amber-700"></p>
+                        <div id="info-bentrok" class="hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800" role="alert"></div>
+
+                        {{-- Jadwal sewa: rentang ambil - dipakai - kembali (diisi oleh renderKalender) --}}
+                        <div id="kal-jadwal" class="space-y-1.5 border-t border-gray-100 pt-3 text-[11px] text-gray-600"></div>
+
+                        <details class="rounded-xl border border-gray-100 px-3 py-2">
+                            <summary class="cursor-pointer text-[11px] font-semibold text-gray-700">Keterangan warna kalender</summary>
+                            <div class="mt-2">
+                                <div class="grid grid-cols-1 gap-x-4 gap-y-1.5 text-[11px] text-gray-500 sm:grid-cols-2">
+                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-white ring-1 ring-gray-200"></span> Tersedia, bisa dipilih</span>
+                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-white ring-1 ring-amber-400"></span> Hari ini</span>
+                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-amber-600"></span> Tanggal ambil / kembali yang dipilih</span>
+                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-amber-100"></span> Rentang sewa yang dipilih</span>
+                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-sky-50 ring-1 ring-sky-300"></span> Sebagian unit disewa, masih bisa dipilih</span>
+                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-rose-200"></span> Merah: semua unit disewa, tidak bisa dipilih</span>
+                                <span class="flex items-center gap-2"><span class="flex h-4 w-4 items-center justify-center rounded-md bg-gray-50 text-[9px] text-gray-300">12</span> Abu-abu: sudah lewat</span>
+                                <span class="flex items-center gap-2 sm:col-span-2"><span class="w-4 text-center text-[8px] font-semibold uppercase text-gray-500">aa</span> Tulisan kecil di tanggal: AMBIL (barang diambil), DIPAKAI, KEMBALI (barang dikembalikan)</span>
+                            </div>
+                            </div>
+                        </details>
                     </div>
                 </div>
             </section>
 
-            {{-- 2. Data pelanggan --}}
-            <section class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
+            {{-- 4. Data pelanggan --}}
+            <section id="sec-pelanggan" class="scroll-mt-24 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-sm shadow-amber-500/20">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -331,29 +388,48 @@
                 </div>
             </section>
 
-            {{-- 3. Katalog produk --}}
-            <section class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                    <div class="flex items-start gap-2">
-                        <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-sm shadow-amber-500/20 shrink-0">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-                            </svg>
+            {{-- 5. Jaminan penyewa (hanya penyewaan) --}}
+            <section id="box-jaminan" class="hidden scroll-mt-24 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-sm shadow-amber-500/20">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    </div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Jaminan Penyewa (KTP &amp; Deposit)</p>
+                </div>
+                    {{-- Upload KTP penyewa (jaminan) --}}
+                    <div class="mt-4 rounded-2xl border border-dashed border-amber-300 bg-amber-50/40 p-4">
+                        <label for="foto_ktp" class="text-xs font-bold text-gray-700">Foto KTP Penyewa <span class="text-rose-600">*</span></label>
+                        <p class="mt-0.5 text-[11px] text-gray-500">Wajib untuk penyewaan. Format JPG, PNG, atau WEBP, maksimal 2 MB.</p>
+                        <input type="file" id="foto_ktp" name="foto_ktp" accept="image/jpeg,image/png,image/webp"
+                               class="mt-2 block w-full text-xs text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-amber-100 file:px-3 file:py-2 file:text-xs file:font-bold file:text-amber-700 hover:file:bg-amber-200">
+                        <div id="preview-ktp" class="hidden mt-3 items-center gap-3">
+                            <img id="preview-ktp-img" src="" alt="Pratinjau KTP" class="h-20 w-32 rounded-lg border border-gray-200 object-cover bg-white">
+                            <button type="button" id="hapus-ktp" class="text-xs font-bold text-rose-600 hover:text-rose-700">Hapus foto</button>
                         </div>
-                        <div>
-                            <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Pilih Produk</p>
-                            <p id="katalog-info" class="text-xs text-gray-500 mt-0.5"></p>
+                        <p id="error-ktp" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
+                        {{-- Cukup centang: NIK & nama di KTP sudah dicocokkan kasir dengan pelanggan --}}
+                        <label for="ktp_sesuai" class="mt-3 flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-white p-3">
+                            <input type="checkbox" id="ktp_sesuai" name="ktp_sesuai" value="1" @checked(old('ktp_sesuai')) class="mt-0.5 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                            <span>
+                                <span class="block text-xs font-bold text-gray-800">NIK & nama di KTP sudah sesuai dengan penyewa <span class="text-rose-600">*</span></span>
+                                <span class="mt-0.5 block text-[11px] text-gray-500">Cocokkan KTP asli dengan pelanggan. Jaminan otomatis tercatat <b>terverifikasi</b> di Kelola Sewa.</span>
+                            </span>
+                        </label>
+                        <p id="error-ktp-sesuai" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
+
+                        {{-- Deposit jaminan (satu paket dengan KTP) --}}
+                        <div class="mt-4 pt-4 border-t border-amber-200">
+                            <label for="jumlah_deposit" class="text-xs font-bold text-gray-700">Jumlah Deposit Jaminan (Rp) <span class="text-rose-600">*</span></label>
+                            <p class="mt-0.5 text-[11px] text-gray-500">Deposit dititipkan pelanggan bersama KTP, dan dikembalikan 100% saat barang sudah kembali &amp; tidak ada denda tertunda.</p>
+                            <input type="number" id="jumlah_deposit" name="jumlah_deposit" min="1" step="1000"
+                                   value="{{ old('jumlah_deposit') }}" placeholder="Contoh: 200000"
+                                   class="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+                            <p id="error-deposit" class="hidden mt-2 text-[11px] font-semibold text-rose-600"></p>
                         </div>
                     </div>
-                    <input type="search" id="cari-produk" placeholder="Cari nama, SKU, motif, bahan" class="w-full sm:w-72 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all" autocomplete="off">
-                </div>
-
-                <div id="chip-kategori" class="flex flex-wrap gap-2 mb-4"></div>
-
-                <div id="katalog" class="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[640px] overflow-y-auto pr-1"></div>
             </section>
 
-            {{-- 4. Pembayaran --}}
+            {{-- 6. Pembayaran --}}
             <section class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-white shadow-sm shadow-amber-500/20">
@@ -408,6 +484,17 @@
                         <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Keranjang Kasir</p>
                     </div>
                     <span id="badge-item" class="rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-700">0 item</span>
+                </div>
+
+                {{-- Ringkasan tanggal sewa (hanya penyewaan): selalu terlihat di samping saat scroll --}}
+                <div id="ringkas-tanggal" class="hidden mx-5 mb-3 rounded-2xl border border-amber-200 bg-amber-50/60 px-4 py-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Tanggal sewa</p>
+                            <p id="ringkas-tanggal-isi" class="truncate text-xs font-bold text-gray-800">Belum dipilih</p>
+                        </div>
+                        <button type="button" id="ringkas-tanggal-ubah" class="shrink-0 rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-[11px] font-bold text-amber-700 transition hover:bg-amber-100">Pilih</button>
+                    </div>
                 </div>
 
                 <div id="cart" class="px-5 pb-2 space-y-3 max-h-[52vh] overflow-y-auto"></div>
@@ -518,18 +605,15 @@
         return r.length ? r : p.warna.map((w) => ({ nama: w, stok: null }));
     }
 
-    // Stok SEWA = unit tersedia pada tanggal yang dipilih (atau hari ini): total unit dikurangi booking terbanyak
-    // di rentang itu (online + kasir). Stok beli tetap dari data produk.
+    // Stok SEWA = unit yang dimiliki (kapasitas) dikurangi unit yang BELUM DIKEMBALIKAN. Angkanya sama
+    // dengan Kelola Produk dan TIDAK berubah mengikuti tanggal yang dipilih. Bentrok tanggal tetap dicek
+    // terpisah lewat kalender (cekBentrokTanggal) dan validasi server. Stok beli tetap dari data produk.
     function terbookingSewa(p, ukuran, warna) {
         if (jenisAktif() !== 'sewa') return 0;
         const peta = KETERSEDIAAN[p.id];
         const d = peta && peta[kunciTanggal(p, ukuran, warna)];
         if (!d) return 0;
-        const a = el('tanggal_pinjam').value || hariIniIso();
-        const b = el('tanggal_kembali_rencana').value || a;
-        let maks = 0;
-        Object.keys(d.hitung).forEach((t) => { if (t >= a && t <= b && d.hitung[t] > maks) maks = d.hitung[t]; });
-        return maks;
+        return (d.rentang || []).reduce((n, r) => n + (Number(r.jumlah) || 0), 0);
     }
 
     function stokUntuk(p, ukuran, warna) {
@@ -680,7 +764,8 @@
         const q = state.q.trim().toLowerCase();
         const daftar = PRODUK.filter((p) => cocokJenis(p, j))
             .filter((p) => !state.kategori || String(p.kategori_id) === String(state.kategori))
-            .filter((p) => !q || [p.nama, p.sku, p.motif, p.bahan, p.kategori].join(' ').toLowerCase().includes(q));
+            .filter((p) => !q || [p.nama, p.sku, p.motif, p.bahan, p.kategori].join(' ').toLowerCase().includes(q))
+            .filter((p) => !state.hanyaTersedia || bisaDipilih(p));
 
         el('katalog-info').textContent = daftar.length + ' produk tersedia untuk ' + (j === 'sewa' ? 'disewa' : 'dijual');
         el('katalog').innerHTML = daftar.length
@@ -927,6 +1012,7 @@
         renderKatalog();
     });
     el('cari-produk').addEventListener('input', (e) => { state.q = e.target.value; renderKatalog(); });
+    el('hanya-tersedia').addEventListener('change', (e) => { state.hanyaTersedia = e.target.checked; renderKatalog(); });
 
     // ================= JENIS TRANSAKSI & TANGGAL =================
     // Kunci kombinasi: sama dengan Support\KetersediaanSewa::kunci() di server
@@ -999,12 +1085,80 @@
         return { penuh, sebagian };
     }
 
+    // ---------- Rentang sewa: ambil -> dipakai -> kembali (sama dengan kalender halaman detail produk) ----------
+    const tambahHari = (t, n) => { const d = new Date(t + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return isoTgl(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
+    const pendek = (t) => new Date(t + 'T00:00:00Z').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+    // Booking yang sudah ada untuk SEMUA item di keranjang (sewa), tanpa duplikat kombinasi yang sama
+    function rentangKeranjang() {
+        const hasil = [], terlihat = new Set();
+        if (jenisAktif() !== 'sewa') return hasil;
+        state.cart.forEach((r) => {
+            const p = pById(r.produk_id), d = dataItem(r);
+            if (!p || !d) return;
+            const kunci = p.id + '|' + kunciTanggal(p, r.ukuran, r.warna);
+            if (terlihat.has(kunci)) return;
+            terlihat.add(kunci);
+            const varian = [r.ukuran, r.warna].filter(Boolean).join(', ');
+            (d.rentang || []).forEach((x) => hasil.push(Object.assign({ nama: p.nama, varian }, x)));
+        });
+        return hasil;
+    }
+
+    // Contoh: "Diambil 1 Nov · dipakai 2 Nov · dikembalikan 3 Nov"
+    function rincianRentang(mulai, selesai, terlambat, rencana) {
+        if (terlambat) return 'Diambil ' + pendek(mulai) + ' · belum dikembalikan (jadwal kembali ' + pendek(rencana) + ')';
+        if (mulai === selesai) return 'Diambil & dikembalikan ' + pendek(mulai);
+        const a = tambahHari(mulai, 1), b = tambahHari(selesai, -1);
+        const pakai = a > b ? '' : (a === b ? ' · dipakai ' + pendek(a) : ' · dipakai ' + pendek(a) + '–' + pendek(b));
+        return 'Diambil ' + pendek(mulai) + pakai + ' · dikembalikan ' + pendek(selesai);
+    }
+
+    // Peran tanggal t di tiap booking yang sudah ada
+    function perananBooking(t, daftar) {
+        const hasil = [];
+        daftar.forEach((x) => {
+            if (t < x.mulai || t > x.selesai) return;
+            let peran;
+            if (x.terlambat && t === x.selesai) peran = 'belum kembali';
+            else if (x.mulai === x.selesai) peran = 'ambil & kembali';
+            else if (t === x.mulai) peran = 'ambil';
+            else if (t === x.selesai) peran = 'kembali';
+            else peran = 'dipakai';
+            hasil.push({ peran, x });
+        });
+        return hasil;
+    }
+
+    function renderJadwal(daftar, a, b) {
+        const box = el('kal-jadwal');
+        if (!box) return;
+        let h = '<p class="text-[11px] font-semibold text-gray-700">Jadwal sewa</p>';
+        if (a && b && b >= a) {
+            h += '<p class="rounded-lg bg-amber-50 px-2.5 py-1.5 text-gray-700"><b>Pilihan:</b> ' + esc(rincianRentang(a, b, false, null)) + '</p>';
+        }
+        if (!state.cart.length) {
+            h += '<p>Tambahkan produk ke keranjang untuk melihat jadwal sewanya.</p>';
+        } else if (!daftar.length) {
+            h += '<p>Belum ada jadwal sewa lain untuk produk di keranjang.</p>';
+        } else {
+            daftar.forEach((x) => {
+                h += '<p class="rounded-lg bg-rose-50 px-2.5 py-1.5 text-rose-700"><b>' + esc(x.nama) + '</b>' + (x.varian ? ' (' + esc(x.varian) + ')' : '')
+                    + '<br><b>' + esc(tglPanjang(x.mulai) + ' – ' + tglPanjang(x.selesai)) + '</b> · ' + x.jumlah + ' unit disewa'
+                    + '<br>' + esc(rincianRentang(x.mulai, x.selesai, x.terlambat, x.rencana)) + '</p>';
+            });
+        }
+        box.innerHTML = h;
+    }
+
     function renderKalender() {
         const grid = el('kal-grid');
         if (!grid || !kal.tahun) return;
         const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
         const { penuh, sebagian } = statusTanggalKeranjang();
         const hariIni = hariIniIso();
+        const daftarRentang = rentangKeranjang();
+        renderJadwal(daftarRentang, a, b);
 
         el('kal-judul').textContent = new Date(Date.UTC(kal.tahun, kal.bulan, 1))
             .toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -1024,15 +1178,31 @@
             const lalu = c.t < hariIni, isPenuh = penuh.has(c.t), isSebagian = sebagian.has(c.t);
             const dipilih = c.t === a || c.t === b;
             const dalam = a && b && c.t > a && c.t < b;
-            let kelas = 'h-10 mx-px rounded-lg text-xs font-medium transition-all duration-200 ';
+            let kelas = 'flex h-11 flex-col items-center justify-center leading-none mx-px rounded-lg text-xs font-medium transition-all duration-200 ';
             let mati = false, judul = '';
             if (dipilih) kelas += 'relative z-10 scale-105 bg-amber-600 font-bold text-white shadow-md';
             else if (dalam) kelas += 'bg-amber-100 font-semibold text-amber-900';
             else if (c.luar || lalu) { kelas += 'cursor-default text-gray-300'; mati = true; }
-            else if (isPenuh) { kelas += 'cursor-not-allowed bg-rose-100 text-rose-500 line-through decoration-rose-400'; mati = true; judul = 'Penuh dibooking'; }
+            else if (isPenuh) { kelas += 'cursor-not-allowed bg-rose-100 text-rose-500 line-through decoration-rose-400'; mati = true; judul = 'Sedang disewa, tidak tersedia'; }
             else if (isSebagian) { kelas += 'bg-sky-50 text-sky-700 ring-1 ring-sky-200 hover:bg-sky-100 hover:scale-110 active:scale-95'; judul = sebagian.get(c.t); }
             else kelas += 'text-gray-700 hover:scale-110 hover:bg-amber-50 active:scale-95' + (c.t === hariIni ? ' ring-1 ring-amber-400' : '');
-            return '<button type="button" data-t="' + c.t + '" class="' + kelas + '"' + (judul ? ' title="' + esc(judul) + '"' : '') + ((mati && !dipilih) || c.luar ? ' disabled' : '') + '>' + c.hari + '</button>';
+            // Tulisan kecil: ambil / dipakai / kembali (pilihan sekarang lebih dulu, lalu booking yang sudah ada)
+            const peran = (c.luar || lalu) ? [] : perananBooking(c.t, daftarRentang);
+            let label = '';
+            if (!c.luar && !lalu) {
+                if (a && b && c.t === a && c.t === b) label = '1 hari';
+                else if (c.t === a) label = 'ambil';
+                else if (c.t === b) label = 'kembali';
+                else if (dalam) label = 'dipakai';
+                else if (peran.length > 1) label = peran.length + ' jadwal';
+                else if (peran.length === 1) label = ({ 'ambil': 'ambil', 'kembali': 'kembali', 'dipakai': 'dipakai', 'belum kembali': 'telat', 'ambil & kembali': '1 hari' })[peran[0].peran];
+            }
+            const baris = [];
+            if (judul) baris.push(judul);
+            peran.forEach((q) => baris.push(q.x.jumlah + ' unit: ' + q.peran + ' (' + pendek(q.x.mulai) + ' – ' + pendek(q.x.selesai) + ')'));
+            const judulLengkap = baris.map(esc).join('&#10;');
+            return '<button type="button" data-t="' + c.t + '" class="' + kelas + '"' + (judulLengkap ? ' title="' + judulLengkap + '"' : '') + ((mati && !dipilih) || c.luar ? ' disabled' : '') + '>'
+                + '<span>' + c.hari + '</span>' + (label ? '<span class="mt-0.5 text-[8px] font-semibold uppercase tracking-tight opacity-80">' + label + '</span>' : '') + '</button>';
         }).join('');
 
         el('kal-ambil').textContent = a ? tglPanjang(a) : 'Klik tanggal';
@@ -1087,6 +1257,9 @@
     function ubahJenis() {
         const sewa = jenisAktif() === 'sewa';
         el('box-tanggal-sewa').classList.toggle('hidden', !sewa);
+        el('box-jaminan').classList.toggle('hidden', !sewa);
+        el('stepper-sewa').classList.toggle('hidden', !sewa);
+        el('ringkas-tanggal').classList.toggle('hidden', !sewa);
         aturPembayaranSewa(sewa);
 
         // Ganti set stok sesuai jenis (beli/sewa), lalu buang item yang tidak boleh untuk jenis ini
@@ -1102,6 +1275,7 @@
         state.dpManual = false;
         renderKatalog();
         renderCart();
+        updateStepper();
     }
 
     document.querySelectorAll('input[name="jenis"]').forEach((r) => r.addEventListener('change', ubahJenis));
@@ -1117,6 +1291,154 @@
         if (kal.bulan === 11) { kal.bulan = 0; kal.tahun++; } else { kal.bulan++; }
         renderKalender();
     });
+
+    // ================= BANTUAN PILIH TANGGAL & CHECKLIST LANGKAH SEWA =================
+    let durasiPilihan = 0;   // 0 = belum memilih lama sewa lewat tombol cepat
+
+    // Set rentang sewa langsung (tanpa klik kalender), lalu segarkan batas stok, kalender, dan keranjang
+    function setRentang(a, b) {
+        el('tanggal_pinjam').value = a || '';
+        el('tanggal_kembali_rencana').value = b || '';
+        if (a) { const d = new Date(a + 'T00:00:00Z'); kal.tahun = d.getUTCFullYear(); kal.bulan = d.getUTCMonth(); }
+        state.cart.forEach((r, idx) => {
+            const p = pById(r.produk_id);
+            if (p) r.qty = Math.max(1, Math.min(r.qty, sisaStok(p, r.ukuran, r.warna, idx) || 1));
+        });
+        hitungDurasi();
+        renderCart();
+    }
+
+    // Rentang n hari berurutan pertama (mulai hari ini) yang tidak menabrak tanggal penuh
+    function rentangKosong(n, dari) {
+        const { penuh } = statusTanggalKeranjang();
+        const awal = dari && dari >= hariIniIso() ? dari : hariIniIso();
+        for (let i = 0; i < 366; i++) {
+            const mulai = tambahHari(awal, i);
+            let ok = true;
+            for (let k = 0; k < n; k++) { if (penuh.has(tambahHari(mulai, k))) { ok = false; break; } }
+            if (ok) return [mulai, tambahHari(mulai, n - 1)];
+        }
+        return null;
+    }
+
+    function infoTanggal(teks) { el('info-durasi').textContent = teks; }
+
+    function pilihDurasi(n) {
+        durasiPilihan = n;
+        const a = el('tanggal_pinjam').value;
+        if (a) {
+            const akhir = tambahHari(a, n - 1);
+            const { penuh } = statusTanggalKeranjang();
+            let bentrok = false;
+            for (let k = 0; k < n; k++) { if (penuh.has(tambahHari(a, k))) { bentrok = true; break; } }
+            if (!bentrok) { setRentang(a, akhir); return; }
+            // Tanggal ambil yang ada bentrok: majukan ke rentang kosong berikutnya
+            const r = rentangKosong(n, a);
+            if (r) {
+                setRentang(r[0], r[1]);
+                infoTanggal('Tanggal dimajukan ke ' + pendek(r[0]) + ' karena ' + pendek(a) + ' sudah penuh dibooking.');
+            } else {
+                setRentang(a, akhir);
+            }
+            return;
+        }
+        if (!state.cart.length) { setRentang(hariIniIso(), tambahHari(hariIniIso(), n - 1)); return; }
+        const r = rentangKosong(n);
+        if (r) setRentang(r[0], r[1]);
+        else infoTanggal('Tidak ada rentang ' + n + ' hari yang kosong dalam setahun ke depan.');
+    }
+
+    function pilihMulai(offset) {
+        const mulai = tambahHari(hariIniIso(), offset);
+        const { penuh } = statusTanggalKeranjang();
+        if (penuh.has(mulai)) {
+            setRentang('', '');
+            infoTanggal(pendek(mulai) + ' sudah penuh dibooking. Pilih tanggal lain atau klik "Cari tanggal kosong terdekat".');
+            return;
+        }
+        setRentang(mulai, durasiPilihan ? tambahHari(mulai, durasiPilihan - 1) : '');
+    }
+
+    function cariTerdekat() {
+        if (!state.cart.length) { infoTanggal('Pilih produk dulu (langkah 1) supaya tanggal kosong bisa dicari.'); return; }
+        const n = Math.max(1, durasiPilihan);
+        const r = rentangKosong(n);
+        if (r) { durasiPilihan = n; setRentang(r[0], r[1]); }
+        else infoTanggal('Tidak ada rentang ' + n + ' hari yang kosong dalam setahun ke depan.');
+    }
+
+    el('box-tanggal-sewa').addEventListener('click', (e) => {
+        const m = e.target.closest('[data-mulai]'), d = e.target.closest('[data-durasi]'), a = e.target.closest('[data-aksi]');
+        if (m) pilihMulai(Number(m.dataset.mulai));
+        else if (d) pilihDurasi(Number(d.dataset.durasi));
+        else if (a && a.dataset.aksi === 'terdekat') cariTerdekat();
+        else if (a && a.dataset.aksi === 'reset') { durasiPilihan = 0; setRentang('', ''); }
+    });
+
+    // ---------- Checklist langkah + ringkasan tanggal di keranjang ----------
+    const KELAS_LANGKAH = {
+        selesai: ['border-emerald-300 bg-emerald-50 text-emerald-800', 'bg-emerald-500 text-white'],
+        belum: ['border-gray-200 bg-white text-gray-600 hover:border-amber-300', 'bg-gray-100 text-gray-500'],
+    };
+
+    function updateStepper() {
+        if (jenisAktif() !== 'sewa') return;
+        const a = el('tanggal_pinjam').value, b = el('tanggal_kembali_rencana').value;
+        const hari = a && b && b >= a ? Math.round((new Date(b) - new Date(a)) / 86400000) + 1 : 0;
+        const tipe = (document.querySelector('input[name="customer_type"]:checked') || {}).value;
+        const pelangganOk = tipe === 'tamu'
+            ? !!(el('nama_tamu').value.trim() && el('no_hp_tamu').value.trim())
+            : !!el('select-user').value;
+        const jaminanOk = el('foto_ktp').files.length > 0 && el('ktp_sesuai').checked && (parseFloat(el('jumlah_deposit').value) || 0) > 0;
+
+        const status = {
+            produk: [state.cart.length > 0, state.cart.length ? state.cart.length + ' item' : 'Belum dipilih'],
+            tanggal: [hari > 0, hari ? pendek(a) + ' – ' + pendek(b) : 'Belum dipilih'],
+            pelanggan: [pelangganOk, pelangganOk ? 'Lengkap' : 'Belum diisi'],
+            jaminan: [jaminanOk, jaminanOk ? 'Lengkap' : 'KTP & deposit'],
+        };
+        document.querySelectorAll('#stepper-sewa .langkah').forEach((btn, i) => {
+            const [ok, ket] = status[btn.dataset.cek];
+            const [kelasBtn, kelasIkon] = KELAS_LANGKAH[ok ? 'selesai' : 'belum'];
+            btn.className = 'langkah flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition-all ' + kelasBtn;
+            const ikon = btn.querySelector('.langkah-ikon');
+            ikon.className = 'langkah-ikon flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ' + kelasIkon;
+            ikon.textContent = ok ? '\u2713' : String(i + 1);
+            btn.querySelector('.langkah-ket').textContent = ket;
+        });
+
+        // Tombol lama sewa yang sedang aktif
+        document.querySelectorAll('.chip-durasi').forEach((c) => {
+            const aktif = hari > 0 && Number(c.dataset.durasi) === hari;
+            c.classList.toggle('border-amber-500', aktif);
+            c.classList.toggle('bg-amber-100', aktif);
+            c.classList.toggle('text-amber-800', aktif);
+            c.classList.toggle('border-gray-200', !aktif);
+            c.classList.toggle('bg-white', !aktif);
+            c.classList.toggle('text-gray-700', !aktif);
+        });
+
+        // Ringkasan di samping keranjang
+        el('ringkas-tanggal-isi').textContent = hari
+            ? pendek(a) + ' – ' + pendek(b) + ' · ' + hari + ' hari'
+            : (a ? 'Ambil ' + pendek(a) + ', pilih tanggal kembali' : 'Belum dipilih');
+        el('ringkas-tanggal-ubah').textContent = a ? 'Ubah' : 'Pilih';
+    }
+
+    function lompatKe(id) {
+        const t = el(id);
+        if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    el('stepper-sewa').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-langkah]');
+        if (b) lompatKe(b.dataset.langkah);
+    });
+    el('ringkas-tanggal-ubah').addEventListener('click', () => lompatKe('box-tanggal-sewa'));
+
+    // Segarkan checklist setiap ada perubahan di form (pelanggan, KTP, deposit, dll.)
+    ['input', 'change', 'click'].forEach((ev) => el('form-kasir').addEventListener(ev, () => setTimeout(updateStepper, 0)));
+    const _renderCart = renderCart;
+    renderCart = function () { _renderCart(); updateStepper(); };
 
     // ================= PELANGGAN =================
     function renderUsers(filter, pilihId) {

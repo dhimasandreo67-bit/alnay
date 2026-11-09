@@ -6,25 +6,19 @@
 @section('content')
 
     @php
+        // Fallback AMAN (nol/kosong), bukan data palsu. Data asli dikirim DashboardController.
         $stats ??= [
-            'transaksi_hari_ini' => 18,
-            'transaksi_trend' => '+12%',
-            'sewa_aktif' => 27,
-            'sewa_jatuh_tempo' => 3,
-            'refund_pending' => 2,
-            'refund_saldo' => 1_150_000,
-            'pendapatan_bulan_ini' => 84_200_000,
+            'transaksi_hari_ini' => 0,
+            'transaksi_trend' => '0%',
+            'sewa_aktif' => 0,
+            'sewa_jatuh_tempo' => 0,
+            'sewa_terlambat' => 0,
+            'refund_pending' => 0,
+            'refund_saldo' => 0,
+            'pendapatan_bulan_ini' => 0,
         ];
-        $chart ??= [
-            ['label' => 'Rab', 'value' => 11],
-            ['label' => 'Kam', 'value' => 14],
-            ['label' => 'Jum', 'value' => 8],
-            ['label' => 'Sab', 'value' => 17],
-            ['label' => 'Min', 'value' => 12],
-            ['label' => 'Sen', 'value' => 15],
-            ['label' => 'Hari ini', 'value' => 18, 'today' => true],
-        ];
-        $maxChart = max(1, max(array_column($chart, 'value')));
+        $chart ??= [];
+        $maxChart = max(1, $chart ? max(array_column($chart, 'value')) : 1);
 
         // Format rupiah ringkas & adaptif: rb (ribu) / jt (juta) / M (milyar).
         // Dipakai supaya nominal kecil tidak tampil "0,0jt".
@@ -44,25 +38,18 @@
             return number_format($nilai, 0, ',', '.');
         };
 
-        $transactions ??= [
-            ['kode' => 'SWA-2026-0912', 'pelanggan' => 'Perrell Brown', 'inisial' => 'PB', 'detail' => 'Fitting Final · 3 item', 'jenis' => 'Sewa', 'kanal' => 'Online', 'status' => 'DP 50%', 'statusTone' => 'rose', 'total' => 4700000],
-            ['kode' => 'BEL-2026-0805', 'pelanggan' => 'Raditya A.', 'inisial' => 'RA', 'detail' => 'Beskap & Aksesoris', 'jenis' => 'Beli', 'kanal' => 'Walk In', 'status' => 'Lunas', 'statusTone' => 'green', 'total' => 2500000],
-            ['kode' => 'BEL-2026-0804', 'pelanggan' => 'Fathia M.', 'inisial' => 'FM', 'detail' => 'Gaun Pengantin Custom', 'jenis' => 'Beli', 'kanal' => 'Online', 'status' => 'DP 50%', 'statusTone' => 'rose', 'total' => 9545000],
-            ['kode' => 'SWA-2026-0911', 'pelanggan' => 'Dian S.', 'inisial' => 'DS', 'detail' => 'Kebaya Brokat Premium', 'jenis' => 'Sewa', 'kanal' => 'Walk In', 'status' => 'Lunas', 'statusTone' => 'green', 'total' => 3200000],
-        ];
+        // Transaksi terbaru: data NYATA dari tabel transaksi, diambil dengan relasi & accessor yang sama
+        // seperti halaman Kelola Transaksi. Kalau controller sudah mengirim $transaksiTerbaru, itu yang dipakai.
+        $transaksiTerbaru ??= \App\Models\Transaksi::with(['detail.produk', 'sewa', 'user'])
+            ->latest()
+            ->take(5)
+            ->get();
 
-        $actionQueue ??= [
-            ['key' => 'jaminan', 'title' => 'Verifikasi jaminan sewa', 'desc' => '4 jaminan KTP / deposit pending', 'count' => 4, 'route' => '#'],
-            ['key' => 'refund', 'title' => 'Refund diproses', 'desc' => '2 pengajuan pembatalan', 'count' => 2, 'route' => '#'],
-            ['key' => 'retur', 'title' => 'Return pengecekan', 'desc' => '1 gaun baru tiba di Toko', 'count' => 1, 'route' => '#'],
-            ['key' => 'fitting', 'title' => 'Reservasi fitting baru', 'desc' => '3 jadwal butuh konfirmasi', 'count' => 3, 'route' => '#'],
-        ];
+        $actionQueue ??= [];
         $antreanTotal ??= collect($actionQueue)->sum('count');
 
-        $stockAlerts ??= collect([
-            ['nama' => 'Jas Beskap Beludru Jawa', 'sku' => '-', 'status' => 'dicuci', 'label' => 'Dicuci'],
-            ['nama' => 'Gaun Merah Maroon Pengantin', 'sku' => '-', 'status' => 'rusak', 'label' => 'Rusak'],
-        ]);
+        $stockAlerts ??= collect();
+        $stockAlertTotal ??= $stockAlerts->count();
     @endphp
 
     {{-- Custom Keyframe Styles untuk Animasi Halus --}}
@@ -103,8 +90,9 @@
             </div>
             <div class="mt-3 flex items-baseline gap-2">
                 <span class="text-3xl font-extrabold tracking-tight text-amber-950">{{ $stats['transaksi_hari_ini'] }}</span>
-                <span class="inline-flex items-center gap-0.5 rounded-full bg-emerald-100/80 px-2 py-0.5 text-xs font-bold text-emerald-700 animate-pulse">
-                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+                @php $trenNaik = ! str_starts_with($stats['transaksi_trend'], '-'); @endphp
+                <span class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-bold {{ $trenNaik ? 'bg-emerald-100/80 text-emerald-700' : 'bg-rose-100/80 text-rose-700' }}">
+                    <svg class="h-3 w-3 {{ $trenNaik ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
                     {{ $stats['transaksi_trend'] }}
                 </span>
             </div>
@@ -126,6 +114,12 @@
                 <span class="h-2 w-2 rounded-full bg-amber-500 animate-ping"></span>
                 <span>{{ $stats['sewa_jatuh_tempo'] }} gaun jatuh tempo besok</span>
             </div>
+            @if (($stats['sewa_terlambat'] ?? 0) > 0)
+                <div class="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-rose-100/70 px-2.5 py-1 text-xs font-medium text-rose-700">
+                    <span class="h-2 w-2 rounded-full bg-rose-500"></span>
+                    <span>{{ $stats['sewa_terlambat'] }} sewa terlambat dikembalikan</span>
+                </div>
+            @endif
         </div>
 
         {{-- Card 3: Refund Pending --}}
@@ -157,7 +151,7 @@
                     Rp {{ $formatRupiahRingkas($stats['pendapatan_bulan_ini']) }}
                 </span>
             </div>
-            <p class="mt-2 text-xs text-emerald-800/60">Target bulanan: 85% tercapai</p>
+            <p class="mt-2 text-xs text-emerald-800/60">Transaksi lunas &amp; DP dibayar, {{ \Illuminate\Support\Carbon::now()->translatedFormat('F Y') }}</p>
         </div>
 
     </div>
@@ -247,66 +241,94 @@
                             <tr class="border-b border-gray-100 text-[11px] font-bold uppercase tracking-wider text-gray-400">
                                 <th class="pb-3 pr-4">Kode TRX</th>
                                 <th class="pb-3 pr-4">Pelanggan</th>
-                                <th class="pb-3 pr-4">Jenis</th>
-                                <th class="pb-3 pr-4">Kanal</th>
+                                <th class="pb-3 pr-4">Produk</th>
+                                <th class="pb-3 pr-4">Total</th>
                                 <th class="pb-3 pr-4">Status</th>
-                                <th class="pb-3 text-right">Total</th>
+                                <th class="pb-3 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100/80">
-                            @foreach ($transactions as $trx)
+                            @forelse ($transaksiTerbaru as $t)
+                                @php
+                                    $items = $t->detail;
+                                    $jumlahProduk = $items->count();
+                                    $totalQty = (int) $items->sum('jumlah');
+                                    $pertama = $items->first();
+                                    $namaPelanggan = $t->nama_pelanggan;
+                                    $inisial = strtoupper(mb_substr(trim($namaPelanggan) ?: '?', 0, 1));
+                                    $fotoUser = $t->user->foto_profil ?? null;
+                                    $fotoUserUrl = $fotoUser ? (\Illuminate\Support\Str::startsWith($fotoUser, ['http://', 'https://']) ? $fotoUser : asset('storage/' . $fotoUser)) : null;
+                                    $statusColor = match ($t->status_pembayaran) {
+                                        'lunas', 'dp_dibayar' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                        'pending' => 'bg-amber-100 text-amber-700 border-amber-200',
+                                        default => 'bg-gray-100 text-gray-500 border-gray-200',
+                                    };
+                                @endphp
                                 <tr class="group transition-colors duration-150 hover:bg-amber-50/30">
-                                    {{-- Kode TRX --}}
+                                    {{-- Kode TRX + tanggal --}}
                                     <td class="py-3.5 pr-4">
-                                        <span class="inline-block rounded-md bg-gray-100 px-2 py-1 font-mono text-xs font-bold text-gray-700 group-hover:bg-amber-100 group-hover:text-amber-900 transition-colors">
-                                            {{ $trx['kode'] }}
-                                        </span>
+                                        <div class="text-sm font-bold text-gray-900">{{ $t->kode_transaksi }}</div>
+                                        <div class="text-xs text-gray-500">{{ $t->tanggal->format('d M Y') }}</div>
                                     </td>
-                                    {{-- Pelanggan --}}
+                                    {{-- Pelanggan + jenis + kanal --}}
                                     <td class="py-3.5 pr-4">
                                         <div class="flex items-center gap-3">
-                                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 font-bold text-white shadow-sm transition-transform duration-300 group-hover:scale-110">
-                                                {{ $trx['inisial'] }}
-                                            </div>
+                                            @if ($fotoUserUrl)
+                                                <img src="{{ $fotoUserUrl }}" alt="{{ $namaPelanggan }}" class="h-9 w-9 shrink-0 rounded-full object-cover border border-gray-200">
+                                            @else
+                                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-100 bg-amber-50 text-sm font-black text-amber-700">{{ $inisial }}</span>
+                                            @endif
                                             <div class="min-w-0">
-                                                <p class="font-semibold text-gray-900 truncate group-hover:text-amber-800 transition-colors">{{ $trx['pelanggan'] }}</p>
-                                                <p class="text-xs text-gray-400 truncate">{{ $trx['detail'] }}</p>
+                                                <p class="truncate font-semibold text-gray-900 transition-colors group-hover:text-amber-800">{{ $namaPelanggan }}</p>
+                                                <div class="mt-1 flex items-center gap-1.5">
+                                                    <span class="text-[11px] text-gray-500">{{ $t->jenis === 'sewa' ? 'Penyewaan' : 'Pembelian' }}</span>
+                                                    @if (($t->channel ?? 'online') === 'kasir')
+                                                        <span class="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-600">Kasir</span>
+                                                    @else
+                                                        <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-500">Online</span>
+                                                    @endif
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
-                                    {{-- Jenis --}}
-                                    <td class="py-3.5 pr-4 text-xs font-semibold text-gray-600">
-                                        <span class="inline-flex items-center gap-1">
-                                            <span class="h-1.5 w-1.5 rounded-full {{ $trx['jenis'] === 'Sewa' ? 'bg-indigo-500' : 'bg-emerald-500' }}"></span>
-                                            {{ $trx['jenis'] }}
-                                        </span>
-                                    </td>
-                                    {{-- Kanal --}}
+                                    {{-- Produk --}}
                                     <td class="py-3.5 pr-4">
-                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $trx['kanal'] === 'Online' ? 'bg-sky-50 text-sky-700 border border-sky-200/60' : 'bg-amber-50 text-amber-700 border border-amber-200/60' }}">
-                                            {{ $trx['kanal'] }}
-                                        </span>
-                                    </td>
-                                    {{-- Status --}}
-                                    <td class="py-3.5 pr-4">
-                                        @if($trx['statusTone'] === 'rose')
-                                            <span class="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-700 border border-rose-200/60">
-                                                <span class="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
-                                                {{ $trx['status'] }}
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200/60">
-                                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                                {{ $trx['status'] }}
-                                            </span>
+                                        <div class="text-xs font-medium text-gray-700">{{ $pertama?->produk->nama ?? '-' }}</div>
+                                        @if ($jumlahProduk > 1 || $totalQty > 1)
+                                            <div class="mt-1 text-[10px] font-semibold text-gray-400">
+                                                @if ($jumlahProduk > 1)+{{ $jumlahProduk - 1 }} produk lain &middot; @endif{{ $totalQty }} barang
+                                            </div>
+                                        @endif
+                                        @if ($t->sewa)
+                                            <div class="mt-1 text-[10px] font-semibold text-amber-700">
+                                                {{ \Carbon\Carbon::parse($t->sewa->tanggal_pinjam)->format('d M') }} -
+                                                {{ \Carbon\Carbon::parse($t->sewa->tanggal_kembali_rencana)->format('d M') }}
+                                            </div>
                                         @endif
                                     </td>
                                     {{-- Total --}}
-                                    <td class="py-3.5 text-right font-extrabold text-gray-900">
-                                        Rp {{ number_format($trx['total'], 0, ',', '.') }}
+                                    <td class="py-3.5 pr-4 text-sm font-bold tabular-nums text-gray-900">
+                                        Rp {{ number_format($t->total, 0, ',', '.') }}
+                                    </td>
+                                    {{-- Status pembayaran --}}
+                                    <td class="py-3.5 pr-4">
+                                        <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ $statusColor }}">
+                                            {{ str_replace('_', ' ', $t->status_pembayaran) }}
+                                        </span>
+                                    </td>
+                                    {{-- Aksi --}}
+                                    <td class="py-3.5 text-right">
+                                        <a href="{{ \Illuminate\Support\Facades\Route::has('admin.transaksi.show') ? route('admin.transaksi.show', $t->id) : '#' }}"
+                                           class="inline-flex items-center rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                                            Detail
+                                        </a>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="py-8 text-center text-sm italic text-gray-400">Belum ada data transaksi.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -368,15 +390,15 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="font-display text-lg font-bold text-gray-900">Stok Perlu Perhatian</h2>
-                        <p class="mt-0.5 text-xs text-gray-500">Pemeliharaan &amp; perbaikan busana</p>
+                        <p class="mt-0.5 text-xs text-gray-500">Perawatan, stok habis &amp; hampir habis</p>
                     </div>
-                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800">{{ $stockAlerts->count() }} busana</span>
+                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800">{{ $stockAlertTotal }} busana</span>
                 </div>
 
                 <div class="mt-5 space-y-3">
                     @forelse ($stockAlerts as $alert)
                         @php
-                            $isRusak = $alert['status'] === 'rusak';
+                            $isRusak = in_array($alert['status'], ['rusak', 'habis'], true);
                             $border = $isRusak ? 'border-rose-500' : 'border-amber-500';
                             $grad = $isRusak ? 'from-rose-50/80' : 'from-amber-50/80';
                             $badge = $isRusak ? 'bg-rose-200/60 text-rose-900' : 'bg-amber-200/60 text-amber-900';
