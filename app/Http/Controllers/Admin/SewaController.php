@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sewa;
+use App\Models\Transaksi;
 use App\Models\Denda;
 use App\Support\DendaTelat;
 use Carbon\Carbon;
@@ -269,13 +270,34 @@ class SewaController extends Controller
             $data['tanggal_kembali_aktual'] = now();
         }
 
-        $sewa->update($data);
+        $lunasOtomatis = false;
+
+        DB::transaction(function () use ($sewa, $data, $request, &$lunasOtomatis) {
+            $sewa->update($data);
+
+            // Barang sudah dikembalikan -> pembayaran transaksi otomatis LUNAS.
+            // Transaksi online multi-item punya satu baris Sewa per item, jadi
+            // baru dilunasi kalau SEMUA item sudah dikembalikan.
+            if ($request->status === 'selesai') {
+                $masihAdaYangAktif = Sewa::where('transaksi_id', $sewa->transaksi_id)
+                    ->where('status', '!=', 'selesai')
+                    ->exists();
+
+                if (! $masihAdaYangAktif) {
+                    $lunasOtomatis = Transaksi::find($sewa->transaksi_id)?->tandaiLunas() ?? false;
+                }
+            }
+        });
 
         if ($request->status === 'selesai') {
             $sewa->refresh()->load('transaksi.detail.produk', 'denda');
             DendaTelat::sinkron($sewa, Carbon::parse($sewa->tanggal_kembali_aktual ?? now()));
         }
 
-        return back()->with('success', 'Status sewa berhasil diubah menjadi ' . $request->status);
+        return back()->with(
+            'success',
+            'Status sewa berhasil diubah menjadi ' . $request->status
+                . ($lunasOtomatis ? '. Pembayaran transaksi otomatis ditandai LUNAS.' : '')
+        );
     }
 }
