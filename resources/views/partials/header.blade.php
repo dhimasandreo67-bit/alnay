@@ -10,11 +10,6 @@
         75% { transform: rotate(-5deg); }
     }
 
-    @keyframes tapis-drift {
-        from { background-position: 0 center; }
-        to   { background-position: 240px center; }
-    }
-
     :root {
         --al-gold: #c99a32;
         --al-gold-soft: #e6c877;
@@ -62,7 +57,7 @@
         transition: transform .45s cubic-bezier(.4, 0, .2, 1), clip-path .45s cubic-bezier(.4, 0, .2, 1), visibility 0s linear .45s;
     }
 
-        /* Motif tapis (gambar) */
+    /* Motif tapis (gambar, statis) */
     .al-tapis::before {
         content: '';
         position: absolute; inset: 0;
@@ -72,7 +67,6 @@
         -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
         mask-image: linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
         pointer-events: none;
-        animation: tapis-drift 60s linear infinite;
     }
 
     /* Lapisan krem tipis agar tulisan menu tetap jelas */
@@ -91,7 +85,7 @@
     .al-tapis > div { position: relative; z-index: 1; transition: opacity .4s ease; }
     .al-tapis.is-hidden > div { opacity: 0; transition: opacity .25s ease; }
 
-       /* Item menu desktop */
+    /* Item menu desktop */
     .al-nav {
         position: relative;
         color: #0a0a0a;
@@ -125,7 +119,6 @@
 
     @media (prefers-reduced-motion: reduce) {
         .al-header, .al-main, .al-nav, .al-nav::after, .al-icon-btn, .al-tapis, .al-tapis.is-hidden, .al-tapis > div { transition: none !important; }
-        .al-tapis::before { animation: none; }
     }
 </style>
 
