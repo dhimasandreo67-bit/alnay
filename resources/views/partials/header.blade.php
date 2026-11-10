@@ -8,10 +8,6 @@
         50% { transform: rotate(10deg); }
         75% { transform: rotate(-5deg); }
     }
-    @keyframes tapis-geser {
-        from { transform: translateX(0); }
-        to   { transform: translateX(-307px); }
-    }
     :root {
         --al-gold: #c99a32;
         --al-gold-soft: #e6c877;
@@ -54,9 +50,13 @@
         pointer-events: none;
         transition: transform .5s cubic-bezier(.4, 0, .2, 1), clip-path .5s cubic-bezier(.4, 0, .2, 1), opacity .38s ease, visibility 0s linear .5s;
     }
-    .al-tapis-motif {
-        position: absolute; inset: 0; display: block; overflow: hidden;
-        opacity: .42;
+
+    /* Motif tapis (gambar, statis) */
+    .al-tapis::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: url("{{ asset('images/home/tapis.png') }}") repeat-x center / auto 100%;
+        opacity: .75;
         mix-blend-mode: multiply;
         -webkit-mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,.55) 12%, transparent 30%, transparent 70%, rgba(0,0,0,.55) 88%, #000 100%);
         mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,.55) 12%, transparent 30%, transparent 70%, rgba(0,0,0,.55) 88%, #000 100%);
@@ -112,8 +112,7 @@
     .al-dd-link:hover { background: rgba(201, 154, 50, .10); color: #8a6410; padding-left: 1.25rem; }
     .al-search:focus { box-shadow: 0 0 0 3px rgba(201, 154, 50, .18); }
     @media (prefers-reduced-motion: reduce) {
-        .al-header, .al-main, .al-nav, .al-icon-btn, .al-tapis, .al-tapis.is-hidden, .al-tapis > div { transition: none !important; }
-        .al-tapis-track { animation: none; }
+        .al-header, .al-main, .al-nav, .al-nav::after, .al-icon-btn, .al-tapis, .al-tapis.is-hidden, .al-tapis > div { transition: none !important; }
     }
 </style>
 
