@@ -411,6 +411,20 @@ document.addEventListener('alpine:init', () => {
         setUtama: buatSet(initial.setUtama),
         setSewa: buatSet(initial.setSewa),
         modeSebelumnya: null,
+        // Pemakaian sewa HARI INI per kombinasi (hanya terisi di halaman edit; hanya untuk tampilan)
+        adaPakai: initial.pakaiSewa !== undefined && initial.pakaiSewa !== null,
+        pakaiSewa: initial.pakaiSewa || {},
+        dipakai(row, w) {
+            const k = (row ? (row.ukuran || '') : '') + '|' + (w ? (w.nama || '') : '');
+            return Number(this.pakaiSewa[k] || 0);
+        },
+        infoPakai(total, dipakai) {
+            total = Number(total) || 0;
+            const sisa = Math.max(0, total - dipakai);
+            return sisa <= 0
+                ? 'Habis hari ini · ' + dipakai + ' unit sedang disewa'
+                : 'Sisa ' + sisa + ' dari ' + total + ' unit hari ini · ' + dipakai + ' sedang disewa';
+        },
         hargaSewa: initial.hargaSewa ?? null,
         dp: initial.dp ?? null,
         hargaJual: initial.hargaJual ?? null,

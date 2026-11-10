@@ -7,6 +7,10 @@ Parameter:
   $sub        teks bantuan di bawah judul
   $kelasAksen kelas tambahan untuk pembeda visual (boleh kosong)
 --}}
+@php
+    // Info pemakaian hari ini hanya untuk set SEWA (setSewa, atau set utama pada produk yang hanya disewa)
+    $tampilPakai = $set === 'setSewa' ? 'true' : '(bisaDisewa && !dapatDijual)';
+@endphp
 <div class="bg-panel p-8 rounded-3xl border border-line shadow-sm space-y-6 {{ $kelasAksen ?? '' }}">
     <div>
         <h3 class="text-xl font-black text-ink">
@@ -104,6 +108,11 @@ Parameter:
                         </button>
                     </div>
 
+                    <p x-show="{{ $tampilPakai }} && adaPakai && row.ukuran" x-cloak
+                       class="text-[11px] font-bold"
+                       :class="stokUkuran(row) - dipakai(row) <= 0 ? 'text-rose-600' : 'text-emerald-600'"
+                       x-text="infoPakai(stokUkuran(row), dipakai(row))"></p>
+
                     <div class="pl-3 ml-1 border-l-2 border-gold/30 space-y-2">
                         <template x-for="(w, j) in row.warna" :key="'w-' + i + '-' + j">
                             <div class="flex items-center gap-2">
@@ -117,6 +126,10 @@ Parameter:
                                 </select>
                                 <input type="number" step="1" min="0" x-model.number="w.stok" :name="'ukuran{{ $akhiran }}[' + i + '][warna][' + j + '][stok]'" placeholder="Stok"
                                        class="input-elegant w-28 px-3 py-2.5 bg-cream/40 border border-line rounded-xl text-sm font-bold focus:bg-white focus:outline-none">
+                                <span x-show="{{ $tampilPakai }} && adaPakai && w.nama" x-cloak
+                                      class="shrink-0 text-[10px] font-bold whitespace-nowrap"
+                                      :class="(Number(w.stok) || 0) - dipakai(row, w) <= 0 ? 'text-rose-600' : 'text-emerald-600'"
+                                      x-text="(Number(w.stok) || 0) - dipakai(row, w) <= 0 ? 'habis' : 'sisa ' + ((Number(w.stok) || 0) - dipakai(row, w))"></span>
                                 <button type="button" @click="row.warna.splice(j, 1)"
                                         class="w-9 h-9 shrink-0 rounded-lg border border-rose-200 bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-all active:scale-90 font-black">
                                     &times;
@@ -150,6 +163,9 @@ Parameter:
                    :required="{{ $set }}.ukuranVariasi.length === 0"
                    :disabled="{{ $set }}.ukuranVariasi.length > 0" placeholder="1"
                    class="input-elegant w-full px-4 py-3 bg-cream/40 border border-line rounded-xl text-sm focus:bg-white focus:outline-none">
+            <p x-show="{{ $tampilPakai }} && adaPakai" x-cloak class="text-[11px] font-bold"
+               :class="{{ $set }}.stok - dipakai(null) <= 0 ? 'text-rose-600' : 'text-emerald-600'"
+               x-text="infoPakai({{ $set }}.stok, dipakai(null))"></p>
         </div>
         <div class="flex items-center justify-between bg-gold/5 border border-gold/20 rounded-xl px-5 py-3.5" x-show="{{ $set }}.ukuranVariasi.length > 0">
             <span class="text-xs font-bold text-ink/70 uppercase tracking-wider">Total stok dari variasi</span>

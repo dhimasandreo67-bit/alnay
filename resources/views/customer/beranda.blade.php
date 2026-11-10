@@ -832,12 +832,7 @@
                     </p>
 
                     <div class="mt-8 flex flex-wrap gap-3">
-                        <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" rel="noopener"
-                            class="btn-smooth inline-block px-6 py-3.5 border text-xs font-bold uppercase tracking-wider hover:bg-gray-50"
-                            style="border-color: var(--ink); color: var(--ink);">
-                            Info Lokasi &amp; Booking
-                        </a>
-                        <a href="#"
+                        <a href="cara-sewa"
                             class="btn-smooth inline-block px-6 py-3.5 border text-xs font-bold uppercase tracking-wider hover:bg-gray-50"
                             style="border-color: #d1d5db; color: #374151;">
                             Panduan Sewa Online
@@ -899,7 +894,7 @@
                             @endif
 
                             <div
-                                class="relative z-20 w-full md:w-[60%] pointer-events-none flex flex-col justify-between h-full">
+                                class="relative z-20 w-full md:w-[60%] flex flex-col justify-between h-full">
                                 <div>
                                     <div class="stars" role="img" aria-label="Rating {{ $t['bintang'] }} dari 5">
                                         @for ($i = 1; $i <= 5; $i++)

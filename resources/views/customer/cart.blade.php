@@ -83,7 +83,7 @@
             <div class="w-40 hidden md:block"></div>
 
             {{-- Tab Tengah --}}
-            <div class="flex items-center gap-8 sm:gap-12 -mb-[1px] mx-auto md:mx-0">
+            <div class="flex items-center gap-4 sm:gap-12 -mb-[1px] mx-auto md:mx-0">
                 {{-- Tab Keranjang Beli --}}
                 <a href="{{ route('keranjang.index') }}" 
                 class="pb-4 text-sm font-medium transition-all flex items-center gap-2 border-b-2 
@@ -164,7 +164,7 @@
                             <article data-item class="kr-item rounded-2xl border bg-white p-4 shadow-sm md:p-5" style="border-color: #f0ece2;">
                                 <div class="flex gap-4">
                                     <div class="flex items-start pt-1"><input type="checkbox" class="kr-check item-checkbox" value="{{ $idSafe }}" aria-label="Pilih {{ $item['nama'] }}"></div>
-                                    <div class="h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-gray-100 md:h-36 md:w-28">
+                                    <div class="h-24 w-20 sm:h-28 sm:w-24 shrink-0 overflow-hidden rounded-xl bg-gray-100 md:h-36 md:w-28">
                                         @php
                                             $fotoItem = $item['foto'];
                                             if (is_array($fotoItem)) {
@@ -248,7 +248,7 @@
 @if(count($cartItems) > 0)
 <div class="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 px-4 pt-3 shadow-[0_-8px_24px_-12px_rgba(21,35,61,.25)] backdrop-blur lg:hidden" style="border-color: #ebe7df; padding-bottom: max(.75rem, env(safe-area-inset-bottom));">
     <div class="mx-auto flex max-w-7xl items-center justify-between gap-4">
-        <div><p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Grand Total</p><p class="text-lg font-bold tabular-nums" style="color: #c99a32;">Rp {{ number_format($total, 0, ',', '.') }}</p></div>
+        <div><p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Grand Total</p><p class="text-xl font-bold tabular-nums" style="color: #c99a32;">Rp {{ number_format($total, 0, ',', '.') }}</p><p class="text-lg font-bold tabular-nums" style="color: #c99a32;">Rp {{ number_format($total, 0, ',', '.') }}</p></div>
         <a href="{{ route('checkout.index') }}" class="inline-flex shrink-0 items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-md active:scale-[.98]" style="background-color: #c99a32;">Bayar <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg></a>
     </div>
 </div>

@@ -6,6 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
 
     <title>@yield('title', 'Admin') — {{ config('alnay.brand.nama') }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/home/alnaylogo.png') }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

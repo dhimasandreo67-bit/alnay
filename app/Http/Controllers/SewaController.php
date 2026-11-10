@@ -13,6 +13,8 @@ use App\Models\AlamatPengiriman;
 use App\Support\KetersediaanSewa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class SewaController extends Controller
 {
@@ -137,7 +139,9 @@ class SewaController extends Controller
             if (! $produk->bisa_disewa || $produk->stokTersedia('sewa', $item->ukuran ?? null, $item->warna ?? null) <= 0) {
                 return redirect()->route('sewa.keranjang.index')->with('error', $produk->nama . ': stok sewa untuk pilihan ini sudah habis.');
             }
-            if (! KetersediaanSewa::tersedia($produk, $item->ukuran ?? null, $item->warna ?? null, $item->tanggal_ambil, $item->tanggal_kembali)) {
+            // Item lain di keranjang yang sama (produk/ukuran/warna sama, tanggal beririsan) ikut memakai unit.
+            $bersamaan = $this->unitBersamaan($items, $item);
+            if (! KetersediaanSewa::tersedia($produk, $item->ukuran ?? null, $item->warna ?? null, $item->tanggal_ambil, $item->tanggal_kembali, $bersamaan)) {
                 return redirect()->route('sewa.keranjang.index')->with('error', $produk->nama . ': tanggal yang dipilih sudah penuh dibooking. Hapus item dan pilih tanggal lain.');
             }
 
@@ -162,33 +166,42 @@ class SewaController extends Controller
 
         $fotoKtpPath = $request->hasFile('foto_ktp') ? $request->file('foto_ktp')->store('ktp', 'public') : null;
 
-        $transaksi = Transaksi::create([
-            'kode_transaksi' => 'ALN-SW-' . strtoupper(substr(uniqid(), -8)),
-            'user_id' => Auth::id(),
-            'jenis' => 'sewa',
-            'kanal' => 'online',
-            'tanggal' => now()->toDateString(),
-            'total' => $totalSewaKeseluruhan + $deposit,
-            'status_pembayaran' => 'dp',
-            'catatan' => $catatanTransaksi ?: null,
-        ]);
-
-        foreach ($items as $item) {
-            $produk = Produk::findOrFail($item->produk_id);
-
-            DetailTransaksi::create([
-                'transaksi_id' => $transaksi->id,
-                'produk_id' => $produk->id,
-                'jumlah' => 1,
-                'harga_satuan' => $produk->hargaSewaNet(),
-                'ukuran' => ! empty($item->ukuran) ? mb_substr((string) $item->ukuran, 0, 20) : null,
-                'warna' => ! empty($item->warna) ? mb_substr((string) $item->warna, 0, 100) : null,
+        $transaksi = DB::transaction(function () use ($items, $validated, $totalSewaKeseluruhan, $deposit, $catatanTransaksi, $fotoKtpPath) {
+            $transaksi = Transaksi::create([
+                'kode_transaksi' => 'ALN-SW-' . strtoupper(substr(uniqid(), -8)),
+                'user_id' => Auth::id(),
+                'jenis' => 'sewa',
+                'kanal' => 'online',
+                'tanggal' => now()->toDateString(),
+                'total' => $totalSewaKeseluruhan + $deposit,
+                'status_pembayaran' => 'dp',
+                'catatan' => $catatanTransaksi ?: null,
             ]);
 
+            // Tanggal disimpan PER ITEM di detail_transaksi (itulah yang dibaca kalender ketersediaan,
+            // jadi booking selalu menempel ke produk/ukuran/warna yang benar).
+            foreach ($items as $item) {
+                $produk = Produk::findOrFail($item->produk_id);
+
+                DetailTransaksi::create([
+                    'transaksi_id' => $transaksi->id,
+                    'produk_id' => $produk->id,
+                    'jumlah' => 1,
+                    'harga_satuan' => $produk->hargaSewaNet(),
+                    'ukuran' => ! empty($item->ukuran) ? mb_substr((string) $item->ukuran, 0, 20) : null,
+                    'warna' => ! empty($item->warna) ? mb_substr((string) $item->warna, 0, 100) : null,
+                    'tanggal_pinjam' => $item->tanggal_ambil,
+                    'tanggal_kembali_rencana' => $item->tanggal_kembali,
+                ]);
+            }
+
+            // sewa.transaksi_id UNIK: satu transaksi hanya boleh punya satu baris Sewa.
+            // Rentangnya = dari tanggal ambil paling awal sampai tanggal kembali paling akhir.
+            $koleksi = collect($items);
             $sewa = Sewa::create([
                 'transaksi_id' => $transaksi->id,
-                'tanggal_pinjam' => $item->tanggal_ambil,
-                'tanggal_kembali_rencana' => $item->tanggal_kembali,
+                'tanggal_pinjam' => $koleksi->map(fn ($i) => Carbon::parse($i->tanggal_ambil))->min()->toDateString(),
+                'tanggal_kembali_rencana' => $koleksi->map(fn ($i) => Carbon::parse($i->tanggal_kembali))->max()->toDateString(),
                 'status' => 'aktif',
             ]);
 
@@ -196,10 +209,12 @@ class SewaController extends Controller
                 'sewa_id' => $sewa->id,
                 'metode_jaminan' => $validated['metode_ktp'] === 'fisik' ? 'ktp_tatap_muka' : 'ktp_upload_deposit',
                 'foto_ktp' => $fotoKtpPath,
-                'jumlah_deposit' => $deposit / count($items),
+                'jumlah_deposit' => $deposit,
                 'status_verifikasi' => 'pending',
             ]);
-        }
+
+            return $transaksi;
+        });
 
         $dp = array_sum(array_map(fn($i) => $i->dp ?? 0, $items));
         Pembayaran::create([
@@ -228,6 +243,25 @@ class SewaController extends Controller
         session()->forget(['keranjang_sewa', 'sewa_data']);
 
         return redirect()->route('sewa.konfirmasi', $transaksi->id)->with('success', 'Transaksi sewa berhasil!');
+    }
+
+    /**
+     * Berapa unit produk/ukuran/warna yang sama dibutuhkan SEKALIGUS oleh item-item keranjang
+     * pada hari paling ramai di rentang $target (termasuk $target sendiri).
+     */
+    private function unitBersamaan(array $items, object $target): int
+    {
+        $sama = collect($items)->filter(fn ($i) => $i->produk_id == $target->produk_id
+            && ($i->ukuran ?? '') === ($target->ukuran ?? '')
+            && ($i->warna ?? '') === ($target->warna ?? ''));
+
+        $maks = 1;
+        for ($t = Carbon::parse($target->tanggal_ambil)->startOfDay(), $akhir = Carbon::parse($target->tanggal_kembali)->startOfDay(); $t->lte($akhir); $t->addDay()) {
+            $n = $sama->filter(fn ($i) => $t->between(Carbon::parse($i->tanggal_ambil)->startOfDay(), Carbon::parse($i->tanggal_kembali)->startOfDay()))->count();
+            $maks = max($maks, $n);
+        }
+
+        return $maks;
     }
 
     public function webhook(Request $request)

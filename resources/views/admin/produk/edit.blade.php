@@ -21,6 +21,9 @@
 
     // Set sewa hanya terisi kalau produk dijual DAN disewa; selain itu mulai kosong.
     $punyaSetSewa = $produk->pisahStok();
+
+    // Unit yang sedang disewa hari ini per ukuran/warna (online + kasir), hanya untuk ditampilkan.
+    $pakaiSewa = $produk->bisa_disewa ? \App\Support\KetersediaanSewa::pemakaianHariIni($produk) : null;
 @endphp
 
 @section('content')
@@ -77,6 +80,7 @@
         'formData'    => [
             'sku'             => old('sku', $produk->sku),
             'kategoriId'      => old('kategori_id', (string) $produk->kategori_id),
+            'pakaiSewa'       => $pakaiSewa,
             'bisaDisewa'      => (bool) old('bisa_disewa', $produk->bisa_disewa),
             'dapatDijual'     => (bool) old('dapat_dijual', $produk->dapat_dijual),
             'status'          => old('status', $produk->status),

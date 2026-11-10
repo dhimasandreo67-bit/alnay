@@ -38,7 +38,12 @@ class KategoriController extends Controller
         // Hitung total produk untuk Card Statistik
         $totalProduk = Produk::count();
 
-        return view('admin.kategori.index', compact('categories', 'totalProduk'));
+        // Kode & slug yang sudah terpakai (dari SEMUA kategori, tidak terpengaruh filter)
+        // dipakai form tambah untuk rekomendasi otomatis yang tidak bentrok.
+        $kodeAda = Kategori::pluck('kode_kategori')->filter()->values();
+        $slugAda = Kategori::pluck('slug')->filter()->values();
+
+        return view('admin.kategori.index', compact('categories', 'totalProduk', 'kodeAda', 'slugAda'));
     }
 
     // 2. Tampilkan form tambah kategori
@@ -50,6 +55,18 @@ class KategoriController extends Controller
     // 3. Simpan kategori baru ke database
         public function store(Request $request)
     {
+        // Slug opsional: kalau kosong dibuat otomatis dari nama (dijamin unik).
+        // Kode selalu disimpan huruf kapital.
+        $slug = Str::slug((string) $request->input('slug'));
+        if ($slug === '') {
+            $slug = $this->slugUnik(Str::slug((string) $request->input('nama_kategori')));
+        }
+
+        $request->merge([
+            'slug' => $slug,
+            'kode_kategori' => Str::upper(trim((string) $request->input('kode_kategori'))),
+        ]);
+
         $validated = $request->validate([
             'nama_kategori' => 'required|string|max:100',
             'slug' => 'required|string|max:100|unique:kategori,slug',
@@ -88,6 +105,10 @@ class KategoriController extends Controller
         public function update(Request $request, $id)
     {
         $kategori = Kategori::findOrFail($id);
+
+        $request->merge([
+            'kode_kategori' => Str::upper(trim((string) $request->input('kode_kategori'))),
+        ]);
 
         $validated = $request->validate([
             'nama_kategori' => 'required|string|max:100',
@@ -165,5 +186,21 @@ class KategoriController extends Controller
         }
 
         return redirect()->route('admin.kategori.index')->with('success', $pesan);
+    }
+
+    /**
+     * Pastikan slug belum dipakai kategori lain: kalau sudah, tambahkan -2, -3, dst.
+     */
+    protected function slugUnik(string $dasar): string
+    {
+        $dasar = $dasar !== '' ? $dasar : 'kategori';
+        $slug = $dasar;
+        $i = 2;
+
+        while (Kategori::where('slug', $slug)->exists()) {
+            $slug = $dasar . '-' . $i++;
+        }
+
+        return $slug;
     }
 }

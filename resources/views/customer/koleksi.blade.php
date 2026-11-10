@@ -331,7 +331,7 @@
                     style="--d: .02s;">
                     Sewa &amp; Beli
                 </p>
-                <h1 class="pd-up font-display text-3xl md:text-5xl text-cream leading-[1.1] tracking-tight mb-3"
+                <h1 class="pd-up font-display text-[26px] min-[375px]:text-3xl md:text-5xl text-cream leading-[1.1] tracking-tight mb-3"
                     style="--d: .08s;">
                     Koleksi Busana Adat
                 </h1>
@@ -362,8 +362,7 @@
 
                 {{-- Kategori cepat (scroll horizontal di HP) --}}
                 @if ($kategoriList->count())
-                    <div class="pd-up -mx-4 px-4 md:mx-0 md:px-0 mt-5 flex gap-2 overflow-x-auto no-scrollbar md:flex-wrap"
-                        style="--d: .26s;">
+                    <div class="pd-up -mx-4 px-4 md:mx-0 md:px-0 mt-5 flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory md:flex-wrap" style="--d: .26s;">
                         <button type="button" @click="semuaKategori()"
                             class="shrink-0 px-4 py-2 rounded-full border text-[12px] md:text-[13px] font-medium transition-all active:scale-95"
                             :class="kat.length === 0 ? 'bg-gold border-gold text-ink' :
@@ -604,7 +603,7 @@
                 {{-- ============================================
                  AREA PRODUK (diganti lewat AJAX)
                  ============================================ --}}
-                <div id="area-produk" class="min-w-0 transition-opacity duration-200"
+                <div id="area-produk" class="min-w-0 transition-opacity duration-200 pb-24 lg:pb-0"
                     :class="loading ? 'opacity-50 pointer-events-none' : ''" @click="halaman($event)"
                     data-total="{{ $produkList->total() }}" data-aktif="{{ $jumlahAktif }}">
 
@@ -772,7 +771,7 @@
                     {{-- Grid Produk --}}
                     @if ($produkList->count() > 0)
                         <div
-                            class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5 items-stretch">
+                            class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5 items-stretch">
                             @foreach ($produkList as $index => $p)
                                 <x-product-card :produk="$p" :delay="min(0.1 + $index * 0.08, 0.8)" />
                             @endforeach

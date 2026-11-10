@@ -9,11 +9,19 @@ use App\Models\Refund;
 use App\Models\ReservasiFitting;
 use App\Models\Sewa;
 use App\Models\Transaksi;
+use App\Support\KetersediaanSewa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Route;
 
 class DashboardController extends Controller
 {
+    /** Status pembayaran yang dihitung sebagai pendapatan (sama dengan warna "hijau" di Kelola Transaksi). */
+    private const STATUS_PENDAPATAN = ['lunas', 'dp_dibayar'];
+
+    /** Ambang "stok hampir habis" (sama dengan Kelola Produk). */
+    private const BATAS_STOK_MENIPIS = 3;
+
     public function index(Request $request)
     {
         $today = Carbon::today();
@@ -25,42 +33,40 @@ class DashboardController extends Controller
             'sewa_jatuh_tempo'     => Sewa::where('status', 'aktif')
                 ->whereDate('tanggal_kembali_rencana', $today->copy()->addDay())
                 ->count(),
+            // Aktif tapi lewat jadwal kembali: sama dengan tab "Terlambat" di halaman Sewa
+            'sewa_terlambat'       => Sewa::where('status', 'aktif')
+                ->whereDate('tanggal_kembali_rencana', '<', $today)
+                ->count(),
             'refund_pending'       => Refund::where('status', 'pending')->count(),
             'refund_saldo'         => Refund::where('status', 'pending')->sum('jumlah'),
-            'pendapatan_bulan_ini' => Transaksi::whereMonth('created_at', $today->month)
+            // Hanya transaksi yang sudah dibayar (lunas / DP dibayar); pending tidak dihitung
+            'pendapatan_bulan_ini' => Transaksi::whereIn('status_pembayaran', self::STATUS_PENDAPATAN)
+                ->whereMonth('created_at', $today->month)
                 ->whereYear('created_at', $today->year)
                 ->sum('total'),
         ];
 
-        $chart = collect(range(6, 0))->map(function ($daysAgo) use ($today) {
+        // Grafik 7 hari: satu query (bukan 7), hari tanpa transaksi bernilai 0
+        $perHari = Transaksi::where('created_at', '>=', $today->copy()->subDays(6)->startOfDay())
+            ->selectRaw('DATE(created_at) as tgl, COUNT(*) as jml')
+            ->groupBy('tgl')
+            ->pluck('jml', 'tgl');
+
+        $chart = collect(range(6, 0))->map(function ($daysAgo) use ($today, $perHari) {
             $date = $today->copy()->subDays($daysAgo);
 
             return [
                 'label' => $daysAgo === 0 ? 'Hari ini' : $date->translatedFormat('D'),
-                'value' => Transaksi::whereDate('created_at', $date)->count(),
+                'value' => (int) ($perHari[$date->toDateString()] ?? 0),
                 'today' => $daysAgo === 0,
             ];
         })->toArray();
 
-        $transactions = Transaksi::with('user')
+        // Transaksi terbaru: model asli + relasi yang sama dengan halaman Kelola Transaksi
+        $transaksiTerbaru = Transaksi::with(['detail.produk', 'sewa', 'user'])
             ->latest()
             ->take(6)
-            ->get()
-            ->map(function (Transaksi $trx) {
-                $nama = $trx->user->name ?? $trx->nama_tamu ?? 'Tamu';
-
-                return [
-                    'kode'       => $trx->kode_transaksi,
-                    'pelanggan'  => $nama,
-                    'inisial'    => collect(explode(' ', $nama))->filter()->map(fn ($w) => $w[0])->take(2)->implode(''),
-                    'detail'     => $trx->catatan ?? $trx->jenis,
-                    'jenis'      => $trx->jenis === 'sewa' ? 'Sewa' : 'Beli',
-                    'kanal'      => $trx->kanal === 'online' ? 'Online' : 'Walk In',
-                    'status'     => $trx->status_pembayaran === 'lunas' ? 'Lunas' : 'DP 50%',
-                    'statusTone' => $trx->status_pembayaran === 'lunas' ? 'green' : 'rose',
-                    'total'      => $trx->total,
-                ];
-            })->toArray();
+            ->get();
 
         // ======================= PERLU TINDAKAN =======================
         $jaminanPending  = JaminanSewa::where('status_verifikasi', 'pending')->count();
@@ -74,52 +80,82 @@ class DashboardController extends Controller
                 'title' => 'Verifikasi jaminan sewa',
                 'desc'  => $jaminanPending . ' jaminan KTP / deposit pending',
                 'count' => $jaminanPending,
-                'route' => \Illuminate\Support\Facades\Route::has('admin.jaminan.index') ? route('admin.jaminan.index') : '#',
+                'route' => Route::has('admin.jaminan.index') ? route('admin.jaminan.index') : '#',
             ],
             [
                 'key'   => 'refund',
                 'title' => 'Refund diproses',
                 'desc'  => $refundPending . ' pengajuan pembatalan',
                 'count' => $refundPending,
-                'route' => \Illuminate\Support\Facades\Route::has('admin.refund.index') ? route('admin.refund.index') : '#',
+                'route' => Route::has('admin.refund.index') ? route('admin.refund.index') : '#',
             ],
             [
                 'key'   => 'retur',
                 'title' => 'Return pengecekan',
                 'desc'  => $returPengecekan . ' gaun baru tiba di toko, perlu dicek',
                 'count' => $returPengecekan,
-                'route' => \Illuminate\Support\Facades\Route::has('admin.sewa.index') ? route('admin.sewa.index', ['status' => 'dikembalikan']) : '#',
+                'route' => Route::has('admin.sewa.index') ? route('admin.sewa.index', ['status' => 'dikembalikan']) : '#',
             ],
             [
                 'key'   => 'fitting',
                 'title' => 'Reservasi fitting baru',
                 'desc'  => $fittingPending . ' jadwal butuh konfirmasi',
                 'count' => $fittingPending,
-                'route' => \Illuminate\Support\Facades\Route::has('admin.fitting.index') ? route('admin.fitting.index') : '#',
+                'route' => Route::has('admin.fitting.index') ? route('admin.fitting.index') : '#',
             ],
         ];
 
         $antreanTotal = collect($actionQueue)->sum('count');
 
         // ======================= STOK PERLU PERHATIAN =======================
-        $stockAlerts = Produk::whereIn('status', ['dicuci', 'rusak'])
-            ->latest('updated_at')
-            ->take(5)
-            ->get()
-            ->map(function (Produk $p) {
+        // Perawatan (dicuci / rusak) + stok HABIS + stok HAMPIR HABIS, dengan rumus stok yang sama
+        // seperti Kelola Produk (stok sewa = kapasitas dikurangi unit yang belum dikembalikan).
+        $semuaProduk  = Produk::all();
+        $sewaTerpakai = KetersediaanSewa::terpakaiHariIni($semuaProduk);
+
+        $stokTersedia = function (Produk $p) use ($sewaTerpakai) {
+            $nilai = [];
+            if ($p->bisa_disewa) {
+                $nilai[] = max(0, $p->stokUntuk('sewa') - ($sewaTerpakai[$p->id] ?? 0));
+            }
+            if ($p->dapat_dijual) {
+                $nilai[] = $p->stokUntuk('jual');
+            }
+
+            return $nilai ? min($nilai) : (int) $p->stok;
+        };
+
+        $semuaAlert = $semuaProduk->map(function (Produk $p) use ($stokTersedia) {
+            if (in_array($p->status, ['rusak', 'dicuci'], true)) {
                 return [
-                    'nama'   => $p->nama,
-                    'sku'    => $p->sku,
-                    'status' => $p->status, // 'dicuci' | 'rusak'
-                    'label'  => \App\Support\ProdukStatus::label($p->status, (bool) $p->dapat_dijual),
+                    'prioritas' => $p->status === 'rusak' ? 0 : 1,
+                    'nama'      => $p->nama,
+                    'sku'       => $p->sku,
+                    'status'    => $p->status,
+                    'label'     => \App\Support\ProdukStatus::label($p->status, (bool) $p->dapat_dijual),
                 ];
-            });
+            }
+
+            $sisa = $stokTersedia($p);
+
+            if ($sisa <= 0) {
+                return ['prioritas' => 2, 'nama' => $p->nama, 'sku' => $p->sku, 'status' => 'habis', 'label' => 'Stok Habis'];
+            }
+            if ($sisa <= self::BATAS_STOK_MENIPIS) {
+                return ['prioritas' => 3, 'nama' => $p->nama, 'sku' => $p->sku, 'status' => 'menipis', 'label' => 'Hampir Habis (' . $sisa . ' unit)'];
+            }
+
+            return null;
+        })->filter()->sortBy('prioritas')->values();
+
+        $stockAlertTotal = $semuaAlert->count();
+        $stockAlerts     = $semuaAlert->take(5);
 
         $notifCount = $jaminanPending + $refundPending;
 
         return view('admin.dashboard', compact(
-            'stats', 'chart', 'transactions', 'notifCount',
-            'actionQueue', 'antreanTotal', 'stockAlerts'
+            'stats', 'chart', 'transaksiTerbaru', 'notifCount',
+            'actionQueue', 'antreanTotal', 'stockAlerts', 'stockAlertTotal'
         ));
     }
 
