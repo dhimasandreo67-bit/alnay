@@ -142,15 +142,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/pengecekan/{id}', [App\Http\Controllers\Admin\SewaController::class, 'updateQC'])->name('sewa.update-qc');
         Route::delete('/pengecekan/{id}', [App\Http\Controllers\Admin\SewaController::class, 'hapusQC'])->name('sewa.hapus-qc');
         
-        // Denda
-        Route::post('/sewa/{id}/tambah-denda', [SewaController::class, 'tambahDenda'])->name('sewa.tambah-denda');
-        Route::patch('/denda/{id}/lunasi', [SewaController::class, 'lunasiDenda'])->name('sewa.lunasi-denda');
-        Route::delete('/denda/{id}/hapus', [SewaController::class, 'hapusDenda'])->name('sewa.hapus-denda'); // Route Hapus Baru
-        Route::post('/sewa/{id}/sinkron-denda-telat', [SewaController::class, 'sinkronDendaTelat'])->name('sewa.sinkron-denda-telat');
-        
-        // Lainnya
-        Route::patch('/sewa/{id}/ubah-status', [SewaController::class, 'ubahStatus'])->name('sewa.ubah-status');
-        Route::put('/pengecekan/{id}', [SewaController::class, 'updateQC'])->name('sewa.update-qc');
-        Route::delete('/pengecekan/{id}', [SewaController::class, 'hapusQC'])->name('sewa.hapus-qc');
+        Route::delete('/denda/{id}/hapus', [SewaController::class, 'hapusDenda'])->name('sewa.hapus-denda');
     });
 });

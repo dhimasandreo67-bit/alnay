@@ -542,15 +542,9 @@ class TransaksiController extends Controller
     {
         $transaksi = Transaksi::findOrFail($id);
 
-        // Ubah status transaksi
-        $transaksi->update(['status_pembayaran' => 'lunas']);
-
-        // Ubah status di tabel pembayaran (jika ada tagihan DP/Pending)
-        $transaksi->pembayaran()->update(['status_midtrans' => 'success']);
-
-        // Pembayaran tunai: tanggal bayar = saat admin menerima uang di toko
-        // (sebelumnya terisi otomatis saat pesanan dibuat).
-        $transaksi->pembayaran()->where('metode', 'tunai')->update(['tanggal_bayar' => now()]);
+        // Hanya mengubah pembayaran. Status sewa SENGAJA tidak disentuh:
+        // sewa baru menjadi "dikembalikan" lewat halaman Sewa / tombol Selesaikan Sewa.
+        $transaksi->tandaiLunas();
 
         return redirect()->back()->with('success', 'Status pembayaran berhasil diubah menjadi LUNAS.');
     }
@@ -596,6 +590,9 @@ class TransaksiController extends Controller
                     'status' => 'selesai',
                     'tanggal_kembali_aktual' => now()->toDateString(),
                 ]);
+
+            // Barang sudah kembali -> pembayaran otomatis lunas (sama seperti dari halaman Sewa).
+            $transaksi->tandaiLunas();
         });
 
         if ($sudahSelesai) {
@@ -604,7 +601,7 @@ class TransaksiController extends Controller
 
         return redirect()->back()->with(
             'success',
-            'Masa sewa telah berhasil diselesaikan.' . ($stokDikembalikan ? ' Stok produk sudah dikembalikan.' : '')
+            'Masa sewa telah berhasil diselesaikan dan pembayaran ditandai lunas.' . ($stokDikembalikan ? ' Stok produk sudah dikembalikan.' : '')
         );
     }
 }
