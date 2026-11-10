@@ -1,39 +1,4 @@
 <header class="sticky top-0 z-40 border-b border-amber-100/60 bg-white/85 backdrop-blur-xl">
-    {{-- Tambahan Style untuk Animasi Lonceng --}}
-    <style>
-        /* Animasi berdering otomatis (jika ada notif) */
-        @keyframes bell-ring {
-            0%, 100% { transform: rotate(0); }
-            10%, 30%, 50%, 70% { transform: rotate(-12deg); }
-            20%, 40%, 60% { transform: rotate(12deg); }
-            80% { transform: rotate(-8deg); }
-            90% { transform: rotate(8deg); }
-        }
-        .animate-bell {
-            animation: bell-ring 1.2s ease-in-out infinite;
-            transform-origin: top center;
-        }
-        
-        /* Animasi saat di-hover (jika tidak ada notif) */
-        .group:hover .animate-bell {
-            animation: none;
-            transform: scale(1.1);
-        }
-
-        /* Animasi saat DIKLIK */
-        @keyframes bell-click {
-            0% { transform: scale(1) rotate(0); }
-            25% { transform: scale(0.9) rotate(-20deg); }
-            50% { transform: scale(1.1) rotate(15deg); }
-            75% { transform: scale(1) rotate(-10deg); }
-            100% { transform: scale(1) rotate(0); }
-        }
-        .animate-bell-click {
-            animation: bell-click 0.6s cubic-bezier(.36,.07,.19,.97) both;
-            transform-origin: top center;
-        }
-    </style>
-
     {{-- Accent bar --}}
     <div class="h-0.5 w-full bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"></div>
 
@@ -57,21 +22,11 @@
         <div class="flex shrink-0 items-center gap-2 lg:gap-3">
 
             {{-- ============ NOTIFIKASI ============ --}}
-            {{-- Tambahkan state 'klik' pada x-data --}}
-            <div class="relative" x-data="{ notifOpen: false, klik: false }">
-                {{-- Saat diklik: buka panel & jalankan animasi selama 600ms --}}
-                <button @click="notifOpen = !notifOpen; klik = true; setTimeout(() => klik = false, 600)" class="relative group p-2 rounded-full hover:bg-gray-100 transition">
-                    
-                    {{-- Logika class digabung: Jika diklik animasi klik, jika tidak ikuti aturan notif --}}
-                    <div :class="{ 
-                            'animate-bell-click': klik, 
-                            'animate-bell': !klik && {{ (isset($totalNotif) && $totalNotif > 0) ? 'true' : 'false' }},
-                            'group-hover:animate-bell': !klik && !({{ (isset($totalNotif) && $totalNotif > 0) ? 'true' : 'false' }})
-                        }">
-                        <svg class="w-6 h-6 text-gray-500 group-hover:text-amber-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
-                    </div>
+            <div class="relative" x-data="{ notifOpen: false }">
+                <button @click="notifOpen = !notifOpen" class="relative p-2 rounded-full hover:bg-gray-100 transition">
+                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
                     
                     {{-- TITIK MERAH JIKA ADA NOTIFIKASI --}}
                     @if(isset($totalNotif) && $totalNotif > 0)
