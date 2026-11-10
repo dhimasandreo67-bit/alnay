@@ -2,7 +2,7 @@
 @section('title', 'Kelola Transaksi')
 
 @section('content')
-<div class="w-full max-w-none p-4 sm:p-6 lg:px-8 space-y-6 transition-all duration-500 animate-fade-in">
+<div class="p-6 space-y-6 transition-all duration-500 animate-fade-in">
 
     <style>
         .group-shine {
@@ -174,23 +174,15 @@
     {{-- Tabel Transaksi --}}
     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full table-fixed min-w-[900px] lg:min-w-0 divide-y divide-gray-100">
-                <colgroup>
-                    <col style="width:14%">
-                    <col style="width:20%">
-                    <col style="width:28%">
-                    <col style="width:13%">
-                    <col style="width:11%">
-                    <col style="width:14%">
-                </colgroup>
+            <table class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gray-50/80">
                     <tr>
-                        <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-400 uppercase whitespace-nowrap">Kode / Tanggal</th>
-                        <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-400 uppercase whitespace-nowrap">Pelanggan</th>
-                        <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-400 uppercase whitespace-nowrap">Produk / Sewa</th>
-                        <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-400 uppercase whitespace-nowrap">Total</th>
-                        <th class="px-4 py-3 text-left text-[11px] font-bold text-gray-400 uppercase whitespace-nowrap">Status</th>
-                        <th class="px-4 py-3 text-right text-[11px] font-bold text-gray-400 uppercase whitespace-nowrap">Aksi</th>
+                        <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Kode / Tanggal</th>
+                        <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Pelanggan</th>
+                        <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Produk / Sewa</th>
+                        <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Total</th>
+                        <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Status</th>
+                        <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100/80">
@@ -205,12 +197,12 @@
 
                         {{-- Baris utama: 1 transaksi = 1 baris --}}
                         <tr class="hover:bg-amber-50/30 transition-colors">
-                            <td class="px-4 py-3">
-                                <div class="text-[13px] font-bold text-gray-900 break-all leading-snug">{{ $t->kode_transaksi }}</div>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-bold text-gray-900">{{ $t->kode_transaksi }}</div>
                                 <div class="text-xs text-gray-500">{{ $t->tanggal->format('d M Y') }}</div>
                             </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2.5 min-w-0">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
                                     @php
                                         $fotoUser = $t->user->foto_profil ?? null;
                                         $fotoUserUrl = $fotoUser ? (\Illuminate\Support\Str::startsWith($fotoUser, ['http://', 'https://']) ? $fotoUser : asset('storage/' . $fotoUser)) : null;
@@ -218,12 +210,12 @@
                                     @endphp
 
                                     @if($fotoUserUrl)
-                                        <img src="{{ $fotoUserUrl }}" alt="{{ $namaPelanggan }}" class="h-9 w-9 shrink-0 rounded-xl object-cover border border-gray-200">
+                                        <img src="{{ $fotoUserUrl }}" alt="{{ $namaPelanggan }}" class="h-10 w-10 shrink-0 rounded-2xl object-cover border border-gray-200">
                                     @else
                                         <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
                                     @endif
                                     <div class="min-w-0">
-                                        <div class="text-sm font-bold text-gray-900 truncate" title="{{ $namaPelanggan }}">{{ $namaPelanggan }}</div>
+                                        <div class="text-sm font-bold text-gray-900 truncate">{{ $namaPelanggan }}</div>
                                         <div class="mt-1 flex items-center gap-1.5">
                                             <span class="text-[11px] text-gray-500">{{ $t->jenis === 'sewa' ? 'Penyewaan' : 'Pembelian' }}</span>
                                             @if(($t->channel ?? 'online') === 'kasir')
@@ -235,55 +227,24 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2.5 min-w-0">
-                                    {{-- Preview gambar produk (maks. 3, sisanya +N). Klik untuk memperbesar --}}
-                                    <div class="flex shrink-0 -space-x-2.5">
-                                        @forelse ($items->take(2) as $d)
-                                            @php
-                                                $thumb = $d->produk?->sampulUrl();
-                                                $namaThumb = $d->produk->nama ?? 'Produk Terhapus';
-                                            @endphp
-                                            @if ($thumb)
-                                                <button type="button" data-preview-src="{{ $thumb }}" data-preview-nama="{{ $namaThumb }}"
-                                                        title="Lihat gambar: {{ $namaThumb }}" aria-label="Perbesar gambar {{ $namaThumb }}"
-                                                        class="relative h-12 w-9 overflow-hidden rounded-xl border-2 border-white bg-gray-50 shadow-sm ring-1 ring-gray-200 transition-all hover:z-10 hover:scale-110 hover:ring-amber-400 focus:z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
-                                                    <img src="{{ $thumb }}" alt="{{ $namaThumb }}" loading="lazy" class="h-full w-full object-cover">
-                                                </button>
-                                            @else
-                                                <span class="flex h-12 w-9 items-center justify-center rounded-xl border-2 border-white bg-gray-50 shadow-sm ring-1 ring-gray-200" title="{{ $namaThumb }} (tanpa foto)">
-                                                    <svg class="h-5 w-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                                </span>
-                                            @endif
-                                        @empty
-                                            <span class="flex h-12 w-9 items-center justify-center rounded-xl border border-dashed border-gray-200 text-gray-300">&ndash;</span>
-                                        @endforelse
-
-                                        @if ($jumlahProduk > 2)
-                                            <span class="flex h-12 w-9 items-center justify-center rounded-xl border-2 border-white bg-gray-100 text-[11px] font-bold text-gray-500 shadow-sm ring-1 ring-gray-200">+{{ $jumlahProduk - 2 }}</span>
-                                        @endif
+                            <td class="px-6 py-4">
+                                <div class="text-xs text-gray-700 font-medium">{{ $pertama?->produk->nama ?? '-' }}</div>
+                                @if($jumlahProduk > 1 || $totalQty > 1)
+                                    <div class="mt-1 text-[10px] font-semibold text-gray-400">
+                                        @if($jumlahProduk > 1)+{{ $jumlahProduk - 1 }} produk lain &middot; @endif{{ $totalQty }} barang
                                     </div>
-
-                                    <div class="min-w-0 flex-1">
-                                        <div class="text-xs text-gray-700 font-medium leading-snug line-clamp-2">{{ $pertama?->produk->nama ?? '-' }}</div>
-                                        @if($jumlahProduk > 1 || $totalQty > 1)
-                                            <div class="mt-1 text-[10px] font-semibold text-gray-400">
-                                                @if($jumlahProduk > 1)+{{ $jumlahProduk - 1 }} produk lain &middot; @endif{{ $totalQty }} barang
-                                            </div>
-                                        @endif
-                                        @if($t->sewa)
-                                            <div class="text-[10px] text-amber-700 mt-1 font-semibold">
-                                                {{ \Carbon\Carbon::parse($t->sewa->tanggal_pinjam)->format('d M') }} -
-                                                {{ \Carbon\Carbon::parse($t->sewa->tanggal_kembali_rencana)->format('d M') }}
-                                            </div>
-                                        @endif
+                                @endif
+                                @if($t->sewa)
+                                    <div class="text-[10px] text-amber-700 mt-1 font-semibold">
+                                        {{ \Carbon\Carbon::parse($t->sewa->tanggal_pinjam)->format('d M') }} -
+                                        {{ \Carbon\Carbon::parse($t->sewa->tanggal_kembali_rencana)->format('d M') }}
                                     </div>
-                                </div>
+                                @endif
                             </td>
-                            <td class="px-4 py-3 text-[13px] font-bold text-gray-900 tabular-nums whitespace-nowrap">
+                            <td class="px-6 py-4 text-sm font-bold text-gray-900 tabular-nums">
                                 Rp {{ number_format($t->total, 0, ',', '.') }}
                             </td>
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <td class="px-6 py-4">
                                 @php
                                     $statusColor = match($t->status_pembayaran) {
                                         'lunas', 'dp_dibayar' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -295,56 +256,58 @@
                                     {{ str_replace('_', ' ', $t->status_pembayaran) }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3">
-                                @php
-                                    $bisaRestock = $t->stokSudahDipotong();
-                                @endphp
-                                <div class="ml-auto flex w-full max-w-[140px] flex-col gap-1.5">
-                                    <div class="flex items-center gap-1.5">
-                                        <button type="button" data-toggle-rincian="{{ $t->id }}" aria-expanded="false" aria-controls="rincian-{{ $t->id }}"
-                                                class="inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-2 text-[11px] font-bold text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
-                                            Item
-                                            <svg class="h-3.5 w-3.5 text-amber-600 transition-transform duration-200" data-chevron fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
-                                        </button>
-                                        <button type="button"
-                                                data-modal-open="modal-hapus-transaksi"
-                                                data-hapus-url="{{ route('admin.transaksi.destroy', $t->id) }}"
-                                                data-kode="{{ $t->kode_transaksi }}"
-                                                data-pelanggan="{{ $namaPelanggan }}"
-                                                data-total="Rp {{ number_format($t->total, 0, ',', '.') }}"
-                                                data-status="{{ str_replace('_', ' ', $t->status_pembayaran) }}"
-                                                data-restock="{{ $bisaRestock ? '1' : '0' }}"
-                                                aria-label="Hapus transaksi {{ $t->kode_transaksi }}"
-                                                title="Hapus transaksi"
-                                                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 shadow-sm transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
-                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                        </button>
-                                    </div>
-                                    <a href="{{ route('admin.transaksi.show', $t->id) }}"
-                                       class="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-2 text-[11px] font-bold text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-95">
-                                        <svg class="h-3.5 w-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <td class="px-6 py-4 text-right">
+                                <div class="inline-flex items-center gap-1.5">
+                                    <button type="button" data-toggle-rincian="{{ $t->id }}" aria-expanded="false" aria-controls="rincian-{{ $t->id }}"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+                                        Item
+                                        <svg class="w-3.5 h-3.5 text-amber-600 transition-transform duration-200" data-chevron fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                                    </button>
+                                    <a href="{{ route('admin.transaksi.show', $t->id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 active:scale-95 transition-all shadow-sm">
+                                        <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
                                         Detail
                                     </a>
+                                    @php
+                                        $bisaRestock = $t->stokSudahDipotong();
+                                    @endphp
+                                    <button type="button"
+                                            data-modal-open="modal-hapus-transaksi"
+                                            data-hapus-url="{{ route('admin.transaksi.destroy', $t->id) }}"
+                                            data-kode="{{ $t->kode_transaksi }}"
+                                            data-pelanggan="{{ $namaPelanggan }}"
+                                            data-total="Rp {{ number_format($t->total, 0, ',', '.') }}"
+                                            data-status="{{ str_replace('_', ' ', $t->status_pembayaran) }}"
+                                            data-restock="{{ $bisaRestock ? '1' : '0' }}"
+                                            aria-label="Hapus transaksi {{ $t->kode_transaksi }}"
+                                            title="Hapus transaksi"
+                                            class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 shadow-sm transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
 
                         {{-- Baris rincian: tampil saat tombol Item diklik --}}
                         <tr id="rincian-{{ $t->id }}" class="hidden bg-gray-50/60">
-                            <td colspan="6" class="px-4 py-3">
+                            <td colspan="6" class="px-6 py-4">
                                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
                                     @forelse($items as $d)
-                                        @php $fotoSrc = $d->produk?->sampulUrl(); @endphp
+                                        @php
+                                            $foto = $d->produk->foto_produk ?? null;
+                                            if (is_string($foto)) {
+                                                $dec = json_decode($foto, true);
+                                                $foto = is_array($dec) ? $dec : [$foto];
+                                            }
+                                            $foto = is_array($foto) ? collect($foto)->filter()->first() : null;
+                                            $fotoSrc = $foto ? (preg_match('#^https?://#', $foto) ? $foto : asset('storage/' . ltrim($foto, '/'))) : null;
+                                        @endphp
                                         <div class="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3 hover:border-amber-200 hover:shadow-sm transition-all">
                                             <div class="flex h-14 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
                                                 @if($fotoSrc)
-                                                    <button type="button" data-preview-src="{{ $fotoSrc }}" data-preview-nama="{{ $d->produk->nama ?? '' }}"
-                                                            aria-label="Perbesar gambar" class="h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
-                                                        <img src="{{ $fotoSrc }}" alt="{{ $d->produk->nama ?? '' }}" loading="lazy" class="h-full w-full object-cover">
-                                                    </button>
+                                                    <img src="{{ $fotoSrc }}" alt="{{ $d->produk->nama ?? '' }}" loading="lazy" class="h-full w-full object-cover">
                                                 @else
                                                     <svg class="h-5 w-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                                 @endif
@@ -426,17 +389,6 @@
         <button type="submit" form="form-hapus-transaksi" id="btn-hapus-konfirmasi" class="ui-btn ui-btn--danger">Ya, hapus</button>
     </x-slot:footer>
 </x-modal>
-{{-- Preview gambar produk (satu overlay dipakai semua baris) --}}
-<div id="preview-gambar" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Preview gambar produk">
-    <figure class="relative w-full max-w-sm">
-        <button type="button" data-preview-tutup aria-label="Tutup preview"
-                class="absolute -right-2 -top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-700 shadow-lg transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-        <img id="preview-img" src="" alt="" class="max-h-[78vh] w-full rounded-2xl bg-white object-contain shadow-2xl">
-        <figcaption id="preview-nama" class="mt-3 text-center text-sm font-semibold text-white"></figcaption>
-    </figure>
-</div>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // ==========================================
@@ -518,40 +470,6 @@
                 btn.querySelector('[data-chevron]').classList.toggle('rotate-180', buka);
             });
         });
-
-        // ==========================================
-        // 5. PREVIEW GAMBAR PRODUK (klik thumbnail)
-        // ==========================================
-        var overlay = document.getElementById('preview-gambar');
-        var imgBesar = document.getElementById('preview-img');
-        var namaBesar = document.getElementById('preview-nama');
-
-        function tutupPreview() {
-            overlay.classList.add('hidden');
-            overlay.classList.remove('flex');
-            imgBesar.src = '';
-            document.body.style.overflow = '';
-        }
-
-        if (overlay) {
-            document.addEventListener('click', function (e) {
-                var pemicu = e.target.closest('[data-preview-src]');
-                if (pemicu) {
-                    imgBesar.src = pemicu.dataset.previewSrc;
-                    imgBesar.alt = pemicu.dataset.previewNama || '';
-                    namaBesar.textContent = pemicu.dataset.previewNama || '';
-                    overlay.classList.remove('hidden');
-                    overlay.classList.add('flex');
-                    document.body.style.overflow = 'hidden';
-                    return;
-                }
-                // klik di area gelap atau tombol X -> tutup
-                if (e.target === overlay || e.target.closest('[data-preview-tutup]')) tutupPreview();
-            });
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape' && !overlay.classList.contains('hidden')) tutupPreview();
-            });
-        }
     });
 </script>
 @endsection

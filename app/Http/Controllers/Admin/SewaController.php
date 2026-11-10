@@ -9,8 +9,6 @@ use App\Models\Denda;
 use App\Support\DendaTelat;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class SewaController extends Controller
 {
@@ -51,31 +49,11 @@ class SewaController extends Controller
         $timeline = [];
         $timeline[] = ['title' => 'Serah Terima & Fitting', 'date' => $sewa->created_at, 'desc' => 'Transaksi sewa dibuat dan jadwal disepakati.', 'color' => 'bg-gray-400'];
 
-        // Kolom tanggal_kembali_rencana hanya menyimpan TANGGAL (tanpa jam), sehingga dulu tampil 00:00.
-        // Sistem menganggap sewa baru terlambat setelah tanggal tenggat berakhir, jadi tenggat = akhir hari itu (23:59).
-        $tenggat = Carbon::parse($sewa->tanggal_kembali_rencana)->endOfDay();
-        $isTerlambat = $tenggat->isPast() && $sewa->status !== 'selesai';
-        $timeline[] = ['title' => $isTerlambat ? 'Tenggat Waktu Telah Terlewati' : 'Tenggat Waktu Pengembalian', 'date' => $tenggat, 'desc' => 'Batas waktu pengembalian busana.', 'color' => $isTerlambat ? 'bg-rose-500' : 'bg-amber-500'];
+        $isTerlambat = \Carbon\Carbon::parse($sewa->tanggal_kembali_rencana)->isPast() && $sewa->status !== 'selesai';
+        $timeline[] = ['title' => $isTerlambat ? 'Tenggat Waktu Telah Terlewati' : 'Tenggat Waktu Pengembalian', 'date' => $sewa->tanggal_kembali_rencana, 'desc' => 'Batas waktu pengembalian busana.', 'color' => $isTerlambat ? 'bg-rose-500' : 'bg-amber-500'];
 
         if ($sewa->status === 'selesai' && $sewa->tanggal_kembali_aktual) {
-            // Cast 'date' selalu memotong jam ke 00:00, jadi ambil nilai mentah dari database.
-            $mentah = (string) $sewa->getRawOriginal('tanggal_kembali_aktual');
-            $tanggalKembali = Carbon::parse($mentah);
-            $waktuKembali = (strlen($mentah) > 10 && !str_ends_with($mentah, '00:00:00')) ? $tanggalKembali : null;
-
-            // Data lama (kolom hanya menyimpan tanggal): baris sewa terakhir diubah saat admin menandai
-            // barang kembali, jadi pakai updated_at kalau jatuh di hari yang sama.
-            if (!$waktuKembali && $sewa->updated_at && $sewa->updated_at->isSameDay($tanggalKembali)) {
-                $waktuKembali = $sewa->updated_at;
-            }
-
-            $timeline[] = [
-                'title' => 'Busana Diterima Kembali',
-                'date' => $waktuKembali ?? $tanggalKembali,
-                'tampil_jam' => (bool) $waktuKembali,
-                'desc' => 'Busana telah dikembalikan dan masuk proses QC.',
-                'color' => 'bg-emerald-500',
-            ];
+            $timeline[] = ['title' => 'Busana Diterima Kembali', 'date' => $sewa->tanggal_kembali_aktual, 'desc' => 'Busana telah dikembalikan dan masuk proses QC.', 'color' => 'bg-emerald-500'];
         }
 
         return view('admin.sewa.show', compact('sewa', 'totalDenda', 'timeline'));
@@ -138,53 +116,21 @@ class SewaController extends Controller
     public function simpanQC(Request $request, $id)
     {
         $sewa = Sewa::findOrFail($id);
-
-        $request->validate([
-            'tahap' => 'required|string',
-            'catatan' => 'required|string',
-            'foto_bukti' => 'nullable|image|max:2048',
-            'kerusakan' => 'nullable|array',
-            'kerusakan.*.label' => 'nullable|string|max:200',
-            'kerusakan.*.jumlah' => 'nullable|numeric|min:0|max:1000000000',
-        ]);
+        $request->validate(['tahap' => 'required|string', 'catatan' => 'required|string', 'foto_bukti' => 'nullable|image|max:2048']);
 
         $fotoPath = null;
         if ($request->hasFile('foto_bukti')) {
             $fotoPath = $request->file('foto_bukti')->store('qc', 'public');
         }
 
-        // Kerusakan yang dicentang di form QC -> otomatis jadi denda (status belum lunas)
-        $dendaBaru = collect($request->input('kerusakan', []))
-            ->filter(fn ($k) => !empty($k['pakai']) && !empty($k['label']) && (float) ($k['jumlah'] ?? 0) > 0)
-            ->map(fn ($k) => [
-                'jenis' => Str::limit('Kerusakan: ' . trim($k['label']), 250, ''),
-                'jumlah' => (float) $k['jumlah'],
-                'status' => 'belum_lunas',
-            ])
-            ->values();
+        $sewa->pengecekan()->create([
+            'tahap' => $request->tahap,
+            'catatan' => $request->catatan,
+            'petugas' => auth('admin')->user()->name ?? 'Admin',
+            'foto_bukti' => $fotoPath,
+        ]);
 
-        // QC dan denda disimpan sekaligus: kalau salah satu gagal, keduanya dibatalkan
-        DB::transaction(function () use ($sewa, $request, $fotoPath, $dendaBaru) {
-            $sewa->pengecekan()->create([
-                'tahap' => $request->tahap,
-                'catatan' => $request->catatan,
-                'petugas' => auth('admin')->user()->name ?? 'Admin',
-                'foto_bukti' => $fotoPath,
-            ]);
-
-            foreach ($dendaBaru as $denda) {
-                $sewa->denda()->create($denda);
-            }
-        });
-
-        $pesan = 'Catatan QC berhasil disimpan!';
-        if ($dendaBaru->isNotEmpty()) {
-            $pesan .= ' ' . $dendaBaru->count() . ' denda kerusakan (total Rp '
-                . number_format($dendaBaru->sum('jumlah'), 0, ',', '.')
-                . ') otomatis ditambahkan ke tab Kelola Denda & Settlement.';
-        }
-
-        return back()->with('success', $pesan)->with('active_tab', 'qc')->withFragment('tab-qc');
+        return back()->with('success', 'Catatan QC berhasil disimpan!')->with('active_tab', 'qc')->withFragment('tab-qc');
     }
 
     public function updateQC(Request $request, $id)
