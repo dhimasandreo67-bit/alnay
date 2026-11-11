@@ -971,8 +971,7 @@
                                 </div>
                             </div>
                             <dl class="atelier-jam">
-                                <div><dt>Senin–Sabtu</dt><dd>09.00–20.00</dd></div>
-                                <div><dt>Minggu</dt><dd>10.00–17.00</dd></div>
+                                <div><dt>Senin–Sabtu</dt><dd>08.00–19.00</dd></div>
                             </dl>
                         </div>
                     </li>
