@@ -362,10 +362,9 @@
                         </a>
                         <div x-show="koleksiOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2" class="al-dd-panel absolute top-full left-0 mt-0 w-64 rounded-xl z-50 overflow-hidden" style="display: none;" x-cloak>
                             <div class="py-2">
-                                <a href="{{ route('koleksi.index', ['kategori' => 'jas-adat']) }}" class="al-dd-link block px-4 py-2.5 text-sm">Jas Adat</a>
-                                <a href="{{ route('koleksi.index', ['kategori' => 'gown-pengantin']) }}" class="al-dd-link block px-4 py-2.5 text-sm">Gown Pengantin</a>
-                                <a href="{{ route('koleksi.index', ['kategori' => 'siger']) }}" class="al-dd-link block px-4 py-2.5 text-sm">Siger</a>
-                                <a href="{{ route('koleksi.index', ['kategori' => 'beskap']) }}" class="al-dd-link block px-4 py-2.5 text-sm">Beskap</a>
+                                @foreach (($kategoriPopuler ?? []) as $kat)
+                                    <a href="{{ route('koleksi.index', ['kategori' => $kat['slug']]) }}" class="al-dd-link block px-4 py-2.5 text-sm">{{ $kat['nama'] }}</a>
+                                @endforeach
                                 <div class="border-t border-[#c99a32]/20 my-2"></div>
                                 <a href="{{ route('koleksi.index') }}" class="al-dd-link block px-4 py-2.5 text-sm font-semibold !text-[#a97c1a] hover:!text-[#8a6410]">Lihat Semua Koleksi →</a>
                             </div>
