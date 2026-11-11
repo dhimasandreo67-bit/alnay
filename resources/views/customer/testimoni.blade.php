@@ -126,11 +126,56 @@
     .tm-thumb { transition: transform .4s cubic-bezier(.3,1.4,.5,1), box-shadow .4s ease; }
     .tm-thumb:hover { transform: scale(1.1) rotate(2deg); box-shadow: 0 8px 18px -6px rgba(21,35,61,.35); }
     .tm-card:hover .tm-avatar { box-shadow: 0 0 0 3px rgba(201,154,50,.3); }
+
+    /* ---------- bintang gold melayang di hero (ringan: hanya transform + opacity) ---------- */
+    .tm-stars { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; contain: strict; }
+    .tm-sparkle {
+        position: absolute;
+        left: var(--x); top: var(--y);
+        width: var(--s); height: var(--s);
+        opacity: 0;
+        animation: tm-melayang var(--fd) ease-in-out var(--dl) infinite;
+        will-change: transform, opacity;
+    }
+    /* glow statis (bukan filter), jadi tidak dihitung ulang tiap frame */
+    .tm-sparkle::before {
+        content: "";
+        position: absolute;
+        inset: -90%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(230,200,119,.55) 0%, rgba(201,154,50,.18) 40%, transparent 70%);
+    }
+    .tm-sparkle svg { position: relative; width: 100%; height: 100%; display: block; color: #f3d98b; }
+    @keyframes tm-melayang {
+        0%, 100% { transform: translate3d(0, 0, 0) scale(.5);        opacity: 0; }
+        30%      { transform: translate3d(10px, -22px, 0) scale(1.1); opacity: 1; }
+        60%      { transform: translate3d(-8px, -40px, 0) scale(.85); opacity: .6; }
+        80%      { transform: translate3d(-12px, -52px, 0) scale(1);  opacity: .9; }
+    }
+    .tm-stars.is-paused .tm-sparkle { animation-play-state: paused; }
+    @media (max-width: 767px) { .tm-sparkle:nth-child(n+8) { display: none; } }
+    @media (prefers-reduced-motion: reduce) {
+        .tm-sparkle { animation: none; opacity: .5; }
+    }
 </style>
 
 {{-- 1. HERO + RINGKASAN RATING --}}
-<section class="tm-glow text-white" style="background-color: #1a1610;">
-    <div class="max-w-7xl mx-auto px-4 py-14 md:py-20 grid gap-10 md:grid-cols-2 md:items-center">
+<section class="tm-glow relative overflow-hidden text-white" style="background-color: #1a1610;">
+    {{-- Bintang gold shine melayang --}}
+    <div class="tm-stars" aria-hidden="true">
+        @for ($s = 0; $s < 14; $s++)
+            <span class="tm-sparkle"
+                  style="--x: {{ ($s * 37 + 11) % 96 }}%;
+                         --y: {{ ($s * 53 + 7) % 90 }}%;
+                         --s: {{ 8 + ($s * 7) % 12 }}px;
+                         --fd: {{ 8 + ($s * 3) % 7 }}s;
+                         --dl: -{{ ($s * 17) % 10 }}s;">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.4 5.6 11.4 12 12-6.4.6-11.4 5.6-12 12-.6-6.4-5.6-11.4-12-12C6.4 11.4 11.4 6.4 12 0z"/></svg>
+            </span>
+        @endfor
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 py-14 md:py-20 grid gap-10 md:grid-cols-2 md:items-center">
         <div class="tm-rise">
             <div class="flex items-center gap-3">
                 <span class="h-px w-10 bg-gradient-to-r from-transparent to-gold"></span>
@@ -142,7 +187,7 @@
             </p>
         </div>
 
-        <div class="tm-rise rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm" style="--d: .15s">
+        <div class="tm-rise rounded-2xl border border-white/10 bg-white/[0.07] p-6" style="--d: .15s">
             <div class="flex items-center gap-6">
                 <div class="shrink-0 text-center">
                     <p class="font-display text-5xl font-bold text-gold-soft">{{ $totalRating > 0 ? number_format($rataRata, 1, ',', '') : '-' }}</p>
@@ -176,6 +221,18 @@
         </div>
     </div>
 </section>
+
+
+    <script>
+        (function () {
+            var el = document.querySelector('.tm-stars');
+            if (!el || !('IntersectionObserver' in window)) return;
+            var visible = true;
+            function sync() { el.classList.toggle('is-paused', !visible || document.hidden); }
+            new IntersectionObserver(function (e) { visible = e[0].isIntersecting; sync(); }).observe(el);
+            document.addEventListener('visibilitychange', sync);
+        })();
+    </script>
 
 {{-- 2. FILTER + ULASAN BERJALAN --}}
 <section class="py-10 md:py-14 overflow-hidden">
