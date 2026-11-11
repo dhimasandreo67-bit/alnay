@@ -465,56 +465,70 @@
                                 </p>
                             @endif
                             <p class="font-display text-2xl sm:text-[28px] font-semibold text-ink/90 leading-none lining-nums tabular-nums">Rp {{ number_format($produk->hargaJualNet(), 0, ',', '.') }}</p>
-                            <div class="my-3 border-t border-line/60"></div>
                             <p class="mt-2 text-xs text-ink/60 flex items-center gap-1.5">
                                 <span class="inline-block w-1.5 h-1.5 rounded-full" :class="stok > 0 ? 'bg-emerald-500' : 'bg-rose-500'"></span>
-                                <span x-text="stok > 0 ? 'Stok tersedia: ' + stok + ' set' + (varianWarna ? ' (' + varianWarna + (adaUkuran ? ', ukuran ' + ukuran : '') + ')' : '') : 'Stok habis'"></span>
+                                <span x-text="stok > 0 ? 'Tersedia untuk dibeli' : 'Stok habis'"></span>
                             </p>
                         </div>
                     </div>
 
-                                        
-
-                    {{-- Varian Warna & Motif --}}
-                    <div x-show="adaWarna" x-cloak class="pd-up mb-6" style="--d: .33s;">
-                        <p class="mb-2.5 text-sm font-semibold text-ink/85">Varian Warna &amp; Motif</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="radiogroup" aria-label="Warna">
-                            <template x-for="w in warnaTampil" :key="jenis + '-' + ukuran + '-' + w.label">
-                                <label class="relative block" :class="habis(sisaWarna(w)) ? 'cursor-not-allowed' : 'cursor-pointer'">
-                                    <input type="radio" name="pilih_warna" :value="w.label" class="peer sr-only"
-                                        x-model="varianWarna" :disabled="habis(sisaWarna(w))">
-                                    <div class="flex items-center gap-3 rounded-xl border border-line/60 bg-white px-3 py-3 transition-all duration-200 hover:border-gold/60 peer-checked:border-gold peer-checked:bg-[#fdf8ec] peer-disabled:opacity-50">
-                                        <span class="w-9 h-9 shrink-0 rounded-md border border-black/10" :style="'background: ' + w.hex"></span>
-                                        <span class="min-w-0 flex-1">
-                                            <span class="block truncate text-[13px] font-medium text-ink/85" x-text="w.label"></span>
-                                            <span x-show="habis(sisaWarna(w))" x-cloak class="block text-[10px] font-medium text-rose-500">Stok Habis</span>
-                                        </span>
-                                    </div>
-                                </label>
-                            </template>
-                        </div>
-                    </div>
-
-                    {{-- Ukuran --}}
-                    <div x-show="adaUkuran" x-cloak class="pd-up mb-6" style="--d: .3s;">
-                        <div class="flex items-center justify-between gap-3 mb-2.5">
-                            <p class="text-sm font-semibold text-ink/85">Ukuran</p>
-                            <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya butuh panduan ukur untuk ' . $produk->nama) }}"
-                                target="_blank" rel="noopener"
-                                class="text-xs font-semibold text-gold hover:underline">Panduan Ukur Mandiri</a>
+                    {{-- Pilihan 1: Ukuran (hanya bila admin mengisi variasi ukuran) --}}
+                    <div x-show="adaUkuran" x-cloak class="pd-up mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm" style="--d: .3s;">
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <p class="flex items-center gap-2 text-sm font-semibold text-ink/85">
+                                <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold">1</span>
+                                Pilih Ukuran
+                            </p>
+                            <p class="text-xs text-ink/50">Terpilih: <span class="font-semibold text-gold" x-text="ukuran"></span></p>
                         </div>
                         <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Ukuran">
                             <template x-for="o in set.ukuran" :key="jenis + '-' + o.label">
                                 <button type="button" role="radio" :aria-checked="ukuran === o.label" @click="ukuran = o.label"
                                     :disabled="sisaUkuran(o) <= 0"
-                                    :title="sisaUkuran(o) <= 0 ? 'Stok habis' : (mode === 'sewa' ? labelSewa(o.label + '|') : 'Stok ' + sisaUkuran(o))"
-                                    :class="[ukuran === o.label ? 'bg-ink/90 text-gold border-ink/90 shadow-md' : 'bg-white text-ink/75 border-line/60 hover:border-gold hover:text-ink', sisaUkuran(o) <= 0 ? 'opacity-40 line-through cursor-not-allowed' : '']"
-                                    class="w-16 h-11 flex items-center justify-center rounded-lg border text-[13px] font-semibold active:scale-95 transition-all duration-200"
-                                    x-text="o.label"></button>
+                                    :class="[ukuran === o.label ? 'bg-ink/90 text-gold border-ink/90 shadow-md' : 'bg-white text-ink/65 border-line/60 hover:border-gold hover:text-ink hover:-translate-y-0.5', sisaUkuran(o) <= 0 ? 'opacity-40 line-through cursor-not-allowed' : '']"
+                                    class="relative min-w-[56px] min-h-[44px] px-4 py-1.5 rounded-xl border text-[13px] font-semibold active:scale-95 transition-all duration-200">
+                                    <span class="block leading-tight" x-text="o.label"></span>
+                                    <span class="block text-[10px] font-normal leading-tight"
+                                        :class="sisaUkuran(o) <= 0 ? 'text-rose-500' : 'opacity-60'"
+                                        x-text="sisaUkuran(o) <= 0 ? 'habis' : (mode === 'sewa' ? labelSewa(o.label + '|') : 'stok ' + sisaUkuran(o))"></span>
+                                    <span x-show="ukuran === o.label" x-cloak
+                                        class="pd-pop absolute -top-1.5 -right-1.5 flex w-4 h-4 items-center justify-center rounded-full bg-gold text-white text-[9px] leading-none">✓</span>
+                                </button>
                             </template>
-                            <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya ingin pesan ukuran custom untuk ' . $produk->nama) }}"
-                                target="_blank" rel="noopener"
-                                class="w-16 h-11 flex items-center justify-center rounded-lg border border-line/60 bg-white text-[12px] font-semibold text-ink/75 hover:border-gold hover:text-ink transition-all duration-200">Custom</a>
+                        </div>
+                        <p class="mt-3 text-[11px] text-ink/45">Ragu soal ukuran? Tanyakan lewat WhatsApp di bawah, kami bantu pilihkan.</p>
+                    </div>
+
+                    {{-- Pilihan 2: Warna (stok per warna mengikuti ukuran yang dipilih) --}}
+                    <div x-show="adaWarna" x-cloak class="pd-up mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm" style="--d: .33s;">
+                        <div class="flex items-center justify-between gap-3 mb-4">
+                            <p class="flex items-center gap-2 text-sm font-semibold text-ink/85">
+                                <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold" x-text="noWarna"></span>
+                                Pilih Warna
+                            </p>
+                            <p class="text-xs text-ink/50 text-right">Terpilih: <span class="font-semibold text-gold" x-text="varianWarna || '-'"></span></p>
+                        </div>
+                        <div class="flex flex-wrap gap-x-3 gap-y-4" role="radiogroup" aria-label="Warna">
+                            <template x-for="w in warnaTampil" :key="jenis + '-' + ukuran + '-' + w.label">
+                                <label class="w-[76px] flex flex-col items-center gap-1.5 text-center"
+                                    :class="habis(sisaWarna(w)) ? 'cursor-not-allowed' : 'cursor-pointer'">
+                                    <input type="radio" name="pilih_warna" :value="w.label" class="peer sr-only"
+                                        x-model="varianWarna" :disabled="habis(sisaWarna(w))">
+                                    <span class="relative block w-12 h-12 rounded-full border border-black/10 ring-2 ring-offset-2 ring-offset-white ring-transparent shadow-inner hover:scale-110 peer-checked:ring-gold peer-checked:scale-110 transition-all duration-300"
+                                        :class="habis(sisaWarna(w)) ? 'opacity-40' : ''"
+                                        :style="'background: ' + w.hex">
+                                        <span x-show="varianWarna === w.label" x-cloak
+                                            class="pd-pop absolute -top-1 -right-1 flex w-4 h-4 items-center justify-center rounded-full bg-gold text-white text-[9px] leading-none">✓</span>
+                                        <span x-show="habis(sisaWarna(w))" x-cloak aria-hidden="true" class="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full">
+                                            <span class="block w-[130%] h-[2px] bg-rose-500/80 -rotate-45"></span>
+                                        </span>
+                                    </span>
+                                    <span class="text-[11px] leading-tight text-ink/75 peer-checked:text-gold peer-checked:font-semibold" x-text="w.label"></span>
+                                    <span x-show="sisaWarna(w) !== null" x-cloak class="text-[10px] -mt-1"
+                                        :class="habis(sisaWarna(w)) ? 'font-medium text-rose-500' : 'text-ink/45'"
+                                        x-text="habis(sisaWarna(w)) ? 'Habis' : (mode === 'sewa' ? labelSewa(ukuran + '|' + w.label) : 'stok ' + sisaWarna(w))"></span>
+                                </label>
+                            </template>
                         </div>
                     </div>
 
@@ -649,6 +663,7 @@
                         <div class="mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm">
                             <div class="flex items-center justify-between gap-3 mb-3">
                                 <p class="flex items-center gap-2 text-sm font-semibold text-ink/85">
+                                    <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold"><span x-text="noJumlah"></span></span>
                                     Jumlah
                                 </p>
                                 <p class="text-xs font-medium"
@@ -675,6 +690,7 @@
                         {{-- Pilihan 4: Pengiriman --}}
                         <div class="mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm">
                             <p class="flex items-center gap-2 text-sm font-semibold text-ink/85 mb-3">
+                                <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold"><span x-text="noKirim"></span></span>
                                 Metode Pengiriman
                             </p>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">

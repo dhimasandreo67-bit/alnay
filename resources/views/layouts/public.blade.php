@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="@yield('meta_description', config('alnay.brand.nama') . ' — ' . config('alnay.brand.tagline'))">
-    
-    {{-- META UNTUK TRANSISI HALUS --}}
-    <meta name="view-transition" content="same-origin" />
 
     <title>@yield('title', config('alnay.brand.nama'))</title>
     <link rel="icon" type="image/png" href="{{ asset('images/home/alnaylogo.png') }}">
-    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -21,33 +17,10 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #d1d5db; }
         [x-cloak] { display: none !important; }
 
-        /* 
-         =========================================
-         CSS TRANSISI HALAMAN HALUS (View Transitions) 
-         =========================================
-        */
-        @view-transition {
-            navigation: auto;
-        }
-
-        /* Efek memudar saat halaman lama hilang */
-        ::view-transition-old(root) {
-            animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
-        }
-
-        /* Efek memudar saat halaman baru muncul */
-        ::view-transition-new(root) {
-            animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
-        }
-
-        @keyframes fade-out {
-            from { opacity: 1; transform: scale(1); }
-            to { opacity: 0; transform: scale(0.98); }
-        }
-
-        @keyframes fade-in {
-            from { opacity: 0; transform: scale(1.02); }
-            to { opacity: 1; transform: scale(1); }
+        /* ANTI-KEDIP: Sembunyikan body saat pertama kali dimuat */
+        body.preload {
+            visibility: hidden !important;
+            opacity: 0 !important;
         }
     </style>
 
@@ -59,12 +32,12 @@
     </script>
 </head>
 
-{{-- Class 'preload' DIHAPUS agar tidak bentrok dengan transisi --}}
-<body class="bg-cream text-ink font-sans antialiased min-h-screen flex flex-col">
+<!-- TAMBAHKAN CLASS 'preload' DI SINI -->
+<body class="bg-cream text-ink font-sans antialiased min-h-screen flex flex-col preload">
 
     @include('partials.header')
 
-    <main class="flex-1 overflow-x-hidden">
+    <main class="flex-1">
         @yield('content')
     </main>
 
@@ -84,6 +57,13 @@
             }
         });
     </script>
+
+    <script>
+    // Munculkan halaman setelah HTML selesai dimuat (hapus class preload)
+    window.addEventListener('DOMContentLoaded', function() {
+        document.body.classList.remove('preload');
+    });
+</script>
 
     <x-back-to-top />
 </body>

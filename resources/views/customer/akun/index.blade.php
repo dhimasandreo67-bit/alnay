@@ -85,7 +85,7 @@
     }
 </style>
 
-<div data-akun-wrap class="bg-cream min-h-screen py-8 md:py-10">
+<div class="bg-cream min-h-screen py-8 md:py-10">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 grid md:grid-cols-[280px_1fr] gap-6 items-start">
 
         <aside class="space-y-5 md:sticky md:top-6">
@@ -766,19 +766,7 @@
             return PANEL_DEFAULT;
         }
 
-                // Ukur tinggi bagian yang menempel di atas (sticky/fixed), lalu pakai sebagai jarak scroll
-        function hitungOffsetHeader() {
-            let bawah = 0;
-            document.querySelectorAll('body *').forEach(el => {
-                const gaya = getComputedStyle(el);
-                if (gaya.position !== 'sticky' && gaya.position !== 'fixed') return;
-                const r = el.getBoundingClientRect();
-                if (r.top <= 0 && r.height < 300) bawah = Math.max(bawah, r.bottom);
-            });
-            return bawah;
-        }
-
-        function tampilkan(nama, scroll = false) {
+                function tampilkan(nama) {
             if (!document.querySelector(`[data-panel-content="${nama}"]`)) nama = PANEL_DEFAULT;
 
             panels.forEach(p => {
@@ -802,24 +790,23 @@
             history.replaceState(null, '', '#' + nama);
 
             // TAMBAHKAN INI: Geser layar ke area konten secara halus
-                                   if (scroll) {
-                setTimeout(() => {
-                                        const target = document.querySelector('[data-akun-wrap]');
-                    if (!target) return;
-                    const y = target.getBoundingClientRect().top + window.scrollY - (hitungOffsetHeader() + 8);
-                    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
-                }, 50);
-            }
+            setTimeout(() => {
+                const target = document.querySelector(`[data-panel-content="${nama}"]`);
+                if (target) {
+                    const y = target.getBoundingClientRect().top + window.scrollY - 80; // 80px offset untuk header
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                }
+            }, 50);
         }
 
         document.querySelectorAll('[data-panel]').forEach(el => {
             el.addEventListener('click', e => {
                 e.preventDefault();
-                tampilkan(el.dataset.panel, true);
+                tampilkan(el.dataset.panel);
             });
         });
 
-                window.addEventListener('hashchange', () => tampilkan(location.hash.slice(1) || PANEL_DEFAULT, true));
+        window.addEventListener('hashchange', () => tampilkan(location.hash.slice(1) || PANEL_DEFAULT));
         tampilkan(panelAwal());
 
         // Pratinjau Foto & Modal
