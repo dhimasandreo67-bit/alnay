@@ -819,34 +819,172 @@
     </section>
 
     {{-- ============================================================
-     7. OFFLINE ATELIER
+     7. OFFLINE ATELIER  (ganti seluruh section 7 lama dengan blok ini)
+     Tetap memakai id #peta-alnay dan #open-status, jadi script initMap()
+     dan initOpenStatus() di bawah halaman tidak perlu diubah.
      ============================================================ --}}
-    <section class="reveal max-w-7xl mx-auto px-4 py-12 md:py-20">
-        <div class="rounded-3xl border p-6 md:p-12 bg-white transition-shadow duration-500 hover:shadow-xl"
-            style="border-color: var(--line); box-shadow: var(--shadow-sm);">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-                <div>
-                    <p class="sec-eyebrow">Galeri &amp; Ruang Fitting</p>
-                    <h2 class="sec-title mt-3">Offline Atelier &amp; Toko ALNAY.ID</h2>
-                    <p class="text-sm md:text-base text-gray-600 mt-5 leading-relaxed">
-                        Kunjungi toko ALNAY untuk konsultasi langsung, fitting presisi, dan melihat koleksi secara
-                        nyata. Dilengkapi ruang fitting privat ber-AC dan penjahit profesional siap membantu.
-                    </p>
+    <style>
+        /* ---------- Kartu: info di kiri, peta penuh di kanan ---------- */
+        .atelier {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        @media (min-width: 1024px) { .atelier { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
 
-                    <div class="mt-8 flex flex-wrap gap-3">
-                        <a href="cara-sewa"
-                            class="btn-smooth inline-block px-6 py-3.5 border text-xs font-bold uppercase tracking-wider hover:bg-gray-50"
-                            style="border-color: #d1d5db; color: #374151;">
-                            Panduan Sewa Online
-                        </a>
-                    </div>
-                </div>
+        .atelier-info { display: flex; flex-direction: column; padding: 20px 18px 22px; }
+        @media (min-width: 768px)  { .atelier-info { padding: 28px; } }
+        @media (min-width: 1024px) { .atelier-info { padding: 32px 34px; justify-content: center; } }
+        .atelier .sec-title { font-size: 1.375rem; }
+        @media (min-width: 768px) { .atelier .sec-title { font-size: 1.625rem; } }
+        .atelier .sec-title::after { margin-top: 10px; }
 
-                <div class="relative rounded-2xl overflow-hidden group cursor-pointer border shadow-sm transition-shadow duration-500 hover:shadow-lg"
-                    style="border-color: var(--line); z-index: 1;">
-                    <div id="peta-alnay" class="w-full h-[280px] md:h-[340px]"></div>
+        .atelier-desc { margin-top: 10px; max-width: 32rem; font-size: .875rem; line-height: 1.6; color: #4b5563; }
+
+        /* ---------- Alamat & jam ---------- */
+        .atelier-list { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+        .atelier-row {
+            display: flex; gap: 14px; align-items: flex-start;
+            padding: 10px 12px;
+            border: 1px solid var(--line-soft);
+            border-radius: 14px;
+            background: #fdfbf7;
+        }
+        .atelier-ico {
+            width: 34px; height: 34px; flex-shrink: 0;
+            display: grid; place-items: center;
+            border-radius: 10px; background: var(--gold-bg); color: var(--gold);
+        }
+        .atelier-ico svg { width: 16px; height: 16px; }
+        .atelier-label { font-size: 12px; font-weight: 500; line-height: 1.3; color: var(--muted); }
+        .atelier-value { margin-top: 2px; font-size: 14px; font-weight: 600; line-height: 1.45; color: var(--ink); }
+        .atelier-jam { margin: 6px 0 0; }
+        .atelier-jam > div { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; font-size: 13px; }
+        .atelier-jam dt { color: var(--muted); }
+        .atelier-jam dd { margin: 0; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+        /* Lencana Buka/Tutup (diisi script lama lewat #open-status) dibuat seragam */
+        .atelier #open-status > span {
+            padding: 3px 10px; border-radius: 999px; font-size: 12px;
+            border-color: transparent; box-shadow: none; background: #f6f3ea;
+        }
+
+        /* ---------- Tombol ---------- */
+        .atelier-cta { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+        @media (min-width: 640px) { .atelier-cta { flex-direction: row; } }
+        .atelier-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            min-height: 42px; padding: 0 20px;
+            font-size: 13px; font-weight: 600; text-align: center;
+        }
+        .atelier-btn svg { width: 16px; height: 16px; }
+        .atelier-btn-emas { color: #fff; background: linear-gradient(135deg, var(--gold) 0%, #b8860b 100%); }
+        .atelier-btn-garis { color: var(--ink); background: #fff; border: 1px solid #e5dfd0; }
+        .atelier-btn-garis:hover { background: var(--gold-bg); border-color: var(--gold); }
+
+        /* ---------- Peta (kartu info bawaan Google tampil di kiri atas) ---------- */
+        .atelier-peta {
+            position: relative; isolation: isolate;
+            min-height: 400px;   /* cukup tinggi agar pin tidak tertutup kartu info Google di HP */
+            background: linear-gradient(110deg, #efe9dc 30%, #f6f1e7 50%, #efe9dc 70%) 0 0 / 200% 100%;
+            animation: atelier-muat 1.6s linear infinite;
+        }
+        @media (min-width: 1024px) { .atelier-peta { min-height: 380px; } }
+        @keyframes atelier-muat { to { background-position: -200% 0; } }
+
+        .atelier-peta > #peta-alnay {
+            position: absolute !important; inset: 0; overflow: hidden;
+            height: auto; background: transparent;
+        }
+        .atelier-peta > #peta-alnay iframe {
+            position: absolute !important; inset: 0;
+            width: 100% !important; height: 100% !important;
+            filter: saturate(.92);
+        }
+        @media (max-width: 1023px) { .atelier-peta > #peta-alnay { pointer-events: none !important; } }
+
+        /* HP: seluruh peta bisa diketuk untuk membuka Google Maps, jadi scroll halaman tidak tersangkut */
+        .atelier-tap { position: absolute; inset: 0; z-index: 4; }
+        @media (min-width: 1024px) { .atelier-tap { display: none; } }
+
+        @media (prefers-reduced-motion: reduce) { .atelier-peta { animation: none; } }
+    </style>
+
+    <section class="reveal max-w-6xl mx-auto px-4 py-8 md:py-12" aria-labelledby="atelier-judul">
+        <div class="atelier">
+
+            {{-- ============ KIRI: INFO ============ --}}
+            <div class="atelier-info">
+                <p class="sec-eyebrow">Galeri &amp; Ruang Fitting</p>
+                <h2 id="atelier-judul" class="sec-title mt-3">Offline Atelier &amp; Toko ALNAY.ID</h2>
+                <p class="atelier-desc">
+                    Datang langsung untuk konsultasi, fitting presisi, dan melihat koleksi secara nyata.
+                    Tersedia ruang fitting privat ber-AC dan penjahit profesional.
+                </p>
+
+                <ul class="atelier-list">
+                    <li class="atelier-row">
+                        <span class="atelier-ico" aria-hidden="true">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </span>
+                        <div class="min-w-0">
+                            <p class="atelier-label">Alamat</p>
+                            <p class="atelier-value">Kedaung, Kemiling, Bandar Lampung</p>
+                        </div>
+                    </li>
+
+                    <li class="atelier-row">
+                        <span class="atelier-ico" aria-hidden="true">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <p class="atelier-label">Jam buka (WIB)</p>
+                                <div id="open-status">
+                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/95 text-[10px] font-bold text-gray-700 border border-gray-100">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                                        <span>Memuat...</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <dl class="atelier-jam">
+                                <div><dt>Senin–Sabtu</dt><dd>09.00–20.00</dd></div>
+                                <div><dt>Minggu</dt><dd>10.00–17.00</dd></div>
+                            </dl>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="atelier-cta">
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=Alnay.id+Kedaung+Kemiling+Bandar+Lampung"
+                        target="_blank" rel="noopener" class="btn-smooth atelier-btn atelier-btn-emas">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        Petunjuk arah
+                    </a>
+                    <a href="{{ url('cara-sewa') }}" class="btn-smooth atelier-btn atelier-btn-garis">Panduan sewa online</a>
                 </div>
             </div>
+
+            {{-- ============ KANAN: PETA (Google Maps) ============ --}}
+            <div class="atelier-peta">
+                <div id="peta-alnay" role="region" aria-label="Peta lokasi ALNAY.ID"></div>
+
+                {{-- HP: ketuk di mana saja pada peta untuk membuka Google Maps --}}
+                <a href="https://www.google.com/maps/search/?api=1&query=Alnay.id+Kedaung+Kemiling+Bandar+Lampung"
+                    target="_blank" rel="noopener" class="atelier-tap" aria-label="Buka peta di Google Maps"></a>
+            </div>
+
         </div>
     </section>
 
@@ -1020,22 +1158,68 @@
             stage.addEventListener('mouseleave', startAuto);
         }
 
+        /* ---------- Load peta dengan fade-in ---------- */
         function initMap() {
             const el = document.getElementById('peta-alnay');
             if (!el || el.dataset.ready) return;
             el.dataset.ready = '1';
 
-            const searchQuery = encodeURIComponent('Alnay.id Lampung, Kedaung, Kemiling, Bandar Lampung');
-            el.innerHTML = `
-                <iframe
-                    width="100%"
-                    height="100%"
-                    style="border:0; width:100%; height:100%;"
-                    loading="lazy"
-                    allowfullscreen
-                    src="https://maps.google.com/maps?q=${searchQuery}&hl=id&z=17&output=embed">
-                </iframe>
-            `;
+            // Menggunakan query pencarian yang lebih sederhana (menghindari kotak info besar Google)
+            const q = encodeURIComponent('Alnay.id Bandar Lampung');
+
+            const iframe = document.createElement('iframe');
+            iframe.width = '100%';
+            iframe.height = '100%';
+            iframe.loading = 'lazy';
+            iframe.allowFullscreen = true;
+            iframe.referrerPolicy = 'no-referrer-when-downgrade';
+            iframe.style.cssText =
+                'border:0; width:100%; height:100%; display:block; opacity:0; ' +
+                'transition:opacity .6s ease;';
+            iframe.src = `https://maps.google.com/maps?q=${q}&hl=id&z=16&output=embed`;
+
+            iframe.addEventListener('load', () => {
+                iframe.style.opacity = '1';
+            });
+
+            el.appendChild(iframe);
+        }
+
+        /* ---------- Hitung status buka/tutup realtime (WIB) ---------- */
+        function initOpenStatus() {
+            const badge = document.getElementById('open-status');
+            if (!badge) return;
+
+            const now = new Date();
+            const wibMs = now.getTime() + now.getTimezoneOffset() * 60000 + 7 * 3600000;
+            const wib = new Date(wibMs);
+            const day = wib.getDay();                       // 0=Min, 6=Sab
+            const t = wib.getHours() + wib.getMinutes() / 60;
+
+            // Senin–Sabtu: 09.00–20.00 | Minggu: 10.00–17.00
+            const isOpen = day === 0 ? (t >= 10 && t < 17) : (t >= 9 && t < 20);
+
+            const dot = isOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500';
+            const label = isOpen ? 'Buka' : 'Tutup';
+
+            badge.innerHTML = `
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/95 backdrop-blur-md text-[10px] font-bold text-gray-700 shadow-sm border border-gray-100">
+                    <span class="w-1.5 h-1.5 rounded-full ${dot}"></span>
+                    <span>${label}</span>
+                </span>`;
+        }
+
+        /* ---------- Boot ---------- */
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                initMap();
+                initOpenStatus();
+                setInterval(initOpenStatus, 60000);
+            });
+        } else {
+            initMap();
+            initOpenStatus();
+            setInterval(initOpenStatus, 60000);
         }
 
         document.addEventListener('DOMContentLoaded', function () {
