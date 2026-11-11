@@ -17,11 +17,6 @@
         .font-display { font-family: 'Playfair Display', serif; }
         body { font-family: 'Inter', sans-serif; }
 
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #17140f; }
-        ::-webkit-scrollbar-thumb { background: #c99a32; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #e6c877; }
-
         .fade-up {
             opacity: 0;
             transform: translateY(40px);
@@ -174,8 +169,7 @@
     {{-- HERO SECTION --}}
     <section class="k-hero relative h-[50vh] md:h-[70vh] min-h-[350px] md:min-h-[500px] flex items-center justify-center overflow-hidden">
         <div class="absolute inset-0">
-            <img src="https://images.unsplash.com/photo-1594736797933-d0501ba2fe65?auto=format&fit=crop&q=80&w=1600"
-                alt="Busana Adat" class="w-full h-full object-cover hero-img">
+            <img src="{{ asset('images/home/hero-pasangan.jpg') }}" alt="Busana Adat" class="w-full h-full object-cover hero-img">
             <div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(23,20,15,0.9) 0%, rgba(23,20,15,0.6) 100%);"></div>
         </div>
         <div class="relative z-10 text-center text-white px-5 max-w-4xl mx-auto mt-0 md:mt-10">
@@ -314,24 +308,24 @@
         </div>
     </section>
 
-    {{-- STATISTIK --}}
+        {{-- STATISTIK --}}
     <section class="py-10 md:py-16" style="background-color: white;">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                 <div class="fade-up stat-card text-center p-4 md:p-6 rounded-2xl bg-white border bg-gradient-to-b from-white to-gray-50/50">
-                    <div class="font-display text-3xl md:text-5xl font-bold mb-1 md:mb-2" style="color: #c99a32;">5+</div>
+                    <div class="font-sans text-3xl md:text-5xl font-extrabold tracking-tight tabular-nums mb-1 md:mb-2" style="color: #c99a32;">5+</div>
                     <p class="text-[9px] md:text-xs font-semibold uppercase tracking-wider" style="color: #6b7280;">Tahun Berdiri</p>
                 </div>
                 <div class="fade-up stat-card text-center p-4 md:p-6 rounded-2xl bg-white border bg-gradient-to-b from-white to-gray-50/50" style="transition-delay: 100ms;">
-                    <div class="font-display text-3xl md:text-5xl font-bold mb-1 md:mb-2" style="color: #c99a32;">1.800+</div>
+                    <div class="font-sans text-3xl md:text-5xl font-extrabold tracking-tight tabular-nums mb-1 md:mb-2" style="color: #c99a32;">1.800+</div>
                     <p class="text-[9px] md:text-xs font-semibold uppercase tracking-wider" style="color: #6b7280;">Acara Sukses</p>
                 </div>
                 <div class="fade-up stat-card text-center p-4 md:p-6 rounded-2xl bg-white border bg-gradient-to-b from-white to-gray-50/50" style="transition-delay: 200ms;">
-                    <div class="font-display text-3xl md:text-5xl font-bold mb-1 md:mb-2" style="color: #c99a32;">34</div>
+                    <div class="font-sans text-3xl md:text-5xl font-extrabold tracking-tight tabular-nums mb-1 md:mb-2" style="color: #c99a32;">34</div>
                     <p class="text-[9px] md:text-xs font-semibold uppercase tracking-wider" style="color: #6b7280;">Provinsi Terjangkau</p>
                 </div>
                 <div class="fade-up stat-card text-center p-4 md:p-6 rounded-2xl bg-white border bg-gradient-to-b from-white to-gray-50/50" style="transition-delay: 300ms;">
-                    <div class="font-display text-3xl md:text-5xl font-bold mb-1 md:mb-2" style="color: #c99a32;">4.97</div>
+                    <div class="font-sans text-3xl md:text-5xl font-extrabold tracking-tight tabular-nums mb-1 md:mb-2" style="color: #c99a32;">4.97</div>
                     <p class="text-[9px] md:text-xs font-semibold uppercase tracking-wider" style="color: #6b7280;">Rating Kepuasan</p>
                 </div>
             </div>

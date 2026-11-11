@@ -214,7 +214,7 @@
                 class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl border border-[#c99a32] bg-[#fbf6e9] object-contain p-1 shadow-[0_6px_20px_-6px_rgba(201,154,50,.65)]">
             <span class="hidden sm:block leading-tight">
                 <span class="block font-display font-bold text-[#15233d] text-lg tracking-tight">ALNAY.ID</span>
-                <span class="block text-[9px] uppercase tracking-[0.24em] text-[#a97c1a]">Jas & Gown Berbudaya</span>
+                <span class="block text-[9px] uppercase tracking-[0.24em] text-[#a97c1a]">Muda Gaya Berbudaya</span>
             </span>
         </a>
 
