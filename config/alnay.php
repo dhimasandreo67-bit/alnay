@@ -21,8 +21,8 @@ return [
     ],
 
     'kontak' => [
-        'wa_cs'         => env('ALNAY_WA_CS', '6280000000000'),
-        'wa_cs_display' => env('ALNAY_WA_CS_DISPLAY', '+62 800-0000-000'),
+        'wa_cs'         => env('ALNAY_WA_CS', '6288242480648'),
+        'wa_cs_display' => env('ALNAY_WA_CS_DISPLAY', '+62 8824-2480-648'),
         'email'         => env('ALNAY_EMAIL', 'placeholder@alnay.id'),
     ],
 
