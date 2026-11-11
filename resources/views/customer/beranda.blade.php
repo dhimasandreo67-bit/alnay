@@ -397,16 +397,21 @@
                 var(--tumpal) repeat-x left bottom / 28px 12px,
                 linear-gradient(135deg, var(--dark-2) 0%, #221c14 55%, var(--dark-2) 100%);
             border: 1px solid rgba(201, 154, 50, .12);
-            padding-bottom: 3rem;
+            isolation: isolate;
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
         }
         .event-card::before {
             content: '';
             position: absolute;
             inset: -40% -10% auto auto;
             width: 460px; height: 460px;
+            max-width: 90vw; max-height: 90vw;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(201, 154, 50, .28), transparent 65%);
             transition: transform .9s var(--ease-out);
+            pointer-events: none;
+            z-index: -1;
         }
         .event-card::after {
             content: '';
@@ -422,6 +427,14 @@
             opacity: .6;
         }
         .event-card:hover::before { transform: scale(1.25) translate(-20px, 20px); }
+        .event-card:focus-visible {
+            outline: 3px solid var(--gold-soft);
+            outline-offset: 4px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .event-card, .event-card::before { transition: none; }
+            .event-card:hover { transform: none; }
+        }
 
         /* ---------- Peta ---------- */
         .pin-bounce { animation: bounce-marker 2s infinite ease-in-out; }
@@ -683,8 +696,9 @@
      5. EVENT BANNER
      ============================================================ --}}
     <section class="reveal max-w-7xl mx-auto px-4 py-10 md:py-16">
-        <a href="https://eventalnay.id/beranda" target="_blank" rel="noopener"
-            class="event-card group flex flex-col md:flex-row items-center justify-between gap-6 rounded-3xl p-6 md:p-12 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1">
+        <a href="{{ config('alnay.event_url', 'https://eventalnay.id/beranda') }}" target="_blank"
+            rel="noopener noreferrer" aria-label="Kunjungi halaman Event ALNAY.ID (buka di tab baru)"
+            class="event-card group flex flex-col md:flex-row items-center md:items-center justify-between gap-6 rounded-3xl px-6 pt-8 pb-14 md:px-12 md:pt-12 md:pb-16 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 focus:outline-none">
 
             <div class="relative flex-1 min-w-0">
                 <span
@@ -698,7 +712,7 @@
                     Ikuti Event Budaya &amp; Menangkan Hadiah Menarik
                 </h2>
 
-                <p class="text-sm md:text-base text-gray-400 mt-3 leading-relaxed max-w-xl">
+                <p class="text-sm md:text-base text-gray-300 mt-3 leading-relaxed max-w-xl">
                     Kompetisi busana adat, workshop kebudayaan, hingga event seru lainnya. Semua ada di satu tempat!
                 </p>
             </div>
@@ -709,7 +723,7 @@
                     style="background: linear-gradient(135deg, var(--gold) 0%, #b8860b 100%); box-shadow: var(--shadow-gold);">
                     Kunjungi Halaman Event
                     <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
+                        stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                             d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                     </svg>

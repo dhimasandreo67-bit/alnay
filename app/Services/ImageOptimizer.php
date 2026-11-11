@@ -175,6 +175,48 @@ class ImageOptimizer
             );
         }
 
+        // JPEG dari HP menyimpan arah putar di EXIF; GD membuang EXIF saat disimpan,
+        // jadi putar dulu supaya hasil WebP tidak miring.
+        if ($tipe === IMAGETYPE_JPEG) {
+            $gambar = self::perbaikiOrientasi($gambar, $path);
+        }
+
+        // PNG-8/GIF (palet) tidak bisa disimpan sebagai WebP -> ubah ke truecolor,
+        // dan pertahankan transparansi.
+        if (!imageistruecolor($gambar)) {
+            imagepalettetopruecolor($gambar);
+        }
+        imagealphablending($gambar, false);
+        imagesavealpha($gambar, true);
+
         return $gambar;
+    }
+
+    private static function perbaikiOrientasi($gambar, string $path)
+    {
+        if (!function_exists('exif_read_data')) {
+            return $gambar;
+        }
+
+        $exif = @exif_read_data($path);
+        $sudut = match ($exif['Orientation'] ?? 1) {
+            3 => 180,
+            6 => -90,
+            8 => 90,
+            default => 0,
+        };
+
+        if ($sudut === 0) {
+            return $gambar;
+        }
+
+        $putar = imagerotate($gambar, $sudut, 0);
+        if ($putar === false) {
+            return $gambar;
+        }
+
+        imagedestroy($gambar);
+
+        return $putar;
     }
 }
