@@ -1,4 +1,31 @@
 <header class="sticky top-0 z-40 border-b border-amber-100/60 bg-white/85 backdrop-blur-xl">
+    {{-- Style untuk Animasi Lonceng --}}
+    <style>
+        @keyframes bell-ring {
+            0%, 100% { transform: rotate(0); }
+            10%, 30%, 50%, 70% { transform: rotate(-12deg); }
+            20%, 40%, 60% { transform: rotate(12deg); }
+            80% { transform: rotate(-8deg); }
+            90% { transform: rotate(8deg); }
+        }
+        .animate-bell {
+            animation: bell-ring 1.2s ease-in-out infinite;
+            transform-origin: top center;
+        }
+
+        @keyframes bell-click {
+            0% { transform: scale(1) rotate(0); }
+            25% { transform: scale(0.9) rotate(-20deg); }
+            50% { transform: scale(1.1) rotate(15deg); }
+            75% { transform: scale(1) rotate(-10deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
+        .animate-bell-click {
+            animation: bell-click 0.6s cubic-bezier(.36,.07,.19,.97) both;
+            transform-origin: top center;
+        }
+    </style>
+
     {{-- Accent bar --}}
     <div class="h-0.5 w-full bg-gradient-to-r from-amber-600 via-amber-500 to-amber-400"></div>
 
@@ -22,13 +49,50 @@
         <div class="flex shrink-0 items-center gap-2 lg:gap-3">
 
             {{-- ============ NOTIFIKASI ============ --}}
-            <div class="relative" x-data="{ notifOpen: false }">
-                <button @click="notifOpen = !notifOpen" class="relative p-2 rounded-full hover:bg-gray-100 transition">
-                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
+            {{-- Logika Alpine.js dipindah seluruhnya ke dalam x-data agar tidak bocor ke HTML --}}
+            <div class="relative" x-data="{ 
+                notifOpen: false, 
+                klik: false, 
+                jumlahNotif: {{ $totalNotif ?? 0 }},
+                dismissed: parseInt(localStorage.getItem('admin_notif_dismissed') || '0'),
+                
+                // Cek apakah lonceng harus berdering (Notif lebih banyak dari yang sudah di-klik)
+                get isRing() { 
+                    return !this.klik && this.jumlahNotif > this.dismissed; 
+                },
+                
+                init() {
+                    // Sinkronisasi jika admin baru saja menyelesaikan pesanan (jumlah notif turun)
+                    if (this.jumlahNotif < this.dismissed) {
+                        this.dismissed = this.jumlahNotif;
+                        localStorage.setItem('admin_notif_dismissed', this.jumlahNotif);
+                    }
+                },
+                
+                bukaNotif() {
+                    this.notifOpen = !this.notifOpen;
+                    if (this.notifOpen) {
+                        this.klik = true; // Jalankan animasi klik
+                        this.dismissed = this.jumlahNotif; // Tandai sudah dilihat
+                        localStorage.setItem('admin_notif_dismissed', this.jumlahNotif);
+                        setTimeout(() => this.klik = false, 600); // Matikan animasi klik setelah 600ms
+                    }
+                }
+            }">
+                {{-- Tombol Lonceng --}}
+                <button @click="bukaNotif()" class="relative p-2 rounded-full hover:bg-gray-100 transition group">
                     
-                    {{-- TITIK MERAH JIKA ADA NOTIFIKASI --}}
+                    {{-- Logika Animasi --}}
+                    <div :class="{ 
+                            'animate-bell-click': klik, 
+                            'animate-bell': isRing 
+                        }" class="transition-transform duration-200 group-hover:scale-110">
+                        <svg class="w-6 h-6 text-gray-500 group-hover:text-amber-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                    </div>
+                    
+                    {{-- TITIK MERAH (Tetap tampil selama ada notif dari server) --}}
                     @if(isset($totalNotif) && $totalNotif > 0)
                         <span class="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
