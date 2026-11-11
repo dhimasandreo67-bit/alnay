@@ -76,13 +76,15 @@
                 hargaMin: awal.hargaMin || '',
                 hargaMax: awal.hargaMax || '',
                 kat: awal.kat || [],
+                jenis: awal.jenis || '',
+                warna: awal.warna || '',
                 total: awal.total || 0,
                 aktif: awal.aktif || 0,
                 preset: [
-                    { l: '< 1 jt', min: '', max: '1000000' },
+                    { l: 'Di bawah 1 jt', min: '', max: '1000000' },
                     { l: '1 – 3 jt', min: '1000000', max: '3000000' },
                     { l: '3 – 5 jt', min: '3000000', max: '5000000' },
-                    { l: '> 5 jt', min: '5000000', max: '' },
+                    { l: 'Di atas 5 jt', min: '5000000', max: '' },
                 ],
 
                 init() {
@@ -154,6 +156,23 @@
                     this.kirim({ hero: true });
                 },
 
+                setJenis(v) {
+                    document.querySelectorAll('#form-filter input[name="jenis"]').forEach(r => { r.checked = (r.value === v); });
+                    this.jenis = v;
+                },
+
+                // Tab Semua / Sewa / Beli di atas daftar produk
+                pilihJenis(v) {
+                    if (this.jenis === v) return;
+                    this.setJenis(v);
+                    this.kirim();
+                },
+
+                hapusWarna() {
+                    document.querySelectorAll('#form-filter input[name="warna"]').forEach(r => { r.checked = false; r.dataset.was = ''; });
+                    this.kirim();
+                },
+
                 semuaKategori() {
                     document.querySelectorAll('#form-filter input[name="kategori[]"]').forEach(c => c.checked = false);
                     this.kirim({ hero: true });
@@ -165,12 +184,18 @@
                     const f = document.getElementById('form-filter');
                     const fd = new FormData(f);
                     this.kat = fd.getAll('kategori[]');
+                    this.jenis = fd.get('jenis') || '';
+                    this.warna = fd.get('warna') || '';
 
                     const p = new URLSearchParams();
                     fd.forEach((v, k) => {
                         if (v !== '' && k !== 'sort' && k !== 'search') p.append(k, v);
                     });
                     if (this.cari.trim() !== '') p.set('search', this.cari.trim());
+                    // Jika terbalik (min > max), tukar otomatis supaya hasil tidak kosong
+                    if (this.hargaMin !== '' && this.hargaMax !== '' && Number(this.hargaMin) > Number(this.hargaMax)) {
+                        [this.hargaMin, this.hargaMax] = [this.hargaMax, this.hargaMin];
+                    }
                     if (this.hargaMin !== '') p.set('harga_min', this.hargaMin);
                     if (this.hargaMax !== '') p.set('harga_max', this.hargaMax);
                     const sort = new URLSearchParams(location.search).get('sort');
@@ -198,7 +223,7 @@
                 // Radio (warna) bisa dibatalkan dengan klik ulang pada pilihan yang sama
                 klik(e, f) {
                     const t = e.target;
-                    if (t.type !== 'radio') return;
+                    if (t.type !== 'radio' || t.name !== 'warna') return;
                     if (t.dataset.was === '1') {
                         t.checked = false;
                         t.dataset.was = '';
@@ -220,6 +245,8 @@
                     this.hargaMin = '';
                     this.hargaMax = '';
                     this.kat = [];
+                    this.setJenis('');
+                    this.warna = '';
                     this.muat(url);
                 },
 
@@ -248,6 +275,8 @@
                     this.hargaMin = p.get('harga_min') || '';
                     this.hargaMax = p.get('harga_max') || '';
                     this.kat = p.getAll('kategori[]');
+                    this.setJenis(p.get('jenis') || '');
+                    this.warna = p.get('warna') || '';
                 },
 
                 // Inti: ambil halaman, ganti hanya area produk, posisi scroll tidak berubah
@@ -299,12 +328,14 @@
             'hargaMin' => $hMin,
             'hargaMax' => $hMax,
             'kat' => $katAktif,
+            'jenis' => in_array(request('jenis'), ['sewa', 'beli'], true) ? request('jenis') : '',
+            'warna' => (string) request('warna', ''),
             'total' => $produkList->total(),
             'aktif' => $jumlahAktif,
         ];
     @endphp
 
-    <div class="bg-[#FBFAF7] min-h-screen font-sans" x-data="koleksiFilter(@js($awalFilter))"
+    <div class="bg-[#FBFAF7] font-sans" x-data="koleksiFilter(@js($awalFilter))"
         @muat="muat($event.detail.url)" @keydown.escape.window="filterOpen = false"
         @resize.window.debounce.150ms="if (window.innerWidth >= 1024) filterOpen = false"
         @scroll.window.throttle.100ms="scrolled = window.scrollY > 520"
@@ -326,33 +357,31 @@
             <div class="absolute -top-28 -right-24 w-96 h-96 rounded-full bg-gold/20 blur-3xl pointer-events-none"></div>
             <div class="absolute -bottom-32 -left-20 w-80 h-80 rounded-full bg-gold/10 blur-3xl pointer-events-none"></div>
 
-            <div class="relative max-w-[1280px] mx-auto px-4 md:px-6 pt-9 pb-7 md:pt-14 md:pb-10">
-                <p class="pd-up text-[11px] md:text-xs font-semibold tracking-[.22em] uppercase text-gold/90 mb-3"
-                    style="--d: .02s;">
-                    Sewa &amp; Beli
-                </p>
-                <h1 class="pd-up font-display text-[26px] min-[375px]:text-3xl md:text-5xl text-cream leading-[1.1] tracking-tight mb-3"
-                    style="--d: .08s;">
+            <div class="relative max-w-[1280px] mx-auto px-4 md:px-6 pt-7 pb-5 md:pt-12 md:pb-8">
+                <h1 class="pd-up font-display text-[26px] min-[375px]:text-3xl md:text-5xl text-cream leading-[1.1] tracking-tight mb-2"
+                    style="--d: .05s;">
                     Koleksi Busana Adat
                 </h1>
-                <p class="pd-up text-sm md:text-base text-cream/65 max-w-xl leading-relaxed" style="--d: .14s;">
+                <p class="pd-up text-sm md:text-base text-cream/70 max-w-xl leading-relaxed" style="--d: .1s;">
                     <span class="text-gold font-semibold" x-text="total">{{ $produkList->total() }}</span> busana adat
-                    siap sewa maupun beli — cari berdasarkan nama, kategori, warna, atau harga.
+                    untuk disewa atau dibeli. Cari nama busana, atau pilih kategori di bawah.
                 </p>
 
                 {{-- Pencarian --}}
-                <div class="pd-up relative mt-6 max-w-2xl" style="--d: .2s;">
+                <div class="pd-up relative mt-5 max-w-2xl" style="--d: .15s;">
+                    <label for="cari-produk" class="sr-only">Cari produk</label>
                     <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink/40 pointer-events-none"
                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
                     </svg>
-                    <input type="search" x-model="cari" @input.debounce.400ms="kirim()" @keydown.enter.prevent="kirim({ hero: true }); $el.blur()"
-                        autocomplete="off" enterkeyhint="search" aria-label="Cari produk"
+                    <input id="cari-produk" type="search" x-model="cari" @input.debounce.400ms="kirim()"
+                        @keydown.enter.prevent="kirim({ hero: true }); $el.blur()"
+                        autocomplete="off" enterkeyhint="search"
                         placeholder="Cari kebaya, siger, motif…"
-                        class="w-full h-12 md:h-14 pl-12 pr-12 rounded-full bg-white text-base md:text-[15px] text-ink placeholder:text-ink/40 shadow-lg shadow-black/20 border-0 ring-1 ring-white/10 focus:ring-2 focus:ring-gold outline-none transition-all [&::-webkit-search-cancel-button]:hidden">
+                        class="w-full h-12 md:h-14 pl-12 pr-12 rounded-full bg-white text-base md:text-[15px] text-ink placeholder:text-ink/45 shadow-lg shadow-black/20 border-0 ring-1 ring-white/10 focus:ring-2 focus:ring-gold outline-none transition-all [&::-webkit-search-cancel-button]:hidden">
                     <button type="button" x-show="cari" x-cloak @click="cari = ''; kirim()" aria-label="Hapus pencarian"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full text-ink/45 hover:text-ink hover:bg-cream transition-colors">
+                        class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full text-ink/50 hover:text-ink hover:bg-cream transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M6 18L18 6M6 6l12 12" />
@@ -360,26 +389,41 @@
                     </button>
                 </div>
 
+                {{-- Petunjuk hasil (HP): hasil ada di bawah hero, jadi beri tahu pengguna --}}
+                <button type="button" x-show="cari.trim() !== '' && !loading" x-cloak @click="keHasil()"
+                    class="lg:hidden mt-3 inline-flex items-center gap-1.5 min-h-[36px] text-[13px] font-semibold text-gold">
+                    <span x-text="total > 0 ? total + ' hasil ditemukan. Lihat hasil' : 'Tidak ada hasil untuk pencarian ini'"></span>
+                    <svg x-show="total > 0" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
                 {{-- Kategori cepat (scroll horizontal di HP) --}}
                 @if ($kategoriList->count())
-                    <div class="pd-up -mx-4 px-4 md:mx-0 md:px-0 mt-5 flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory md:flex-wrap" style="--d: .26s;">
-                        <button type="button" @click="semuaKategori()"
-                            class="shrink-0 px-4 py-2 rounded-full border text-[12px] md:text-[13px] font-medium transition-all active:scale-95"
+                    <div class="pd-up -mx-4 px-4 md:mx-0 md:px-0 mt-4 flex gap-2 overflow-x-auto no-scrollbar md:flex-wrap" style="--d: .2s;"
+                        role="group" aria-label="Pilih kategori">
+                        <button type="button" @click="semuaKategori()" :aria-pressed="kat.length === 0"
+                            class="shrink-0 px-4 min-h-[40px] rounded-full border text-[13px] font-medium transition-all active:scale-95"
                             :class="kat.length === 0 ? 'bg-gold border-gold text-ink' :
-                                'border-white/20 text-cream/80 hover:border-gold/70 hover:text-gold'">
+                                'border-white/25 text-cream/85 hover:border-gold/70 hover:text-gold'">
                             Semua
                         </button>
                         @foreach ($kategoriList as $k)
                             <button type="button" @click="toggleKategori('{{ $k->slug }}')"
-                                class="shrink-0 px-4 py-2 rounded-full border text-[12px] md:text-[13px] font-medium transition-all active:scale-95"
+                                :aria-pressed="kat.includes('{{ $k->slug }}')"
+                                class="shrink-0 px-4 min-h-[40px] rounded-full border text-[13px] font-medium transition-all active:scale-95"
                                 :class="kat.includes('{{ $k->slug }}') ? 'bg-gold border-gold text-ink' :
-                                    'border-white/20 text-cream/80 hover:border-gold/70 hover:text-gold'">
+                                    'border-white/25 text-cream/85 hover:border-gold/70 hover:text-gold'">
                                 {{ $k->nama_kategori }}
+                                @if (isset($k->produks_count))
+                                    <span class="ml-1 text-[12px] opacity-60">{{ $k->produks_count }}</span>
+                                @endif
                             </button>
                         @endforeach
                     </div>
                 @endif
             </div>
+        <div class="relative h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent"></div>
         </section>
 
         {{-- ============================================
@@ -395,7 +439,7 @@
                     class="fixed inset-0 z-50 bg-black/55 backdrop-blur-[2px] lg:backdrop-blur-none lg:bg-transparent lg:static lg:z-auto lg:!block"
                     x-show="filterOpen" x-transition.opacity x-cloak @click.self="filterOpen = false">
                     <div :style="sheetY ? 'transform: translateY(' + sheetY + 'px); transition: none; animation: none;' : ''"
-                        class="sheet-in absolute bottom-0 inset-x-0 flex flex-col max-h-[88dvh] bg-panel rounded-t-3xl shadow-2xl lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:rounded-2xl lg:shadow-sm lg:border lg:border-line/40">
+                        class="sheet-in absolute bottom-0 inset-x-0 flex flex-col max-h-[88dvh] bg-panel rounded-t-3xl shadow-2xl lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:rounded-2xl lg:shadow-[0_10px_30px_-14px_rgba(80,55,10,.28)] lg:border lg:border-line/40">
 
                         {{-- Header panel --}}
                         <div class="shrink-0 px-5 pt-3 pb-3 lg:pt-5 border-b border-line/30" style="touch-action: pan-y;"
@@ -403,6 +447,7 @@
                             <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-ink/15 lg:hidden"></div>
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M10 18h4" /></svg>
                                     <h3 class="font-display text-lg text-ink">Filter</h3>
                                     <span x-show="aktif > 0" x-cloak x-text="aktif"
                                         class="min-w-[20px] h-5 px-1.5 rounded-full bg-gold text-ink text-[11px] font-bold flex items-center justify-center"></span>
@@ -410,7 +455,7 @@
                                 <div class="flex items-center gap-1">
                                     <a href="{{ route('koleksi.index') }}" @click.prevent="reset($el.href)"
                                         x-show="aktif > 0 || cari" x-cloak
-                                        class="text-[12px] font-semibold text-gold hover:underline px-2 py-1">Reset</a>
+                                        class="text-[13px] font-semibold text-gold hover:underline px-2 py-2">Hapus semua</a>
                                     <button type="button" @click="filterOpen = false" aria-label="Tutup filter"
                                         class="lg:hidden p-2 bg-cream rounded-full text-ink/70">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,100 +477,106 @@
                                 <input type="hidden" name="sort" value="{{ request('sort') }}">
                             @endif
 
-                            {{-- Jenis Transaksi --}}
+                            @php
+                                $panah = '<svg class="w-4 h-4 shrink-0 text-ink/45 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>';
+                                $kelasSummary = 'flex items-center justify-between gap-3 min-h-[52px] py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden';
+                                $kelasJudul = 'flex min-w-0 items-center gap-2 text-[14px] font-semibold text-ink';
+                                $kelasBadge = 'inline-flex max-w-[120px] items-center h-5 px-2 rounded-full bg-gold/15 text-[11px] font-semibold text-ink/75 truncate';
+                            @endphp
+
+                            {{-- Sewa atau Beli --}}
                             <details open class="group border-b border-line/30">
-                                <summary
-                                    class="flex items-center justify-between py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-                                    <span class="text-[12px] font-semibold tracking-wide uppercase text-ink/75">Jenis
-                                        Transaksi</span>
-                                    <svg class="w-4 h-4 text-ink/40 transition-transform group-open:rotate-180"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 9l-7 7-7-7" />
-                                    </svg>
+                                <summary class="{{ $kelasSummary }}">
+                                    <span class="{{ $kelasJudul }}">Sewa atau beli
+                                        <span x-show="jenis" x-cloak class="{{ $kelasBadge }}"
+                                            x-text="jenis === 'sewa' ? 'Sewa' : 'Beli'"></span>
+                                    </span>
+                                    {!! $panah !!}
                                 </summary>
-                                <div class="pb-4 grid grid-cols-2 gap-2">
-                                    @foreach ([['sewa', 'Bisa Disewa'], ['beli', 'Bisa Beli/Disewa']] as [$v, $l])
-                                        <label class="cursor-pointer">
-                                            <input type="checkbox" name="jenis" value="{{ $v }}"
-                                                class="peer sr-only" {{ request('jenis') === $v ? 'checked' : '' }}>
-                                            <span
-                                                class="flex items-center justify-center text-center min-h-[44px] px-2 rounded-xl border border-line/50 text-[12px] leading-tight text-ink/70 transition-all hover:border-gold/60 peer-checked:bg-ink peer-checked:text-gold peer-checked:border-ink peer-checked:font-semibold peer-focus-visible:ring-2 peer-focus-visible:ring-gold/50">{{ $l }}</span>
-                                        </label>
-                                    @endforeach
+                                <div class="pb-4">
+                                    <div class="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-cream" role="radiogroup" aria-label="Sewa atau beli">
+                                        @foreach (['' => 'Semua', 'sewa' => 'Sewa', 'beli' => 'Beli'] as $v => $l)
+                                            <label class="cursor-pointer">
+                                                <input type="radio" name="jenis" value="{{ $v }}" class="peer sr-only"
+                                                    {{ $awalFilter['jenis'] === (string) $v ? 'checked' : '' }}>
+                                                <span
+                                                    class="flex items-center justify-center min-h-[44px] rounded-xl text-[14px] font-semibold text-ink/70 transition-all hover:text-ink peer-checked:bg-ink peer-checked:text-gold peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-gold/50">{{ $l }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                    <p class="mt-2.5 text-[12px] leading-snug text-ink/55"
+                                        x-text="jenis === 'sewa' ? 'Hanya produk yang bisa disewa.' : (jenis === 'beli' ? 'Hanya produk yang bisa dibeli.' : 'Menampilkan semua produk, baik sewa maupun beli.')"></p>
                                 </div>
                             </details>
 
                             {{-- Kategori --}}
                             <details open class="group border-b border-line/30">
-                                <summary
-                                    class="flex items-center justify-between py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-                                    <span
-                                        class="text-[12px] font-semibold tracking-wide uppercase text-ink/75">Kategori</span>
-                                    <svg class="w-4 h-4 text-ink/40 transition-transform group-open:rotate-180"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 9l-7 7-7-7" />
-                                    </svg>
+                                <summary class="{{ $kelasSummary }}">
+                                    <span class="{{ $kelasJudul }}">Kategori
+                                        <span x-show="kat.length" x-cloak class="{{ $kelasBadge }}"
+                                            x-text="kat.length + ' dipilih'"></span>
+                                    </span>
+                                    {!! $panah !!}
                                 </summary>
                                 <div class="pb-4 space-y-0.5">
                                     @foreach ($kategoriList as $k)
                                         <label
-                                            class="flex items-center justify-between gap-2 cursor-pointer group/row -mx-2 px-2 py-2.5 rounded-lg hover:bg-cream/70 transition-colors">
-                                            <span class="flex items-center gap-2.5">
+                                            class="flex items-center justify-between gap-2 cursor-pointer group/row -mx-2 px-2 min-h-[44px] rounded-lg hover:bg-cream/70 transition-colors">
+                                            <span class="flex items-center gap-3">
                                                 <input type="checkbox" name="kategori[]" value="{{ $k->slug }}"
                                                     {{ in_array($k->slug, (array) request('kategori', [])) ? 'checked' : '' }}
                                                     class="w-5 h-5 rounded border-line/60 text-gold focus:ring-gold focus:ring-offset-0 transition-all">
                                                 <span
-                                                    class="text-[13px] text-ink/75 group-hover/row:text-ink transition-colors">{{ $k->nama_kategori }}</span>
+                                                    class="text-[14px] text-ink/80 group-hover/row:text-ink transition-colors">{{ $k->nama_kategori }}</span>
                                             </span>
-                                            <span
-                                                class="text-[11px] text-ink/45 bg-cream rounded-full px-2 py-0.5">{{ $k->produks_count ?? '' }}</span>
+                                            @if (isset($k->produks_count))
+                                                <span
+                                                    class="text-[12px] text-ink/55 bg-cream rounded-full px-2 py-0.5">{{ $k->produks_count }}</span>
+                                            @endif
                                         </label>
                                     @endforeach
                                 </div>
                             </details>
 
-                            {{-- Rentang Harga (bebas diisi pelanggan) --}}
+                            {{-- Rentang harga --}}
                             <details open class="group border-b border-line/30">
-                                <summary
-                                    class="flex items-center justify-between py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-                                    <span class="text-[12px] font-semibold tracking-wide uppercase text-ink/75">Rentang
-                                        Harga</span>
-                                    <svg class="w-4 h-4 text-ink/40 transition-transform group-open:rotate-180"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 9l-7 7-7-7" />
-                                    </svg>
+                                <summary class="{{ $kelasSummary }}">
+                                    <span class="{{ $kelasJudul }}">Harga
+                                        <span x-show="hargaMin !== '' || hargaMax !== ''" x-cloak
+                                            class="{{ $kelasBadge }}">Diatur</span>
+                                    </span>
+                                    {!! $panah !!}
                                 </summary>
                                 <div class="pb-4">
                                     <div class="flex items-center gap-2">
                                         <div class="relative flex-1 min-w-0">
                                             <span
-                                                class="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-ink/40 pointer-events-none">Rp</span>
-                                            <input type="text" inputmode="numeric" autocomplete="off" placeholder="Min"
-                                                aria-label="Harga minimum" :value="fmt(hargaMin)"
+                                                class="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-ink/50 pointer-events-none">Rp</span>
+                                            <input type="text" inputmode="numeric" autocomplete="off" placeholder="Terendah"
+                                                aria-label="Harga terendah" :value="fmt(hargaMin)"
                                                 @input="setHarga('hargaMin', $event)" @keydown.enter.prevent="kirim()"
-                                                class="w-full h-12 sm:h-11 pl-9 pr-2 rounded-xl border border-line/50 bg-white text-base sm:text-[13px] text-ink/85 placeholder:text-ink/30 focus:border-gold focus:ring-2 focus:ring-gold/25 outline-none transition-all">
+                                                class="w-full h-12 pl-9 pr-2 rounded-xl border border-line/50 bg-white text-base sm:text-[14px] text-ink/85 placeholder:text-ink/35 focus:border-gold focus:ring-2 focus:ring-gold/25 outline-none transition-all">
                                         </div>
-                                        <span class="text-ink/35 text-xs">–</span>
+                                        <span class="text-ink/40 text-sm" aria-hidden="true">–</span>
                                         <div class="relative flex-1 min-w-0">
                                             <span
-                                                class="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-ink/40 pointer-events-none">Rp</span>
-                                            <input type="text" inputmode="numeric" autocomplete="off" placeholder="Max"
-                                                aria-label="Harga maksimum" :value="fmt(hargaMax)"
+                                                class="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-ink/50 pointer-events-none">Rp</span>
+                                            <input type="text" inputmode="numeric" autocomplete="off" placeholder="Tertinggi"
+                                                aria-label="Harga tertinggi" :value="fmt(hargaMax)"
                                                 @input="setHarga('hargaMax', $event)" @keydown.enter.prevent="kirim()"
-                                                class="w-full h-12 sm:h-11 pl-9 pr-2 rounded-xl border border-line/50 bg-white text-base sm:text-[13px] text-ink/85 placeholder:text-ink/30 focus:border-gold focus:ring-2 focus:ring-gold/25 outline-none transition-all">
+                                                class="w-full h-12 pl-9 pr-2 rounded-xl border border-line/50 bg-white text-base sm:text-[14px] text-ink/85 placeholder:text-ink/35 focus:border-gold focus:ring-2 focus:ring-gold/25 outline-none transition-all">
                                         </div>
                                     </div>
 
-                                    <div class="flex flex-wrap gap-1.5 mt-3">
+                                    <p class="mt-3 mb-1.5 text-[12px] text-ink/55">Atau pilih cepat:</p>
+                                    <div class="flex flex-wrap gap-1.5">
                                         <template x-for="p in preset" :key="p.l">
                                             <button type="button" @click="pilihPreset(p)"
-                                                class="px-3.5 min-h-[40px] rounded-full border text-[12px] transition-all active:scale-95"
+                                                :aria-pressed="hargaMin === p.min && hargaMax === p.max"
+                                                class="px-3.5 min-h-[40px] rounded-full border text-[13px] transition-all active:scale-95"
                                                 :class="(hargaMin === p.min && hargaMax === p.max) ?
                                                 'border-gold bg-gold/10 text-ink font-semibold' :
-                                                'border-line/50 text-ink/65 hover:border-gold/60'"
+                                                'border-line/50 text-ink/70 hover:border-gold/60'"
                                                 x-text="p.l"></button>
                                         </template>
                                     </div>
@@ -534,53 +585,64 @@
 
                             {{-- Warna --}}
                             <details open class="group">
-                                <summary
-                                    class="flex items-center justify-between py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-                                    <span
-                                        class="text-[12px] font-semibold tracking-wide uppercase text-ink/75">Warna</span>
-                                    <svg class="w-4 h-4 text-ink/40 transition-transform group-open:rotate-180"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 9l-7 7-7-7" />
-                                    </svg>
+                                <summary class="{{ $kelasSummary }}">
+                                    <span class="{{ $kelasJudul }}">Warna
+                                        <span x-show="warna" x-cloak class="{{ $kelasBadge }}" x-text="warna"></span>
+                                    </span>
+                                    {!! $panah !!}
                                 </summary>
-                                <div class="pb-5 flex flex-wrap gap-2 max-h-56 overflow-y-auto custom-scrollbar">
-                                    @forelse ($warnaList as $w)
-                                        @php
-                                            // Pakai palet resmi dari model; jika tidak ada, tebak dari kata kunci
-                                            $hex = \App\Models\Produk::paletWarna()[$w] ?? null;
+                                <div class="pb-5">
+                                    <div class="flex flex-wrap gap-2 max-h-56 overflow-y-auto custom-scrollbar">
+                                        @forelse ($warnaList as $w)
+                                            @php
+                                                // Pakai palet resmi dari model; jika tidak ada, tebak dari kata kunci
+                                                $hex = \App\Models\Produk::paletWarna()[$w] ?? null;
 
-                                            if (!$hex) {
-                                                $wLower = strtolower(trim($w));
-                                                $hex = '#d1d5db';
+                                                if (!$hex) {
+                                                    $wLower = strtolower(trim($w));
+                                                    $hex = '#d1d5db';
+                                                    $tebakan = [
+                                                        '#1a1a1a' => ['hitam'],
+                                                        '#6b1c2a' => ['maroon', 'marun', 'merah'],
+                                                        '#c99a32' => ['gold', 'emas', 'kuning'],
+                                                        '#f5e6c8' => ['cream', 'krem', 'putih'],
+                                                        '#2a5c3f' => ['hijau', 'green'],
+                                                        '#5c3a21' => ['coklat', 'cokelat', 'brown'],
+                                                        '#1e3a8a' => ['biru', 'blue', 'navy'],
+                                                        '#f472b6' => ['pink', 'rose'],
+                                                        '#7e22ce' => ['ungu', 'purple'],
+                                                        '#9ca3af' => ['abu', 'grey', 'silver'],
+                                                    ];
+                                                    foreach ($tebakan as $kode => $kataKunci) {
+                                                        foreach ($kataKunci as $kk) {
+                                                            if (str_contains($wLower, $kk)) {
+                                                                $hex = $kode;
+                                                                break 2;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            @endphp
 
-                                                if (str_contains($wLower, 'hitam')) $hex = '#1a1a1a';
-                                                elseif (str_contains($wLower, 'maroon') || str_contains($wLower, 'marun') || str_contains($wLower, 'merah')) $hex = '#6b1c2a';
-                                                elseif (str_contains($wLower, 'gold') || str_contains($wLower, 'emas') || str_contains($wLower, 'kuning')) $hex = '#c99a32';
-                                                elseif (str_contains($wLower, 'cream') || str_contains($wLower, 'krem') || str_contains($wLower, 'putih')) $hex = '#f5e6c8';
-                                                elseif (str_contains($wLower, 'hijau') || str_contains($wLower, 'green')) $hex = '#2a5c3f';
-                                                elseif (str_contains($wLower, 'coklat') || str_contains($wLower, 'cokelat') || str_contains($wLower, 'brown')) $hex = '#5c3a21';
-                                                elseif (str_contains($wLower, 'biru') || str_contains($wLower, 'blue') || str_contains($wLower, 'navy')) $hex = '#1e3a8a';
-                                                elseif (str_contains($wLower, 'pink') || str_contains($wLower, 'rose')) $hex = '#f472b6';
-                                                elseif (str_contains($wLower, 'ungu') || str_contains($wLower, 'purple')) $hex = '#7e22ce';
-                                                elseif (str_contains($wLower, 'abu') || str_contains($wLower, 'grey') || str_contains($wLower, 'silver')) $hex = '#9ca3af';
-                                            }
-                                        @endphp
-
-                                        <label class="cursor-pointer">
-                                            <input type="radio" name="warna" value="{{ $w }}"
-                                                data-was="{{ request('warna') === $w ? '1' : '' }}"
-                                                class="peer sr-only" {{ request('warna') === $w ? 'checked' : '' }}>
-                                            <span
-                                                class="inline-flex items-center gap-2 min-h-[36px] pl-1.5 pr-3 rounded-full border border-line/50 text-[12px] text-ink/70 transition-all hover:border-gold/60 peer-checked:border-gold peer-checked:bg-gold/10 peer-checked:text-ink peer-checked:font-semibold peer-focus-visible:ring-2 peer-focus-visible:ring-gold/50">
-                                                <span class="w-6 h-6 rounded-full border border-black/10 shadow-inner"
-                                                    style="background-color: {{ $hex }};"></span>
-                                                {{ $w }}
-                                            </span>
-                                        </label>
-                                    @empty
-                                        <p class="text-xs text-ink/40">Belum ada variasi warna.</p>
-                                    @endforelse
+                                            <label class="cursor-pointer">
+                                                <input type="radio" name="warna" value="{{ $w }}"
+                                                    data-was="{{ request('warna') === $w ? '1' : '' }}"
+                                                    class="peer sr-only" {{ request('warna') === $w ? 'checked' : '' }}>
+                                                <span
+                                                    class="inline-flex items-center gap-2 min-h-[40px] pl-1.5 pr-3.5 rounded-full border border-line/50 text-[13px] text-ink/75 transition-all hover:border-gold/60 peer-checked:border-gold peer-checked:bg-gold/10 peer-checked:text-ink peer-checked:font-semibold peer-focus-visible:ring-2 peer-focus-visible:ring-gold/50">
+                                                    <span class="w-6 h-6 rounded-full border border-black/10 shadow-inner"
+                                                        style="background-color: {{ $hex }};"></span>
+                                                    {{ $w }}
+                                                </span>
+                                            </label>
+                                        @empty
+                                            <p class="text-[13px] text-ink/50">Belum ada variasi warna.</p>
+                                        @endforelse
+                                    </div>
+                                    <button type="button" x-show="warna" x-cloak @click="hapusWarna()"
+                                        class="mt-3 text-[13px] font-semibold text-gold hover:underline min-h-[36px]">
+                                        Hapus pilihan warna
+                                    </button>
                                 </div>
                             </details>
                         </form>
@@ -590,7 +652,7 @@
                             style="padding-bottom: max(.75rem, env(safe-area-inset-bottom));">
                             <a href="{{ route('koleksi.index') }}" @click.prevent="reset($el.href)"
                                 class="px-5 h-12 flex items-center rounded-full bg-cream text-[13px] font-semibold text-ink/70 active:scale-95 transition">
-                                Reset
+                                Hapus semua
                             </a>
                             <button type="button" @click="filterOpen = false"
                                 class="flex-1 h-12 rounded-full bg-ink text-gold text-[14px] font-semibold active:scale-[.98] transition">
@@ -604,7 +666,7 @@
                  AREA PRODUK (diganti lewat AJAX)
                  ============================================ --}}
                 <div id="area-produk" class="min-w-0 transition-opacity duration-200 pb-24 lg:pb-0"
-                    :class="loading ? 'opacity-50 pointer-events-none' : ''" @click="halaman($event)"
+                    :class="loading ? 'opacity-50 pointer-events-none' : ''" :aria-busy="loading" @click="halaman($event)"
                     data-total="{{ $produkList->total() }}" data-aktif="{{ $jumlahAktif }}">
 
                     @php
@@ -632,7 +694,7 @@
                         }
                         if (request('jenis')) {
                             $chips[] = [
-                                'label' => request('jenis') === 'sewa' ? 'Bisa Disewa' : 'Bisa Beli/Disewa',
+                                'label' => request('jenis') === 'sewa' ? 'Bisa disewa' : 'Bisa dibeli',
                                 'url' => $tanpa(['jenis']),
                             ];
                         }
@@ -661,9 +723,22 @@
                         }
                     @endphp
 
+                    {{-- Tab jenis: terlihat langsung tanpa membuka filter --}}
+                    <div class="mb-4 flex items-center gap-3">
+                        <span class="hidden sm:inline text-[13px] text-ink/55">Tampilkan:</span>
+                        <div class="grid grid-cols-3 w-full sm:w-auto p-1 rounded-2xl bg-cream border border-line/40" role="group"
+                            aria-label="Tampilkan produk sewa atau beli">
+                            @foreach (['' => 'Semua', 'sewa' => 'Sewa', 'beli' => 'Beli'] as $v => $l)
+                                <button type="button" @click="pilihJenis('{{ $v }}')" :aria-pressed="jenis === '{{ $v }}'"
+                                    class="min-h-[44px] sm:px-7 rounded-xl text-[14px] font-semibold transition-all active:scale-95"
+                                    :class="jenis === '{{ $v }}' ? 'bg-ink text-gold shadow-sm' : 'text-ink/65 hover:text-ink'">{{ $l }}</button>
+                            @endforeach
+                        </div>
+                    </div>
+
                     {{-- Toolbar --}}
                     <div class="relative z-30 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-                        <p class="text-[13px] text-ink/55 min-w-0">
+                        <p class="text-[14px] text-ink/60 min-w-0" aria-live="polite">
                             <span class="hidden sm:inline">Menampilkan </span><b
                                 class="text-ink/85">{{ $produkList->firstItem() ?? 0 }}–{{ $produkList->lastItem() ?? 0 }}</b>
                             dari <b class="text-ink/85">{{ $produkList->total() }}</b> produk
@@ -722,9 +797,9 @@
                                 <span class="hidden md:inline text-xs text-ink/50">Urutkan:</span>
 
                                 <div class="relative flex-1 sm:flex-none" @click.outside="open = false" @keydown.escape="open = false">
-                                    <button type="button" @click="open = !open" :aria-expanded="open"
+                                    <button type="button" @click="open = !open" :aria-expanded="open" aria-haspopup="listbox"
                                         class="flex w-full items-center justify-between gap-2 h-11 sm:h-10 sm:min-w-[128px] px-4 rounded-full border border-line/60 bg-panel text-[13px] text-ink/80 hover:border-gold/60 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/50">
-                                        <span x-text="options[selected]"></span>
+                                        <span class="truncate"><span class="text-ink/50 md:hidden">Urutkan: </span><span x-text="options[selected]"></span></span>
                                         <svg class="w-4 h-4 text-ink/40 transition-transform duration-200"
                                             :class="{ 'rotate-180': open }" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
@@ -754,7 +829,7 @@
                         <div class="flex items-center gap-2 mb-5 -mx-4 px-4 overflow-x-auto no-scrollbar sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible">
                             @foreach ($chips as $c)
                                 <a href="{{ $c['url'] }}" data-chip
-                                    class="group inline-flex shrink-0 items-center gap-1.5 pl-3.5 pr-2 py-2 rounded-full bg-gold/10 border border-gold/30 text-[12px] font-medium text-ink/80 hover:bg-gold/20 active:scale-95 transition">
+                                    class="group inline-flex shrink-0 items-center gap-1.5 pl-3.5 pr-2 min-h-[40px] rounded-full bg-gold/10 border border-gold/30 text-[13px] font-medium text-ink/80 hover:bg-gold/20 active:scale-95 transition">
                                     <span class="max-w-[220px] truncate">{{ $c['label'] }}</span>
                                     <svg class="w-3.5 h-3.5 text-ink/45 group-hover:text-ink" fill="none"
                                         stroke="currentColor" viewBox="0 0 24 24">
@@ -764,7 +839,7 @@
                                 </a>
                             @endforeach
                             <a href="{{ route('koleksi.index') }}" data-ajax
-                                class="shrink-0 whitespace-nowrap text-[12px] font-semibold text-gold hover:underline px-1.5 py-1">Hapus semua</a>
+                                class="shrink-0 whitespace-nowrap text-[13px] font-semibold text-gold hover:underline px-2 py-2">Hapus semua</a>
                         </div>
                     @endif
 
@@ -820,19 +895,27 @@
                         @endif
                     @else
                         {{-- Empty State --}}
-                        <div class="pd-up text-center py-16 md:py-24 px-6 border-2 border-dashed border-line/50 rounded-3xl bg-panel/50">
+                        <div class="pd-up text-center py-14 md:py-20 px-6 border-2 border-dashed border-line/50 rounded-3xl bg-panel/50"
+                            role="status">
                             <div
                                 class="pd-pop w-16 h-16 rounded-full bg-cream flex items-center justify-center text-gold mx-auto mb-4">
                                 <x-icon name="search" :size="28" />
                             </div>
-                            <h3 class="font-display text-xl md:text-2xl text-ink/80 mb-2">Produk tidak ditemukan</h3>
-                            <p class="text-sm text-ink/50 max-w-md mx-auto mb-6 leading-relaxed">
-                                Coba kurangi filter, perlebar rentang harga, atau gunakan kata kunci yang lebih umum.
-                            </p>
-                            <a href="{{ route('koleksi.index') }}" data-ajax
-                                class="pd-shine inline-flex items-center gap-2 px-7 py-3 rounded-full bg-ink text-gold text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 min-h-[44px]">
-                                Reset Filter
-                            </a>
+                            @if (count($chips))
+                                <h3 class="font-display text-xl md:text-2xl text-ink/85 mb-2">Belum ada produk yang cocok</h3>
+                                <p class="text-[14px] text-ink/60 max-w-md mx-auto mb-6 leading-relaxed">
+                                    Kombinasi filter ini terlalu spesifik. Lepas salah satu filter di atas, perlebar rentang harga, atau pakai kata kunci yang lebih umum.
+                                </p>
+                                <a href="{{ route('koleksi.index') }}" data-ajax
+                                    class="pd-shine inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full bg-ink text-gold text-sm font-semibold hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 min-h-[48px]">
+                                    Tampilkan semua koleksi
+                                </a>
+                            @else
+                                <h3 class="font-display text-xl md:text-2xl text-ink/85 mb-2">Koleksi belum tersedia</h3>
+                                <p class="text-[14px] text-ink/60 max-w-md mx-auto leading-relaxed">
+                                    Produk sedang diperbarui. Silakan kembali beberapa saat lagi.
+                                </p>
+                            @endif
                         </div>
                     @endif
                 </div>{{-- /area-produk --}}
