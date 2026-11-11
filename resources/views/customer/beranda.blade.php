@@ -996,7 +996,7 @@
             <div class="reveal flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-12">
                 <div>
                     <p class="sec-eyebrow mb-3">Kisah Bahagia Bersama ALNAY.ID</p>
-                    <h2 class="sec-title">Testimoni Pengantin &amp; Klien</h2>
+                    <h2 class="sec-title">Testimoni &amp; Ulasan Klien</h2>
                 </div>
 
                 <div class="flex flex-col items-start gap-2 sm:items-end">

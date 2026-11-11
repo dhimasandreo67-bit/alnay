@@ -30,6 +30,25 @@
     Untuk memaksa warna tertentu di satu halaman: @section('footer_bg', '#ffffff')
 --}}
 <style>
+    /* Debu emas (dipakai footer & section CTA). Didefinisikan di sini supaya tampil di SEMUA halaman,
+       bukan hanya halaman yang kebetulan punya CSS-nya. */
+    @keyframes float-dust {
+        0% { transform: translateY(0) translateX(0); opacity: 0; }
+        10% { opacity: 0.6; }
+        90% { opacity: 0.6; }
+        100% { transform: translateY(-100px) translateX(20px); opacity: 0; }
+    }
+    .dust-particle {
+        position: absolute;
+        background-color: #e6c877;
+        border-radius: 50%;
+        box-shadow: 0 0 6px 1px rgba(230, 200, 119, 0.4);
+        animation: float-dust linear infinite;
+        pointer-events: none;
+        z-index: 1;
+    }
+    @media (prefers-reduced-motion: reduce) { .dust-particle { animation: none; opacity: .4; } }
+
     /* Neon emas pada siger: dua lapis drop-shadow (tajam + menyebar) mengikuti bentuk siger */
     .siger-glow {
         filter: drop-shadow(0 0 2px rgba(246, 226, 163, .75))
@@ -79,6 +98,14 @@
      @if($footerBg) data-manual="1" style="background-color: {{ $footerBg }}" @endif></div>
 
 <footer class="relative bg-[#0a0a0a] text-white/80">
+    
+    {{-- Salinan Debu Emas untuk Footer --}}
+    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="dust-particle w-1 h-1" style="left: 15%; bottom: 40%; animation-duration: 8s; animation-delay: 1s;"></div>
+        <div class="dust-particle w-1.5 h-1.5" style="left: 80%; bottom: 60%; animation-duration: 7s; animation-delay: 2s;"></div>
+        <div class="dust-particle w-1 h-1" style="left: 40%; bottom: 20%; animation-duration: 9s; animation-delay: 0.5s;"></div>
+        <div class="dust-particle w-2 h-2" style="left: 60%; bottom: 35%; animation-duration: 10s; animation-delay: 3s;"></div>
+    </div>
 
     {{-- ================== ORNAMEN SIGER + TAPIS + SEMBAGI ================== --}}
     {{-- Satu baris: [tapis + kapal] [SIGER] [kapal + tapis]. Tinggi pita 24px, sisi atasnya bergerigi (tumpal) sehingga tepi footer tampak bercoak. --}}
