@@ -389,10 +389,10 @@
 
     {{-- CTA SECTION --}}
     <section class="k-cta py-16 md:py-28 relative overflow-hidden" style="background-color: #17140f;">
-        <div class="absolute top-0 left-0 w-64 h-64 rounded-full opacity-10 animate-pulse"
-            style="background-color: #c99a32; filter: blur(80px);"></div>
-        <div class="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-10 animate-pulse"
-            style="background-color: #c99a32; filter: blur(80px); animation-delay: 1s;"></div>
+        <div class="absolute top-0 left-0 w-64 h-64 rounded-full opacity-20 animate-pulse pointer-events-none"
+            style="background: radial-gradient(circle, #c99a32 0%, transparent 70%);"></div>
+        <div class="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-20 animate-pulse pointer-events-none"
+            style="background: radial-gradient(circle, #c99a32 0%, transparent 70%); animation-delay: 1s;"></div>
 
         <div class="relative z-10 max-w-4xl mx-auto px-5 md:px-6 text-center fade-up">
             <span class="eyebrow-k eyebrow-c text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Bergabung Bersama Kami</span>

@@ -78,6 +78,36 @@ class Transaksi extends Model
         return $this->jenis === 'beli' && $this->status_pembayaran === 'lunas';
     }
 
+    /**
+     * Apakah pembayaran sudah dianggap lunas?
+     */
+    public function sudahLunas(): bool
+    {
+        return in_array(strtolower((string) $this->status_pembayaran), ['lunas', 'settlement', 'success'], true);
+    }
+
+    /**
+     * Tandai transaksi lunas (dipakai halaman Transaksi maupun Sewa).
+     * Return true kalau status memang berubah, false kalau sebelumnya sudah lunas
+     * (aman dipanggil berulang).
+     */
+    public function tandaiLunas(): bool
+    {
+        if ($this->sudahLunas()) {
+            return false;
+        }
+
+        $this->update(['status_pembayaran' => 'lunas']);
+
+        // Ubah status di tabel pembayaran (jika ada tagihan DP/Pending)
+        $this->pembayaran()->update(['status_midtrans' => 'success']);
+
+        // Pembayaran tunai: tanggal bayar = saat admin menerima uang di toko
+        $this->pembayaran()->where('metode', 'tunai')->update(['tanggal_bayar' => now()]);
+
+        return true;
+    }
+
     public function detail()
     {
         return $this->hasMany(DetailTransaksi::class);

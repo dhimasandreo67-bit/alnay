@@ -9,7 +9,6 @@
         50% { transform: rotate(10deg); }
         75% { transform: rotate(-5deg); }
     }
-
     :root {
         --al-gold: #c99a32;
         --al-gold-soft: #e6c877;
@@ -56,13 +55,9 @@
         pointer-events: none;
         transition: transform .45s cubic-bezier(.4, 0, .2, 1), clip-path .45s cubic-bezier(.4, 0, .2, 1), visibility 0s linear .45s;
     }
-
-    /* Motif tapis (gambar, statis) */
-    .al-tapis::before {
-        content: '';
-        position: absolute; inset: 0;
-        background: url("{{ asset('images/home/tapis.png') }}") repeat-x center / auto 100%;
-        opacity: .75;
+    .al-tapis-motif {
+        position: absolute; inset: 0; display: block; overflow: hidden;
+        opacity: .42;
         mix-blend-mode: multiply;
         -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
         mask-image: linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
@@ -118,7 +113,8 @@
     .al-search:focus { box-shadow: 0 0 0 3px rgba(201, 154, 50, .18); }
 
     @media (prefers-reduced-motion: reduce) {
-        .al-header, .al-main, .al-nav, .al-nav::after, .al-icon-btn, .al-tapis, .al-tapis.is-hidden, .al-tapis > div { transition: none !important; }
+        .al-header, .al-main, .al-nav, .al-icon-btn, .al-tapis, .al-tapis.is-hidden, .al-tapis > div { transition: none !important; }
+        .al-tapis-track { animation: none; }
     }
 </style>
 
