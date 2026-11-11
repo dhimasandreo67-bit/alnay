@@ -179,11 +179,11 @@
         <div class="tm-rise">
             <div class="flex items-center gap-3">
                 <span class="h-px w-10 bg-gradient-to-r from-transparent to-gold"></span>
-                <p class="text-[11px] font-semibold uppercase tracking-[0.3em]" style="color: #e6c877;">Kisah Bahagia Bersama {{ config('alnay.brand.nama') }}</p>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.3em]" style="color: #e6c877;">{{ config('alnay.brand.nama') }}</p>
             </div>
-            <h1 class="font-display mt-4 text-3xl md:text-5xl font-bold leading-tight">Testimoni Pengantin &amp; Klien</h1>
+            <h1 class="font-display mt-4 text-3xl md:text-5xl font-bold leading-tight">Testimoni<br>&amp; Ulasan Klien</h1>
             <p class="mt-4 max-w-md text-sm leading-relaxed text-white/70">
-                Cerita nyata dari mereka yang sudah mempercayakan momen istimewanya pada busana adat kami.
+                Terimaksih kepada semua yang sudah mempercayakan momen istimewanya pada fashion busana kami.
             </p>
         </div>
 

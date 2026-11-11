@@ -1,11 +1,16 @@
 @extends('layouts.public')
 
 @section('title', 'Tentang Kami - ALNAY.ID')
+{{-- Latar footer disamakan dengan CTA gelap di atasnya (dipakai footer untuk warna siger) --}}
+@section('footer_bg', '#0a0a0a')
 
 @section('content')
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
         :root {
             /* Motif etnik Lampung (sama dengan header, beranda & footer) */
@@ -15,6 +20,10 @@
         }
 
         .font-display { font-family: 'Playfair Display', serif; }
+
+        /* Hanya di halaman ini: tidak ada pita spacer polos di atas footer.
+           Ruang untuk siger disediakan oleh bagian bawah section CTA (latar emas + debu ikut sampai bawah). */
+        #footer-spacer { display: none; }
         body { font-family: 'Inter', sans-serif; }
 
         .fade-up {
@@ -158,6 +167,23 @@
             0% { transform: translateY(0px); }
             50% { transform: translateY(-10px); }
             100% { transform: translateY(0px); }
+        }
+
+                /* Animasi Debu Emas Berkilau */
+        @keyframes float-dust {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-100px) translateX(20px); opacity: 0; }
+        }
+        .dust-particle {
+            position: absolute;
+            background-color: #e6c877; /* Warna emas terang */
+            border-radius: 50%;
+            box-shadow: 0 0 6px 1px rgba(230, 200, 119, 0.4); /* Efek kilau */
+            animation: float-dust linear infinite;
+            pointer-events: none;
+            z-index: 1;
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -382,11 +408,34 @@
     </section>
 
     {{-- CTA SECTION --}}
-    <section class="k-cta py-16 md:py-28 relative overflow-hidden" style="background-color: #17140f;">
-        <div class="absolute top-0 left-0 w-64 h-64 rounded-full opacity-20 animate-pulse pointer-events-none"
-            style="background: radial-gradient(circle, #c99a32 0%, transparent 70%);"></div>
-        <div class="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-20 animate-pulse pointer-events-none"
-            style="background: radial-gradient(circle, #c99a32 0%, transparent 70%); animation-delay: 1s;"></div>
+    {{-- pb besar = ruang untuk siger footer (tinggi ~175px) supaya tidak menimpa tombol & latar tidak terpotong --}}
+    <section class="k-cta relative overflow-hidden pt-20 pb-52 md:pt-32 md:pb-64"
+        style="background:
+            radial-gradient(circle at top left, rgba(201, 154, 50, 0.18) 0%, transparent 45%),
+            radial-gradient(ellipse 55% 45% at 50% 100%, rgba(201, 154, 50, 0.16) 0%, transparent 70%),
+            radial-gradient(circle at bottom right, rgba(201, 154, 50, 0.12) 0%, transparent 45%),
+            #0a0a0a;">
+        
+        {{-- Container Debu Emas --}}
+        <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+            <div class="dust-particle w-1 h-1" style="left: 10%; bottom: 10%; animation-duration: 6s; animation-delay: 0s;"></div>
+            <div class="dust-particle w-1.5 h-1.5" style="left: 25%; bottom: 20%; animation-duration: 8s; animation-delay: 1s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 45%; bottom: 5%; animation-duration: 7s; animation-delay: 2s;"></div>
+            <div class="dust-particle w-2 h-2" style="left: 60%; bottom: 15%; animation-duration: 9s; animation-delay: 0.5s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 75%; bottom: 30%; animation-duration: 6.5s; animation-delay: 3s;"></div>
+            <div class="dust-particle w-1.5 h-1.5" style="left: 85%; bottom: 10%; animation-duration: 8.5s; animation-delay: 1.5s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 15%; bottom: 40%; animation-duration: 7.5s; animation-delay: 2.5s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 50%; bottom: 35%; animation-duration: 10s; animation-delay: 4s;"></div>
+            <div class="dust-particle w-1.5 h-1.5" style="left: 90%; bottom: 45%; animation-duration: 6s; animation-delay: 0.8s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 35%; bottom: 50%; animation-duration: 8s; animation-delay: 3.5s;"></div>
+            {{-- Debu tambahan di area belakang siger --}}
+            <div class="dust-particle w-1 h-1" style="left: 28%; bottom: 8%; animation-duration: 7s; animation-delay: 0.7s;"></div>
+            <div class="dust-particle w-1.5 h-1.5" style="left: 42%; bottom: 14%; animation-duration: 9s; animation-delay: 2.2s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 56%; bottom: 6%; animation-duration: 8s; animation-delay: 1.2s;"></div>
+            <div class="dust-particle w-2 h-2" style="left: 68%; bottom: 12%; animation-duration: 10s; animation-delay: 3.2s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 78%; bottom: 5%; animation-duration: 6.5s; animation-delay: 2.7s;"></div>
+            <div class="dust-particle w-1.5 h-1.5" style="left: 20%; bottom: 18%; animation-duration: 8.5s; animation-delay: 4.2s;"></div>
+        </div>
 
         <div class="relative z-10 max-w-4xl mx-auto px-5 md:px-6 text-center fade-up">
             <span class="eyebrow-k eyebrow-c text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Bergabung Bersama Kami</span>
