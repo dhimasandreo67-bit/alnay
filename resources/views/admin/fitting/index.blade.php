@@ -434,7 +434,7 @@
 </div>
 
 {{-- Dialog batalkan reservasi (alasan wajib) --}}
-<dialog id="dlg-batal" class="rounded-2xl p-0 w-[92vw] max-w-md backdrop:bg-black/40 shadow-2xl">
+<dialog id="dlg-batal" class="m-auto rounded-2xl p-0 w-[92vw] max-w-md max-h-[90vh] overflow-y-auto bg-white text-gray-900 backdrop:bg-black/50 backdrop:backdrop-blur-sm shadow-2xl">
     <form id="form-batal" method="POST" class="p-6 space-y-4">
         @csrf
         @method('PATCH')
@@ -446,14 +446,15 @@
         <div>
             <label class="block text-[11px] font-bold text-gray-600 mb-1">Alasan (akan ditampilkan ke pelanggan)</label>
             <textarea name="alasan" id="dlg-alasan" rows="3" required minlength="3" maxlength="200" placeholder="Contoh: Staf berhalangan hadir"
-                      class="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"></textarea>
+                      class="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs resize-none focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"></textarea>
+            <p class="mt-1 text-right text-[10px] text-gray-400"><span id="dlg-hitung">0</span>/200</p>
             <div class="flex flex-wrap gap-1.5 mt-2">
                 @foreach (['Staf berhalangan hadir', 'Toko tutup', 'Pelanggan meminta pembatalan', 'Pelanggan tidak hadir'] as $cepat)
                     <button type="button" data-isi="{{ $cepat }}" class="px-2 py-1 rounded-lg bg-gray-100 hover:bg-amber-100 text-[10px] font-semibold text-gray-600 cursor-pointer transition-colors">{{ $cepat }}</button>
                 @endforeach
             </div>
         </div>
-        <div class="flex justify-end gap-2 pt-1">
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
             <button type="button" id="dlg-tutup" class="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 cursor-pointer">Kembali</button>
             <button type="submit" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Batalkan Reservasi</button>
         </div>
@@ -465,8 +466,12 @@
     const dlg = document.getElementById('dlg-batal');
     const formBatal = document.getElementById('form-batal');
     const alasan = document.getElementById('dlg-alasan');
+    const hitung = document.getElementById('dlg-hitung');
     let selAktif = null;
     let terkirim = false;
+
+    const updateHitung = function () { hitung.textContent = alasan.value.length; };
+    alasan.addEventListener('input', updateHitung);
 
     // Pilih status: Batal membuka dialog alasan, status lain langsung disimpan
     window.pilihStatus = function (sel) {
@@ -476,6 +481,8 @@
             formBatal.action = sel.form.action;
             document.getElementById('dlg-info').textContent = sel.dataset.nama + ' · ' + sel.dataset.kode;
             alasan.value = '';
+            updateHitung();
+            document.body.style.overflow = 'hidden';
             dlg.showModal();
             alasan.focus();
             return;
@@ -488,7 +495,15 @@
 
     // Ditutup tanpa mengirim: kembalikan pilihan dropdown seperti semula
     dlg.addEventListener('close', function () {
+        document.body.style.overflow = '';
         if (!terkirim && selAktif) selAktif.value = selAktif.dataset.awal;
+    });
+
+    // Klik area gelap (backdrop) menutup dialog
+    dlg.addEventListener('click', function (e) {
+        const r = dlg.getBoundingClientRect();
+        const diLuar = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+        if (diLuar) dlg.close();
     });
 
     formBatal.addEventListener('submit', function () {
@@ -497,7 +512,7 @@
     });
 
     dlg.querySelectorAll('[data-isi]').forEach(function (b) {
-        b.addEventListener('click', function () { alasan.value = b.dataset.isi; alasan.focus(); });
+        b.addEventListener('click', function () { alasan.value = b.dataset.isi; updateHitung(); alasan.focus(); });
     });
 
     // Form tutup jadwal: "seharian" menonaktifkan pilihan jam
