@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Services\ImageOptimizer;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -29,10 +30,17 @@ class ProfilController extends Controller
         ]);
 
         if ($request->hasFile('foto')) {
+            try {
+                $fotoBaru = ImageOptimizer::simpanSebagaiWebp($request->file('foto'), 'foto-profil', 80, 400);
+            } catch (\RuntimeException $e) {
+                return back()->withInput()->withErrors(['foto' => $e->getMessage()]);
+            }
+
+            // Hapus foto lama hanya setelah foto baru berhasil dibuat
             if ($user->foto_profil && Storage::disk('public')->exists($user->foto_profil)) {
                 Storage::disk('public')->delete($user->foto_profil);
             }
-            $data['foto_profil'] = $request->file('foto')->store('foto-profil', 'public');
+            $data['foto_profil'] = $fotoBaru;
         }
 
         unset($data['foto']);

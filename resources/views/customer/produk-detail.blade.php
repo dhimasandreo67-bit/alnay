@@ -498,10 +498,9 @@
                                 </p>
                             @endif
                             <p class="font-display text-2xl sm:text-[28px] font-semibold text-ink/90 leading-none lining-nums tabular-nums">Rp {{ number_format($produk->hargaJualNet(), 0, ',', '.') }}</p>
-                            <div class="my-3 border-t border-line/60"></div>
                             <p class="mt-2 text-xs text-ink/60 flex items-center gap-1.5">
                                 <span class="inline-block w-1.5 h-1.5 rounded-full" :class="stok > 0 ? 'bg-emerald-500' : 'bg-rose-500'"></span>
-                                <span x-text="stok > 0 ? 'Stok tersedia: ' + stok + ' set' + (varianWarna ? ' (' + varianWarna + (adaUkuran ? ', ukuran ' + ukuran : '') + ')' : '') : 'Stok habis'"></span>
+                                <span x-text="stok > 0 ? 'Tersedia untuk dibeli' : 'Stok habis'"></span>
                             </p>
                         </div>
                     </div>
@@ -722,6 +721,7 @@
                         <div class="mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm">
                             <div class="flex items-center justify-between gap-3 mb-3">
                                 <p class="flex items-center gap-2 text-sm font-semibold text-ink/85">
+                                    <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold"><span x-text="noJumlah"></span></span>
                                     Jumlah
                                 </p>
                                 <p class="text-xs font-medium"
@@ -748,6 +748,7 @@
                         {{-- Pilihan 4: Pengiriman --}}
                         <div class="mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm">
                             <p class="flex items-center gap-2 text-sm font-semibold text-ink/85 mb-3">
+                                <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold"><span x-text="noKirim"></span></span>
                                 Metode Pengiriman
                             </p>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">

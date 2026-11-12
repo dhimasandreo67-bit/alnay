@@ -64,7 +64,8 @@
 
     @include('partials.header')
 
-    <main class="flex-1 overflow-x-hidden">
+    {{-- overflow-x-clip (bukan hidden): hidden membuat <main> jadi kontainer scroll sendiri dengan scrollbar kedua dan tinggi terkunci --}}
+    <main class="flex-1 overflow-x-clip">
         @yield('content')
     </main>
 

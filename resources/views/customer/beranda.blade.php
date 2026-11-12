@@ -397,16 +397,21 @@
                 var(--tumpal) repeat-x left bottom / 28px 12px,
                 linear-gradient(135deg, var(--dark-2) 0%, #221c14 55%, var(--dark-2) 100%);
             border: 1px solid rgba(201, 154, 50, .12);
-            padding-bottom: 3rem;
+            isolation: isolate;
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent;
         }
         .event-card::before {
             content: '';
             position: absolute;
             inset: -40% -10% auto auto;
             width: 460px; height: 460px;
+            max-width: 90vw; max-height: 90vw;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(201, 154, 50, .28), transparent 65%);
             transition: transform .9s var(--ease-out);
+            pointer-events: none;
+            z-index: -1;
         }
         .event-card::after {
             content: '';
@@ -422,6 +427,14 @@
             opacity: .6;
         }
         .event-card:hover::before { transform: scale(1.25) translate(-20px, 20px); }
+        .event-card:focus-visible {
+            outline: 3px solid var(--gold-soft);
+            outline-offset: 4px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .event-card, .event-card::before { transition: none; }
+            .event-card:hover { transform: none; }
+        }
 
         /* ---------- Peta ---------- */
         .pin-bounce { animation: bounce-marker 2s infinite ease-in-out; }
@@ -681,8 +694,9 @@
      5. EVENT BANNER
      ============================================================ --}}
     <section class="reveal max-w-7xl mx-auto px-4 py-10 md:py-16">
-        <a href="https://eventalnay.id/beranda" target="_blank" rel="noopener"
-            class="event-card group flex flex-col md:flex-row items-center justify-between gap-6 rounded-3xl p-6 md:p-12 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1">
+        <a href="{{ config('alnay.event_url', 'https://eventalnay.id/beranda') }}" target="_blank"
+            rel="noopener noreferrer" aria-label="Kunjungi halaman Event ALNAY.ID (buka di tab baru)"
+            class="event-card group flex flex-col md:flex-row items-center md:items-center justify-between gap-6 rounded-3xl px-6 pt-8 pb-14 md:px-12 md:pt-12 md:pb-16 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 focus:outline-none">
 
             <div class="relative flex-1 min-w-0">
                 <span
@@ -696,7 +710,7 @@
                     Ikuti Event Budaya &amp; Menangkan Hadiah Menarik
                 </h2>
 
-                <p class="text-sm md:text-base text-gray-400 mt-3 leading-relaxed max-w-xl">
+                <p class="text-sm md:text-base text-gray-300 mt-3 leading-relaxed max-w-xl">
                     Kompetisi busana adat, workshop kebudayaan, hingga event seru lainnya. Semua ada di satu tempat!
                 </p>
             </div>
@@ -707,7 +721,7 @@
                     style="background: linear-gradient(135deg, var(--gold) 0%, #b8860b 100%); box-shadow: var(--shadow-gold);">
                     Kunjungi Halaman Event
                     <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" fill="none"
-                        stroke="currentColor" viewBox="0 0 24 24">
+                        stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                             d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                     </svg>
@@ -817,7 +831,9 @@
     </section>
 
     {{-- ============================================================
-     7. OFFLINE ATELIER
+     7. OFFLINE ATELIER  (ganti seluruh section 7 lama dengan blok ini)
+     Tetap memakai id #peta-alnay dan #open-status, jadi script initMap()
+     dan initOpenStatus() di bawah halaman tidak perlu diubah.
      ============================================================ --}}
     <section class="reveal max-w-7xl mx-auto px-4 py-8 md:py-10">
         <div class="rounded-2xl border p-5 md:p-7 bg-white transition-shadow duration-500 hover:shadow-xl"
@@ -831,20 +847,28 @@
                         nyata. Dilengkapi ruang fitting privat ber-AC dan penjahit profesional siap membantu.
                     </p>
 
-                    <div class="mt-8 flex flex-wrap gap-3">
-                        <a href="cara-sewa"
-                            class="btn-smooth inline-block px-6 py-3.5 border text-xs font-bold uppercase tracking-wider hover:bg-gray-50"
-                            style="border-color: #d1d5db; color: #374151;">
-                            Panduan Sewa Online
-                        </a>
-                    </div>
-                </div>
+        .atelier-info { display: flex; flex-direction: column; padding: 20px 18px 22px; }
+        @media (min-width: 768px)  { .atelier-info { padding: 28px; } }
+        @media (min-width: 1024px) { .atelier-info { padding: 32px 34px; justify-content: center; } }
+        .atelier .sec-title { font-size: 1.375rem; }
+        @media (min-width: 768px) { .atelier .sec-title { font-size: 1.625rem; } }
+        .atelier .sec-title::after { margin-top: 10px; }
 
                 <div class="relative rounded-2xl overflow-hidden group cursor-pointer border shadow-sm transition-shadow duration-500 hover:shadow-lg"
                     style="border-color: var(--line); z-index: 1;">
                     <div id="peta-alnay" class="w-full h-[280px] md:h-[300px]"></div>
                 </div>
             </div>
+
+            {{-- ============ KANAN: PETA (Google Maps) ============ --}}
+            <div class="atelier-peta">
+                <div id="peta-alnay" role="region" aria-label="Peta lokasi ALNAY.ID"></div>
+
+                {{-- HP: ketuk di mana saja pada peta untuk membuka Google Maps --}}
+                <a href="https://www.google.com/maps/search/?api=1&query=Alnay.id+Kedaung+Kemiling+Bandar+Lampung"
+                    target="_blank" rel="noopener" class="atelier-tap" aria-label="Buka peta di Google Maps"></a>
+            </div>
+
         </div>
     </section>
 
@@ -856,7 +880,7 @@
             <div class="reveal flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-12">
                 <div>
                     <p class="sec-eyebrow mb-3">Kisah Bahagia Bersama ALNAY.ID</p>
-                    <h2 class="sec-title">Testimoni Pengantin &amp; Klien</h2>
+                    <h2 class="sec-title">Testimoni &amp; Ulasan Klien</h2>
                 </div>
 
                 <div class="flex flex-col items-start gap-2 sm:items-end">
@@ -1018,22 +1042,68 @@
             stage.addEventListener('mouseleave', startAuto);
         }
 
+        /* ---------- Load peta dengan fade-in ---------- */
         function initMap() {
             const el = document.getElementById('peta-alnay');
             if (!el || el.dataset.ready) return;
             el.dataset.ready = '1';
 
-            const searchQuery = encodeURIComponent('Alnay.id Lampung, Kedaung, Kemiling, Bandar Lampung');
-            el.innerHTML = `
-                <iframe
-                    width="100%"
-                    height="100%"
-                    style="border:0; width:100%; height:100%;"
-                    loading="lazy"
-                    allowfullscreen
-                    src="https://maps.google.com/maps?q=${searchQuery}&hl=id&z=17&output=embed">
-                </iframe>
-            `;
+            // Menggunakan query pencarian yang lebih sederhana (menghindari kotak info besar Google)
+            const q = encodeURIComponent('Alnay.id Bandar Lampung');
+
+            const iframe = document.createElement('iframe');
+            iframe.width = '100%';
+            iframe.height = '100%';
+            iframe.loading = 'lazy';
+            iframe.allowFullscreen = true;
+            iframe.referrerPolicy = 'no-referrer-when-downgrade';
+            iframe.style.cssText =
+                'border:0; width:100%; height:100%; display:block; opacity:0; ' +
+                'transition:opacity .6s ease;';
+            iframe.src = `https://maps.google.com/maps?q=${q}&hl=id&z=16&output=embed`;
+
+            iframe.addEventListener('load', () => {
+                iframe.style.opacity = '1';
+            });
+
+            el.appendChild(iframe);
+        }
+
+        /* ---------- Hitung status buka/tutup realtime (WIB) ---------- */
+        function initOpenStatus() {
+            const badge = document.getElementById('open-status');
+            if (!badge) return;
+
+            const now = new Date();
+            const wibMs = now.getTime() + now.getTimezoneOffset() * 60000 + 7 * 3600000;
+            const wib = new Date(wibMs);
+            const day = wib.getDay();                       // 0=Min, 6=Sab
+            const t = wib.getHours() + wib.getMinutes() / 60;
+
+            // Senin–Sabtu: 09.00–20.00 | Minggu: 10.00–17.00
+            const isOpen = day === 0 ? (t >= 10 && t < 17) : (t >= 9 && t < 20);
+
+            const dot = isOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500';
+            const label = isOpen ? 'Buka' : 'Tutup';
+
+            badge.innerHTML = `
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/95 backdrop-blur-md text-[10px] font-bold text-gray-700 shadow-sm border border-gray-100">
+                    <span class="w-1.5 h-1.5 rounded-full ${dot}"></span>
+                    <span>${label}</span>
+                </span>`;
+        }
+
+        /* ---------- Boot ---------- */
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                initMap();
+                initOpenStatus();
+                setInterval(initOpenStatus, 60000);
+            });
+        } else {
+            initMap();
+            initOpenStatus();
+            setInterval(initOpenStatus, 60000);
         }
 
         document.addEventListener('DOMContentLoaded', function () {

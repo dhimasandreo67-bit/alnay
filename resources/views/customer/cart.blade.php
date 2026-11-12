@@ -118,13 +118,6 @@
                 </a>
             </div>
         </div>
-        
-        {{-- Info Jumlah Produk (Jika ada) --}}
-        @if(count($cartItems) > 0)
-            <div class="text-center mt-4">
-                <p class="text-xs text-gray-400 font-medium">{{ count($cartItems) }} produk siap dibayar.</p>
-            </div>
-        @endif
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -180,7 +173,7 @@
                                     <div class="flex min-w-0 flex-1 flex-col">
                                         <div class="flex items-start justify-between gap-3">
                                             <h3 class="line-clamp-2 text-sm font-bold leading-snug md:text-base" style="color: #15233d;">{{ $item['nama'] }}</h3>
-                                            <form action="/keranjang/hapus/{{ $idSafe }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus item ini?')" class="shrink-0">
+                                            <form action="/keranjang/hapus/{{ $idSafe }}" method="POST" class="shrink-0 form-hapus-item">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" aria-label="Hapus {{ $item['nama'] }}" class="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                                             </form>
@@ -295,6 +288,52 @@
                 if (terpilih.length === 0) { e.preventDefault(); return; }
                 if (!confirm('Yakin ingin menghapus ' + terpilih.length + ' item terpilih?')) { e.preventDefault(); return; }
                 terpilih.forEach(function (cb) { const input = document.createElement('input'); input.type = 'hidden'; input.name = 'ids[]'; input.value = cb.value; formHapus.appendChild(input); });
+            });
+        }
+
+                // Script Animasi Hapus Tunggal
+        document.querySelectorAll('.form-hapus-item').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                // Cari elemen pembungkus item (div dengan class kr-rise)
+                const itemWrapper = this.closest('.kr-rise');
+                if (itemWrapper) {
+                    // Terapkan efek smooth fade-out
+                    itemWrapper.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+                    itemWrapper.style.opacity = '0';
+                    itemWrapper.style.transform = 'scale(0.9) translateY(10px)';
+                    
+                    // Tunggu animasi selesai (400ms), baru submit form
+                    setTimeout(() => {
+                        form.submit();
+                    }, 400);
+                } else {
+                    form.submit();
+                }
+            });
+        });
+
+        // (Opsional) Hilangkan confirm pada Hapus Pilihan Massal
+        const formHapus = document.getElementById('form-hapus-pilihan');
+        if (formHapus) {
+            formHapus.addEventListener('submit', function (e) {
+                formHapus.querySelectorAll('input[name="ids[]"][type="hidden"]').forEach(function (el) { el.remove(); });
+                const terpilih = boxes.filter(function (b) { return b.checked; });
+                if (terpilih.length === 0) { e.preventDefault(); return; }
+                
+                // Animasi hilang untuk semua yang dicentang
+                terpilih.forEach(function (cb) { 
+                    const wrapper = cb.closest('.kr-rise');
+                    if (wrapper) {
+                        wrapper.style.transition = 'all 0.4s ease';
+                        wrapper.style.opacity = '0';
+                        wrapper.style.transform = 'scale(0.9)';
+                    }
+                    const input = document.createElement('input'); input.type = 'hidden'; input.name = 'ids[]'; input.value = cb.value; formHapus.appendChild(input); 
+                });
+                
+                e.preventDefault();
+                setTimeout(() => formHapus.submit(), 400);
             });
         }
     })();

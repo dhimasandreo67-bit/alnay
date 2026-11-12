@@ -1,11 +1,16 @@
 @extends('layouts.public')
 
 @section('title', 'Tentang Kami - ALNAY.ID')
+{{-- Latar footer disamakan dengan CTA gelap di atasnya (dipakai footer untuk warna siger) --}}
+@section('footer_bg', '#0a0a0a')
 
 @section('content')
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
         :root {
             /* Motif etnik Lampung (sama dengan header, beranda & footer) */
@@ -15,12 +20,11 @@
         }
 
         .font-display { font-family: 'Playfair Display', serif; }
-        body { font-family: 'Inter', sans-serif; }
 
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #17140f; }
-        ::-webkit-scrollbar-thumb { background: #c99a32; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #e6c877; }
+        /* Hanya di halaman ini: tidak ada pita spacer polos di atas footer.
+           Ruang untuk siger disediakan oleh bagian bawah section CTA (latar emas + debu ikut sampai bawah). */
+        #footer-spacer { display: none; }
+        body { font-family: 'Inter', sans-serif; }
 
         .fade-up {
             opacity: 0;
@@ -165,6 +169,23 @@
             100% { transform: translateY(0px); }
         }
 
+                /* Animasi Debu Emas Berkilau */
+        @keyframes float-dust {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-100px) translateX(20px); opacity: 0; }
+        }
+        .dust-particle {
+            position: absolute;
+            background-color: #e6c877; /* Warna emas terang */
+            border-radius: 50%;
+            box-shadow: 0 0 6px 1px rgba(230, 200, 119, 0.4); /* Efek kilau */
+            animation: float-dust linear infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .fade-up { opacity: 1; transform: none; transition: none; }
             .hero-img, .float-animation { animation: none; }
@@ -174,8 +195,7 @@
     {{-- HERO SECTION --}}
     <section class="k-hero relative h-[50vh] md:h-[70vh] min-h-[350px] md:min-h-[500px] flex items-center justify-center overflow-hidden">
         <div class="absolute inset-0">
-            <img src="https://images.unsplash.com/photo-1594736797933-d0501ba2fe65?auto=format&fit=crop&q=80&w=1600"
-                alt="Busana Adat" class="w-full h-full object-cover hero-img">
+            <img src="{{ asset('images/home/hero-pasangan.jpg') }}" alt="Busana Adat" class="w-full h-full object-cover hero-img">
             <div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(23,20,15,0.9) 0%, rgba(23,20,15,0.6) 100%);"></div>
         </div>
         <div class="relative z-10 text-center text-white px-5 max-w-4xl mx-auto mt-0 md:mt-10">
@@ -314,24 +334,24 @@
         </div>
     </section>
 
-    {{-- STATISTIK --}}
+        {{-- STATISTIK --}}
     <section class="py-10 md:py-16" style="background-color: white;">
         <div class="max-w-6xl mx-auto px-5 md:px-6">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                 <div class="fade-up stat-card text-center p-4 md:p-6 rounded-2xl bg-white border bg-gradient-to-b from-white to-gray-50/50">
-                    <div class="font-display text-3xl md:text-5xl font-bold mb-1 md:mb-2" style="color: #c99a32;">5+</div>
+                    <div class="font-sans text-3xl md:text-5xl font-extrabold tracking-tight tabular-nums mb-1 md:mb-2" style="color: #c99a32;">5+</div>
                     <p class="text-[9px] md:text-xs font-semibold uppercase tracking-wider" style="color: #6b7280;">Tahun Berdiri</p>
                 </div>
                 <div class="fade-up stat-card text-center p-4 md:p-6 rounded-2xl bg-white border bg-gradient-to-b from-white to-gray-50/50" style="transition-delay: 100ms;">
-                    <div class="font-display text-3xl md:text-5xl font-bold mb-1 md:mb-2" style="color: #c99a32;">1.800+</div>
+                    <div class="font-sans text-3xl md:text-5xl font-extrabold tracking-tight tabular-nums mb-1 md:mb-2" style="color: #c99a32;">1.800+</div>
                     <p class="text-[9px] md:text-xs font-semibold uppercase tracking-wider" style="color: #6b7280;">Acara Sukses</p>
                 </div>
                 <div class="fade-up stat-card text-center p-4 md:p-6 rounded-2xl bg-white border bg-gradient-to-b from-white to-gray-50/50" style="transition-delay: 200ms;">
-                    <div class="font-display text-3xl md:text-5xl font-bold mb-1 md:mb-2" style="color: #c99a32;">34</div>
+                    <div class="font-sans text-3xl md:text-5xl font-extrabold tracking-tight tabular-nums mb-1 md:mb-2" style="color: #c99a32;">34</div>
                     <p class="text-[9px] md:text-xs font-semibold uppercase tracking-wider" style="color: #6b7280;">Provinsi Terjangkau</p>
                 </div>
                 <div class="fade-up stat-card text-center p-4 md:p-6 rounded-2xl bg-white border bg-gradient-to-b from-white to-gray-50/50" style="transition-delay: 300ms;">
-                    <div class="font-display text-3xl md:text-5xl font-bold mb-1 md:mb-2" style="color: #c99a32;">4.97</div>
+                    <div class="font-sans text-3xl md:text-5xl font-extrabold tracking-tight tabular-nums mb-1 md:mb-2" style="color: #c99a32;">4.97</div>
                     <p class="text-[9px] md:text-xs font-semibold uppercase tracking-wider" style="color: #6b7280;">Rating Kepuasan</p>
                 </div>
             </div>
@@ -388,11 +408,34 @@
     </section>
 
     {{-- CTA SECTION --}}
-    <section class="k-cta py-16 md:py-28 relative overflow-hidden" style="background-color: #17140f;">
-        <div class="absolute top-0 left-0 w-64 h-64 rounded-full opacity-20 animate-pulse pointer-events-none"
-            style="background: radial-gradient(circle, #c99a32 0%, transparent 70%);"></div>
-        <div class="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-20 animate-pulse pointer-events-none"
-            style="background: radial-gradient(circle, #c99a32 0%, transparent 70%); animation-delay: 1s;"></div>
+    {{-- pb besar = ruang untuk siger footer (tinggi ~175px) supaya tidak menimpa tombol & latar tidak terpotong --}}
+    <section class="k-cta relative overflow-hidden pt-20 pb-52 md:pt-32 md:pb-64"
+        style="background:
+            radial-gradient(circle at top left, rgba(201, 154, 50, 0.18) 0%, transparent 45%),
+            radial-gradient(ellipse 55% 45% at 50% 100%, rgba(201, 154, 50, 0.16) 0%, transparent 70%),
+            radial-gradient(circle at bottom right, rgba(201, 154, 50, 0.12) 0%, transparent 45%),
+            #0a0a0a;">
+        
+        {{-- Container Debu Emas --}}
+        <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+            <div class="dust-particle w-1 h-1" style="left: 10%; bottom: 10%; animation-duration: 6s; animation-delay: 0s;"></div>
+            <div class="dust-particle w-1.5 h-1.5" style="left: 25%; bottom: 20%; animation-duration: 8s; animation-delay: 1s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 45%; bottom: 5%; animation-duration: 7s; animation-delay: 2s;"></div>
+            <div class="dust-particle w-2 h-2" style="left: 60%; bottom: 15%; animation-duration: 9s; animation-delay: 0.5s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 75%; bottom: 30%; animation-duration: 6.5s; animation-delay: 3s;"></div>
+            <div class="dust-particle w-1.5 h-1.5" style="left: 85%; bottom: 10%; animation-duration: 8.5s; animation-delay: 1.5s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 15%; bottom: 40%; animation-duration: 7.5s; animation-delay: 2.5s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 50%; bottom: 35%; animation-duration: 10s; animation-delay: 4s;"></div>
+            <div class="dust-particle w-1.5 h-1.5" style="left: 90%; bottom: 45%; animation-duration: 6s; animation-delay: 0.8s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 35%; bottom: 50%; animation-duration: 8s; animation-delay: 3.5s;"></div>
+            {{-- Debu tambahan di area belakang siger --}}
+            <div class="dust-particle w-1 h-1" style="left: 28%; bottom: 8%; animation-duration: 7s; animation-delay: 0.7s;"></div>
+            <div class="dust-particle w-1.5 h-1.5" style="left: 42%; bottom: 14%; animation-duration: 9s; animation-delay: 2.2s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 56%; bottom: 6%; animation-duration: 8s; animation-delay: 1.2s;"></div>
+            <div class="dust-particle w-2 h-2" style="left: 68%; bottom: 12%; animation-duration: 10s; animation-delay: 3.2s;"></div>
+            <div class="dust-particle w-1 h-1" style="left: 78%; bottom: 5%; animation-duration: 6.5s; animation-delay: 2.7s;"></div>
+            <div class="dust-particle w-1.5 h-1.5" style="left: 20%; bottom: 18%; animation-duration: 8.5s; animation-delay: 4.2s;"></div>
+        </div>
 
         <div class="relative z-10 max-w-4xl mx-auto px-5 md:px-6 text-center fade-up">
             <span class="eyebrow-k eyebrow-c text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]" style="color: #c99a32;">Bergabung Bersama Kami</span>
