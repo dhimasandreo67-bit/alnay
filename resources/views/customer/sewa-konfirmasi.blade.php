@@ -53,6 +53,8 @@
 
         $alamat = $transaksi->pengiriman->alamat_tujuan ?? null;
         $isSewa = $transaksi->jenis === 'sewa';
+        $perluFitting = $transaksi->perluFitting();
+        $fittingAda = $perluFitting ? $transaksi->fittingAktif() : null;
 
         $cfg = [
             'lunas' => $lunasDp,
@@ -88,11 +90,25 @@
                                 <svg class="kb-check w-12 h-12 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path pathLength="1" d="M5 13l4 4L19 7" /></svg>
                             </div>
                             <h1 class="kb-up font-display text-2xl md:text-3xl font-medium text-ink/85 mb-2" style="--d: .25s;">Pembayaran DP Berhasil</h1>
-                            <p class="kb-up text-sm text-ink/55 max-w-md mx-auto mb-7 leading-relaxed" style="--d: .35s;">Terima kasih. Silakan datang ke toko Alnay untuk fitting sesuai jadwal. Tim kami akan menghubungi Anda untuk langkah berikutnya.</p>
+                            <p class="kb-up text-sm text-ink/55 max-w-md mx-auto mb-7 leading-relaxed" style="--d: .35s;">
+                                @if ($fittingAda)
+                                    Terima kasih. Jadwal fitting Anda sudah tercatat, silakan cek detailnya di bawah.
+                                @elseif ($perluFitting)
+                                    Terima kasih. Satu langkah lagi: pilih jadwal fitting di toko supaya ukuran busana dipastikan pas sebelum diambil.
+                                @else
+                                    Terima kasih. Pesanan Anda akan dikirim ke alamat tujuan, tidak perlu fitting. Tim kami akan menghubungi Anda untuk langkah berikutnya.
+                                @endif
+                            </p>
                             <div class="kb-up flex flex-col sm:flex-row gap-3 justify-center" style="--d: .45s;">
-                                <a href="{{ route('fitting.create', ['transaksi_id' => $transaksi->id]) }}" class="px-6 py-3 rounded-xl bg-gold text-white text-sm font-bold hover:bg-gold/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 transition-all duration-300">Booking Fitting</a>
-                                
-                                <a href="{{ route('akun.dashboard') }}#penyewaan" class="px-6 py-3 rounded-xl border border-line/60 bg-white text-ink/75 text-sm font-bold hover:bg-cream/50 hover:-translate-y-0.5 transition-all duration-300">Lihat Riwayat Penyewaan</a>
+                                @if ($fittingAda)
+                                    <a href="{{ route('fitting.show', $fittingAda->id) }}" class="px-6 py-3 rounded-xl bg-gold text-white text-sm font-bold hover:bg-gold/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 transition-all duration-300">Lihat Jadwal Fitting</a>
+                                @elseif ($perluFitting)
+                                    <a href="{{ route('fitting.create', ['transaksi_id' => $transaksi->id]) }}" class="px-6 py-3 rounded-xl bg-gold text-white text-sm font-bold hover:bg-gold/90 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/30 transition-all duration-300">Jadwalkan Fitting Sekarang</a>
+                                @endif
+
+                                <a href="{{ route('akun.pesanan.detail', $transaksi->id) }}" class="px-6 py-3 rounded-xl {{ $perluFitting ? 'border border-line/60 bg-white text-ink/75 hover:bg-cream/50' : 'bg-gold text-white hover:bg-gold/90 hover:shadow-lg hover:shadow-gold/30' }} text-sm font-bold hover:-translate-y-0.5 transition-all duration-300">
+                                    {{ $perluFitting && ! $fittingAda ? 'Nanti saja, lihat pesanan' : 'Lihat Detail Pesanan' }}
+                                </a>
                             </div>
                         </div>
                     </div>
