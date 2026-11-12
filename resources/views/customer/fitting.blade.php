@@ -288,7 +288,7 @@
                     <div class="pd-up bg-panel border border-line/40 rounded-xl p-5" style="--d: .35s;" :class="{ 'pd-shake border-rose-300': getar }">
                         <div class="flex items-center gap-2 mb-4">
                             <span class="w-2 h-2 rounded-full" :class="tanggalDipilih && jamDipilih ? 'bg-emerald-500' : 'bg-gold pd-pulse'"></span>
-                            <span class="text-[10px] font-medium" :class="tanggalDipilih && jamDipilih ? 'text-emerald-700' : 'text-gold'" x-text="tanggalDipilih && jamDipilih ? 'Jadwal siap dikonfirmasi' : 'Silakan pilih jadwal'"></span>
+                            <span class="text-[10px] font-medium" :class="tanggalDipilih && jamDipilih ? 'text-emerald-700' : 'text-gold'" x-text="tanggalDipilih && jamDipilih ? 'Jadwal siap dipesan' : 'Silakan pilih jadwal'"></span>
                         </div>
 
                         <div class="space-y-2 text-[11px] mb-4 border-b border-line/30 pb-4">
@@ -315,7 +315,7 @@
                         </div>
 
                         <div class="p-3 rounded-md bg-cream/60 border border-line/30 mb-4">
-                            <p class="text-[10px] text-ink/50 leading-relaxed">Anda akan menerima notifikasi 1 hari sebelum jadwal fitting. Jadwal otomatis tercatat di sistem kami setelah dikonfirmasi.</p>
+                            <p class="text-[10px] text-ink/50 leading-relaxed">Jadwal langsung terdaftar di sistem kami begitu Anda menekan tombol di bawah, tanpa perlu menunggu persetujuan. Anda akan menerima pengingat 1 hari sebelum jadwal fitting.</p>
                         </div>
 
                         <p x-show="errorMetode" x-cloak x-transition x-text="errorMetode" class="mb-3 p-2.5 rounded-md bg-rose-50 border border-rose-200 text-xs text-rose-700"></p>
