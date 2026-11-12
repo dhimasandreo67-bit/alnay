@@ -282,6 +282,19 @@ class FittingController extends Controller
         return back()->with('success', 'Booking fitting berhasil dibatalkan.');
     }
 
+        public function destroy($id)
+    {
+        $reservasi = ReservasiFitting::where('user_id', auth()->id())->findOrFail($id);
+
+        if (!in_array($reservasi->status, ['pending', 'batal'])) {
+            return back()->with('error', 'Reservasi yang sudah disetujui/hadir tidak bisa dihapus.');
+        }
+
+        $reservasi->delete();
+
+        return back()->with('success', 'Reservasi fitting berhasil dihapus.');
+    }
+
     public function edit($id)
     {
         $reservasi = ReservasiFitting::with('slot')

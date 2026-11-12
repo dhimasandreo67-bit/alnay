@@ -5,11 +5,6 @@
 @php
     use Carbon\Carbon;
     use Illuminate\Support\Str;
-
-    /**
-     * URL foto produk yang tahan terhadap berbagai format penyimpanan:
-     * array / JSON string / path relatif / "storage/..." / "public/..." / URL penuh.
-     */
     $urlFoto = function ($produk) {
         $foto = $produk->foto_produk ?? null;
 
@@ -40,41 +35,25 @@
     $adaFilter = filled(request('search')) || filled(request('tanggal')) || $status !== 'semua';
 @endphp
 
-<div class="p-6 space-y-6 transition-all duration-500 animate-fade-in">
+<div class="p-6 space-y-6 transition-all duration-500 animate-fade-in relative">
 
-    {{-- ALERT --}}
-    @if(session('success'))
-        <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl shadow-sm" role="alert">
-            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                </svg>
-            </div>
-            <p class="text-sm font-bold">{{ session('success') }}</p>
-        </div>
-    @endif
+    {{-- CONTAINER TOAST NOTIFIKASI (Dari kode Anda) --}}
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3"></div>
 
-    @if(session('error'))
-        <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl shadow-sm" role="alert">
-            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-            </div>
-            <p class="text-sm font-bold">{{ session('error') }}</p>
-        </div>
-    @endif
-
-    {{-- Header --}}
+    {{-- Header & Tombol Hapus Massal (Dari kode Anda) --}}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-gray-900">Reservasi Fitting</h1>
             <p class="text-xs text-gray-500 mt-1">Jadwal kedatangan pelanggan untuk fitting di toko ALNAY. Booking langsung terjadwal, tugas admin hanya menandai Hadir atau Batal.</p>
         </div>
+        
+        <button id="btnBulkDelete" class="hidden bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            Hapus Terpilih (<span id="countSelected">0</span>)
+        </button>
     </div>
 
-    {{-- Filter: otomatis, tanpa tombol Cari --}}
+    {{-- Filter: otomatis, tanpa tombol Cari (Gabungan) --}}
     <form id="form-filter" method="GET" action="{{ route('admin.fitting.index') }}" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <input type="hidden" id="input-status" name="status" value="{{ $status }}">
         <div class="relative w-full sm:w-96">
@@ -96,7 +75,7 @@
         </div>
     </form>
 
-    {{-- Atur ketersediaan: tutup tanggal / jam --}}
+    {{-- Atur ketersediaan: tutup tanggal / jam (Dari Teman Anda) --}}
     @if (\Illuminate\Support\Facades\Route::has('admin.fitting.slot.tutup'))
         @php $slotTutup = $slotTutup ?? collect(); $jamSlot = $jamSlot ?? []; @endphp
         <details class="bg-white rounded-3xl border border-gray-100 shadow-sm" {{ ($errors->any() || session('buka_panel')) ? 'open' : '' }}>
@@ -214,7 +193,7 @@
                         · kata kunci “<b class="text-gray-700">{{ request('search') }}</b>”
                     @endif
                     @if (filled(request('tanggal')))
-                        · tanggal <b class="text-gray-700">{{ Carbon::parse(request('tanggal'))->format('d M Y') }}</b>
+                        · tanggal <b class="text-gray-700">{{ \Carbon\Carbon::parse(request('tanggal'))->format('d M Y') }}</b>
                     @endif
                 </span>
                 <span class="hidden sm:inline">Kuota: maks. 2 tamu per jam</span>
@@ -224,6 +203,10 @@
                 <table class="min-w-full divide-y divide-gray-100">
                     <thead class="bg-gray-50/80">
                         <tr>
+                            {{-- CHECKBOX SELECT ALL (Dari kode Anda) --}}
+                            <th class="px-6 py-4 text-left w-10">
+                                <input type="checkbox" id="selectAll" class="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 cursor-pointer">
+                            </th>
                             <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Pelanggan</th>
                             <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Jadwal</th>
                             <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Busana yang Disewa</th>
@@ -244,10 +227,10 @@
                                     : null;
 
                                 // Jadwal
-                                $tgl = $r->slot ? Carbon::parse($r->slot->tanggal) : null;
-                                $jam = $r->slot?->jam_mulai ? Carbon::parse($r->slot->jam_mulai)->format('H:i') : '-';
+                                $tgl = $r->slot ? \Carbon\Carbon::parse($r->slot->tanggal) : null;
+                                $jam = $r->slot?->jam_mulai ? \Carbon\Carbon::parse($r->slot->jam_mulai)->format('H:i') : '-';
 
-                                // Status: tidak ada "pending". 'pending'/'disetujui' (data lama) = Terjadwal.
+                                // Status
                                 $st = strtolower($r->status);
                                 $terjadwal = ! in_array($st, ['hadir', 'batal'], true);
                                 $nilaiSelect = $terjadwal ? 'pending' : $st;
@@ -260,7 +243,7 @@
                                     default => ['bg-sky-100 text-sky-700 border-sky-200', 'Terjadwal'],
                                 };
 
-                                // Busana: dari pesanan (lengkap dengan ukuran & warna). Cadangan: produk di reservasi.
+                                // Busana
                                 $trx = method_exists($r, 'transaksi') ? $r->transaksi : null;
                                 $busana = [];
                                 if ($trx && $trx->detail->isNotEmpty()) {
@@ -286,7 +269,7 @@
                                     ->reject(fn ($l) => Str::startsWith(trim($l), 'Busana dalam pesanan:'))
                                     ->filter()->implode(' ');
 
-                                // Link WhatsApp: pengingat (terjadwal) atau pemberitahuan pembatalan
+                                // Link WhatsApp
                                 $digits = preg_replace('/\D+/', '', (string) ($r->user->no_hp ?? ''));
                                 $noWa = $digits === '' ? '' : (str_starts_with($digits, '0') ? '62' . substr($digits, 1) : (str_starts_with($digits, '8') ? '62' . $digits : $digits));
                                 $tglTeks = $tgl ? $tgl->copy()->locale('id')->translatedFormat('l, d F Y') : '';
@@ -296,7 +279,17 @@
                                         . '. Silakan pilih jadwal fitting baru di ' . url('/fitting') . '. Terima kasih.'
                                     : "Halo {$namaPelanggan}, pengingat jadwal fitting Anda di Toko ALNAY: {$tglTeks} pukul {$jam} WIB (kode {$r->kode_booking}). Sampai jumpa!";
                             @endphp
-                            <tr id="baris-{{ $r->id }}" class="hover:bg-amber-50/30 transition-colors align-top">
+                            <tr id="baris-{{ $r->id }}" class="hover:bg-amber-50/30 transition-colors align-top row-data" data-id="{{ $r->id }}">
+                                
+                                {{-- CHECKBOX PER BARIS (Dari kode Anda) --}}
+                                <td class="px-6 py-4">
+                                    @if($r->status !== 'hadir')
+                                        <input type="checkbox" value="{{ $r->id }}" class="row-checkbox w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 cursor-pointer">
+                                    @else
+                                        <input type="checkbox" disabled title="Data hadir tidak bisa dihapus" class="w-4 h-4 text-gray-300 bg-gray-100 border-gray-200 rounded cursor-not-allowed">
+                                    @endif
+                                </td>
+
                                 {{-- Pelanggan --}}
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
@@ -357,8 +350,8 @@
 
                                     @if ($sewa)
                                         <p class="text-[10px] text-gray-500 mt-2">
-                                            Ambil <b class="text-gray-700">{{ Carbon::parse($sewa->tanggal_pinjam)->format('d M Y') }}</b>
-                                            · Kembali <b class="text-gray-700">{{ Carbon::parse($sewa->tanggal_kembali_rencana)->format('d M Y') }}</b>
+                                            Ambil <b class="text-gray-700">{{ \Carbon\Carbon::parse($sewa->tanggal_pinjam)->format('d M Y') }}</b>
+                                            · Kembali <b class="text-gray-700">{{ \Carbon\Carbon::parse($sewa->tanggal_kembali_rencana)->format('d M Y') }}</b>
                                         </p>
                                     @endif
                                     @if ($trx)
@@ -378,7 +371,7 @@
 
                                 {{-- Status --}}
                                 <td class="px-6 py-4">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider {{ $badge[0] }}">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider status-badge {{ $badge[0] }}">
                                         {{ $badge[1] }}
                                     </span>
                                     @if ($terlewat)
@@ -391,18 +384,30 @@
                                     @endif
                                 </td>
 
-                                {{-- Aksi --}}
+                                {{-- Aksi (Gabungan: AJAX + Hapus + WA) --}}
                                 <td class="px-6 py-4 text-right">
-                                    <form id="form-status-{{ $r->id }}" action="{{ route('admin.fitting.update-status', $r->id) }}" method="POST" class="inline">
-                                        @csrf
-                                        @method('PATCH')
-                                        <select name="status" data-awal="{{ $nilaiSelect }}" data-nama="{{ $namaPelanggan }}" data-kode="{{ $r->kode_booking }}" onchange="pilihStatus(this)" aria-label="Ubah status reservasi"
-                                                class="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all hover:border-amber-300">
-                                            <option value="pending" {{ $nilaiSelect === 'pending' ? 'selected' : '' }}>Terjadwal</option>
-                                            <option value="hadir" {{ $nilaiSelect === 'hadir' ? 'selected' : '' }}>Hadir</option>
-                                            <option value="batal" {{ $nilaiSelect === 'batal' ? 'selected' : '' }}>Batal</option>
-                                        </select>
-                                    </form>
+                                    <div class="flex items-center justify-end gap-2">
+                                        <form id="form-status-{{ $r->id }}" action="{{ route('admin.fitting.update-status', $r->id) }}" method="POST" class="inline-block form-status">
+                                            @csrf
+                                            @method('PATCH')
+                                            <select name="status" data-original="{{ $nilaiSelect }}" data-awal="{{ $nilaiSelect }}" data-nama="{{ $namaPelanggan }}" data-kode="{{ $r->kode_booking }}" onchange="pilihStatus(this)" aria-label="Ubah status reservasi"
+                                                    class="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all hover:border-amber-300">
+                                                <option value="pending" {{ $nilaiSelect === 'pending' ? 'selected' : '' }}>Terjadwal</option>
+                                                <option value="hadir" {{ $nilaiSelect === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                                                <option value="batal" {{ $nilaiSelect === 'batal' ? 'selected' : '' }}>Batal</option>
+                                            </select>
+                                        </form>
+
+                                        @if ($r->status !== 'hadir')
+                                            <form action="{{ route('admin.fitting.destroy', $r->id) }}" method="POST" class="inline-block form-delete btn-delete">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="p-1.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-100" title="Hapus Reservasi">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
                                     @if ($noWa)
                                         <a href="https://wa.me/{{ $noWa }}?text={{ rawurlencode($pesanWa) }}" target="_blank" rel="noopener"
                                            class="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 hover:underline">
@@ -413,7 +418,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
+                                <td colspan="7" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
                                     @if ($adaFilter)
                                         Tidak ada reservasi yang cocok dengan pencarian Anda.
                                     @else
@@ -576,28 +581,29 @@
             if (!baru) throw new Error('Area tabel tidak ditemukan');
 
             area.innerHTML = baru.innerHTML;
+            
+            // Re-inisialisasi event listener untuk tabel yang baru dimuat (Penting untuk AJAX)
+            if (typeof initTableEvents === 'function') initTableEvents();
+
             history.replaceState(null, '', url);
             tampilkanMuat(false);
         } catch (e) {
-            if (e.name === 'AbortError') return;   // diganti permintaan yang lebih baru
-            window.location.href = url;            // gagal: muat biasa saja
+            if (e.name === 'AbortError') return;
+            window.location.href = url;
         }
     }
 
-    // Ketik -> tunggu sebentar -> data muncul otomatis
     inputCari.addEventListener('input', function () {
         clearTimeout(timer);
         timer = setTimeout(function () { muat(buatUrl()); }, 300);
     });
 
-    // Enter tidak me-refresh halaman
     form.addEventListener('submit', function (e) {
         e.preventDefault();
         clearTimeout(timer);
         muat(buatUrl());
     });
 
-    // Ganti tanggal -> langsung terfilter
     inputTanggal.addEventListener('change', function () { muat(buatUrl()); });
 
     document.getElementById('btn-reset').addEventListener('click', function () {
@@ -608,7 +614,6 @@
         inputCari.focus();
     });
 
-    // Pagination ikut diperbarui tanpa reload (filter tetap terbawa)
     area.addEventListener('click', function (e) {
         // Chip status
         const chip = e.target.closest('[data-status]');
@@ -626,78 +631,246 @@
 })();
 </script>
 
+{{-- SCRIPT 2: DIALOG BATAL DARI TEMAN ANDA --}}
 <script>
 (function () {
-    const KUNCI = 'fittingScrollState';
+    const dlg = document.getElementById('dlg-batal');
+    const formBatal = document.getElementById('form-batal');
+    const alasan = document.getElementById('dlg-alasan');
+    let selAktif = null;
+    let terkirim = false;
 
-    // Cari wadah yang benar-benar bisa di-scroll secara vertikal (bukan selalu window).
-    function cariWadah(el) {
-        let node = el ? el.parentElement : null;
-        while (node && node !== document.body) {
-            const oy = getComputedStyle(node).overflowY;
-            if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight) return node;
-            node = node.parentElement;
+    // Pilih status: Batal membuka dialog alasan, status lain langsung disimpan via AJAX
+    window.pilihStatus = function (sel) {
+        if (sel.value === 'batal') {
+            selAktif = sel;
+            terkirim = false;
+            formBatal.action = sel.form.action;
+            document.getElementById('dlg-info').textContent = sel.dataset.nama + ' · ' + sel.dataset.kode;
+            alasan.value = '';
+            dlg.showModal();
+            alasan.focus();
+            return;
         }
-        return document.scrollingElement || document.documentElement;
-    }
+        
+        // Jika bukan batal, jalankan AJAX (dari kode Anda)
+        const form = sel.closest('form');
+        const row = sel.closest('tr');
+        const badge = row.querySelector('.status-badge');
+        const newStatus = sel.value;
+        const originalStatus = sel.dataset.original;
 
-    function atasWadah(wadah) {
-        return (wadah === document.scrollingElement || wadah === document.documentElement)
-            ? 0
-            : wadah.getBoundingClientRect().top;
-    }
+        sel.disabled = true;
 
-    // Dipanggil sebelum form dikirim: catat baris yang diubah dan jaraknya dari atas layar.
-    window.simpanPosisiScroll = function (baris) {
-        if (!baris) return;
-        const wadah = cariWadah(baris);
-        sessionStorage.setItem(KUNCI, JSON.stringify({
-            path: location.pathname,
-            barisId: baris.id,
-            offset: baris.getBoundingClientRect().top - atasWadah(wadah),
-            top: wadah.scrollTop,
-        }));
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan server');
+            return data;
+        })
+        .then(data => {
+            if (data.success) {
+                badge.textContent = newStatus === 'pending' ? 'Terjadwal' : 'Hadir';
+                badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider status-badge ';
+                if (newStatus === 'pending') badge.classList.add('bg-sky-100', 'text-sky-700', 'border-sky-200');
+                else if (newStatus === 'hadir') badge.classList.add('bg-emerald-100', 'text-emerald-700', 'border-emerald-200');
+                
+                sel.dataset.original = newStatus;
+                
+                const deleteBtn = row.querySelector('.btn-delete');
+                if (deleteBtn) deleteBtn.style.display = newStatus === 'hadir' ? 'none' : 'inline-block';
+                const checkbox = row.querySelector('.row-checkbox');
+                if(checkbox) checkbox.parentElement.innerHTML = newStatus === 'hadir' ? '<input type="checkbox" disabled class="w-4 h-4 text-gray-300 bg-gray-100 border-gray-200 rounded cursor-not-allowed">' : '<input type="checkbox" value="'+row.dataset.id+'" class="row-checkbox w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 cursor-pointer">';
+
+                if(typeof showToast === 'function') showToast(data.message, 'success');
+            }
+        })
+        .catch(err => {
+            sel.value = originalStatus;
+            if(typeof showToast === 'function') showToast(err.message || 'Gagal mengubah status', 'error');
+        })
+        .finally(() => {
+            sel.disabled = false;
+        });
     };
 
-    function pulihkan() {
-        const raw = sessionStorage.getItem(KUNCI);
-        if (!raw) return;
+    document.getElementById('dlg-tutup').addEventListener('click', function () { dlg.close(); });
 
-        let s;
-        try { s = JSON.parse(raw); } catch (e) { sessionStorage.removeItem(KUNCI); return; }
-        if (s.path !== location.pathname) { sessionStorage.removeItem(KUNCI); return; }
+    // Ditutup tanpa mengirim: kembalikan pilihan dropdown seperti semula
+    dlg.addEventListener('close', function () {
+        if (!terkirim && selAktif) selAktif.value = selAktif.dataset.awal;
+    });
 
-        const tabel = document.querySelector('table');
-        if (!tabel) return;
-
-        const terapkan = function () {
-            const wadah = cariWadah(tabel);
-            const baris = document.getElementById(s.barisId);
-
-            if (baris) {
-                // Jaga baris yang sama tetap di jarak yang sama dari atas,
-                // walau ada alert "berhasil" yang menambah tinggi halaman.
-                const selisih = (baris.getBoundingClientRect().top - atasWadah(wadah)) - s.offset;
-                wadah.scrollTop += selisih;
-            } else {
-                wadah.scrollTop = s.top;
+    formBatal.addEventListener('submit', function (e) {
+        e.preventDefault();
+        terkirim = true;
+        
+        fetch(formBatal.action, {
+            method: 'POST',
+            body: new FormData(formBatal),
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan');
+            return data;
+        })
+        .then(data => {
+            if(data.success) {
+                dlg.close();
+                // Reload tabel agar alasan batal dan tombol WA muncul (karena HTML butuh render ulang)
+                window.location.reload(); 
             }
+        })
+        .catch(err => {
+            alert(err.message);
+        });
+    });
+
+    dlg.querySelectorAll('[data-isi]').forEach(function (b) {
+        b.addEventListener('click', function () { alasan.value = b.dataset.isi; alasan.focus(); });
+    });
+
+    // Form tutup jadwal: "seharian" menonaktifkan pilihan jam
+    const cekSeharian = document.getElementById('cek-seharian');
+    if (cekSeharian) {
+        const atur = function () {
+            document.querySelectorAll('.cek-jam').forEach(function (c) {
+                c.disabled = cekSeharian.checked;
+                if (cekSeharian.checked) c.checked = false;
+            });
+        };
+        cekSeharian.addEventListener('change', atur);
+        atur();
+    }
+})();
+</script>
+
+{{-- SCRIPT 3: AJAX HAPUS, UBAH STATUS (NON-BATAL), & CHECKBOX DARI ANDA --}}
+<script>
+    // Bungkus ke dalam fungsi agar bisa dipanggil ulang saat tabel di-reload via AJAX
+    function initTableEvents() {
+        // --- FUNGSI TOAST NOTIFIKASI ---
+        window.showToast = function(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-emerald-500' : 'bg-rose-500';
+            const icon = type === 'success' 
+                ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />'
+                : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />';
+            
+            toast.className = `${bgColor} text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3 transform transition-all duration-300 translate-x-full opacity-0`;
+            toast.innerHTML = `
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">${icon}</svg>
+                <span class="text-sm font-bold">${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-x-full', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-x-full', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         };
 
-        terapkan();
+        // --- LOGIKA HAPUS SATUAN (AJAX) ---
+        document.querySelectorAll('.form-delete').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (!confirm('Yakin ingin menghapus reservasi ini?')) return;
 
-        // Ulangi beberapa kali untuk mengalahkan layout shift (font/gambar telat muat).
-        let n = 0;
-        const timer = setInterval(function () {
-            terapkan();
-            if (++n >= 8) {
-                clearInterval(timer);
-                sessionStorage.removeItem(KUNCI);
+                fetch(this.action, {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        this.closest('tr').remove();
+                        showToast(data.message || 'Data berhasil dihapus', 'success');
+                    } else {
+                        showToast(data.message || 'Gagal menghapus', 'error');
+                    }
+                });
+            });
+        });
+
+        // --- LOGIKA CHECKBOX & BULK DELETE ---
+        const selectAll = document.getElementById('selectAll');
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        const btnBulkDelete = document.getElementById('btnBulkDelete');
+        const countSelected = document.getElementById('countSelected');
+
+        function updateBulkBtn() {
+            const checked = document.querySelectorAll('.row-checkbox:checked').length;
+            if(countSelected) countSelected.textContent = checked;
+            if (checked > 0) {
+                btnBulkDelete.classList.remove('hidden');
+            } else {
+                btnBulkDelete.classList.add('hidden');
             }
-        }, 100);
+        }
+
+        if (selectAll) {
+            selectAll.replaceWith(selectAll.cloneNode(true));
+            const newSelectAll = document.getElementById('selectAll');
+            
+            newSelectAll.addEventListener('change', function() {
+                document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = this.checked);
+                updateBulkBtn();
+            });
+        }
+
+        rowCheckboxes.forEach(cb => {
+            cb.replaceWith(cb.cloneNode(true));
+        });
+        
+        document.querySelectorAll('.row-checkbox').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const total = document.querySelectorAll('.row-checkbox').length;
+                const checked = document.querySelectorAll('.row-checkbox:checked').length;
+                if(document.getElementById('selectAll')) document.getElementById('selectAll').checked = total === checked;
+                updateBulkBtn();
+            });
+        });
+
+        if (btnBulkDelete) {
+            btnBulkDelete.replaceWith(btnBulkDelete.cloneNode(true));
+            document.getElementById('btnBulkDelete').addEventListener('click', function() {
+                const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+                if (ids.length === 0) return;
+                
+                if (!confirm(`Yakin ingin menghapus ${ids.length} reservasi terpilih?`)) return;
+
+                fetch("{{ route('admin.fitting.bulk-destroy') }}", {
+                    method: 'POST',
+                    body: JSON.stringify({ ids: ids, _token: "{{ csrf_token() }}", _method: "DELETE" }),
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        ids.forEach(id => {
+                            const row = document.querySelector(`.row-data[data-id="${id}"]`);
+                            if (row) row.remove();
+                        });
+                        if(document.getElementById('selectAll')) document.getElementById('selectAll').checked = false;
+                        updateBulkBtn();
+                        showToast(data.message, 'success');
+                    } else {
+                        showToast(data.message, 'error');
+                    }
+                });
+            });
+        }
     }
 
-    pulihkan();
-})();
+    // Jalankan saat halaman pertama kali dimuat
+    document.addEventListener('DOMContentLoaded', initTableEvents);
 </script>
 @endsection
