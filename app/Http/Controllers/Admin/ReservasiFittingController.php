@@ -44,6 +44,52 @@ class ReservasiFittingController extends Controller
         $reservasi = ReservasiFitting::findOrFail($id);
         $reservasi->update(['status' => $request->status]);
 
+        // Respon JSON untuk AJAX
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Status diperbarui.']);
+        }
+
         return back()->with('success', 'Status reservasi fitting berhasil diperbarui.');
+    }
+
+    // Fungsi untuk menghapus reservasi (Sudah mendukung AJAX)
+    public function destroy(Request $request, $id)
+    {
+        $reservasi = ReservasiFitting::findOrFail($id);
+        
+        // Proteksi: Cegah hapus data yang statusnya sudah HADIR
+        if ($reservasi->status === 'hadir') {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Reservasi HADIR tidak boleh dihapus.']);
+            }
+            return back()->with('error', 'Reservasi yang sudah HADIR tidak boleh dihapus.');
+        }
+
+        $reservasi->delete();
+
+        // Respon JSON untuk AJAX
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Reservasi dihapus.']);
+        }
+
+        return back()->with('success', 'Reservasi fitting berhasil dihapus permanen.');
+    }
+
+        public function bulkDestroy(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        
+        if (empty($ids)) {
+            return response()->json(['success' => false, 'message' => 'Tidak ada data yang dipilih.']);
+        }
+
+        $deletedCount = ReservasiFitting::whereIn('id', $ids)
+            ->where('status', '!=', 'hadir')
+            ->delete();
+
+        return response()->json([
+            'success' => true, 
+            'message' => $deletedCount . ' reservasi berhasil dihapus.'
+        ]);
     }
 }

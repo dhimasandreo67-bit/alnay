@@ -102,10 +102,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/pengiriman/{id}/status', [PengirimanController::class, 'updateStatus'])->name('pengiriman.update-status');
         Route::patch('/pengiriman/{id}/batalkan-terima', [PengirimanController::class, 'batalkanTerima'])->name('pengiriman.batalkan-terima');
 
-        // --- FITTING & RATING (Placeholder untuk saat ini) ---
+        // --- FITTING & RATING ---
         Route::get('/fitting', [ReservasiFittingController::class, 'index'])->name('fitting.index');
         Route::patch('/fitting/{id}/status', [ReservasiFittingController::class, 'updateStatus'])->name('fitting.update-status');
-        Route::get('/rating', [RatingController::class, 'index'])->name('rating.index');
+        Route::delete('/fitting/bulk-destroy', [ReservasiFittingController::class, 'bulkDestroy'])->name('fitting.bulk-destroy'); // <-- TAMBAH INI
+        Route::delete('/fitting/{id}', [ReservasiFittingController::class, 'destroy'])->name('fitting.destroy'); 
 
         // 7. Sistem
         Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit.index');

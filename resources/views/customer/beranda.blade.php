@@ -1015,8 +1015,9 @@
                 <div class="relative" x-data="{
                     active: 0,
                     total: {{ count($testimoni) }},
+                    windowWidth: window.innerWidth,
                     get perPage() {
-                        return window.innerWidth >= 1024 ? 3 : (window.innerWidth >= 768 ? 2 : 1);
+                        return this.windowWidth >= 1024 ? 3 : (this.windowWidth >= 768 ? 2 : 1);
                     },
                     get maxIndex() {
                         return Math.max(0, this.total - this.perPage);
@@ -1028,10 +1029,9 @@
                         this.active = this.active <= 0 ? this.maxIndex : this.active - 1;
                     },
                     init() {
-                        // Otomatis geser setiap 5 detik
                         setInterval(() => this.next(), 5000);
-                        // Perbaiki posisi jika layar di-resize
                         window.addEventListener('resize', () => {
+                            this.windowWidth = window.innerWidth;
                             if (this.active > this.maxIndex) this.active = 0;
                         });
                     }
@@ -1090,7 +1090,7 @@
                     {{-- Tombol Navigasi (Kiri & Kanan) --}}
                     @if(count($testimoni) > 1)
                         <div class="flex items-center justify-center gap-2 mt-6">
-                            <button type="button" @click="prev()" class="w-10 h-10 rounded-full bg-white border border-line flex items-center justify-center text-ink/60 hover:text-gold hover:border-gold transition-colors shadow-sm">
+                            <button type="button" @click="prev()" class="w-10 h-10 rounded-full bg-white border border-[#f0ece4] flex items-center justify-center text-[#15233d]/60 hover:text-[#c99a32] hover:border-[#c99a32] transition-colors shadow-sm">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                             </button>
                             
@@ -1098,11 +1098,11 @@
                             <div class="flex items-center gap-1.5 mx-2">
                                 <template x-for="i in (maxIndex + 1)" :key="i">
                                     <button type="button" @click="active = i - 1" class="h-2 rounded-full transition-all duration-300" 
-                                            :class="active === (i - 1) ? 'w-6 bg-gold' : 'w-2 bg-gray-300 hover:bg-gray-400'"></button>
+                                            :class="active === (i - 1) ? 'w-6 bg-[#c99a32]' : 'w-2 bg-gray-300 hover:bg-gray-400'"></button>
                                 </template>
                             </div>
 
-                            <button type="button" @click="next()" class="w-10 h-10 rounded-full bg-white border border-line flex items-center justify-center text-ink/60 hover:text-gold hover:border-gold transition-colors shadow-sm">
+                            <button type="button" @click="next()" class="w-10 h-10 rounded-full bg-white border border-[#f0ece4] flex items-center justify-center text-[#15233d]/60 hover:text-[#c99a32] hover:border-[#c99a32] transition-colors shadow-sm">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                             </button>
                         </div>
