@@ -611,7 +611,7 @@
     </section>
 
 
-        {{-- ============================================================
+                {{-- ============================================================
      3. PRODUK TERBARU
      ============================================================ --}}
     <section class="max-w-7xl mx-auto px-4 py-16 md:py-24">
@@ -627,17 +627,23 @@
         </div>
 
         @if (count($produkTerbaru) > 0)
-            <div class="stagger mx-auto grid max-w-7xl grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 lg:grid-cols-5 items-stretch">
+            <div class="stagger mx-auto max-w-7xl flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-3 pb-2 sm:gap-6 xl:grid xl:grid-cols-5 xl:overflow-visible xl:snap-none items-stretch">
                 @foreach ($produkTerbaru as $p)
-                    <div class="reveal h-full">
+                    <div class="reveal h-full shrink-0 w-[44%] sm:w-[31%] md:w-[24%] xl:w-auto snap-start">
                         <x-product-card :produk="$p" />
                     </div>
                 @endforeach
             </div>
+            <div class="mt-4 flex items-center justify-center gap-2 text-[11px] font-medium text-[#9a9384] xl:hidden">
+                <span>Geser untuk melihat lebih banyak</span>
+                <svg class="h-3.5 w-3.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5-5 5M6 7l5 5-5 5" />
+                </svg>
+            </div>
         @endif
     </section>
 
-        {{-- ============================================================
+    {{-- ============================================================
      4. PRODUK TERPOPULER (latar lembut)
      ============================================================ --}}
     <section class="section-soft border-y" style="border-color: var(--line-soft);">
@@ -653,27 +659,19 @@
                 </a>
             </div>
 
-            @php
-                $ambil = function ($item, array $kunci, $default = null) {
-                    foreach ($kunci as $k) {
-                        $v = data_get($item, $k);
-                        if ($v !== null && $v !== '') {
-                            return $v;
-                        }
-                    }
-                    return $default;
-                };
-
-                $angka = fn ($v) => (int) round((float) ($v ?? 0));
-            @endphp
-
-                        @if (count($produkTerpopuler) > 0)
-                        <div class="stagger mx-auto grid max-w-7xl grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 lg:grid-cols-5 items-stretch">
+            @if (count($produkTerpopuler) > 0)
+                <div class="stagger mx-auto max-w-7xl flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-3 pb-2 sm:gap-6 xl:grid xl:grid-cols-5 xl:overflow-visible xl:snap-none items-stretch">
                     @foreach ($produkTerpopuler as $index => $p)
-                        <div class="reveal h-full">
+                        <div class="reveal h-full shrink-0 w-[44%] sm:w-[31%] md:w-[24%] xl:w-auto snap-start">
                             <x-product-card :produk="$p" :peringkat="$index + 1" />
                         </div>
                     @endforeach
+                </div>
+                <div class="mt-4 flex items-center justify-center gap-2 text-[11px] font-medium text-[#9a9384] xl:hidden">
+                    <span>Geser untuk melihat lebih banyak</span>
+                    <svg class="h-3.5 w-3.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5-5 5M6 7l5 5-5 5" />
+                    </svg>
                 </div>
             @endif
         </div>
@@ -821,10 +819,10 @@
     {{-- ============================================================
      7. OFFLINE ATELIER
      ============================================================ --}}
-    <section class="reveal max-w-7xl mx-auto px-4 py-12 md:py-20">
-        <div class="rounded-3xl border p-6 md:p-12 bg-white transition-shadow duration-500 hover:shadow-xl"
+    <section class="reveal max-w-7xl mx-auto px-4 py-8 md:py-10">
+        <div class="rounded-2xl border p-5 md:p-7 bg-white transition-shadow duration-500 hover:shadow-xl"
             style="border-color: var(--line); box-shadow: var(--shadow-sm);">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div>
                     <p class="sec-eyebrow">Galeri &amp; Ruang Fitting</p>
                     <h2 class="sec-title mt-3">Offline Atelier &amp; Toko ALNAY.ID</h2>
@@ -844,7 +842,7 @@
 
                 <div class="relative rounded-2xl overflow-hidden group cursor-pointer border shadow-sm transition-shadow duration-500 hover:shadow-lg"
                     style="border-color: var(--line); z-index: 1;">
-                    <div id="peta-alnay" class="w-full h-[280px] md:h-[340px]"></div>
+                    <div id="peta-alnay" class="w-full h-[280px] md:h-[300px]"></div>
                 </div>
             </div>
         </div>

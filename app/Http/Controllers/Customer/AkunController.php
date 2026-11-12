@@ -104,7 +104,23 @@ class AkunController extends Controller
         $transaksi = Transaksi::with(['detail.produk', 'sewa.pengecekan', 'pembayaran', 'pengiriman'])
             ->where('user_id', auth()->id())
             ->findOrFail($id);
-        return view('customer.akun.pesanan-detail', compact('transaksi'));
+        $transaksi->load(['detail.produk', 'sewa.pengecekan', 'pembayaran', 'pengiriman']);
+
+$refund = \App\Models\Refund::where('transaksi_id', $transaksi->id)->first();
+
+$sudahFitting = \App\Models\ReservasiFitting::where('transaksi_id', $transaksi->id)
+    ->where('status', '!=', 'batal')
+    ->exists();
+
+$detailPertama = $transaksi->detail->first();
+$ratingDetailId = $detailPertama?->id;
+$sudahRating = $detailPertama
+    ? \App\Models\Rating::where('detail_transaksi_id', $detailPertama->id)->exists()
+    : true;
+
+return view('customer.akun.pesanan-detail', compact(
+    'transaksi', 'refund', 'sudahFitting', 'ratingDetailId', 'sudahRating'
+));
     }
 
     public function fitting()

@@ -241,7 +241,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)] gap-6 lg:gap-12">
 
                 {{-- ==================== KOLOM KIRI: GALERI ==================== --}}
-                <div class="lg:sticky lg:top-24 lg:self-start w-full max-w-[340px] sm:max-w-[380px] lg:max-w-[400px] mx-auto lg:mx-0">
+                <div class="lg:self-start w-full max-w-[340px] sm:max-w-[380px] lg:max-w-[400px] mx-auto lg:mx-0">
 
                     {{-- Gambar utama --}}
                     <div class="pd-up group relative aspect-[4/5] rounded-2xl overflow-hidden border border-line/40 shadow-sm lg:hover:shadow-2xl transition-shadow duration-500 touch-pan-y select-none"
@@ -332,6 +332,39 @@
                             @endif
                         </div>
                     @endif
+
+                    {{-- Deskripsi produk (di bawah gambar) --}}
+                    <div class="mt-5 rounded-2xl border border-line/40 bg-white/80 p-4 shadow-sm">
+                        <h2 class="font-display text-base font-semibold text-ink/90 mb-1">Deskripsi Produk</h2>
+                        <span class="block h-[2px] w-8 bg-gold/70 rounded-full mb-3"></span>
+
+                        <div class="space-y-2.5 text-[13px] text-ink/65 leading-relaxed">
+                                                        @foreach ($paragrafDeskripsi as $paragraf)
+                                @if (trim($paragraf) !== '')
+                                    <p>{{ preg_replace('/\s*\R\s*/', ' ', trim($paragraf)) }}</p>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Spesifikasi (di bawah deskripsi) --}}
+                    <div class="mt-4 rounded-2xl border border-line/40 bg-white/80 p-4 shadow-sm">
+                        <h3 class="font-display text-base font-semibold text-ink/90 mb-1">Spesifikasi</h3>
+                        @foreach (array_filter([
+                            ['Kode Produk', $produk->sku ?: '-'],
+                            ['Kategori', $produk->kategori->nama_kategori ?? '-'],
+                            ['Material', $toTeks($produk->bahan ?? '-')],
+                            ['Motif', $toTeks($produk->motif ?? '-')],
+                            ['Berat', $beratTeks],
+                            ['Ukuran Tersedia', $semuaUkuran ? implode(', ', $semuaUkuran) : 'All Size'],
+                            ['Warna', $semuaWarna ? implode(', ', $semuaWarna) : '-'],
+                        ], fn ($baris) => $baris[1] !== '-') as $baris)
+                            <div class="flex justify-between gap-4 py-2.5 text-[13px] border-b border-line/40 last:border-b-0">
+                                <span class="text-ink/55 shrink-0">{{ $baris[0] }}</span>
+                                <span class="text-ink/85 font-medium text-right">{{ $baris[1] }}</span>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
 
                 {{-- ==================== KOLOM KANAN: INFO & AKSI ==================== --}}
@@ -476,51 +509,87 @@
                                         
 
                     {{-- Varian Warna & Motif --}}
-                    <div x-show="adaWarna" x-cloak class="pd-up mb-6" style="--d: .33s;">
-                        <p class="mb-2.5 text-sm font-semibold text-ink/85">Varian Warna &amp; Motif</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="radiogroup" aria-label="Warna">
-                            <template x-for="w in warnaTampil" :key="jenis + '-' + ukuran + '-' + w.label">
-                                <label class="relative block" :class="habis(sisaWarna(w)) ? 'cursor-not-allowed' : 'cursor-pointer'">
-                                    <input type="radio" name="pilih_warna" :value="w.label" class="peer sr-only"
-                                        x-model="varianWarna" :disabled="habis(sisaWarna(w))">
-                                    <div class="flex items-center gap-3 rounded-xl border border-line/60 bg-white px-3 py-3 transition-all duration-200 hover:border-gold/60 peer-checked:border-gold peer-checked:bg-[#fdf8ec] peer-disabled:opacity-50">
-                                        <span class="w-9 h-9 shrink-0 rounded-md border border-black/10" :style="'background: ' + w.hex"></span>
-                                        <span class="min-w-0 flex-1">
-                                            <span class="block truncate text-[13px] font-medium text-ink/85" x-text="w.label"></span>
-                                            <span x-show="habis(sisaWarna(w))" x-cloak class="block text-[10px] font-medium text-rose-500">Stok Habis</span>
-                                        </span>
-                                    </div>
-                                </label>
-                            </template>
-                        </div>
-                    </div>
+<div x-show="adaWarna" x-cloak class="pd-up mb-6" style="--d: .33s;">
+    <p class="mb-2.5 text-sm font-semibold text-ink/85">Varian Warna &amp; Motif</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="radiogroup" aria-label="Warna">
+        <template x-for="w in warnaTampil" :key="jenis + '-' + w.label">
+            <label class="relative block" :class="habis(w.total) ? 'cursor-not-allowed' : 'cursor-pointer'">
+                <input type="radio" name="pilih_warna" :value="w.label" class="peer sr-only"
+                    :checked="varianWarna === w.label"
+                    :disabled="habis(w.total)"
+                    @change="pilihWarna(w.label)">
+                <div class="flex items-center gap-3 rounded-xl border border-line/60 bg-white px-3 py-3 transition-all duration-200 hover:border-gold/60 peer-checked:border-gold peer-checked:bg-[#fdf8ec] peer-disabled:opacity-50"
+                    :class="!w.ada ? 'opacity-60 border-dashed' : ''">
+                    <span class="w-9 h-9 shrink-0 rounded-md border border-black/10" :style="'background: ' + w.hex"></span>
+                    <span class="min-w-0 flex-1">
+                        <span class="block truncate text-[13px] font-medium text-ink/85" x-text="w.label"></span>
+                        <span x-show="keteranganWarna(w)" x-cloak class="block text-[10px] font-medium"
+                            :class="habis(w.total) ? 'text-rose-500' : 'text-amber-600'"
+                            x-text="keteranganWarna(w)"></span>
+                    </span>
+                </div>
+            </label>
+        </template>
+    </div>
+</div>
 
                     {{-- Ukuran --}}
-                    <div x-show="adaUkuran" x-cloak class="pd-up mb-6" style="--d: .3s;">
-                        <div class="flex items-center justify-between gap-3 mb-2.5">
-                            <p class="text-sm font-semibold text-ink/85">Ukuran</p>
-                            <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya butuh panduan ukur untuk ' . $produk->nama) }}"
-                                target="_blank" rel="noopener"
-                                class="text-xs font-semibold text-gold hover:underline">Panduan Ukur Mandiri</a>
-                        </div>
-                        <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Ukuran">
-                            <template x-for="o in set.ukuran" :key="jenis + '-' + o.label">
-                                <button type="button" role="radio" :aria-checked="ukuran === o.label" @click="ukuran = o.label"
-                                    :disabled="sisaUkuran(o) <= 0"
-                                    :title="sisaUkuran(o) <= 0 ? 'Stok habis' : (mode === 'sewa' ? labelSewa(o.label + '|') : 'Stok ' + sisaUkuran(o))"
-                                    :class="[ukuran === o.label ? 'bg-ink/90 text-gold border-ink/90 shadow-md' : 'bg-white text-ink/75 border-line/60 hover:border-gold hover:text-ink', sisaUkuran(o) <= 0 ? 'opacity-40 line-through cursor-not-allowed' : '']"
-                                    class="w-16 h-11 flex items-center justify-center rounded-lg border text-[13px] font-semibold active:scale-95 transition-all duration-200"
-                                    x-text="o.label"></button>
-                            </template>
-                            <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya ingin pesan ukuran custom untuk ' . $produk->nama) }}"
-                                target="_blank" rel="noopener"
-                                class="w-16 h-11 flex items-center justify-center rounded-lg border border-line/60 bg-white text-[12px] font-semibold text-ink/75 hover:border-gold hover:text-ink transition-all duration-200">Custom</a>
-                        </div>
-                    </div>
+<div x-show="adaUkuran" x-cloak class="pd-up mb-6" style="--d: .3s;">
+    <div class="flex items-center justify-between gap-3 mb-2.5">
+        <p class="text-sm font-semibold text-ink/85">Ukuran</p>
+        <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya butuh panduan ukur untuk ' . $produk->nama) }}"
+            target="_blank" rel="noopener"
+            class="text-xs font-semibold text-gold hover:underline">Panduan Ukur Mandiri</a>
+    </div>
+    <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Ukuran">
+        <template x-for="o in ukuranTampil" :key="jenis + '-' + o.label">
+            <button type="button" role="radio" :aria-checked="ukuran === o.label"
+                @click="pilihUkuran(o.label)"
+                :disabled="ukuranNonaktif(o)"
+                :title="!o.ada ? 'Tidak tersedia untuk warna ' + varianWarna : (sisaUkuran(o) <= 0 ? 'Stok habis' : (mode === 'sewa' ? 'Tersedia ' + sisaUkuran(o) + ' unit' : 'Stok ' + sisaUkuran(o)))"
+                :class="[
+                    ukuran === o.label ? 'bg-ink/90 text-gold border-ink/90 shadow-md' : 'bg-white text-ink/75 border-line/60 hover:border-gold hover:text-ink',
+                    !o.ada ? 'opacity-30 line-through cursor-not-allowed' : (sisaUkuran(o) <= 0 ? 'opacity-40 line-through cursor-not-allowed' : '')
+                ]"
+                class="w-16 h-11 flex items-center justify-center rounded-lg border text-[13px] font-semibold active:scale-95 transition-all duration-200"
+                x-text="o.label"></button>
+        </template>
+        <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya ingin pesan ukuran custom untuk ' . $produk->nama) }}"
+            target="_blank" rel="noopener"
+            class="w-16 h-11 flex items-center justify-center rounded-lg border border-line/60 bg-white text-[12px] font-semibold text-ink/75 hover:border-gold hover:text-ink transition-all duration-200">Custom</a>
+    </div>
+    <p x-show="varianWarna && ukuranTampil.some((o) => !o.ada)" x-cloak class="mt-2 text-[11px] text-ink/50">
+        Ukuran yang dicoret tidak tersedia untuk warna <b class="text-ink/70" x-text="varianWarna"></b>.
+    </p>
+</div>
 
                     {{-- ===== MODE SEWA: KALENDER ===== --}}
                     <div x-show="mode === 'sewa'" x-cloak class="pd-swap">
                         <div class="mb-6" id="kalender-sewa">
+                            {{-- Jumlah unit sewa --}}
+                            <div class="mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm">
+                                <div class="flex items-center justify-between gap-3 mb-3">
+                                    <p class="text-sm font-semibold text-ink/85">Jumlah Unit</p>
+                                    <p class="text-xs font-medium"
+                                        :class="maksJumlah <= 0 ? 'text-rose-500' : (maksJumlah <= 3 ? 'text-amber-600' : 'text-emerald-600')"
+                                        x-text="maksJumlah <= 0 ? 'Tidak ada unit tersedia' : (tanggalAmbil ? 'Maks. ' + maksJumlah + ' unit di tanggal terpilih' : 'Maks. ' + maksJumlah + ' unit')"></p>
+                                </div>
+                                <div class="flex items-center gap-4 flex-wrap">
+                                    <div class="inline-flex items-center gap-1 rounded-xl border border-line/50 bg-white p-1">
+                                        <button type="button" @click="kurangiJumlah()" :disabled="jumlah <= 1 || maksJumlah <= 0" aria-label="Kurangi jumlah"
+                                            class="w-10 h-10 rounded-lg flex items-center justify-center text-ink/60 hover:bg-cream hover:text-gold active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-ink/60 transition-all duration-200">−</button>
+                                        <span class="w-10 text-center text-sm font-semibold text-ink/85 tabular-nums" x-text="jumlah"></span>
+                                        <button type="button" @click="tambahJumlah()" :disabled="jumlah >= maksJumlah" aria-label="Tambah jumlah"
+                                            class="w-10 h-10 rounded-lg flex items-center justify-center text-ink/60 hover:bg-cream hover:text-gold active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-ink/60 transition-all duration-200">+</button>
+                                    </div>
+                                    <p class="text-xs text-ink/55" x-show="jumlah > 1" x-cloak>
+                                        Harga sewa dihitung per unit × <b class="text-ink/85" x-text="jumlah"></b>
+                                    </p>
+                                </div>
+                                <p x-show="maksJumlah > 0 && jumlah >= maksJumlah" x-cloak x-transition class="mt-2 text-[11px] text-amber-600">
+                                    Jumlah sudah mencapai unit maksimal yang tersedia.
+                                </p>
+                            </div>
                             <p class="flex items-center gap-2 text-sm font-semibold text-ink/85 mb-3">
                                 <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold"><span x-text="noTanggal"></span></span>
                                 Pilih Tanggal Sewa
@@ -631,8 +700,12 @@
                                     <span x-text="'Tambahan ' + (durasi - 1) + ' hari × ' + formatRupiah(tarifTambahan)"></span>
                                     <span class="tabular-nums text-ink/85" x-text="formatRupiah((durasi - 1) * tarifTambahan)"></span>
                                 </div>
+                                <div class="flex justify-between" x-show="jumlah > 1" x-cloak>
+                                    <span>Subtotal per unit</span>
+                                    <span class="tabular-nums text-ink/85" x-text="formatRupiah(totalSewaSatuan)"></span>
+                                </div>
                                 <div class="flex justify-between pt-1.5 border-t border-line/30 text-[13px] font-semibold text-ink/90">
-                                    <span>Total sewa</span>
+                                    <span x-text="jumlah > 1 ? 'Total sewa (' + jumlah + ' unit)' : 'Total sewa'"></span>
                                     <span class="tabular-nums" x-text="formatRupiah(totalSewa)"></span>
                                 </div>
                             </div>
@@ -705,14 +778,18 @@
                         <span class="font-semibold text-ink/85">Pilihanmu:</span>
                         <span x-show="adaUkuran" x-cloak class="px-2 py-0.5 rounded-md bg-white border border-line/40">Ukuran <b class="text-ink/90" x-text="ukuran"></b></span>
                         <span x-show="varianWarna" x-cloak class="px-2 py-0.5 rounded-md bg-white border border-line/40">Warna <b class="text-ink/90" x-text="varianWarna"></b></span>
-                        <span x-show="mode === 'beli'" x-cloak class="px-2 py-0.5 rounded-md bg-white border border-line/40">Jumlah <b class="text-ink/90" x-text="jumlah"></b></span>
+                        <span class="px-2 py-0.5 rounded-md bg-white border border-line/40">Jumlah <b class="text-ink/90" x-text="jumlah"></b></span>
                         <span x-show="mode === 'sewa'" x-cloak class="px-2 py-0.5 rounded-md border"
                             :class="durasi > 0 ? 'bg-white border-line/40' : 'bg-amber-50 border-amber-300 text-amber-700'">
                             <b class="font-semibold" x-text="durasi > 0 ? formatTanggal(tanggalAmbil) + ' – ' + formatTanggal(tanggalKembali) + ' (' + durasi + ' hari)' : 'Tanggal belum dipilih'"></b>
                         </span>
                     </div>
 
-                    {{-- Tombol aksi --}}
+                    <p x-show="catatan" x-cloak x-transition class="mb-4 -mt-1 text-[12px] leading-snug text-amber-700">
+    <span x-text="catatan"></span>
+</p>
+
+{{-- Tombol aksi --}}
                     <div x-ref="aksi" class="pd-up grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-stretch" style="--d: .4s;">
                         {{-- Tombol Sewa --}}
                         @if ($produk->bisa_disewa)
@@ -724,6 +801,7 @@
                                     <input type="hidden" name="tanggal_kembali" :value="tanggalKembali">
                                     <input type="hidden" name="ukuran" :value="ukuranKirim">
                                     <input type="hidden" name="warna" :value="varianWarna">
+                                    <input type="hidden" name="qty" :value="jumlah">
                                     <input type="hidden" name="durasi" :value="durasi">
                                     <input type="hidden" name="total_sewa" :value="totalSewa">
                                     <button type="submit" @click.prevent="kirimSewa()" :disabled="memuat || stok <= 0"
@@ -803,41 +881,6 @@
                 </div>
             </div>
 
-            {{-- ==================== DESKRIPSI & SPESIFIKASI ==================== --}}
-            <div class="mt-12 md:mt-16 grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-12">
-                <div class="lg:col-span-3">
-                    <h2 class="pd-reveal font-display text-xl md:text-2xl font-semibold text-ink/90 mb-1">Deskripsi Produk</h2>
-                    <span class="pd-reveal block h-[2px] w-10 bg-gold/70 rounded-full mb-4"></span>
-
-                    <div class="space-y-3 text-sm md:text-[15px] text-ink/65 leading-relaxed">
-                        @foreach ($paragrafDeskripsi as $i => $paragraf)
-                            @if (trim($paragraf) !== '')
-                                <p class="pd-reveal" style="--d: {{ $i * 0.08 }}s;">{{ preg_replace('/\s*\R\s*/', ' ', trim($paragraf)) }}</p>
-                            @endif
-                        @endforeach
-                    </div>
-                </div>
-
-                <div class="lg:col-span-2">
-                    <div class="pd-reveal rounded-2xl border border-line/40 bg-white/80 p-4 md:p-5 shadow-sm">
-                        <h3 class="font-display text-base font-semibold text-ink/90 mb-2">Spesifikasi</h3>
-                        @foreach (array_filter([
-                            ['Kode Produk', $produk->sku ?: '-'],
-                            ['Kategori', $produk->kategori->nama_kategori ?? '-'],
-                            ['Material', $toTeks($produk->bahan ?? '-')],
-                            ['Motif', $toTeks($produk->motif ?? '-')],
-                            ['Berat', $beratTeks],
-                            ['Ukuran Tersedia', $semuaUkuran ? implode(', ', $semuaUkuran) : 'All Size'],
-                            ['Warna', $semuaWarna ? implode(', ', $semuaWarna) : '-'],
-                        ], fn ($baris) => $baris[1] !== '-') as $baris)
-                            <div class="flex justify-between gap-4 py-3 px-2 -mx-2 rounded-md text-[13px] border-b border-line/40 last:border-b-0 hover:bg-cream/60 transition-colors duration-300">
-                                <span class="text-ink/55 shrink-0">{{ $baris[0] }}</span>
-                                <span class="text-ink/85 font-medium text-right">{{ $baris[1] }}</span>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
 
             {{-- Produk Serupa --}}
             @if ($serupa->count() > 0)
@@ -974,6 +1017,7 @@
                 gantiBulan: false,
                 arah: 1,
                 pesanTanggal: '',
+                catatan: '',
                 getar: false,
                 memuat: false,
                 barTampil: false,
@@ -985,14 +1029,20 @@
                 // Alpine memanggil init() otomatis
                 init() {
                     this.pilihDefault();
-                    this.$watch('mode', () => this.pilihDefault());
-                    this.$watch('ukuran', () => this.pilihWarnaDefault());
+                    this.$watch('mode', () => { this.jumlah = 1; this.pilihDefault(); });
                     this.$watch('kunciKetersediaan', () => this.bersihkanTanggal());
                     this.$watch('terkunci', (v) => { if (v) { this.tanggalAmbil = null; this.tanggalKembali = null; } });
                     this.$watch('totalSewa', (v) => this.tweenHarga(v || this.hargaSewaPerHari));
                     this.$watch('tanggalKembali', (v) => { if (v) this.pesanTanggal = ''; });
                     this.$watch('lightbox', (v) => { document.body.style.overflow = v ? 'hidden' : ''; });
-                    this.$watch('stok', (v) => { if (v > 0 && this.jumlah > v) this.jumlah = v; });
+                    this.$watch('maksJumlah', (v) => { if (v > 0 && this.jumlah > v) this.jumlah = v; });
+this.$watch('jumlah', () => {
+    const adaTanggal = !!this.tanggalAmbil;
+    this.bersihkanTanggal();
+    if (adaTanggal && !this.tanggalAmbil) {
+        this.pesanTanggal = 'Tanggal direset karena sisa unit tidak cukup untuk ' + this.jumlah + ' unit. Pilih tanggal lagi.';
+    }
+});
 
                     // Bar aksi mobile muncul hanya saat tombol aksi utama keluar dari layar
                     const aksi = this.$refs.aksi;
@@ -1012,7 +1062,7 @@
                     if (this.fotoUrls.length > 1) this.lightbox = true;
                 },
                 tutup() { this.lightbox = false; },
-                tambahJumlah() { if (this.jumlah < this.stok) this.jumlah++; },
+                tambahJumlah() { if (this.jumlah < this.maksJumlah) this.jumlah++; },
                 kurangiJumlah() { if (this.jumlah > 1) this.jumlah--; },
                 sentuhMulai(e) {
                     this._tx = e.changedTouches[0].clientX;
@@ -1084,6 +1134,10 @@
                         this.tanggalKembali = null;
                         return;
                     }
+                    if (this.jumlah > this.maksSewa) {
+                        this.pesanTanggal = 'Jumlah melebihi unit yang tersedia di tanggal ini.';
+                        return;
+                    }
                     if (!this.$refs.formSewa) return;
                     this.pesanTanggal = '';
                     this.memuat = true;
@@ -1112,6 +1166,10 @@
                         this.pesanTanggal = 'Ada tanggal yang sudah penuh dibooking di rentang ini. Pilih tanggal lain.';
                         this.tanggalAmbil = null;
                         this.tanggalKembali = null;
+                        return;
+                    }
+                    if (this.mode === 'sewa' && this.jumlah > this.maksSewa) {
+                        this.pesanTanggal = 'Jumlah melebihi unit yang tersedia di tanggal ini.';
                         return;
                     }
                     this.memuat = true;
@@ -1224,11 +1282,12 @@
                     return baris.length ? baris.join('\n') : null;
                 },
                 terpakai(t) { return (this.dataKal.hitung || {})[t] || 0; },
-                sebagian(t) { const n = this.terpakai(t); return n > 0 && n < this.dataKal.kapasitas; },
+                sebagian(t) { return this.terpakai(t) > 0 && !this.penuh(t); },
                 // Tanggal yang sudah penuh (semua unit terbooking)
                 get dibooking() {
                     const d = this.dataKal, h = d.hitung || {};
-                    return Object.keys(h).filter((t) => h[t] >= d.kapasitas).sort();
+                    const perlu = Math.max(1, this.jumlah);
+                    return Object.keys(h).filter((t) => h[t] > 0 && (d.kapasitas - h[t]) < perlu).sort();
                 },
                 rentangBentrok() {
                     if (!this.tanggalAmbil || !this.tanggalKembali) return false;
@@ -1244,13 +1303,111 @@
                 },
                 get adaUkuran() { return this.set.ukuran.length > 0; },
                 get barisUkuran() { return this.set.ukuran.find((u) => u.label === this.ukuran) || null; },
-                // Bila ukuran punya rincian warna, tampilkan warna + stoknya; kalau tidak, daftar warna produk
-                get warnaTampil() {
-                    const b = this.barisUkuran;
-                    if (b && b.warna.length) return b.warna;
-                    return this.set.warna.map((w) => ({ label: w.label, hex: w.hex, stok: null }));
-                },
+                
                 get adaWarna() { return this.warnaTampil.length > 0; },
+
+// Stok satu kombinasi ukuran + warna (sewa: dari ketersediaan tanggal, jual: dari data produk)
+stokKombinasi(u, w) {
+    if (this.mode === 'sewa') return this.sisaSewa(u + '|' + w);
+    const row = this.set.ukuran.find((x) => x.label === u);
+    const c = row ? row.warna.find((x) => x.label === w) : null;
+    return c ? c.stok : 0;
+},
+
+// Stok satu ukuran (sewa: jumlah dari semua warnanya)
+sisaUkuran(o) {
+    if (this.mode !== 'sewa') return o.stok;
+    if (!o.warna.length) return this.sisaSewa(o.label + '|');
+    return o.warna.reduce((n, w) => n + this.stokKombinasi(o.label, w.label), 0);
+},
+
+// Apakah produk punya stok warna yang berbeda per ukuran
+get warnaPerUkuran() {
+    return this.set.ukuran.some((u) => u.warna.length > 0);
+},
+
+// Daftar warna gabungan dari semua ukuran.
+// ada   = warna ini punya rincian di ukuran yang sedang dipilih
+// total = stok warna ini di semua ukuran (null bila warna berlaku umum)
+get warnaTampil() {
+    if (!this.warnaPerUkuran) {
+        return this.set.warna.map((w) => ({ label: w.label, hex: w.hex, ada: true, stok: null, total: null }));
+    }
+    const row = this.barisUkuran;
+    const gabungan = new Map();
+    this.set.ukuran.forEach((u) => u.warna.forEach((w) => {
+        if (!gabungan.has(w.label)) gabungan.set(w.label, w.hex);
+    }));
+    return [...gabungan].map(([label, hex]) => {
+        const ada = !!row && row.warna.some((w) => w.label === label);
+        return {
+            label,
+            hex,
+            ada,
+            stok: ada ? this.stokKombinasi(this.ukuran, label) : null,
+            total: this.set.ukuran.reduce((n, u) => n + this.stokKombinasi(u.label, label), 0),
+        };
+    });
+},
+
+// Daftar ukuran. ada = ukuran ini tersedia untuk warna yang sedang dipilih.
+get ukuranTampil() {
+    return this.set.ukuran.map((u) => ({
+        ...u,
+        ada: !this.warnaPerUkuran
+            || !this.varianWarna
+            || u.warna.length === 0
+            || this.stokKombinasi(u.label, this.varianWarna) > 0,
+    }));
+},
+
+ukuranNonaktif(o) {
+    return !o.ada || this.sisaUkuran(o) <= 0;
+},
+
+keteranganWarna(w) {
+    if (w.total !== null && w.total <= 0) return 'Stok Habis';
+    if (w.total !== null && (!w.ada || this.habis(w.stok))) return 'Tersedia di ukuran lain · klik untuk pindah';
+    return '';
+},
+
+// Klik ukuran: hanya bisa dipilih bila tersedia untuk warna terpilih
+pilihUkuran(label) {
+    const o = this.ukuranTampil.find((x) => x.label === label);
+    if (!o || this.ukuranNonaktif(o)) return;
+    this.catatan = '';
+    this.ukuran = label;
+},
+
+// Klik warna: bila warna tidak ada / habis di ukuran aktif, ukuran pindah ke yang punya stok
+pilihWarna(label) {
+    this.catatan = '';
+    const row = this.barisUkuran;
+    if (this.warnaPerUkuran) {
+        const adaDiSini = !!row && row.warna.some((w) => w.label === label);
+        const stokDiSini = adaDiSini ? this.stokKombinasi(row.label, label) : 0;
+        if (!adaDiSini || stokDiSini <= 0) {
+            const cari = (u) => u.warna.some((w) => w.label === label);
+            const tujuan = this.set.ukuran.find((u) => cari(u) && this.stokKombinasi(u.label, label) > 0)
+                || this.set.ukuran.find(cari);
+            if (!tujuan) return;
+            if (tujuan.label !== this.ukuran) {
+                this.catatan = 'Ukuran disesuaikan ke ' + tujuan.label + ' karena warna ' + label
+                    + ' ' + (adaDiSini ? 'habis' : 'tidak tersedia') + ' di ukuran ' + this.ukuran + '.';
+                this.ukuran = tujuan.label;
+            }
+        }
+    }
+    this.varianWarna = label;
+},
+
+// Pilih warna default yang masih ada stoknya di ukuran aktif
+pilihWarnaDefault() {
+    const tersedia = this.warnaTampil.filter((w) => w.ada && !this.habis(w.stok));
+    if (tersedia.some((w) => w.label === this.varianWarna)) return;
+    const pertama = tersedia[0] || this.warnaTampil.find((w) => w.ada);
+    this.varianWarna = pertama ? pertama.label : '';
+},
                 get ukuranKirim() { return this.adaUkuran ? this.ukuran : 'All Size'; },
                 get noWarna() { return this.adaUkuran ? 2 : 1; },
                 get noTanggal() { return (this.adaUkuran ? 1 : 0) + (this.adaWarna ? 1 : 0) + 1; },
@@ -1264,12 +1421,7 @@
                     this.varianWarna = '';
                     this.pilihWarnaDefault();
                 },
-                pilihWarnaDefault() {
-                    const daftar = this.warnaTampil;
-                    if (daftar.some((w) => w.label === this.varianWarna && !this.habis(this.sisaWarna(w)))) return;
-                    const pertama = daftar.find((w) => !this.habis(this.sisaWarna(w))) || daftar[0];
-                    this.varianWarna = pertama ? pertama.label : '';
-                },
+                
 
                 // Stok yang berlaku: warna terpilih (bila ada rincian) > ukuran terpilih > total set
                 // Sewa: unit TERSEDIA = kapasitas dikurangi unit terbooking terbanyak pada rentang terpilih
@@ -1285,13 +1437,27 @@
                     const keluar = (d.rentang || []).reduce((n, r) => n + (Number(r.jumlah) || 0), 0);
                     return Math.max(0, d.kapasitas - keluar);
                 },
-                sisaUkuran(o) { return this.mode === 'sewa' ? this.sisaSewa(o.label + '|') : o.stok; },
-                sisaWarna(w) {
-                    if (w.stok === null) return null;
-                    return this.mode === 'sewa' ? this.sisaSewa(this.ukuran + '|' + w.label) : w.stok;
+            
+                // Unit maksimal yang bisa disewa pada rentang terpilih
+                // (kapasitas dikurangi unit terbooking TERBANYAK di salah satu hari dalam rentang)
+                get maksSewa() {
+                    const d = this.dataKal;
+                    const kap = d.kapasitas || 0;
+                    if (!this.tanggalAmbil) return kap;
+                    const h = d.hitung || {};
+                    const akhir = this.tanggalKembali || this.tanggalAmbil;
+                    let terbanyak = 0, t = this.tanggalAmbil;
+                    while (t <= akhir) {
+                        terbanyak = Math.max(terbanyak, h[t] || 0);
+                        t = this.tambahHari(t, 1);
+                    }
+                    return Math.max(0, kap - terbanyak);
+                },
+                get maksJumlah() {
+                    return this.mode === 'sewa' ? (this.terkunci ? 0 : this.maksSewa) : this.stok;
                 },
                 get stok() {
-                    if (this.mode === 'sewa') return this.terkunci ? 0 : this.sisaSewa(this.kunciKetersediaan);
+                    if (this.mode === 'sewa') return this.terkunci ? 0 : this.maksSewa;
                     const b = this.barisUkuran;
                     if (!b) return this.set.stok;
                     if (b.warna.length && this.varianWarna) {
@@ -1349,9 +1515,10 @@
                 lalu(t) {
                     return t < this.hariIni;
                 },
+                // "Penuh" = sisa unit di tanggal itu kurang dari jumlah yang diminta
                 penuh(t) {
                     const n = this.terpakai(t);
-                    return n > 0 && n >= this.dataKal.kapasitas;
+                    return n > 0 && (this.dataKal.kapasitas - n) < Math.max(1, this.jumlah);
                 },
                 nonaktif(t) {
                     return this.lalu(t) || this.penuh(t);
@@ -1370,7 +1537,7 @@
                     if (this.lalu(t) || this.terkunci) return;
                     if (this.penuh(t)) {
                         // Tanggal merah: tidak bisa dipilih, beri tahu alasannya
-                        this.pesanTanggal = this.formatTanggal(t) + ' sudah disewa (semua unit pilihan ini terpakai). Pilih tanggal lain.';
+                        this.pesanTanggal = this.formatTanggal(t) + ' tidak punya cukup unit untuk ' + this.jumlah + ' unit. Kurangi jumlah atau pilih tanggal lain.';
                         return;
                     }
                     this.pesanTanggal = '';
@@ -1399,10 +1566,11 @@
                     const b = new Date(this.tanggalKembali);
                     return Math.max(0, Math.ceil((b - a) / (1000 * 60 * 60 * 24)));
                 },
-                get totalSewa() {
+                get totalSewaSatuan() {
                     if (this.durasi === 0) return 0;
                     return this.hargaSewaPerHari + (Math.max(0, this.durasi - 1) * this.tarifTambahan);
                 },
+                get totalSewa() { return this.totalSewaSatuan * this.jumlah; },
                 get totalBeli() {
                     return this.hargaJual * this.jumlah;
                 },
