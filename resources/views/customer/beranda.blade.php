@@ -1010,66 +1010,104 @@
                 </div>
             </div>
 
-            @if (count($testimoni) > 0)
-                <div class="stagger grid grid-cols-1 gap-6 md:grid-cols-3">
-                    @foreach ($testimoni as $t)
-                        @php
-                            $inisial = strtoupper(mb_substr($t['nama'], 0, 2));
-                        @endphp
-
-                        <div
-                            class="reveal card-soft relative overflow-hidden group flex flex-col justify-between p-5 sm:p-6 md:p-7 min-h-[200px]">
-
-                            @if (!empty($t['foto']))
-                                <div class="absolute top-0 right-0 bottom-0 w-[55%] z-0">
-                                    <div class="absolute inset-0 overflow-hidden"
-                                        style="-webkit-mask-image: linear-gradient(to left, black 40%, transparent 95%); mask-image: linear-gradient(to left, black 40%, transparent 95%);">
-                                        <img src="{{ $t['foto'] }}" alt="Produk"
-                                            class="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105">
-                                    </div>
-                                </div>
-                            @endif
-
-                            <div
-                                class="relative z-20 w-full md:w-[60%] flex flex-col justify-between h-full">
-                                <div>
-                                    <div class="stars" role="img" aria-label="Rating {{ $t['bintang'] }} dari 5">
-                                        @for ($i = 1; $i <= 5; $i++)
-                                            <svg class="ico {{ $i <= $t['bintang'] ? 'on' : 'off' }}" aria-hidden="true">
-                                                <use href="#i-star" />
-                                            </svg>
-                                        @endfor
-                                    </div>
-
-                                    <p class="mt-3 text-[13px] sm:text-sm leading-relaxed italic text-gray-700 line-clamp-3">
-                                        "{{ $t['teks'] }}"</p>
-                                </div>
-
-                                <div class="mt-5 pt-4 flex items-center gap-3 border-t"
-                                    style="border-color: var(--line-soft);">
-                                    <div class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold shadow-sm overflow-hidden border"
-                                        style="background-color: var(--gold-bg); color: var(--gold); border-color: rgba(201,154,50,.2);">
-                                        {{ $inisial }}
-                                        @if (!empty($t['foto_user']))
-                                            @php
-                                                $fotoUser = \Illuminate\Support\Str::startsWith($t['foto_user'], ['http://', 'https://'])
-                                                    ? $t['foto_user']
-                                                    : asset('storage/' . $t['foto_user']);
-                                            @endphp
-                                            <img src="{{ $fotoUser }}" alt="{{ $t['nama'] }}"
-                                                class="absolute inset-0 w-full h-full object-cover">
+                        @if (count($testimoni) > 0)
+                {{-- Slider Testimoni dengan Alpine.js --}}
+                <div class="relative" x-data="{
+                    active: 0,
+                    total: {{ count($testimoni) }},
+                    get perPage() {
+                        return window.innerWidth >= 1024 ? 3 : (window.innerWidth >= 768 ? 2 : 1);
+                    },
+                    get maxIndex() {
+                        return Math.max(0, this.total - this.perPage);
+                    },
+                    next() {
+                        this.active = this.active >= this.maxIndex ? 0 : this.active + 1;
+                    },
+                    prev() {
+                        this.active = this.active <= 0 ? this.maxIndex : this.active - 1;
+                    },
+                    init() {
+                        // Otomatis geser setiap 5 detik
+                        setInterval(() => this.next(), 5000);
+                        // Perbaiki posisi jika layar di-resize
+                        window.addEventListener('resize', () => {
+                            if (this.active > this.maxIndex) this.active = 0;
+                        });
+                    }
+                }">
+                    
+                    {{-- Container Track --}}
+                    <div class="overflow-hidden -mx-3 md:-mx-4">
+                        <div class="flex transition-transform duration-500 ease-in-out" 
+                             :style="`transform: translateX(-${active * (100 / perPage)}%)`">
+                            
+                            @foreach ($testimoni as $t)
+                                @php $inisial = strtoupper(mb_substr($t['nama'], 0, 2)); @endphp
+                                <div class="w-full md:w-1/2 lg:w-1/3 shrink-0 px-3 md:px-4 pb-4">
+                                    
+                                    {{-- KARTU TESTIMONI (Sama seperti aslinya) --}}
+                                    <div class="reveal card-soft relative overflow-hidden group flex flex-col justify-between p-5 sm:p-6 md:p-7 min-h-[200px] h-full shadow-sm hover:shadow-md transition-shadow">
+                                        @if (!empty($t['foto']))
+                                            <div class="absolute top-0 right-0 bottom-0 w-[55%] z-0">
+                                                <div class="absolute inset-0 overflow-hidden" style="-webkit-mask-image: linear-gradient(to left, black 40%, transparent 95%); mask-image: linear-gradient(to left, black 40%, transparent 95%);">
+                                                    <img src="{{ $t['foto'] }}" alt="Produk" class="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105">
+                                                </div>
+                                            </div>
                                         @endif
+
+                                        <div class="relative z-20 w-full md:w-[60%] flex flex-col justify-between h-full">
+                                            <div>
+                                                <div class="stars" role="img" aria-label="Rating {{ $t['bintang'] }} dari 5">
+                                                    @for ($i = 1; $i <= 5; $i++)
+                                                        <svg class="ico {{ $i <= $t['bintang'] ? 'on' : 'off' }}" aria-hidden="true"><use href="#i-star" /></svg>
+                                                    @endfor
+                                                </div>
+                                                <p class="mt-3 text-[13px] sm:text-sm leading-relaxed italic text-gray-700 line-clamp-3">"{{ $t['teks'] }}"</p>
+                                            </div>
+                                            <div class="mt-5 pt-4 flex items-center gap-3 border-t" style="border-color: var(--line-soft);">
+                                                <div class="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold shadow-sm overflow-hidden border" style="background-color: var(--gold-bg); color: var(--gold); border-color: rgba(201,154,50,.2);">
+                                                    {{ $inisial }}
+                                                    @if (!empty($t['foto_user']))
+                                                        @php $fotoUser = \Illuminate\Support\Str::startsWith($t['foto_user'], ['http://', 'https://']) ? $t['foto_user'] : asset('storage/' . $t['foto_user']); @endphp
+                                                        <img src="{{ $fotoUser }}" alt="{{ $t['nama'] }}" class="absolute inset-0 w-full h-full object-cover">
+                                                    @endif
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <p class="text-[13px] font-bold truncate" style="color: var(--ink);">{{ $t['nama'] }}</p>
+                                                    <p class="text-[10px] mt-0.5 text-gray-500 truncate">{{ $t['konteks'] }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div class="min-w-0">
-                                        <p class="text-[13px] font-bold truncate" style="color: var(--ink);">
-                                            {{ $t['nama'] }}</p>
-                                        <p class="text-[10px] mt-0.5 text-gray-500 truncate">{{ $t['konteks'] }}</p>
-                                    </div>
                                 </div>
-                            </div>
+                            @endforeach
+                            
                         </div>
-                    @endforeach
+                    </div>
+
+                    {{-- Tombol Navigasi (Kiri & Kanan) --}}
+                    @if(count($testimoni) > 1)
+                        <div class="flex items-center justify-center gap-2 mt-6">
+                            <button type="button" @click="prev()" class="w-10 h-10 rounded-full bg-white border border-line flex items-center justify-center text-ink/60 hover:text-gold hover:border-gold transition-colors shadow-sm">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            </button>
+                            
+                            {{-- Indikator Titik --}}
+                            <div class="flex items-center gap-1.5 mx-2">
+                                <template x-for="i in (maxIndex + 1)" :key="i">
+                                    <button type="button" @click="active = i - 1" class="h-2 rounded-full transition-all duration-300" 
+                                            :class="active === (i - 1) ? 'w-6 bg-gold' : 'w-2 bg-gray-300 hover:bg-gray-400'"></button>
+                                </template>
+                            </div>
+
+                            <button type="button" @click="next()" class="w-10 h-10 rounded-full bg-white border border-line flex items-center justify-center text-ink/60 hover:text-gold hover:border-gold transition-colors shadow-sm">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+                    @endif
+                    
                 </div>
             @endif
         </div>
