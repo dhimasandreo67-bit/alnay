@@ -21,6 +21,7 @@ class SinkronAlamatUtama
 
         if (! $alamat) {
             if ($kosongkanBilaTidakAda) {
+                // no_hp sengaja tidak dikosongkan: itu nomor akun, bukan hanya alamat
                 $user->forceFill([
                     'alamat'         => null,
                     'provinsi'       => null,
@@ -42,6 +43,8 @@ class SinkronAlamatUtama
             'kota_nama'      => $alamat->kota_kabupaten,
             'kecamatan'      => $alamat->kecamatan,
             'kode_pos'       => $alamat->kode_pos,
+            // Nomor HP user mengikuti alamat utama; kalau nomor alamat kosong, pakai nomor lama
+            'no_hp'          => $alamat->no_hp ?: $user->no_hp,
         ])->saveQuietly();
     }
 }
