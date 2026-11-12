@@ -14,7 +14,7 @@
     @if ($fitting)
         @php
             $st = strtolower($fitting->status);
-            $labelStatus = ['pending' => 'Menunggu konfirmasi', 'disetujui' => 'Disetujui', 'hadir' => 'Selesai'][$st] ?? ucfirst($st);
+            $labelStatus = $st === 'hadir' ? 'Selesai' : 'Terjadwal';
         @endphp
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-emerald-100 bg-emerald-50/40">
             <div>
@@ -26,6 +26,9 @@
                     @endif
                 </p>
                 <p class="text-[11px] text-ink/50 mt-0.5">{{ $fitting->kode_booking }}</p>
+                @if ($st !== 'hadir')
+                    <p class="text-[11px] text-emerald-700 mt-1">Silakan datang ke toko sesuai jadwal ini.</p>
+                @endif
             </div>
             <div class="flex gap-2 shrink-0">
                 <a href="{{ route('fitting.show', $fitting->id) }}" class="px-4 py-2 rounded-lg bg-white border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-50 transition-colors">Lihat Detail</a>
