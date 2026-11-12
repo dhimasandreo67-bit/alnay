@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\AlamatPengiriman;
 use App\Services\ImageOptimizer;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -45,6 +46,13 @@ class ProfilController extends Controller
 
         unset($data['foto']);
         $user->update($data);
+
+        // Sinkron dua arah: no_hp profil ikut mengubah no_hp alamat utama
+        if (filled($user->no_hp)) {
+            AlamatPengiriman::where('user_id', $user->id)
+                ->where('is_utama', true)
+                ->update(['no_hp' => $user->no_hp]);
+        }
 
         return redirect(route('akun.dashboard') . '#profil')
             ->with('success', 'Profil berhasil diperbarui.');
