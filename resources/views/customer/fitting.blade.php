@@ -47,6 +47,8 @@
             'slotJam' => $slotJam,
             'slotTerisi' => $slotTerisi,
             'kapasitas' => $kapasitas ?? 2,
+            'slotTutup' => $slotTutup ?? [],
+            'tanggalTutup' => $tanggalTutup ?? [],
             'nama' => auth()->user()->name ?? '',
             'noWa' => auth()->user()->no_hp ?? '',
             'produkDefault' => $produkDefault,
@@ -144,6 +146,24 @@
                     </div>
                 </div>
 
+                @php
+                    $batalToko = $transaksi->reservasiFitting
+                        ->where('status', 'batal')->where('dibatalkan_oleh', 'admin')
+                        ->sortByDesc('updated_at')->first();
+                @endphp
+                @if ($batalToko && ! $transaksi->fittingAktif())
+                    <div class="pd-up bg-rose-50 border border-rose-200 rounded-lg p-4 mb-4 flex gap-3" style="--d: .11s;">
+                        <div class="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0"></div>
+                        <div>
+                            <p class="text-[11px] font-semibold text-rose-800 mb-0.5">Jadwal fitting sebelumnya dibatalkan oleh toko</p>
+                            <p class="text-[11px] text-rose-700/80 leading-relaxed">
+                                @if ($batalToko->alasan_batal) {{ $batalToko->alasan_batal }}. @endif
+                                Mohon maaf atas ketidaknyamanannya, silakan pilih jadwal baru di bawah.
+                            </p>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="pd-up bg-emerald-50 border border-emerald-200/50 rounded-lg p-4 mb-6 flex gap-3" style="--d: .12s;">
                     <div class="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0 pd-pulse"></div>
                     <div>
@@ -219,7 +239,7 @@
                                 <button type="button" @click="pilihJam(jam)" :disabled="!tanggalDipilih || !bisaJam(jam)" :class="kelasJam(jam)" class="h-[62px] rounded-md border flex flex-col items-center justify-center transition-all duration-300 hover:-translate-y-0.5 active:scale-95">
                                     <span class="text-[13px] font-semibold tabular-nums" x-text="jam"></span>
                                     <span class="text-[9px] mt-0.5" x-text="labelJam(jam)"></span>
-                                    <span x-show="tanggalDipilih" class="flex gap-1 mt-1">
+                                    <span x-show="tanggalDipilih && !jamTutup(jam)" class="flex gap-1 mt-1">
                                         <template x-for="n in kapasitas" :key="n">
                                             <span class="w-1.5 h-1.5 rounded-full" :class="n <= terisi(jam) ? 'bg-rose-400' : 'bg-emerald-400'"></span>
                                         </template>
@@ -236,7 +256,7 @@
                         </div>
 
                         <p x-show="semuaTidakTersedia" x-cloak class="mt-3 p-2.5 rounded-md bg-amber-50 border border-amber-200 text-[11px] text-amber-800">
-                            Semua jam di tanggal ini sudah penuh atau terlewat. Silakan pilih tanggal lain.
+                            Semua jam di tanggal ini sudah penuh, ditutup, atau terlewat. Silakan pilih tanggal lain.
                         </p>
                         <p x-show="!tanggalDipilih" class="text-[10px] text-ink/40 mt-3">Pilih tanggal dulu untuk melihat ketersediaan jam.</p>
                     </div>
@@ -367,6 +387,8 @@
                     slotJam: cfg.slotJam,
                     slotTerisi: cfg.slotTerisi,
                     kapasitas: cfg.kapasitas,
+                    slotTutup: cfg.slotTutup,
+                    tanggalTutup: cfg.tanggalTutup,
                     tanggalMaksimal: cfg.tanggalMaksimal,
                     tanggalDipilih: null,
                     jamDipilih: null,
@@ -419,7 +441,7 @@
                     },
 
                     lalu(t) { return t < this.hariIni; },
-                    penuh(t) { return this.tanggalPenuh.includes(t); },
+                    penuh(t) { return this.tanggalPenuh.includes(t) || this.tanggalTutup.includes(t); },
                     nonaktif(t) {
                         if (this.tanggalMaksimal && t > this.tanggalMaksimal) return true;
                         return this.lalu(t) || this.penuh(t);
@@ -453,13 +475,18 @@
                         const skrg = new Date();
                         return (h * 60 + m) <= (skrg.getHours() * 60 + skrg.getMinutes());
                     },
-                    bisaJam(jam) { return !this.jamTerisi(jam) && !this.jamLewat(jam); },
+                    jamTutup(jam) {
+                        const hari = this.slotTutup[this.tanggalDipilih];
+                        return !!(hari && hari[jam]);
+                    },
+                    bisaJam(jam) { return !this.jamTutup(jam) && !this.jamTerisi(jam) && !this.jamLewat(jam); },
                     get semuaTidakTersedia() {
                         return !!this.tanggalDipilih && this.slotJam.every((j) => !this.bisaJam(j));
                     },
 
                     labelJam(jam) {
                         if (!this.tanggalDipilih) return '—';
+                        if (this.jamTutup(jam)) return 'Ditutup';
                         if (this.jamLewat(jam)) return 'Sudah lewat';
                         if (this.jamTerisi(jam)) return 'Penuh';
                         if (this.terisi(jam) === 0) return 'Kosong';
@@ -468,7 +495,7 @@
 
                     kelasJam(jam) {
                         if (this.jamDipilih === jam) return 'bg-ink/90 text-gold border-ink/90';
-                        if (!this.tanggalDipilih || this.jamLewat(jam)) return 'bg-cream/60 text-ink/30 border-line/30 cursor-not-allowed';
+                        if (!this.tanggalDipilih || this.jamTutup(jam) || this.jamLewat(jam)) return 'bg-cream/60 text-ink/30 border-line/30 cursor-not-allowed';
                         if (this.jamTerisi(jam)) return 'bg-rose-50 text-rose-400 border-rose-100 cursor-not-allowed';
                         if (this.sisa(jam) < this.kapasitas) return 'bg-amber-50 text-amber-800 border-amber-200 hover:border-gold/60';
                         return 'bg-white text-ink/70 border-line/50 hover:border-gold/50 hover:text-ink/90';
