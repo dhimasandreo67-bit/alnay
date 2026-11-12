@@ -35,7 +35,7 @@
     $adaFilter = filled(request('search')) || filled(request('tanggal')) || $status !== 'semua';
 @endphp
 
-<div class="p-6 space-y-6 transition-all duration-500 animate-fade-in relative">
+<div class="space-y-6 transition-all duration-500 animate-fade-in relative">
 
     {{-- CONTAINER TOAST NOTIFIKASI (Dari kode Anda) --}}
     <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3"></div>
@@ -182,7 +182,7 @@
         </div>
 
         <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center justify-between text-[11px] text-gray-500">
+            <div class="px-5 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center justify-between text-[11px] text-gray-500">
                 <span>
                     @if (method_exists($reservasis, 'total'))
                         Menampilkan <b class="text-gray-700">{{ $reservasis->count() }}</b> dari <b class="text-gray-700">{{ $reservasis->total() }}</b> reservasi
@@ -200,19 +200,18 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-100">
-                    <thead class="bg-gray-50/80">
+                <table class="w-full min-w-[960px] text-left">
+                    <thead class="bg-gray-50/80 border-b border-gray-100">
                         <tr>
-                            {{-- CHECKBOX SELECT ALL (Dari kode Anda) --}}
-                            <th class="px-6 py-4 text-left w-10">
-                                <input type="checkbox" id="selectAll" class="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 cursor-pointer">
+                            <th class="pl-5 pr-0 py-3 w-9">
+                                <input type="checkbox" id="selectAll" class="w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 cursor-pointer" aria-label="Pilih semua">
                             </th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Pelanggan</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Jadwal</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Busana yang Disewa</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Kode Booking</th>
-                            <th class="px-6 py-4 text-left text-[11px] font-bold text-gray-400 uppercase">Status</th>
-                            <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase">Aksi</th>
+                            <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Pelanggan</th>
+                            <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Jadwal</th>
+                            <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap w-full">Busana yang Disewa</th>
+                            <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Kode Booking</th>
+                            <th class="px-3 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Status</th>
+                            <th class="px-3 pr-5 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100/80 bg-white">
@@ -279,141 +278,149 @@
                                         . '. Silakan pilih jadwal fitting baru di ' . url('/fitting') . '. Terima kasih.'
                                     : "Halo {$namaPelanggan}, pengingat jadwal fitting Anda di Toko ALNAY: {$tglTeks} pukul {$jam} WIB (kode {$r->kode_booking}). Sampai jumpa!";
                             @endphp
-                            <tr id="baris-{{ $r->id }}" class="hover:bg-amber-50/30 transition-colors align-top row-data" data-id="{{ $r->id }}">
-                                
-                                {{-- CHECKBOX PER BARIS (Dari kode Anda) --}}
-                                <td class="px-6 py-4">
+                            <tr id="baris-{{ $r->id }}" class="hover:bg-amber-50/30 transition-colors align-middle row-data" data-id="{{ $r->id }}">
+
+                                {{-- Checkbox --}}
+                                <td class="pl-5 pr-0 py-3">
                                     @if($r->status !== 'hadir')
-                                        <input type="checkbox" value="{{ $r->id }}" class="row-checkbox w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 cursor-pointer">
+                                        <input type="checkbox" value="{{ $r->id }}" class="row-checkbox w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 cursor-pointer" aria-label="Pilih {{ $r->kode_booking }}">
                                     @else
                                         <input type="checkbox" disabled title="Data hadir tidak bisa dihapus" class="w-4 h-4 text-gray-300 bg-gray-100 border-gray-200 rounded cursor-not-allowed">
                                     @endif
                                 </td>
 
                                 {{-- Pelanggan --}}
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-3">
+                                <td class="px-3 py-3">
+                                    <div class="flex items-center gap-2.5">
                                         @if($fotoUserUrl)
-                                            <img src="{{ $fotoUserUrl }}" alt="{{ $namaPelanggan }}" class="h-10 w-10 shrink-0 rounded-2xl object-cover border border-gray-200">
+                                            <img src="{{ $fotoUserUrl }}" alt="{{ $namaPelanggan }}" class="h-9 w-9 shrink-0 rounded-xl object-cover border border-gray-200">
                                         @else
-                                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
+                                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
                                         @endif
                                         <div class="min-w-0">
-                                            <p class="text-sm font-bold text-gray-900 truncate">{{ $namaPelanggan }}</p>
-                                            <p class="text-xs text-gray-500">{{ $r->user->no_hp ?? '-' }}</p>
+                                            <p class="text-[13px] font-bold text-gray-900 truncate max-w-[150px]" title="{{ $namaPelanggan }}">{{ $namaPelanggan }}</p>
+                                            <p class="text-[11px] text-gray-500 whitespace-nowrap">{{ $r->user->no_hp ?? '-' }}</p>
                                         </div>
                                     </div>
                                 </td>
 
                                 {{-- Jadwal --}}
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-bold text-gray-800">{{ $tgl ? $tgl->format('d M Y') : '-' }}</div>
-                                    <div class="text-[11px] text-amber-600 font-bold">{{ $jam }} WIB</div>
-                                    @if ($hariIni && $terjadwal)
-                                        <span class="inline-block mt-1 px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-black uppercase tracking-wider">Hari ini</span>
-                                    @endif
+                                <td class="px-3 py-3 whitespace-nowrap">
+                                    <div class="text-[13px] font-bold text-gray-800">{{ $tgl ? $tgl->format('d M Y') : '-' }}</div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-[11px] text-amber-600 font-bold">{{ $jam }} WIB</span>
+                                        @if ($hariIni && $terjadwal)
+                                            <span class="px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-black uppercase tracking-wider">Hari ini</span>
+                                        @endif
+                                    </div>
                                 </td>
 
-                                {{-- Busana --}}
-                                <td class="px-6 py-4">
+                                {{-- Busana: ringkas, foto di kiri, info sejajar --}}
+                                <td class="px-3 py-3">
                                     @if (count($busana))
-                                        <div class="space-y-2">
+                                        <div class="space-y-1.5">
                                             @foreach (array_slice($busana, 0, 3) as $b)
                                                 <div class="flex items-center gap-2.5">
-                                                    <div class="relative h-11 w-11 shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                                                    <div class="relative h-10 w-10 shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
                                                         @if ($b['foto'])
-                                                            <img src="{{ $b['foto'] }}" alt="{{ $b['nama'] }}" loading="lazy" class="relative z-10 h-full w-full object-cover bg-white"
-                                                                 onerror="this.remove()">
+                                                            <img src="{{ $b['foto'] }}" alt="{{ $b['nama'] }}" loading="lazy" class="relative z-10 h-full w-full object-cover bg-white" onerror="this.remove()">
                                                         @endif
                                                         <svg class="w-4 h-4 text-gray-300 absolute inset-0 m-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4-4a3 3 0 014 0l4 4m-2-2l1-1a3 3 0 014 0l2 2M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/></svg>
                                                     </div>
-                                                    <div class="min-w-0">
-                                                        <p class="text-[13px] font-bold text-gray-800 truncate max-w-[200px]">{{ $b['nama'] }}</p>
-                                                        <div class="flex flex-wrap gap-1 mt-0.5">
+                                                    <div class="min-w-0 flex-1">
+                                                        <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                                                            <span class="text-[13px] font-bold text-gray-800 truncate max-w-[200px]" title="{{ $b['nama'] }}">{{ $b['nama'] }}</span>
                                                             @if ($b['ukuran'])
-                                                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-semibold text-gray-600">Ukuran {{ $b['ukuran'] }}</span>
+                                                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-semibold text-gray-600 whitespace-nowrap">Ukuran {{ $b['ukuran'] }}</span>
                                                             @endif
                                                             @if ($b['warna'])
-                                                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-semibold text-gray-600">{{ $b['warna'] }}</span>
+                                                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-semibold text-gray-600 whitespace-nowrap">{{ $b['warna'] }}</span>
                                                             @endif
                                                         </div>
+                                                        {{-- Meta sewa menempel di item pertama agar baris tidak memanjang ke bawah --}}
+                                                        @if ($loop->first && ($sewa || $trx))
+                                                            <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0 text-[10px] text-gray-500">
+                                                                @if ($sewa)
+                                                                    <span class="whitespace-nowrap">Ambil <b class="text-gray-700">{{ \Carbon\Carbon::parse($sewa->tanggal_pinjam)->format('d M Y') }}</b></span>
+                                                                    <span class="text-gray-300">→</span>
+                                                                    <span class="whitespace-nowrap">Kembali <b class="text-gray-700">{{ \Carbon\Carbon::parse($sewa->tanggal_kembali_rencana)->format('d M Y') }}</b></span>
+                                                                @endif
+                                                                @if ($trx)
+                                                                    <span class="font-mono text-gray-400 whitespace-nowrap">{{ $trx->kode_transaksi }}</span>
+                                                                @endif
+                                                            </div>
+                                                        @endif
                                                     </div>
                                                 </div>
                                             @endforeach
                                             @if (count($busana) > 3)
-                                                <p class="text-[10px] text-gray-400">+{{ count($busana) - 3 }} busana lainnya</p>
+                                                <p class="text-[10px] text-gray-400 pl-[50px]">+{{ count($busana) - 3 }} busana lainnya</p>
                                             @endif
                                         </div>
                                     @else
                                         <span class="text-xs text-gray-400 italic">Fitting umum (tanpa pesanan)</span>
-                                    @endif
-
-                                    @if ($sewa)
-                                        <p class="text-[10px] text-gray-500 mt-2">
-                                            Ambil <b class="text-gray-700">{{ \Carbon\Carbon::parse($sewa->tanggal_pinjam)->format('d M Y') }}</b>
-                                            · Kembali <b class="text-gray-700">{{ \Carbon\Carbon::parse($sewa->tanggal_kembali_rencana)->format('d M Y') }}</b>
-                                        </p>
-                                    @endif
-                                    @if ($trx)
-                                        <p class="text-[10px] text-gray-400 mt-0.5">Pesanan {{ $trx->kode_transaksi }}</p>
+                                        @if ($trx)
+                                            <p class="text-[10px] font-mono text-gray-400 mt-0.5">{{ $trx->kode_transaksi }}</p>
+                                        @endif
                                     @endif
                                     @if ($catatan)
-                                        <p class="text-[10px] text-gray-500 italic mt-1 max-w-[260px] truncate" title="{{ $catatan }}">“{{ $catatan }}”</p>
+                                        <p class="text-[10px] text-gray-500 italic mt-1 max-w-[320px] truncate" title="{{ $catatan }}">“{{ $catatan }}”</p>
                                     @endif
                                 </td>
 
-                                {{-- Kode --}}
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-black font-mono bg-gray-900 text-white tracking-wider shadow-sm">
-                                        {{ $r->kode_booking }}
-                                    </span>
+                                {{-- Kode booking: satu baris, tidak terpecah --}}
+                                <td class="px-3 py-3 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-black font-mono bg-gray-900 text-white tracking-wide shadow-sm select-all">{{ $r->kode_booking }}</span>
                                 </td>
 
                                 {{-- Status --}}
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider status-badge {{ $badge[0] }}">
+                                <td class="px-3 py-3">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider whitespace-nowrap status-badge {{ $badge[0] }}">
                                         {{ $badge[1] }}
                                     </span>
                                     @if ($terlewat)
-                                        <p class="mt-1 text-[10px] font-semibold text-amber-600">Jadwal terlewat, tandai Hadir / Batal</p>
+                                        <p class="mt-1 text-[10px] font-semibold text-amber-600 max-w-[150px] leading-snug">Jadwal terlewat, tandai Hadir / Batal</p>
                                     @endif
                                     @if ($st === 'batal' && $r->alasan_batal)
-                                        <p class="mt-1 text-[10px] text-rose-600 max-w-[200px] leading-snug">{{ $r->dibatalkan_oleh === 'pelanggan' ? 'Dibatalkan pelanggan' : 'Alasan' }}: {{ $r->alasan_batal }}</p>
+                                        <p class="mt-1 text-[10px] text-rose-600 max-w-[170px] leading-snug">{{ $r->dibatalkan_oleh === 'pelanggan' ? 'Dibatalkan pelanggan' : 'Alasan' }}: {{ $r->alasan_batal }}</p>
                                     @elseif ($st === 'batal' && $r->dibatalkan_oleh === 'pelanggan')
                                         <p class="mt-1 text-[10px] text-rose-600">Dibatalkan pelanggan</p>
                                     @endif
                                 </td>
 
-                                {{-- Aksi (Gabungan: AJAX + Hapus + WA) --}}
-                                <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-2">
+                                {{-- Aksi: satu baris (status · WA · hapus) --}}
+                                <td class="px-3 pr-5 py-3">
+                                    <div class="flex items-center justify-end gap-1.5">
                                         <form id="form-status-{{ $r->id }}" action="{{ route('admin.fitting.update-status', $r->id) }}" method="POST" class="inline-block form-status">
                                             @csrf
                                             @method('PATCH')
                                             <select name="status" data-original="{{ $nilaiSelect }}" data-awal="{{ $nilaiSelect }}" data-nama="{{ $namaPelanggan }}" data-kode="{{ $r->kode_booking }}" onchange="pilihStatus(this)" aria-label="Ubah status reservasi"
-                                                    class="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all hover:border-amber-300">
+                                                    class="px-2.5 py-1.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all hover:border-amber-300">
                                                 <option value="pending" {{ $nilaiSelect === 'pending' ? 'selected' : '' }}>Terjadwal</option>
                                                 <option value="hadir" {{ $nilaiSelect === 'hadir' ? 'selected' : '' }}>Hadir</option>
                                                 <option value="batal" {{ $nilaiSelect === 'batal' ? 'selected' : '' }}>Batal</option>
                                             </select>
                                         </form>
 
+                                        @if ($noWa)
+                                            <a href="https://wa.me/{{ $noWa }}?text={{ rawurlencode($pesanWa) }}" target="_blank" rel="noopener"
+                                               title="{{ $st === 'batal' ? 'Beritahu pelanggan lewat WhatsApp' : 'Ingatkan lewat WhatsApp' }}"
+                                               aria-label="{{ $st === 'batal' ? 'Beritahu pelanggan lewat WhatsApp' : 'Ingatkan lewat WhatsApp' }}"
+                                               class="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                                            </a>
+                                        @endif
+
                                         @if ($r->status !== 'hadir')
                                             <form action="{{ route('admin.fitting.destroy', $r->id) }}" method="POST" class="inline-block form-delete btn-delete">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="p-1.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-100" title="Hapus Reservasi">
+                                                <button type="submit" class="p-1.5 text-rose-500 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-100" title="Hapus Reservasi" aria-label="Hapus Reservasi">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                 </button>
                                             </form>
                                         @endif
                                     </div>
-                                    @if ($noWa)
-                                        <a href="https://wa.me/{{ $noWa }}?text={{ rawurlencode($pesanWa) }}" target="_blank" rel="noopener"
-                                           class="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 hover:underline">
-                                            {{ $st === 'batal' ? 'Beritahu pelanggan' : 'Ingatkan lewat WA' }}
-                                        </a>
-                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -431,7 +438,7 @@
                 </table>
             </div>
 
-            <div id="paginasi" class="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+            <div id="paginasi" class="px-5 py-3 border-t border-gray-100 bg-gray-50/50">
                 {{ $reservasis->links() }}
             </div>
         </div>
@@ -465,75 +472,6 @@
         </div>
     </form>
 </dialog>
-
-<script>
-(function () {
-    const dlg = document.getElementById('dlg-batal');
-    const formBatal = document.getElementById('form-batal');
-    const alasan = document.getElementById('dlg-alasan');
-    const hitung = document.getElementById('dlg-hitung');
-    let selAktif = null;
-    let terkirim = false;
-
-    const updateHitung = function () { hitung.textContent = alasan.value.length; };
-    alasan.addEventListener('input', updateHitung);
-
-    // Pilih status: Batal membuka dialog alasan, status lain langsung disimpan
-    window.pilihStatus = function (sel) {
-        if (sel.value === 'batal') {
-            selAktif = sel;
-            terkirim = false;
-            formBatal.action = sel.form.action;
-            document.getElementById('dlg-info').textContent = sel.dataset.nama + ' · ' + sel.dataset.kode;
-            alasan.value = '';
-            updateHitung();
-            document.body.style.overflow = 'hidden';
-            dlg.showModal();
-            alasan.focus();
-            return;
-        }
-        window.simpanPosisiScroll(sel.closest('tr'));
-        sel.form.submit();
-    };
-
-    document.getElementById('dlg-tutup').addEventListener('click', function () { dlg.close(); });
-
-    // Ditutup tanpa mengirim: kembalikan pilihan dropdown seperti semula
-    dlg.addEventListener('close', function () {
-        document.body.style.overflow = '';
-        if (!terkirim && selAktif) selAktif.value = selAktif.dataset.awal;
-    });
-
-    // Klik area gelap (backdrop) menutup dialog
-    dlg.addEventListener('click', function (e) {
-        const r = dlg.getBoundingClientRect();
-        const diLuar = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
-        if (diLuar) dlg.close();
-    });
-
-    formBatal.addEventListener('submit', function () {
-        terkirim = true;
-        if (selAktif) window.simpanPosisiScroll(selAktif.closest('tr'));
-    });
-
-    dlg.querySelectorAll('[data-isi]').forEach(function (b) {
-        b.addEventListener('click', function () { alasan.value = b.dataset.isi; updateHitung(); alasan.focus(); });
-    });
-
-    // Form tutup jadwal: "seharian" menonaktifkan pilihan jam
-    const cekSeharian = document.getElementById('cek-seharian');
-    if (cekSeharian) {
-        const atur = function () {
-            document.querySelectorAll('.cek-jam').forEach(function (c) {
-                c.disabled = cekSeharian.checked;
-                if (cekSeharian.checked) c.checked = false;
-            });
-        };
-        cekSeharian.addEventListener('change', atur);
-        atur();
-    }
-})();
-</script>
 
 <script>
 (function () {
@@ -631,14 +569,18 @@
 })();
 </script>
 
-{{-- SCRIPT 2: DIALOG BATAL DARI TEMAN ANDA --}}
+{{-- SCRIPT 2: DIALOG BATAL + UBAH STATUS (AJAX) --}}
 <script>
 (function () {
     const dlg = document.getElementById('dlg-batal');
     const formBatal = document.getElementById('form-batal');
     const alasan = document.getElementById('dlg-alasan');
+    const hitung = document.getElementById('dlg-hitung');
     let selAktif = null;
     let terkirim = false;
+
+    const updateHitung = function () { hitung.textContent = alasan.value.length; };
+    alasan.addEventListener('input', updateHitung);
 
     // Pilih status: Batal membuka dialog alasan, status lain langsung disimpan via AJAX
     window.pilihStatus = function (sel) {
@@ -648,6 +590,8 @@
             formBatal.action = sel.form.action;
             document.getElementById('dlg-info').textContent = sel.dataset.nama + ' · ' + sel.dataset.kode;
             alasan.value = '';
+            updateHitung();
+            document.body.style.overflow = 'hidden';
             dlg.showModal();
             alasan.focus();
             return;
@@ -660,11 +604,13 @@
         const newStatus = sel.value;
         const originalStatus = sel.dataset.original;
 
+        // FormData harus dibuat SEBELUM select dinonaktifkan; field disabled tidak ikut terkirim
+        const dataForm = new FormData(form);
         sel.disabled = true;
 
         fetch(form.action, {
             method: 'POST',
-            body: new FormData(form),
+            body: dataForm,
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
         })
         .then(async res => {
@@ -701,8 +647,16 @@
     document.getElementById('dlg-tutup').addEventListener('click', function () { dlg.close(); });
 
     // Ditutup tanpa mengirim: kembalikan pilihan dropdown seperti semula
+    // (pakai data-original karena nilainya ikut diperbarui setelah status diubah via AJAX)
     dlg.addEventListener('close', function () {
-        if (!terkirim && selAktif) selAktif.value = selAktif.dataset.awal;
+        document.body.style.overflow = '';
+        if (!terkirim && selAktif) selAktif.value = selAktif.dataset.original;
+    });
+
+    // Klik area gelap (backdrop) menutup dialog
+    dlg.addEventListener('click', function (e) {
+        const r = dlg.getBoundingClientRect();
+        if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
     });
 
     formBatal.addEventListener('submit', function (e) {
@@ -727,12 +681,13 @@
             }
         })
         .catch(err => {
-            alert(err.message);
+            terkirim = false;
+            if (typeof showToast === 'function') showToast(err.message || 'Gagal membatalkan reservasi', 'error');
         });
     });
 
     dlg.querySelectorAll('[data-isi]').forEach(function (b) {
-        b.addEventListener('click', function () { alasan.value = b.dataset.isi; alasan.focus(); });
+        b.addEventListener('click', function () { alasan.value = b.dataset.isi; updateHitung(); alasan.focus(); });
     });
 
     // Form tutup jadwal: "seharian" menonaktifkan pilihan jam
