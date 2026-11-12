@@ -38,6 +38,18 @@
             </div>
         </div>
     @else
+        @php
+            $batalToko = $transaksi->reservasiFitting
+                ->where('status', 'batal')->where('dibatalkan_oleh', 'admin')
+                ->sortByDesc('updated_at')->first();
+        @endphp
+        @if ($batalToko)
+            <div class="mb-2 p-3 rounded-lg bg-rose-50 border border-rose-200 text-[11px] text-rose-700 leading-relaxed">
+                <strong>Jadwal fitting sebelumnya dibatalkan oleh toko.</strong>
+                @if ($batalToko->alasan_batal) {{ $batalToko->alasan_batal }}. @endif
+                Mohon maaf, silakan pilih jadwal baru.
+            </div>
+        @endif
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50/60">
             <div>
                 <p class="text-[10px] uppercase tracking-wider text-amber-700 font-semibold">Fitting belum dijadwalkan</p>

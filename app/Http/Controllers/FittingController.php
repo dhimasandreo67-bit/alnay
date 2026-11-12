@@ -13,10 +13,10 @@ use Illuminate\Validation\Rule;
 
 class FittingController extends Controller
 {
-    private const SLOT_JAM = ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00', '19:00'];
+    private const SLOT_JAM = SlotFitting::JAM;
 
     /** Maksimal tamu per jam kedatangan. Kuota dihitung per jam, tidak ada konsep "hari penuh". */
-    private const KAPASITAS_SLOT = 2;
+    private const KAPASITAS_SLOT = SlotFitting::KAPASITAS_DEFAULT;
 
     /**
      * Booking fitting langsung terjadwal begitu dibuat (tidak ada tahap persetujuan admin).
@@ -134,10 +134,11 @@ class FittingController extends Controller
         $slotJam = self::SLOT_JAM;
         $slotTerisi = $this->getSlotTerisi();
         $kapasitas = self::KAPASITAS_SLOT;
+        [$slotTutup, $tanggalTutup] = $this->infoSlotTutup();
         $daftarProduk = Produk::where('bisa_disewa', true)->orderBy('nama')->get();
 
         return view('customer.fitting', compact(
-            'tanggalPenuh', 'slotJam', 'slotTerisi', 'daftarProduk', 'sewaAktif', 'tanggalMaksimal', 'transaksi', 'transaksiId', 'kapasitas'
+            'tanggalPenuh', 'slotJam', 'slotTerisi', 'daftarProduk', 'sewaAktif', 'tanggalMaksimal', 'transaksi', 'transaksiId', 'kapasitas', 'slotTutup', 'tanggalTutup'
         ));
     }
 
@@ -198,11 +199,20 @@ class FittingController extends Controller
             ['kapasitas' => self::KAPASITAS_SLOT]
         );
 
+        // Jam yang ditutup admin tidak bisa dipesan
+        if ($slot->ditutup()) {
+            return back()->withErrors([
+                'jam' => 'Maaf, jam ' . $validated['jam'] . ' di tanggal '
+                    . Carbon::parse($validated['tanggal'])->format('d M Y')
+                    . ' sedang ditutup oleh toko. Silakan pilih jam atau tanggal lain.',
+            ])->withInput();
+        }
+
         $terisi = ReservasiFitting::where('slot_id', $slot->id)
             ->whereIn('status', self::STATUS_ISI_SLOT)
             ->count();
 
-        if ($terisi >= self::KAPASITAS_SLOT) {
+        if ($terisi >= $slot->kapasitasTersedia()) {
             return back()->withErrors([
                 'jam' => 'Maaf, slot jam ' . $validated['jam'] . ' di tanggal '
                     . Carbon::parse($validated['tanggal'])->format('d M Y')
@@ -263,7 +273,11 @@ class FittingController extends Controller
     public function cancel($id)
     {
         $reservasi = ReservasiFitting::where('user_id', auth()->id())->findOrFail($id);
-        $reservasi->update(['status' => 'batal']);
+        $reservasi->forceFill([
+            'status' => 'batal',
+            'alasan_batal' => null,
+            'dibatalkan_oleh' => 'pelanggan',
+        ])->save();
 
         return back()->with('success', 'Booking fitting berhasil dibatalkan.');
     }
@@ -292,13 +306,14 @@ class FittingController extends Controller
         $daftarProduk = Produk::where('bisa_disewa', true)->orderBy('nama')->get();
         $slotTerisi = $this->getSlotTerisi($reservasi->id);
         $kapasitas = self::KAPASITAS_SLOT;
+        [$slotTutup, $tanggalTutup] = $this->infoSlotTutup();
 
         // Batas tanggal harus dari pesanan milik reservasi ini, bukan "sewa aktif terbaru".
         $sewaAktif = $this->sewaTerkait($reservasi->transaksi_id);
         $tanggalMaksimal = $sewaAktif ? Carbon::parse($sewaAktif->tanggal_pinjam)->format('Y-m-d') : null;
 
         return view('customer.fitting-edit', compact(
-            'reservasi', 'tanggalPenuh', 'slotJam', 'slotTerisi', 'daftarProduk', 'sewaAktif', 'tanggalMaksimal', 'kapasitas'
+            'reservasi', 'tanggalPenuh', 'slotJam', 'slotTerisi', 'daftarProduk', 'sewaAktif', 'tanggalMaksimal', 'kapasitas', 'slotTutup', 'tanggalTutup'
         ));
     }
 
@@ -329,12 +344,21 @@ class FittingController extends Controller
             ['kapasitas' => self::KAPASITAS_SLOT]
         );
 
+        // Jam yang ditutup admin tidak bisa dipesan
+        if ($slot->ditutup()) {
+            return back()->withErrors([
+                'jam' => 'Maaf, jam ' . $validated['jam'] . ' di tanggal '
+                    . Carbon::parse($validated['tanggal'])->format('d M Y')
+                    . ' sedang ditutup oleh toko. Silakan pilih jam atau tanggal lain.',
+            ])->withInput();
+        }
+
         $terisi = ReservasiFitting::where('slot_id', $slot->id)
             ->whereIn('status', self::STATUS_ISI_SLOT)
             ->where('id', '!=', $reservasi->id)
             ->count();
 
-        if ($terisi >= self::KAPASITAS_SLOT) {
+        if ($terisi >= $slot->kapasitasTersedia()) {
             return back()->withErrors([
                 'jam' => 'Maaf, slot jam ' . $validated['jam'] . ' di tanggal '
                     . Carbon::parse($validated['tanggal'])->format('d M Y')
@@ -349,6 +373,26 @@ class FittingController extends Controller
 
         return redirect()->route('fitting.show', $reservasi->id)
             ->with('success', 'Jadwal fitting berhasil diubah. Silakan datang ke toko sesuai jadwal baru.');
+    }
+
+    /**
+     * Jam yang ditutup admin (kapasitas 0) mulai hari ini.
+     * Return [ ['Y-m-d' => ['09:00' => true, ...]], [tanggal yang SEMUA jamnya ditutup] ].
+     */
+    private function infoSlotTutup(): array
+    {
+        $slotTutup = [];
+
+        foreach (SlotFitting::where('kapasitas', '<=', 0)->whereDate('tanggal', '>=', now())->get() as $s) {
+            $slotTutup[$s->tanggal->format('Y-m-d')][Carbon::parse($s->jam_mulai)->format('H:i')] = true;
+        }
+
+        $tanggalTutup = collect($slotTutup)
+            ->filter(fn ($jam) => count(array_intersect(array_keys($jam), self::SLOT_JAM)) >= count(self::SLOT_JAM))
+            ->keys()
+            ->all();
+
+        return [$slotTutup, $tanggalTutup];
     }
 
     private function getSlotTerisi($kecualiReservasiId = null)

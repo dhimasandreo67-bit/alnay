@@ -31,7 +31,8 @@
         return asset('storage/' . $foto);
     };
 
-    $adaFilter = filled(request('search')) || filled(request('tanggal'));
+    $status = $status ?? 'semua';
+    $adaFilter = filled(request('search')) || filled(request('tanggal')) || $status !== 'semua';
 @endphp
 
 <div class="p-6 space-y-6 transition-all duration-500 animate-fade-in relative">
@@ -54,6 +55,7 @@
 
     {{-- Filter: otomatis, tanpa tombol Cari (Gabungan) --}}
     <form id="form-filter" method="GET" action="{{ route('admin.fitting.index') }}" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <input type="hidden" id="input-status" name="status" value="{{ $status }}">
         <div class="relative w-full sm:w-96">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -73,8 +75,112 @@
         </div>
     </form>
 
-    {{-- Area yang diperbarui otomatis --}}
+    {{-- Atur ketersediaan: tutup tanggal / jam (Dari Teman Anda) --}}
+    @if (\Illuminate\Support\Facades\Route::has('admin.fitting.slot.tutup'))
+        @php $slotTutup = $slotTutup ?? collect(); $jamSlot = $jamSlot ?? []; @endphp
+        <details class="bg-white rounded-3xl border border-gray-100 shadow-sm" {{ ($errors->any() || session('buka_panel')) ? 'open' : '' }}>
+            <summary class="cursor-pointer list-none px-6 py-4 flex items-center justify-between gap-4">
+                <div>
+                    <p class="text-sm font-bold text-gray-900">Atur Ketersediaan Jadwal</p>
+                    <p class="text-[11px] text-gray-500 mt-0.5">Tutup tanggal atau jam tertentu jika staf berhalangan, toko libur, atau ada keperluan lain.</p>
+                </div>
+                <span class="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold {{ $slotTutup->isNotEmpty() ? 'bg-rose-100 text-rose-700' : 'bg-gray-100 text-gray-500' }}">
+                    {{ $slotTutup->flatten()->count() }} jam ditutup
+                </span>
+            </summary>
+
+            <div class="px-6 pb-6 pt-5 border-t border-gray-100 grid lg:grid-cols-2 gap-8">
+                <form id="form-tutup" method="POST" action="{{ route('admin.fitting.slot.tutup') }}" class="space-y-4">
+                    @csrf
+                    @if ($errors->any())
+                        <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-[11px] text-rose-700">
+                            @foreach ($errors->all() as $e)<p>{{ $e }}</p>@endforeach
+                        </div>
+                    @endif
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-600 mb-1">Tanggal</label>
+                        <input type="date" name="tanggal" value="{{ old('tanggal') }}" min="{{ today()->format('Y-m-d') }}" required
+                               class="px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600">
+                    </div>
+
+                    <div>
+                        <label class="inline-flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                            <input type="checkbox" name="seharian" value="1" id="cek-seharian" class="rounded border-gray-300 text-amber-600 focus:ring-amber-500" {{ old('seharian') ? 'checked' : '' }}>
+                            Tutup seharian
+                        </label>
+                        <div id="grid-jam" class="grid grid-cols-4 gap-2 mt-3">
+                            @foreach ($jamSlot as $j)
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="jam[]" value="{{ $j }}" class="peer sr-only cek-jam" {{ in_array($j, old('jam', []), true) ? 'checked' : '' }}>
+                                    <span class="block text-center py-1.5 rounded-lg border border-gray-200 text-[11px] font-bold text-gray-600 tabular-nums peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 peer-disabled:opacity-40 transition-all">{{ $j }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-600 mb-1">Alasan penutupan</label>
+                        <input type="text" name="alasan" value="{{ old('alasan') }}" maxlength="200" required placeholder="Contoh: Staf berhalangan hadir"
+                               class="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600">
+                    </div>
+
+                    <label class="flex items-start gap-2 text-[11px] text-gray-600 cursor-pointer">
+                        <input type="checkbox" name="batalkan_booking" value="1" class="mt-0.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                        <span><b class="text-gray-800">Batalkan booking yang sudah ada</b> di jam tersebut. Pelanggan akan melihat alasannya dan diminta memilih jadwal baru. Kalau tidak dicentang dan masih ada booking aktif, penutupan ditolak.</span>
+                    </label>
+
+                    <button type="submit" class="bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all cursor-pointer">Tutup Jadwal</button>
+                </form>
+
+                <div>
+                    <p class="text-[11px] font-bold text-gray-600 mb-3">Sedang ditutup</p>
+                    @forelse ($slotTutup as $tglKey => $slots)
+                        <div class="mb-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50">
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-xs font-bold text-gray-800">
+                                    {{ \Carbon\Carbon::parse($tglKey)->locale('id')->translatedFormat('l, d F Y') }}
+                                    @if ($slots->count() >= count($jamSlot))
+                                        <span class="ml-1 px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[9px] font-black uppercase">Seharian</span>
+                                    @endif
+                                </p>
+                                <form method="POST" action="{{ route('admin.fitting.slot.buka') }}">
+                                    @csrf
+                                    <input type="hidden" name="tanggal" value="{{ $tglKey }}">
+                                    <button class="text-[10px] font-bold text-emerald-700 hover:underline cursor-pointer">Buka semua</button>
+                                </form>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5 mt-2">
+                                @foreach ($slots as $sl)
+                                    @php $jamTxt = \Carbon\Carbon::parse($sl->jam_mulai)->format('H:i'); @endphp
+                                    <form method="POST" action="{{ route('admin.fitting.slot.buka') }}" class="inline">
+                                        @csrf
+                                        <input type="hidden" name="tanggal" value="{{ $tglKey }}">
+                                        <input type="hidden" name="jam" value="{{ $jamTxt }}">
+                                        <button title="Buka kembali jam ini" class="px-2 py-0.5 rounded-md bg-white border border-rose-200 text-[10px] font-bold text-rose-700 tabular-nums hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 transition-colors cursor-pointer">{{ $jamTxt }} ✕</button>
+                                    </form>
+                                @endforeach
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-xs text-gray-400 italic">Belum ada jadwal yang ditutup.</p>
+                    @endforelse
+                </div>
+            </div>
+        </details>
+    @endif
+
+    {{-- Area yang diperbarui otomatis saat mengetik / ganti tanggal --}}
     <div id="area-tabel" class="transition-opacity duration-200">
+        <div class="flex flex-wrap gap-2 mb-4">
+            @foreach ([['semua', 'Semua'], ['hari_ini', 'Hari ini'], ['terjadwal', 'Terjadwal'], ['hadir', 'Hadir'], ['batal', 'Batal']] as [$kunci, $label])
+                <button type="button" data-status="{{ $kunci }}"
+                        class="px-3.5 py-1.5 rounded-full border text-[11px] font-bold transition-all cursor-pointer {{ $status === $kunci ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300' }}">
+                    {{ $label }} <span class="ml-1 opacity-60">{{ $hitung[$kunci] ?? 0 }}</span>
+                </button>
+            @endforeach
+        </div>
+
         <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-3 border-b border-gray-100 bg-gray-50/60 flex items-center justify-between text-[11px] text-gray-500">
                 <span>
@@ -124,7 +230,7 @@
                                 $tgl = $r->slot ? \Carbon\Carbon::parse($r->slot->tanggal) : null;
                                 $jam = $r->slot?->jam_mulai ? \Carbon\Carbon::parse($r->slot->jam_mulai)->format('H:i') : '-';
 
-                                // Status: tidak ada "pending". 'pending'/'disetujui' (data lama) = Terjadwal.
+                                // Status
                                 $st = strtolower($r->status);
                                 $terjadwal = ! in_array($st, ['hadir', 'batal'], true);
                                 $nilaiSelect = $terjadwal ? 'pending' : $st;
@@ -162,6 +268,16 @@
                                 $catatan = collect(preg_split('/\R/', (string) $r->catatan))
                                     ->reject(fn ($l) => Str::startsWith(trim($l), 'Busana dalam pesanan:'))
                                     ->filter()->implode(' ');
+
+                                // Link WhatsApp
+                                $digits = preg_replace('/\D+/', '', (string) ($r->user->no_hp ?? ''));
+                                $noWa = $digits === '' ? '' : (str_starts_with($digits, '0') ? '62' . substr($digits, 1) : (str_starts_with($digits, '8') ? '62' . $digits : $digits));
+                                $tglTeks = $tgl ? $tgl->copy()->locale('id')->translatedFormat('l, d F Y') : '';
+                                $pesanWa = $st === 'batal'
+                                    ? "Halo {$namaPelanggan}, mohon maaf jadwal fitting Anda ({$r->kode_booking}, {$tglTeks} pukul {$jam} WIB) kami batalkan"
+                                        . ($r->alasan_batal ? " karena {$r->alasan_batal}" : '')
+                                        . '. Silakan pilih jadwal fitting baru di ' . url('/fitting') . '. Terima kasih.'
+                                    : "Halo {$namaPelanggan}, pengingat jadwal fitting Anda di Toko ALNAY: {$tglTeks} pukul {$jam} WIB (kode {$r->kode_booking}). Sampai jumpa!";
                             @endphp
                             <tr id="baris-{{ $r->id }}" class="hover:bg-amber-50/30 transition-colors align-top row-data" data-id="{{ $r->id }}">
                                 
@@ -261,15 +377,20 @@
                                     @if ($terlewat)
                                         <p class="mt-1 text-[10px] font-semibold text-amber-600">Jadwal terlewat, tandai Hadir / Batal</p>
                                     @endif
+                                    @if ($st === 'batal' && $r->alasan_batal)
+                                        <p class="mt-1 text-[10px] text-rose-600 max-w-[200px] leading-snug">{{ $r->dibatalkan_oleh === 'pelanggan' ? 'Dibatalkan pelanggan' : 'Alasan' }}: {{ $r->alasan_batal }}</p>
+                                    @elseif ($st === 'batal' && $r->dibatalkan_oleh === 'pelanggan')
+                                        <p class="mt-1 text-[10px] text-rose-600">Dibatalkan pelanggan</p>
+                                    @endif
                                 </td>
 
-                                {{-- Aksi (Gabungan: AJAX + Hapus) --}}
+                                {{-- Aksi (Gabungan: AJAX + Hapus + WA) --}}
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2">
-                                        <form action="{{ route('admin.fitting.update-status', $r->id) }}" method="POST" class="inline-block form-status">
+                                        <form id="form-status-{{ $r->id }}" action="{{ route('admin.fitting.update-status', $r->id) }}" method="POST" class="inline-block form-status">
                                             @csrf
                                             @method('PATCH')
-                                            <select name="status" data-original="{{ $nilaiSelect }}" aria-label="Ubah status reservasi"
+                                            <select name="status" data-original="{{ $nilaiSelect }}" data-awal="{{ $nilaiSelect }}" data-nama="{{ $namaPelanggan }}" data-kode="{{ $r->kode_booking }}" onchange="pilihStatus(this)" aria-label="Ubah status reservasi"
                                                     class="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[11px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all hover:border-amber-300">
                                                 <option value="pending" {{ $nilaiSelect === 'pending' ? 'selected' : '' }}>Terjadwal</option>
                                                 <option value="hadir" {{ $nilaiSelect === 'hadir' ? 'selected' : '' }}>Hadir</option>
@@ -287,6 +408,12 @@
                                             </form>
                                         @endif
                                     </div>
+                                    @if ($noWa)
+                                        <a href="https://wa.me/{{ $noWa }}?text={{ rawurlencode($pesanWa) }}" target="_blank" rel="noopener"
+                                           class="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 hover:underline">
+                                            {{ $st === 'batal' ? 'Beritahu pelanggan' : 'Ingatkan lewat WA' }}
+                                        </a>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -311,12 +438,40 @@
     </div>
 </div>
 
+{{-- Dialog batalkan reservasi (alasan wajib) dari Teman Anda --}}
+<dialog id="dlg-batal" class="rounded-2xl p-0 w-[92vw] max-w-md backdrop:bg-black/40 shadow-2xl">
+    <form id="form-batal" method="POST" class="p-6 space-y-4">
+        @csrf
+        @method('PATCH')
+        <input type="hidden" name="status" value="batal">
+        <div>
+            <h3 class="text-base font-bold text-gray-900">Batalkan reservasi fitting?</h3>
+            <p class="text-xs text-gray-500 mt-1" id="dlg-info"></p>
+        </div>
+        <div>
+            <label class="block text-[11px] font-bold text-gray-600 mb-1">Alasan (akan ditampilkan ke pelanggan)</label>
+            <textarea name="alasan" id="dlg-alasan" rows="3" required minlength="3" maxlength="200" placeholder="Contoh: Staf berhalangan hadir"
+                      class="w-full px-3 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"></textarea>
+            <div class="flex flex-wrap gap-1.5 mt-2">
+                @foreach (['Staf berhalangan hadir', 'Toko tutup', 'Pelanggan meminta pembatalan', 'Pelanggan tidak hadir'] as $cepat)
+                    <button type="button" data-isi="{{ $cepat }}" class="px-2 py-1 rounded-lg bg-gray-100 hover:bg-amber-100 text-[10px] font-semibold text-gray-600 cursor-pointer transition-colors">{{ $cepat }}</button>
+                @endforeach
+            </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-1">
+            <button type="button" id="dlg-tutup" class="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 cursor-pointer">Kembali</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Batalkan Reservasi</button>
+        </div>
+    </form>
+</dialog>
+
 {{-- SCRIPT 1: PENCARIAN OTOMATIS DARI TEMAN ANDA --}}
 <script>
 (function () {
     const form = document.getElementById('form-filter');
     const inputCari = document.getElementById('input-cari');
     const inputTanggal = document.getElementById('input-tanggal');
+    const inputStatus = document.getElementById('input-status');
     const area = document.getElementById('area-tabel');
     const spinner = document.getElementById('spinner');
     let timer = null;
@@ -327,6 +482,7 @@
         const kata = inputCari.value.trim();
         if (kata) p.set('search', kata);
         if (inputTanggal.value) p.set('tanggal', inputTanggal.value);
+        if (inputStatus.value && inputStatus.value !== 'semua') p.set('status', inputStatus.value);
         if (halaman && Number(halaman) > 1) p.set('page', halaman);
         const q = p.toString();
         return form.getAttribute('action') + (q ? '?' + q : '');
@@ -384,11 +540,20 @@
     document.getElementById('btn-reset').addEventListener('click', function () {
         inputCari.value = '';
         inputTanggal.value = '';
+        inputStatus.value = 'semua';
         muat(buatUrl());
         inputCari.focus();
     });
 
     area.addEventListener('click', function (e) {
+        // Chip status
+        const chip = e.target.closest('[data-status]');
+        if (chip) {
+            inputStatus.value = chip.dataset.status;
+            muat(buatUrl());
+            return;
+        }
+
         const a = e.target.closest('a[href]');
         if (!a || !a.closest('#paginasi')) return;
         e.preventDefault();
@@ -397,12 +562,131 @@
 })();
 </script>
 
-{{-- SCRIPT 2: AJAX HAPUS, UBAH STATUS, & CHECKBOX DARI ANDA --}}
+{{-- SCRIPT 2: DIALOG BATAL DARI TEMAN ANDA --}}
+<script>
+(function () {
+    const dlg = document.getElementById('dlg-batal');
+    const formBatal = document.getElementById('form-batal');
+    const alasan = document.getElementById('dlg-alasan');
+    let selAktif = null;
+    let terkirim = false;
+
+    // Pilih status: Batal membuka dialog alasan, status lain langsung disimpan via AJAX
+    window.pilihStatus = function (sel) {
+        if (sel.value === 'batal') {
+            selAktif = sel;
+            terkirim = false;
+            formBatal.action = sel.form.action;
+            document.getElementById('dlg-info').textContent = sel.dataset.nama + ' · ' + sel.dataset.kode;
+            alasan.value = '';
+            dlg.showModal();
+            alasan.focus();
+            return;
+        }
+        
+        // Jika bukan batal, jalankan AJAX (dari kode Anda)
+        const form = sel.closest('form');
+        const row = sel.closest('tr');
+        const badge = row.querySelector('.status-badge');
+        const newStatus = sel.value;
+        const originalStatus = sel.dataset.original;
+
+        sel.disabled = true;
+
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan server');
+            return data;
+        })
+        .then(data => {
+            if (data.success) {
+                badge.textContent = newStatus === 'pending' ? 'Terjadwal' : 'Hadir';
+                badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider status-badge ';
+                if (newStatus === 'pending') badge.classList.add('bg-sky-100', 'text-sky-700', 'border-sky-200');
+                else if (newStatus === 'hadir') badge.classList.add('bg-emerald-100', 'text-emerald-700', 'border-emerald-200');
+                
+                sel.dataset.original = newStatus;
+                
+                const deleteBtn = row.querySelector('.btn-delete');
+                if (deleteBtn) deleteBtn.style.display = newStatus === 'hadir' ? 'none' : 'inline-block';
+                const checkbox = row.querySelector('.row-checkbox');
+                if(checkbox) checkbox.parentElement.innerHTML = newStatus === 'hadir' ? '<input type="checkbox" disabled class="w-4 h-4 text-gray-300 bg-gray-100 border-gray-200 rounded cursor-not-allowed">' : '<input type="checkbox" value="'+row.dataset.id+'" class="row-checkbox w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 cursor-pointer">';
+
+                if(typeof showToast === 'function') showToast(data.message, 'success');
+            }
+        })
+        .catch(err => {
+            sel.value = originalStatus;
+            if(typeof showToast === 'function') showToast(err.message || 'Gagal mengubah status', 'error');
+        })
+        .finally(() => {
+            sel.disabled = false;
+        });
+    };
+
+    document.getElementById('dlg-tutup').addEventListener('click', function () { dlg.close(); });
+
+    // Ditutup tanpa mengirim: kembalikan pilihan dropdown seperti semula
+    dlg.addEventListener('close', function () {
+        if (!terkirim && selAktif) selAktif.value = selAktif.dataset.awal;
+    });
+
+    formBatal.addEventListener('submit', function (e) {
+        e.preventDefault();
+        terkirim = true;
+        
+        fetch(formBatal.action, {
+            method: 'POST',
+            body: new FormData(formBatal),
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan');
+            return data;
+        })
+        .then(data => {
+            if(data.success) {
+                dlg.close();
+                // Reload tabel agar alasan batal dan tombol WA muncul (karena HTML butuh render ulang)
+                window.location.reload(); 
+            }
+        })
+        .catch(err => {
+            alert(err.message);
+        });
+    });
+
+    dlg.querySelectorAll('[data-isi]').forEach(function (b) {
+        b.addEventListener('click', function () { alasan.value = b.dataset.isi; alasan.focus(); });
+    });
+
+    // Form tutup jadwal: "seharian" menonaktifkan pilihan jam
+    const cekSeharian = document.getElementById('cek-seharian');
+    if (cekSeharian) {
+        const atur = function () {
+            document.querySelectorAll('.cek-jam').forEach(function (c) {
+                c.disabled = cekSeharian.checked;
+                if (cekSeharian.checked) c.checked = false;
+            });
+        };
+        cekSeharian.addEventListener('change', atur);
+        atur();
+    }
+})();
+</script>
+
+{{-- SCRIPT 3: AJAX HAPUS, UBAH STATUS (NON-BATAL), & CHECKBOX DARI ANDA --}}
 <script>
     // Bungkus ke dalam fungsi agar bisa dipanggil ulang saat tabel di-reload via AJAX
     function initTableEvents() {
         // --- FUNGSI TOAST NOTIFIKASI ---
-        function showToast(message, type = 'success') {
+        window.showToast = function(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             const bgColor = type === 'success' ? 'bg-emerald-500' : 'bg-rose-500';
@@ -422,7 +706,7 @@
                 toast.classList.add('translate-x-full', 'opacity-0');
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
-        }
+        };
 
         // --- LOGIKA HAPUS SATUAN (AJAX) ---
         document.querySelectorAll('.form-delete').forEach(form => {
@@ -447,56 +731,6 @@
             });
         });
 
-        // --- LOGIKA UBAH STATUS (AJAX) ---
-        document.querySelectorAll('.form-status select').forEach(select => {
-            select.addEventListener('change', function() {
-                const form = this.closest('form');
-                const row = this.closest('tr');
-                const badge = row.querySelector('.status-badge');
-                const newStatus = this.value;
-                const originalStatus = this.dataset.original;
-
-                this.disabled = true;
-
-                fetch(form.action, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-                })
-                .then(async res => {
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.message || 'Terjadi kesalahan server');
-                    return data;
-                })
-                .then(data => {
-                    if (data.success) {
-                        badge.textContent = newStatus === 'pending' ? 'Terjadwal' : (newStatus === 'hadir' ? 'Hadir' : 'Batal');
-                        
-                        badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider status-badge ';
-                        if (newStatus === 'pending') badge.classList.add('bg-sky-100', 'text-sky-700', 'border-sky-200');
-                        else if (newStatus === 'hadir') badge.classList.add('bg-emerald-100', 'text-emerald-700', 'border-emerald-200');
-                        else if (newStatus === 'batal') badge.classList.add('bg-rose-100', 'text-rose-700', 'border-rose-200');
-
-                        this.dataset.original = newStatus;
-                        
-                        const deleteBtn = row.querySelector('.btn-delete');
-                        if (deleteBtn) deleteBtn.style.display = newStatus === 'hadir' ? 'none' : 'inline-block';
-                        const checkbox = row.querySelector('.row-checkbox');
-                        if(checkbox) checkbox.parentElement.innerHTML = newStatus === 'hadir' ? '<input type="checkbox" disabled class="w-4 h-4 text-gray-300 bg-gray-100 border-gray-200 rounded cursor-not-allowed">' : '<input type="checkbox" value="'+row.dataset.id+'" class="row-checkbox w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 cursor-pointer">';
-
-                        showToast(data.message, 'success');
-                    }
-                })
-                .catch(err => {
-                    this.value = originalStatus;
-                    showToast(err.message || 'Gagal mengubah status', 'error');
-                })
-                .finally(() => {
-                    this.disabled = false;
-                });
-            });
-        });
-
         // --- LOGIKA CHECKBOX & BULK DELETE ---
         const selectAll = document.getElementById('selectAll');
         const rowCheckboxes = document.querySelectorAll('.row-checkbox');
@@ -505,7 +739,7 @@
 
         function updateBulkBtn() {
             const checked = document.querySelectorAll('.row-checkbox:checked').length;
-            countSelected.textContent = checked;
+            if(countSelected) countSelected.textContent = checked;
             if (checked > 0) {
                 btnBulkDelete.classList.remove('hidden');
             } else {
@@ -514,7 +748,6 @@
         }
 
         if (selectAll) {
-            // Hapus event listener lama jika ada (mencegah dobel)
             selectAll.replaceWith(selectAll.cloneNode(true));
             const newSelectAll = document.getElementById('selectAll');
             
@@ -525,7 +758,7 @@
         }
 
         rowCheckboxes.forEach(cb => {
-            cb.replaceWith(cb.cloneNode(true)); // Reset listener
+            cb.replaceWith(cb.cloneNode(true));
         });
         
         document.querySelectorAll('.row-checkbox').forEach(cb => {
