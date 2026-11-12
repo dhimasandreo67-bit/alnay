@@ -18,6 +18,13 @@ class FittingController extends Controller
     /** Maksimal tamu per jam kedatangan. Kuota dihitung per jam, tidak ada konsep "hari penuh". */
     private const KAPASITAS_SLOT = 2;
 
+    /**
+     * Booking fitting langsung terjadwal begitu dibuat (tidak ada tahap persetujuan admin).
+     * Nilai di database tetap 'pending' agar kompatibel dengan halaman admin & laporan yang sudah ada;
+     * di semua tampilan statusnya disebut "Terjadwal".
+     */
+    private const STATUS_TERJADWAL = 'pending';
+
     /** Status reservasi yang masih menghitung kapasitas slot. */
     private const STATUS_ISI_SLOT = ['pending', 'disetujui'];
 
@@ -226,12 +233,12 @@ class FittingController extends Controller
             'slot_id' => $slot->id,
             'produk_id' => $produkId,
             'tanggal_daftar' => now()->toDateString(),
-            'status' => 'pending',
+            'status' => self::STATUS_TERJADWAL,
             'catatan' => $catatan,
         ]);
 
         return redirect()->route('fitting.show', $reservasi->id)
-            ->with('success', 'Booking fitting berhasil dibuat!');
+            ->with('success', 'Jadwal fitting Anda sudah terdaftar. Silakan datang ke toko sesuai jadwal.');
     }
 
     public function show($id)
@@ -324,11 +331,11 @@ class FittingController extends Controller
 
         $reservasi->update([
             'slot_id' => $slot->id,
-            'status' => 'pending',
+            'status' => self::STATUS_TERJADWAL,
         ]);
 
         return redirect()->route('fitting.show', $reservasi->id)
-            ->with('success', 'Jadwal fitting berhasil diubah!');
+            ->with('success', 'Jadwal fitting berhasil diubah. Silakan datang ke toko sesuai jadwal baru.');
     }
 
     private function getSlotTerisi($kecualiReservasiId = null)
