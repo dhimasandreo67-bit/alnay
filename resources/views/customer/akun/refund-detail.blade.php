@@ -19,6 +19,8 @@
         'selesai'         => 'Dana kembali',
     ];
     $foto = $refund->fotoBuktiUrl();
+    $buktiTf = $refund->buktiTransferUrl();
+    $tfPdf = $buktiTf && str_ends_with(strtolower((string) $refund->bukti_transfer), '.pdf');
     $items = $refund->transaksi->detail ?? collect();
     $subtotalBarang = $items->sum(fn ($x) => (int) $x->jumlah * (int) $x->harga_satuan);
     $selisih = (int) $refund->transaksi->total - $subtotalBarang;
@@ -132,8 +134,27 @@
                 <div class="px-5 md:px-6 py-4 border-t border-line/40 bg-emerald-50/60 text-[12px] text-emerald-900">
                     <p class="font-semibold">Dana Rp{{ number_format($refund->jumlah, 0, ',', '.') }} sudah ditransfer
                         {{ $refund->tanggal_selesai ? 'pada ' . $refund->tanggal_selesai->format('d M Y') : '' }}.</p>
-                    @if ($refund->bukti_transfer)
-                        <a href="{{ asset('storage/' . $refund->bukti_transfer) }}" target="_blank" rel="noopener" class="inline-block mt-1 font-bold text-emerald-700 hover:underline">Lihat bukti transfer</a>
+                    <p class="mt-0.5 text-emerald-800/80">Ke {{ $refund->bank_tujuan }} · {{ $refund->no_rekening }} · a.n. {{ $refund->atas_nama }}</p>
+
+                    @if ($buktiTf)
+                        <div class="mt-3 rounded-xl bg-white/70 border border-emerald-200 p-3">
+                            <p class="text-[11px] font-bold text-emerald-800 mb-2">Bukti transfer dari admin</p>
+                            @if ($tfPdf)
+                                <p class="text-[11px] text-emerald-900/80 mb-2">Bukti berformat PDF.</p>
+                            @else
+                                <a href="{{ $buktiTf }}" target="_blank" rel="noopener" class="block w-fit">
+                                    <img src="{{ $buktiTf }}" alt="Bukti transfer refund" loading="lazy"
+                                         class="max-h-72 max-w-full rounded-lg border border-emerald-200 bg-white object-contain"
+                                         onerror="this.replaceWith(document.createTextNode('Gambar gagal dimuat. Gunakan tombol di bawah.'))">
+                                </a>
+                            @endif
+                            <div class="mt-2 flex flex-wrap gap-4">
+                                <a href="{{ $buktiTf }}" target="_blank" rel="noopener" class="font-bold text-emerald-700 hover:underline">{{ $tfPdf ? 'Buka PDF' : 'Lihat ukuran penuh' }}</a>
+                                <a href="{{ $buktiTf }}" download class="font-bold text-emerald-700 hover:underline">Unduh</a>
+                            </div>
+                        </div>
+                    @else
+                        <p class="mt-2">Bukti transfer belum tersedia. Hubungi CS bila dana belum Anda terima.</p>
                     @endif
                 </div>
             @elseif ($st === 'ditolak')
