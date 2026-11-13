@@ -28,7 +28,7 @@
         /* Kembalikan variabel opacity tapis agar tengahnya transparan */
         --motif-opacity: .70;   
         --motif-tepi: .55;      
-        --motif-tengah: .15;    /* Dibuat 0.15 agar teks menu sangat jelas */
+        --motif-tengah: .10;    /* Dibuat 0.15 agar teks menu sangat jelas */
         --motif-kiri: 25%;      
         --motif-kanan: 75%;     
     }
