@@ -12,7 +12,12 @@
         from { transform: translateX(0); }
         to   { transform: translateX(-307px); }
     }
-            :root {
+    @keyframes marquee-mobile {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+    }
+    
+    :root {
         --al-gold: #c99a32;
         --al-gold-soft: #e6c877;
         --al-bg: #ffffff;
@@ -20,28 +25,37 @@
         --al-muted: #b9ae96;
         --al-line: rgba(201, 154, 50, .28);
 
-        /* ===== Atur motif tapis di belakang menu ===== */
-        --motif-opacity: .70;   /* kejelasan motif keseluruhan: 0 = hilang, 1 = penuh */
-        --motif-tepi: .55;      /* kekuatan motif di pinggir kiri dan kanan: 0 = hilang, 1 = penuh */
-        --motif-tengah: .17;      /* kekuatan motif di tengah: 0 = hilang, .3 = samar, 1 = penuh */
-        --motif-kiri: 30%;      /* batas kiri area tengah */
-        --motif-kanan: 70%;     /* batas kanan area tengah */
+        /* Kembalikan variabel opacity tapis agar tengahnya transparan */
+        --motif-opacity: .70;   
+        --motif-tepi: .55;      
+        --motif-tengah: .15;    /* Dibuat 0.15 agar teks menu sangat jelas */
+        --motif-kiri: 25%;      
+        --motif-kanan: 75%;     
     }
+
+    /* --- PROMO BAR --- */
+    .animate-marquee-mobile { animation: marquee-mobile 20s linear infinite; }
+    .animate-marquee-mobile:hover { animation-play-state: paused; }
+
+    /* --- HEADER UTAMA --- */
     .al-header { border-bottom: 1px solid var(--al-gold); background: rgba(255, 255, 255, .98); transition: background-color .3s ease, box-shadow .3s ease; }
     .al-header.is-scrolled {
-        background: rgba(255, 255, 255, .62);
+        background: rgba(255, 255, 255, .85);
         -webkit-backdrop-filter: blur(22px) saturate(180%);
         backdrop-filter: blur(22px) saturate(180%);
         box-shadow: 0 12px 32px -14px rgba(201, 154, 50, .40), inset 0 1px 0 rgba(255, 255, 255, .7);
     }
     .al-main { position: relative; z-index: 2; }
+    
     .al-icon-btn {
         background: #fbf6e9;
         border: 1px solid rgba(201, 154, 50, .28);
         color: #15233d;
-        transition: border-color .25s ease, color .25s ease, transform .25s ease, background-color .25s ease;
+        transition: all .25s ease;
     }
     .al-icon-btn:hover { border-color: var(--al-gold); color: #9a6f12; background: #fff; transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(201, 154, 50, .55); }
+
+    /* --- ANIMASI TAPIS (BISA HILANG KE ATAS) --- */
     .al-tapis {
         position: absolute; left: 0; right: 0; top: calc(100% + 1px);
         height: 49px; z-index: 1;
@@ -50,18 +64,20 @@
         box-shadow: 0 14px 24px -18px rgba(201, 154, 50, .45);
         opacity: 1;
         clip-path: inset(0 -60px -500px -60px);
-        transition: transform .6s cubic-bezier(.22, .8, .3, 1), clip-path .6s cubic-bezier(.22, .8, .3, 1), opacity .5s ease, visibility 0s linear 0s;
+        transition: transform .5s cubic-bezier(0.4, 0, 0.2, 1), clip-path .5s cubic-bezier(0.4, 0, 0.2, 1), opacity .4s ease, visibility 0s linear 0s;
         will-change: transform, clip-path, opacity;
     }
+    /* Class ini yang membuat menu meluncur ke atas dan memudar */
     .al-tapis.is-hidden {
         transform: translateY(-100%);
         opacity: 0;
         clip-path: inset(100% -60px -500px -60px);
         visibility: hidden;
         pointer-events: none;
-        transition: transform .5s cubic-bezier(.4, 0, .2, 1), clip-path .5s cubic-bezier(.4, 0, .2, 1), opacity .38s ease, visibility 0s linear .5s;
+        transition: transform .5s cubic-bezier(0.4, 0, 0.2, 1), clip-path .5s cubic-bezier(0.4, 0, 0.2, 1), opacity .38s ease, visibility 0s linear .5s;
     }
-            .al-tapis-motif {
+
+    .al-tapis-motif {
         position: absolute; inset: 0; display: block; overflow: hidden;
         opacity: var(--motif-opacity);
         mix-blend-mode: multiply;
@@ -69,16 +85,16 @@
     }
     .al-tapis-track {
         display: flex; width: max-content; height: 100%;
-        animation: tapis-geser 11s linear infinite;
-        will-change: transform;
+        animation: tapis-geser 11s linear infinite; will-change: transform;
     }
     .al-tapis-track i {
         display: block; flex: none; width: 307px; height: 100%;
         background: url("{{ asset('images/home/tapis.png') }}") -323.16px bottom / 2111.1px 63.68px no-repeat;
     }
-            .al-tapis::after {
-        content: '';
-        position: absolute; inset: 0; z-index: 0;
+    
+    /* Masking tengah tapis agar transparan */
+    .al-tapis::after {
+        content: ''; position: absolute; inset: 0; z-index: 0;
         background: linear-gradient(90deg,
             rgb(253 248 234 / calc(1 - var(--motif-tepi))) 0%,
             rgb(253 248 234 / calc(1 - var(--motif-tepi))) 12%,
@@ -90,36 +106,27 @@
     }
     .al-tapis > div { position: relative; z-index: 1; transition: opacity .4s ease; }
     .al-tapis.is-hidden > div { opacity: 0; transition: opacity .25s ease; }
+
+    /* --- NAVIGASI DESKTOP --- */
     .al-nav {
-        position: relative;
-        color: #0a0a0a;
-        font-weight: 800;
-        border-radius: 999px;
+        position: relative; color: #0a0a0a; font-weight: 800; border-radius: 999px;
         text-shadow: 0 0 6px rgba(253, 248, 234, .95);
         background-image: linear-gradient(var(--al-gold), var(--al-gold));
-        background-repeat: no-repeat;
-        background-position: 1rem calc(100% - 7px);
-        background-size: 0 2px;
+        background-repeat: no-repeat; background-position: 1rem calc(100% - 7px); background-size: 0 2px;
         transition: color .25s ease, background-color .25s ease, background-size .4s cubic-bezier(.22, .8, .3, 1);
     }
     .al-nav:hover { color: #000; background-color: rgba(255, 255, 255, .92); background-size: calc(100% - 2rem) 2px; }
-    .al-nav.is-active {
-        --al-active-text: #8a6410;
-        color: var(--al-active-text);
-        background-color: #f7e9bd;
-        background-size: 0 2px;
-        box-shadow: inset 0 0 0 1px var(--al-gold);
-        text-shadow: none;
-    }
+    .al-nav.is-active { --al-active-text: #8a6410; color: var(--al-active-text); background-color: #f7e9bd; background-size: 0 2px; box-shadow: inset 0 0 0 1px var(--al-gold); text-shadow: none; }
     .al-nav.is-active, .al-nav.is-active * { color: var(--al-active-text) !important; text-shadow: none !important; }
-    .al-nav.is-active:hover { background-color: #f7e9bd; background-size: 0 2px; }
+    
     .al-dd-panel { background: #fff; border: 1px solid var(--al-line); box-shadow: 0 24px 48px -18px rgba(21, 35, 61, .22), 0 0 0 1px rgba(201, 154, 50, .06); }
     .al-dd-link { color: #15233d; transition: background-color .2s ease, color .2s ease, padding-left .2s ease; }
     .al-dd-link:hover { background: rgba(201, 154, 50, .10); color: #8a6410; padding-left: 1.25rem; }
     .al-search:focus { box-shadow: 0 0 0 3px rgba(201, 154, 50, .18); }
+
     @media (prefers-reduced-motion: reduce) {
         .al-header, .al-main, .al-nav, .al-icon-btn, .al-tapis, .al-tapis.is-hidden, .al-tapis > div { transition: none !important; }
-        .al-tapis-track { animation: none; }
+        .al-tapis-track, .animate-marquee-mobile { animation: none; }
     }
 </style>
 
@@ -134,90 +141,63 @@
     ];
 @endphp
 
-{{-- PROMO BAR --}}
-<style>
-    @keyframes marquee-mobile {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
-    }
-    .animate-marquee-mobile {
-        animation: marquee-mobile 20s linear infinite;
-    }
-    .animate-marquee-mobile:hover {
-        animation-play-state: paused;
-    }
-</style>
-
+{{-- ============================================================
+     PROMO BAR
+     ============================================================ --}}
 <div class="bg-[#fbf6e9] text-[#15233d] text-xs border-b border-[#c99a32]/25 overflow-hidden">
     
-    {{-- Tampilan MOBILE: Teks Berjalan 1 Baris --}}
+    {{-- Tampilan MOBILE --}}
     <div class="md:hidden py-1.5 relative flex">
         <div class="animate-marquee-mobile flex items-center whitespace-nowrap text-[10px]">
-            
-            {{-- Konten 1 --}}
             <div class="flex items-center gap-4 px-2">
                 <span class="text-[#8a6410] flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full bg-gold inline-block"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#c99a32] inline-block"></span>
                     {{ config('alnay.promo_bar.teks') }}
                 </span>
                 <span class="text-[#a97c1a] flex items-center gap-1">
-                    <x-icon name="whatsapp" :size="12" />
-                    WA CS: {{ config('alnay.kontak.wa_cs_display') }}
+                    <x-icon name="whatsapp" :size="12" /> WA CS: {{ config('alnay.kontak.wa_cs_display') }}
                 </span>
-                <span class="text-[#6b7280]">
-                    Toko: {{ config('toko.alnay.jam_buka') }}
-                </span>
+                <span class="text-[#6b7280]">Toko: {{ config('toko.alnay.jam_buka') }}</span>
                 <span class="text-gray-300 mx-1">•</span>
             </div>
-
-            {{-- Konten 2 (Duplikasi agar looping mulus) --}}
             <div class="flex items-center gap-4 px-2">
                 <span class="text-[#8a6410] flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full bg-gold inline-block"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#c99a32] inline-block"></span>
                     {{ config('alnay.promo_bar.teks') }}
                 </span>
                 <span class="text-[#a97c1a] flex items-center gap-1">
-                    <x-icon name="whatsapp" :size="12" />
-                    WA CS: {{ config('alnay.kontak.wa_cs_display') }}
+                    <x-icon name="whatsapp" :size="12" /> WA CS: {{ config('alnay.kontak.wa_cs_display') }}
                 </span>
-                <span class="text-[#6b7280]">
-                    Toko: {{ config('toko.alnay.jam_buka') }}
-                </span>
+                <span class="text-[#6b7280]">Toko: {{ config('toko.alnay.jam_buka') }}</span>
                 <span class="text-gray-300 mx-1">•</span>
             </div>
         </div>
     </div>
 
-    {{-- Tampilan DESKTOP: Statis Rapi (Seperti sebelumnya) --}}
+    {{-- Tampilan DESKTOP --}}
     <div class="hidden md:flex max-w-7xl mx-auto px-4 py-2 items-center justify-between">
         <p class="flex items-center gap-2 text-[#8a6410]">
-            <span class="w-2 h-2 rounded-full bg-gold inline-block shadow-[0_0_8px_rgba(201,154,50,.9)]"></span>
+            <span class="w-2 h-2 rounded-full bg-[#c99a32] inline-block shadow-[0_0_8px_rgba(201,154,50,.9)]"></span>
             {{ config('alnay.promo_bar.teks') }}
         </p>
         <div class="flex items-center gap-4 text-[#6b7280]">
+            <span class="inline-flex items-center gap-1.5"><span class="text-[#a97c1a]">Toko:</span> {{ config('toko.alnay.jam_buka') }}</span>
             <span class="inline-flex items-center gap-1.5">
-                <span class="text-[#a97c1a]">Toko:</span> {{ config('toko.alnay.jam_buka') }}
-            </span>
-            <span class="inline-flex items-center gap-1.5">
-                <span class="text-[#a97c1a]"><x-icon name="whatsapp" :size="14" /></span>
-                WA CS: {{ config('alnay.kontak.wa_cs_display') }}
+                <span class="text-[#a97c1a]"><x-icon name="whatsapp" :size="14" /></span> WA CS: {{ config('alnay.kontak.wa_cs_display') }}
             </span>
         </div>
     </div>
 </div>
 
-{{-- HEADER UTAMA --}}
-<header x-data="alnayHeader()"
-    @scroll.window.passive="onScroll()"
-    :class="{ 'is-scrolled': scrolled }"
-    class="al-header sticky top-0 z-50">
-
-    <div class="al-main max-w-7xl mx-auto px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-4">
+{{-- ============================================================
+     HEADER UTAMA
+     ============================================================ --}}
+<header x-data="alnayHeader()" @scroll.window.passive="onScroll()" :class="{ 'is-scrolled': scrolled }" class="al-header sticky top-0 z-50">
+    <div class="al-main max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-4">
 
         {{-- Logo --}}
-        <a href="{{ route('beranda') }}" class="flex items-center gap-2.5 shrink-0 min-h-[44px]">
-            <img src="{{ asset('images/home/alnaylogo.png') }}" alt="ALNAY.ID"
-                class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl border border-[#c99a32] bg-[#fbf6e9] object-contain p-1 shadow-[0_6px_20px_-6px_rgba(201,154,50,.65)]">
+        <a href="{{ route('beranda') }}" class="flex items-center gap-2.5 shrink-0 min-h-[40px] sm:min-h-[44px]">
+            <img src="{{ asset('images/home/alnaylogo.png') }}" alt="ALNAY.ID" class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl border border-[#c99a32] bg-[#fbf6e9] object-contain p-1 shadow-[0_6px_20px_-6px_rgba(201,154,50,.65)]">
             <span class="hidden sm:block leading-tight">
                 <span class="block font-display font-bold text-[#15233d] text-lg tracking-tight">ALNAY.ID</span>
                 <span class="block text-[9px] uppercase tracking-[0.24em] text-[#a97c1a]">Muda Gaya Berbudaya</span>
@@ -225,20 +205,23 @@
         </a>
 
         {{-- Search Desktop --}}
-        <form action="{{ route('koleksi.index') }}" method="GET" class="relative flex-1 min-w-0">
-            <x-icon name="search" :size="18" class="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-[#a97c1a] pointer-events-none" />
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari..."
-                class="al-search w-full pl-8 sm:pl-10 pr-2 sm:pr-4 py-2 sm:py-2.5 rounded-full border border-[#c99a32]/25 bg-[#fbf6e9] text-[#15233d] text-sm sm:text-base placeholder:text-[#9a9384] focus:outline-none focus:border-[#c99a32] transition-shadow">
+        <form action="{{ route('koleksi.index') }}" method="GET" class="relative flex-1 min-w-0 hidden sm:block">
+            <x-icon name="search" :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-[#a97c1a] pointer-events-none" />
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari busana, jas, atau gown..."
+                class="al-search w-full pl-10 pr-4 py-2.5 rounded-full border border-[#c99a32]/25 bg-[#fbf6e9] text-[#15233d] text-sm placeholder:text-[#9a9384] focus:outline-none focus:border-[#c99a32] transition-shadow">
         </form>
 
-        {{-- Aksi kanan --}}
+        {{-- Aksi Kanan --}}
         <div class="flex items-center gap-1 sm:gap-2 shrink-0 ml-auto">
+            
+            {{-- Tombol Search (Mobile Only) --}}
+            <button type="button" onclick="document.getElementById('mobileSearch').classList.toggle('hidden')" class="sm:hidden al-icon-btn w-9 h-9 rounded-full flex items-center justify-center">
+                <x-icon name="search" :size="18" />
+            </button>
 
             {{-- Keranjang --}}
-            <a href="{{ route('keranjang.index') }}"
-                class="al-icon-btn relative inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-11 sm:px-4 sm:gap-2 rounded-full"
-                aria-label="Keranjang">
-                <x-icon name="cart" :size="20" />
+            <a href="{{ route('keranjang.index') }}" class="al-icon-btn relative inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-11 sm:px-4 sm:gap-2 rounded-full" aria-label="Keranjang">
+                <x-icon name="cart" :size="18" class="sm:w-5 sm:h-5" />
                 <span class="hidden sm:inline text-sm font-medium">Keranjang</span>
                 @php
                     $totalKeranjang = 0;
@@ -246,7 +229,7 @@
                     if (session()->has('keranjang_sewa')) $totalKeranjang += count(session('keranjang_sewa'));
                 @endphp
                 @if ($totalKeranjang > 0)
-                    <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gold text-[#1a1408] text-[10px] font-bold flex items-center justify-center border-2 border-white">
+                    <span class="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#c99a32] text-[#1a1408] text-[9px] sm:text-[10px] font-bold flex items-center justify-center border-2 border-white">
                         {{ $totalKeranjang }}
                     </span>
                 @endif
@@ -254,22 +237,17 @@
 
             {{-- Notifikasi --}}
             <div class="relative" x-data="{ notifOpen: false }">
-                <button type="button" @click="notifOpen = !notifOpen"
-                    class="al-icon-btn group relative w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center active:scale-95"
-                    aria-label="Notifikasi">
-                    <div class="group-active:animate-[wiggle_0.3s_ease-in-out]"><x-icon name="bell" :size="20" /></div>
+                <button type="button" @click="notifOpen = !notifOpen" class="al-icon-btn group relative w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center active:scale-95" aria-label="Notifikasi">
+                    <div class="group-active:animate-[wiggle_0.3s_ease-in-out]"><x-icon name="bell" :size="18" class="sm:w-5 sm:h-5" /></div>
                     @if (isset($jumlahNotifikasi) && $jumlahNotifikasi > 0)
-                        <span class="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white">
+                        <span class="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white">
                             {{ $jumlahNotifikasi }}
                         </span>
                     @endif
                 </button>
 
-                <div x-show="notifOpen"
-                    x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 scale-90" x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                    x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 scale-100" x-transition:leave-end="opacity-0 translate-y-4 scale-90"
-                    @click.outside="notifOpen = false" x-cloak
-                    class="al-dd-panel fixed sm:absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 top-[60px] sm:top-full mt-0 sm:mt-2 w-[calc(100vw-2rem)] max-w-[320px] rounded-2xl z-50 overflow-hidden origin-top-center sm:origin-top-right">
+                {{-- Dropdown Notif --}}
+                <div x-show="notifOpen" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 scale-90" x-transition:enter-end="opacity-100 translate-y-0 scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 scale-100" x-transition:leave-end="opacity-0 translate-y-4 scale-90" @click.outside="notifOpen = false" x-cloak class="al-dd-panel fixed sm:absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 top-[60px] sm:top-full mt-0 sm:mt-2 w-[calc(100vw-2rem)] max-w-[320px] rounded-2xl z-50 overflow-hidden origin-top-center sm:origin-top-right">
                     <div class="px-5 py-4 border-b border-[#c99a32]/15 flex items-center justify-between bg-white sticky top-0 z-10">
                         <h3 class="text-[13px] font-bold text-[#15233d]">Notifikasi</h3>
                         <button type="button" @click="notifOpen = false" class="text-[#6b7280] hover:text-[#8a6410] p-1 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors" aria-label="Tutup">
@@ -295,13 +273,6 @@
                                     </div>
                                     <div class="flex items-center gap-2 mt-1">
                                         <span class="text-[10px] text-[#6b7280]">Pesanan {{ strtoupper($n->jenis) }}</span>
-                                        @if(strtolower($n->status_pembayaran) === 'pending')
-                                            <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 text-amber-600 border border-amber-100">PENDING</span>
-                                        @elseif(in_array(strtolower($n->status_pembayaran), ['lunas', 'success']))
-                                            <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">LUNAS</span>
-                                        @else
-                                            <span class="px-1.5 py-0.5 rounded text-[8px] font-bold bg-gray-50 text-[#6b7280] border border-gray-200">{{ strtoupper($n->status_pembayaran) }}</span>
-                                        @endif
                                     </div>
                                 </div>
                             </a>
@@ -315,9 +286,10 @@
                 </div>
             </div>
 
+            {{-- Profil & Daftar / Login --}}
             @guest
-                <a href="{{ route('masuk') }}" class="hidden sm:inline-flex items-center px-5 py-2.5 text-sm font-semibold uppercase tracking-wide text-[#15233d] hover:text-[#8a6410] transition-colors min-h-[44px]">Masuk</a>
-                <a href="{{ route('daftar') }}" class="inline-flex items-center justify-center px-2.5 sm:px-5 py-2 rounded-full bg-gradient-to-b from-[#e2b93e] to-[#b8860b] text-[#1a1408] text-[10px] sm:text-sm font-bold uppercase tracking-normal sm:tracking-wide shadow-[0_8px_20px_-8px_rgba(201,154,50,.8)] hover:brightness-110 transition min-h-[40px] sm:min-h-[44px]">Daftar</a>
+                <a href="{{ route('masuk') }}" class="hidden sm:inline-flex items-center px-4 py-2 text-sm font-semibold text-[#15233d] hover:text-[#8a6410] transition-colors">Masuk</a>
+                <a href="{{ route('daftar') }}" class="inline-flex items-center justify-center px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-gradient-to-b from-[#e2b93e] to-[#b8860b] text-[#1a1408] text-[11px] sm:text-sm font-bold shadow-[0_8px_20px_-8px_rgba(201,154,50,.8)] hover:brightness-110 transition">Daftar</a>
             @endguest
 
             @auth
@@ -328,32 +300,43 @@
                     else { $profileRoute = route('akun.dashboard'); $profileText = 'Profil'; }
                 @endphp
 
-                {{-- Profil (Sembunyi di HP) --}}
+                {{-- Profil Desktop --}}
                 <a href="{{ $profileRoute }}" class="hidden md:inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-11 sm:px-4 rounded-full border border-[#c99a32]/40 text-sm font-semibold text-[#8a6410] hover:bg-[#c99a32]/15 transition-colors">
                     <x-icon name="user" :size="18" />
                     <span class="hidden sm:inline ml-1.5">{{ $profileText }}</span>
                 </a>
 
-                {{-- Keluar (Sembunyi di HP) --}}
+                {{-- Keluar Desktop --}}
                 <form method="POST" action="{{ route('keluar') }}" class="hidden md:inline-block">
                     @csrf
-                    <button type="submit" class="al-icon-btn inline-flex items-center justify-center gap-1.5 w-9 h-9 sm:w-auto sm:h-11 sm:px-4 rounded-full text-sm font-medium">
+                    <button type="submit" class="al-icon-btn inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-11 sm:px-4 rounded-full text-sm font-medium">
                         <span class="hidden sm:inline">Keluar</span>
                         <svg class="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                     </button>
                 </form>
             @endauth
 
-            {{-- Hamburger --}}
-            <button type="button" @click="mobileOpen = !mobileOpen" class="al-icon-btn md:hidden w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center" aria-label="Menu">
-                <template x-if="!mobileOpen"><x-icon name="menu" :size="22" /></template>
-                <template x-if="mobileOpen"><x-icon name="close" :size="22" /></template>
+            {{-- Hamburger Menu Mobile --}}
+            <button type="button" @click="mobileOpen = !mobileOpen" class="al-icon-btn md:hidden w-9 h-9 rounded-full flex items-center justify-center" aria-label="Menu">
+                <template x-if="!mobileOpen"><x-icon name="menu" :size="20" /></template>
+                <template x-if="mobileOpen"><x-icon name="close" :size="20" /></template>
             </button>
         </div>
     </div>
 
-    {{-- NAV DESKTOP --}}
-    <nav class="al-tapis hidden md:block">
+    {{-- Search Mobile (Tersembunyi, muncul saat icon search diklik) --}}
+    <div id="mobileSearch" class="hidden sm:hidden px-4 pb-3 bg-white">
+        <form action="{{ route('koleksi.index') }}" method="GET" class="relative w-full">
+            <x-icon name="search" :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-[#a97c1a] pointer-events-none" />
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari busana..." class="w-full pl-9 pr-4 py-2 rounded-full border border-[#c99a32]/25 bg-[#fbf6e9] text-sm focus:outline-none focus:border-[#c99a32]">
+        </form>
+    </div>
+
+    {{-- ============================================================
+         NAVIGASI DESKTOP (ANIMASI MEMUDAR KE ATAS)
+         ============================================================ --}}
+    {{-- PERHATIKAN BAGIAN :class="{ 'is-hidden': hideMenu }" --}}
+    <nav class="al-tapis hidden md:block" :class="{ 'is-hidden': hideMenu }">
         <span class="al-tapis-motif" aria-hidden="true">
             <span class="al-tapis-track" id="alTapisTrack">@for ($t = 0; $t < 14; $t++)<i></i>@endfor</span>
         </span>
@@ -394,15 +377,13 @@
         </div>
     </nav>
 
-    {{-- NAV MOBILE --}}
+    {{-- ============================================================
+         NAVIGASI MOBILE
+         ============================================================ --}}
     <div x-show="mobileOpen" x-collapse x-cloak class="md:hidden border-t border-[#c99a32]/20 bg-white">
         <nav class="max-w-7xl mx-auto px-4 py-3 flex flex-col">
-            
-            {{-- Menu Navigasi Mobile --}}
             @foreach ($navItems as $item)
-                <a href="{{ route($item['route']) }}"
-                    class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors
-                      {{ $item['active'] ? 'text-[#8a6410] bg-[#c99a32]/14 ring-1 ring-[#c99a32]/30' : 'text-[#3b4358] hover:bg-[#c99a32]/10 hover:text-[#8a6410]' }}">
+                <a href="{{ route($item['route']) }}" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors {{ $item['active'] ? 'text-[#8a6410] bg-[#c99a32]/14 ring-1 ring-[#c99a32]/30' : 'text-[#3b4358] hover:bg-[#c99a32]/10 hover:text-[#8a6410]' }}">
                     @if ($item['label'] === 'Beranda')
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
                     @elseif($item['label'] === 'Koleksi')
@@ -418,7 +399,6 @@
                 </a>
             @endforeach
 
-            {{-- Profil & Keluar (Mobile) --}}
             @auth
             <div class="mt-4 border-t border-[#c99a32]/15 pt-4 flex flex-col gap-1">
                 <a href="{{ $profileRoute }}" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-[#3b4358] hover:bg-[#c99a32]/10 hover:text-[#8a6410] transition-colors">
@@ -436,10 +416,13 @@
             @endauth
         </nav>
     </div>
-
 </header>
 
+{{-- Spacer untuk nav desktop --}}
+<div class="hidden md:block h-[49px]" aria-hidden="true"></div>
+
 <script>
+    // Animasi Tapis Continuity
     (function () {
         try {
             var D = 11, k = 'alnayTapisStart', s = sessionStorage.getItem(k);
@@ -448,16 +431,33 @@
             if (t) t.style.animationDelay = (-(((Date.now() - Number(s)) / 1000) % D)) + 's';
         } catch (e) {}
     })();
-</script>
 
-<div class="hidden md:block h-[49px]" aria-hidden="true"></div>
-
-<script>
+    // Alpine.js Data & Scroll Logic
     function alnayHeader() {
         return {
-            mobileOpen: false, koleksiOpen: false, scrolled: false,
-            init() { this.scrolled = window.scrollY > 30; },
-            onScroll() { this.scrolled = window.scrollY > 30; },
+            mobileOpen: false, 
+            koleksiOpen: false, 
+            scrolled: false, 
+            hideMenu: false, // State untuk menyembunyikan menu bawah
+            last: 0,
+            init() { 
+                this.last = window.scrollY; 
+                this.scrolled = this.last > 30; 
+            },
+            onScroll() {
+                const y = window.scrollY;
+                this.scrolled = y > 30;
+                
+                // Logika slide-up (menyembunyikan menu tapis)
+                if (this.koleksiOpen || y < 80) { 
+                    this.hideMenu = false; 
+                } else {
+                    const d = y - this.last;
+                    if (d > 6) this.hideMenu = true; // Scroll turun -> Sembunyikan
+                    else if (d < -6) this.hideMenu = false; // Scroll naik -> Munculkan
+                }
+                this.last = y;
+            },
         };
     }
 </script>
