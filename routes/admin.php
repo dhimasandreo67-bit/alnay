@@ -95,7 +95,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // 6. Layanan atelier
         Route::get('/refund', [App\Http\Controllers\Admin\RefundController::class, 'index'])->name('refund.index');
-        Route::patch('/refund/{id}/status', [App\Http\Controllers\Admin\RefundController::class, 'updateStatus'])->name('refund.update-status');
+        Route::get('/refund/{id}', [App\Http\Controllers\Admin\RefundController::class, 'show'])->whereNumber('id')->name('refund.show');
+        Route::patch('/refund/{id}/setujui', [App\Http\Controllers\Admin\RefundController::class, 'setujui'])->name('refund.setujui');
+        Route::patch('/refund/{id}/tolak', [App\Http\Controllers\Admin\RefundController::class, 'tolak'])->name('refund.tolak');
+        Route::patch('/refund/{id}/terima-barang', [App\Http\Controllers\Admin\RefundController::class, 'terimaBarang'])->name('refund.terima-barang');
+        Route::post('/refund/{id}/selesai', [App\Http\Controllers\Admin\RefundController::class, 'selesai'])->name('refund.selesai');
         
         // --- PENGIRIMAN ---
         Route::get('/pengiriman', [PengirimanController::class, 'index'])->name('pengiriman.index');
