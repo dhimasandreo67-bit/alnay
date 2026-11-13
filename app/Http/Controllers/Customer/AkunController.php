@@ -50,7 +50,7 @@ class AkunController extends Controller
             ->count();
 
         $refundAktif = Refund::where('diajukan_oleh', $user->id)
-            ->where('status', 'pending')
+            ->aktif()
             ->count();
 
         // --- 2. DAFTAR PESANAN ---
@@ -115,7 +115,10 @@ class AkunController extends Controller
             ->findOrFail($id);
         $transaksi->load(['detail.produk', 'sewa.pengecekan', 'pembayaran', 'pengiriman']);
 
-$refund = \App\Models\Refund::where('transaksi_id', $transaksi->id)->first();
+// Refund terbaru untuk pesanan ini + apakah pelanggan masih boleh mengajukan (aturan ada di Transaksi::cekBisaRefund)
+$transaksi->load('refund');
+$refund = $transaksi->refund->sortByDesc('id')->first();
+[$bisaRefund, $alasanTakBisaRefund] = $transaksi->cekBisaRefund();
 
 $sudahFitting = \App\Models\ReservasiFitting::where('transaksi_id', $transaksi->id)
     ->where('status', '!=', 'batal')
@@ -128,7 +131,7 @@ $sudahRating = $detailPertama
     : true;
 
 return view('customer.akun.pesanan-detail', compact(
-    'transaksi', 'refund', 'sudahFitting', 'ratingDetailId', 'sudahRating'
+    'transaksi', 'refund', 'bisaRefund', 'alasanTakBisaRefund', 'sudahFitting', 'ratingDetailId', 'sudahRating'
 ));
     }
 
@@ -136,26 +139,6 @@ return view('customer.akun.pesanan-detail', compact(
     {
         $fittingList = ReservasiFitting::with('slot')->where('user_id', auth()->id())->latest()->get();
         return view('customer.akun.fitting', compact('fittingList'));
-    }
-
-    public function refund()
-    {
-        return view('customer.akun.refund');
-    }
-
-    public function ajukanRefund(Request $request, $id)
-    {
-        $request->validate(['alasan' => 'required|string|max:500']);
-        $transaksi = Transaksi::where('user_id', auth()->id())->findOrFail($id);
-
-        Refund::create([
-            'transaksi_id' => $transaksi->id,
-            'diajukan_oleh' => auth()->id(),
-            'alasan' => $request->alasan,
-            'status' => 'pending',
-        ]);
-
-        return back()->with('success', 'Pengajuan refund berhasil dikirim!');
     }
 
     public function terimaPengiriman($id)
