@@ -1,66 +1,131 @@
 @extends('layouts.akun')
 
-@section('title', 'Ajukan Refund — ' . config('alnay.brand.nama'))
+@section('title', 'Refund Saya — ' . config('alnay.brand.nama'))
 
 @section('content')
+@php
+    $chip = fn ($st) => match (true) {
+        $st === 'selesai' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        in_array($st, ['ditolak', 'dibatalkan'], true) => 'bg-rose-50 text-rose-700 border-rose-200',
+        default => 'bg-amber-50 text-amber-700 border-amber-200',
+    };
+
+    $aktif = $refundList->whereNotIn('status', ['selesai', 'ditolak', 'dibatalkan'])->count();
+@endphp
 
 <div class="bg-cream min-h-screen py-8 md:py-12">
     <div class="max-w-2xl mx-auto px-4">
 
-        {{-- Tombol Kembali & Judul --}}
-        <div class="flex items-center gap-4 mb-8">
-            <a href="{{ route('akun.dashboard') }}" class="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-[#c99a32] hover:border-[#c99a32]/50 hover:shadow-sm transition-all duration-300">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+        <div class="flex items-center gap-3 mb-6">
+            <a href="{{ route('akun.dashboard') }}#refund" aria-label="Kembali"
+               class="w-9 h-9 shrink-0 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold hover:border-gold/50 transition-all">
+                <x-icon name="chevron-right" :size="14" class="rotate-180" />
             </a>
-            <h1 class="font-display text-2xl md:text-3xl font-bold text-gray-900">Ajukan Refund</h1>
-        </div>
-
-        {{-- Card Utama --}}
-        <div class="bg-white border border-gray-100 rounded-3xl p-6 md:p-8 shadow-sm">
-            
-            {{-- Kotak Peringatan (Modern Alert) --}}
-            <div class="bg-amber-50 border-l-4 border-amber-500 rounded-r-xl p-5 mb-10 flex items-start gap-4">
-                <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                </div>
-                <div>
-                    <h3 class="text-sm font-bold text-amber-900 mb-1">Perhatian Sebelum Refund</h3>
-                    <p class="text-xs text-amber-800 leading-relaxed">
-                        Refund hanya berlaku untuk transaksi <strong>Beli</strong>. Untuk transaksi Sewa, DP yang sudah dibayar tidak dapat dikembalikan (hangus jika batal sebelum barang diambil).
-                    </p>
-                </div>
-            </div>
-
-            {{-- Empty State (Form Segera Hadir) --}}
-            <div class="flex flex-col items-center justify-center py-10 text-center">
-                {{-- Ikon --}}
-                <div class="w-24 h-24 rounded-full bg-amber-50 flex items-center justify-center mb-6">
-                    <svg class="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                </div>
-
-                {{-- Teks --}}
-                <h2 class="font-display text-xl md:text-2xl font-bold text-gray-900 mb-2">Form Refund Segera Hadir</h2>
-                <p class="text-sm text-gray-500 max-w-sm mx-auto mb-8 leading-relaxed">
-                    Silakan hubungi Customer Service kami melalui WhatsApp untuk mengajukan refund.
-                </p>
-
-                {{-- Tombol Aksi --}}
-                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" 
-                        class="inline-flex items-center justify-center gap-2 px-6 py-3.5 w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/30 transition-all hover:-translate-y-0.5">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                        Hubungi CS via WhatsApp
-                    </a>
-                    <a href="{{ route('akun.dashboard') }}" 
-                       class="inline-flex items-center justify-center px-6 py-3.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all">
-                        Kembali ke Akun
-                    </a>
-                </div>
+            <div>
+                <h1 class="font-display text-2xl font-medium text-ink/90 leading-tight">Refund Saya</h1>
+                <p class="text-[11px] text-ink/50">Ajukan pengembalian barang dan pantau prosesnya.</p>
             </div>
         </div>
+
+        @foreach (['success' => 'bg-emerald-50 border-emerald-200 text-emerald-700', 'error' => 'bg-rose-50 border-rose-200 text-rose-700'] as $tipe => $kelas)
+            @if (session($tipe))
+                <div class="mb-4 px-4 py-3 rounded-xl border text-sm {{ $kelas }}">{{ session($tipe) }}</div>
+            @endif
+        @endforeach
+
+        {{-- Ringkasan --}}
+        <div class="grid grid-cols-3 gap-3 mb-6">
+            @foreach ([
+                ['Bisa direfund', $bisaDirefund->count()],
+                ['Sedang diproses', $aktif],
+                ['Total pengajuan', $refundList->count()],
+            ] as [$label, $angka])
+                <div class="bg-panel border border-line/40 rounded-xl p-3 text-center">
+                    <p class="text-xl font-display font-medium text-ink/90 tabular-nums">{{ $angka }}</p>
+                    <p class="text-[10px] text-ink/50 mt-0.5">{{ $label }}</p>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="bg-amber-50 border-l-4 border-amber-500 rounded-r-xl p-4 mb-6 text-xs text-amber-900 leading-relaxed">
+            <p class="font-bold mb-1">Ketentuan singkat</p>
+            Refund hanya untuk <strong>pembelian</strong>, diajukan maksimal <strong>{{ \App\Models\Refund::BATAS_HARI }} hari</strong>
+            setelah barang diterima, dengan foto bukti. Barang perlu dikirim kembali, lalu dana ditransfer setelah barang dicek.
+            Untuk <strong>sewa</strong>, DP tidak dapat dikembalikan.
+        </div>
+
+        {{-- Pesanan yang bisa diajukan refund --}}
+        <h2 class="text-[11px] font-semibold uppercase tracking-wider text-ink/60 mb-3">Pesanan yang bisa direfund</h2>
+        <div class="space-y-3 mb-8">
+            @forelse ($bisaDirefund as $t)
+                <div class="bg-panel border border-line/40 rounded-xl p-4">
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <div class="min-w-0">
+                            <p class="text-[11px] text-ink/50 font-mono">{{ $t->kode_transaksi }}</p>
+                            <p class="text-[11px] text-ink/50">
+                                {{ $t->detail->count() }} produk · {{ $t->detail->sum('jumlah') }} item · Total
+                                <span class="font-semibold text-ink/80 tabular-nums">Rp{{ number_format($t->total, 0, ',', '.') }}</span>
+                            </p>
+                        </div>
+                        <a href="{{ route('akun.refund.create', $t->id) }}"
+                           class="shrink-0 px-4 py-2 rounded-lg border border-rose-200 text-rose-600 text-[12px] font-semibold hover:bg-rose-50 transition-colors">
+                            Ajukan Refund
+                        </a>
+                    </div>
+                    <div class="space-y-3 pt-3 border-t border-line/30">
+                        @foreach ($t->detail->take(2) as $d)
+                            @include('customer.akun._refund-item', ['d' => $d])
+                        @endforeach
+
+                        @if ($t->detail->count() > 2)
+                            <details class="group/lain">
+                                <summary class="cursor-pointer list-none text-[11px] font-semibold text-gold hover:underline">
+                                    <span class="group-open/lain:hidden">Lihat {{ $t->detail->count() - 2 }} produk lainnya</span>
+                                    <span class="hidden group-open/lain:inline">Sembunyikan</span>
+                                </summary>
+                                <div class="space-y-3 mt-3">
+                                    @foreach ($t->detail->slice(2) as $d)
+                                        @include('customer.akun._refund-item', ['d' => $d])
+                                    @endforeach
+                                </div>
+                            </details>
+                        @endif
+                    </div>
+                </div>
+            @empty
+                <div class="text-[12px] text-ink/55 bg-panel border border-line/40 rounded-xl p-4 leading-relaxed">
+                    <p class="font-semibold text-ink/70 mb-1">Belum ada pesanan yang memenuhi syarat refund.</p>
+                    Pesanan pembelian yang sudah diterima dan masih dalam batas {{ \App\Models\Refund::BATAS_HARI }} hari akan muncul di sini.
+                </div>
+            @endforelse
+        </div>
+
+        {{-- Riwayat pengajuan --}}
+        <h2 class="text-[11px] font-semibold uppercase tracking-wider text-ink/60 mb-3">Pengajuan saya</h2>
+        <div class="space-y-3 mb-8">
+            @forelse ($refundList as $r)
+                @php $items = $r->transaksi->detail ?? collect(); @endphp
+                <a href="{{ route('akun.refund.show', $r->id) }}"
+                   class="block bg-panel border border-line/40 rounded-xl p-4 hover:border-gold/50 hover:shadow-sm transition-all">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-[11px] text-ink/50 font-mono">{{ $r->transaksi->kode_transaksi ?? '-' }}</p>
+                            <p class="text-[13px] font-semibold text-ink/85 truncate">{{ $items->first()->produk->nama ?? '-' }}
+                                @if ($items->count() > 1)<span class="font-normal text-ink/45">+{{ $items->count() - 1 }} produk lainnya</span>@endif
+                            </p>
+                            <p class="text-[11px] text-ink/55 mt-0.5 tabular-nums">Rp{{ number_format($r->jumlah, 0, ',', '.') }}</p>
+                            <p class="text-[10px] text-ink/45 mt-1">Diajukan {{ $r->created_at->format('d M Y, H:i') }}</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase shrink-0 {{ $chip($r->status) }}">{{ $r->label_status }}</span>
+                    </div>
+                </a>
+            @empty
+                <p class="text-[12px] text-ink/50 bg-panel border border-line/40 rounded-xl p-4">Belum ada pengajuan refund.</p>
+            @endforelse
+        </div>
+
+        {{-- Panduan lengkap --}}
+        @include('customer.akun._refund-panduan')
     </div>
 </div>
-
 @endsection
