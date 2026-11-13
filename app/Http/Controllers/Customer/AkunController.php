@@ -9,6 +9,7 @@ use App\Models\Refund;
 use App\Models\ReservasiFitting;
 use App\Models\Sewa;
 use App\Models\Transaksi;
+use App\Services\SinkronAlamatUtama;
 use Illuminate\Http\Request;
 
 class AkunController extends Controller
@@ -16,6 +17,14 @@ class AkunController extends Controller
     public function index(Request $request)
     {
         $user   = auth()->user();
+
+        // Self-healing: kalau no_hp profil masih kosong tapi sudah punya alamat,
+        // isi otomatis dari alamat utama lalu muat ulang data user.
+        if (blank($user->no_hp) && AlamatPengiriman::where('user_id', $user->id)->exists()) {
+            SinkronAlamatUtama::untuk($user->id);
+            $user = $user->fresh();
+        }
+
         $status = $request->get('status', 'semua');
         $cari   = trim((string) $request->get('q', ''));
 

@@ -51,6 +51,7 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/fitting', [FittingController::class, 'store'])->name('fitting.store');
     Route::get('/fitting/{id}', [FittingController::class, 'show'])->name('fitting.show');
     Route::patch('/fitting/{id}/cancel', [FittingController::class, 'cancel'])->name('fitting.cancel');
+    Route::delete('/fitting/{id}', [FittingController::class, 'destroy'])->name('fitting.destroy');
 
     // TAMBAHKAN DUA BARIS INI:
     Route::get('/fitting/{id}/edit', [FittingController::class, 'edit'])->name('fitting.edit');

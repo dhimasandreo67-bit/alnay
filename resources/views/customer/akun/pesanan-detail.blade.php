@@ -84,6 +84,17 @@
             ['label' => 'Diterima', 'selesai' => $statusKirim === 'diterima'],
         ];
 
+        // Sewa ambil di toko tidak punya tahap "Diantar/Diterima": ganti dengan tahap fitting.
+        $perluFitting = $isSewa && $transaksi->perluFitting();
+        if ($perluFitting) {
+            $fit = $transaksi->fittingAktif();
+            $langkah = [
+                ['label' => 'Bayar DP', 'selesai' => $transaksi->dpSudahDibayar()],
+                ['label' => 'Jadwal fitting', 'selesai' => (bool) $fit],
+                ['label' => 'Fitting selesai', 'selesai' => $fit && strtolower($fit->status) === 'hadir'],
+            ];
+        }
+
         $alamat = $transaksi->pengiriman->alamat_tujuan ?? null;
         $alamatTampil = $alamat ? str_replace(' | ', "\n", $alamat) : null;
 
@@ -155,6 +166,13 @@
                         @endforeach
                     </ol>
                 </div>
+
+                {{-- FITTING (hanya sewa ambil di toko yang DP-nya sudah dibayar) --}}
+                @if ($perluFitting && $transaksi->dpSudahDibayar())
+                    <div class="px-5 md:px-6 py-4 border-t border-line/40">
+                        @include('customer.partials.fitting-status', ['transaksi' => $transaksi])
+                    </div>
+                @endif
 
                 {{-- PRODUK --}}
                 <section class="p-5 md:p-6 border-t border-line/40">
@@ -367,20 +385,6 @@
                             <span class="text-[13px] font-semibold">Lanjutkan Pembayaran</span>
                             <span class="text-[13px] font-bold tabular-nums">Rp{{ number_format($sisaTagihan, 0, ',', '.') }}</span>
                         </a>
-                    @endif
-
-                    @if ($isSewa)
-                        @if (! ($sudahFitting ?? false))
-                            <a href="{{ route('fitting.create', ['transaksi_id' => $transaksi->id]) }}"
-                                class="block w-full text-center py-2.5 rounded-xl bg-emerald-600 text-white text-[12px] font-semibold hover:bg-emerald-700 transition-all duration-300">
-                                Booking Fitting
-                            </a>
-                        @else
-                            <a href="{{ route('akun.dashboard') }}#fitting"
-                                class="block w-full text-center py-2.5 rounded-xl bg-white border border-line/50 text-ink/75 text-[12px] font-semibold hover:bg-cream transition-all duration-300">
-                                Lihat Jadwal Fitting
-                            </a>
-                        @endif
                     @endif
 
                     <div class="grid grid-cols-2 gap-2.5">

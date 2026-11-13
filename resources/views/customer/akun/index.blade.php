@@ -924,4 +924,7 @@
         if (e.target === this) tutupModalTerima();
     });
 </script>
+
+{{-- Modal konfirmasi hapus fitting (dipakai semua kartu fitting) --}}
+@include('customer.partials.modal-hapus-fitting')
 @endsection

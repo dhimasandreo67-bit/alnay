@@ -21,11 +21,6 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #d1d5db; }
         [x-cloak] { display: none !important; }
 
-        /* 
-         =========================================
-         CSS TRANSISI HALAMAN HALUS (View Transitions) 
-         =========================================
-        */
         @view-transition {
             navigation: auto;
         }
