@@ -103,95 +103,87 @@
     $palet = \App\Models\Produk::paletWarna();
     $warna = $namaWarna->map(fn ($w) => $palet[$w] ?? $tebakHex($w))->all();
 
-    // Tombol: sudut 10px (agak kotak, tidak tegas), Inter, huruf normal
-    $tbl = 'inline-flex min-h-[40px] items-center justify-center rounded-[10px] px-3.5 text-[13px] font-semibold tracking-normal transition-all duration-300 ease-out hover:-translate-y-0.5 active:translate-y-0 active:scale-[.97]';
-    $tblEmas = $tbl . ' border border-[#c99a32] bg-gradient-to-b from-[#d9ae45] to-[#c99a32] text-[#15233d] hover:border-[#b8860b] hover:from-[#c99a32] hover:to-[#b8860b] hover:text-white hover:shadow-[0_10px_20px_-10px_rgba(184,134,11,.85)]';
-    $tblGaris = $tbl . ' border border-[#c99a32] bg-white text-[#15233d] hover:border-[#15233d] hover:bg-[#15233d] hover:text-[#fdf8ea] hover:shadow-[0_10px_20px_-10px_rgba(21,35,61,.6)]';
-    $tblMati = $tbl . ' cursor-not-allowed border border-[#ece6d6] bg-[#f4f0e6] text-[#a39a85] hover:translate-y-0';
+    // Tombol
+    $tbl = 'inline-flex h-8 items-center justify-center rounded-lg px-3 text-[11px] font-bold tracking-normal transition-all duration-300 ease-out active:scale-[.97]';
+    $tblEmas = $tbl . ' border border-[#c99a32] bg-[#c99a32] text-[#15233d] hover:bg-[#b8860b] hover:border-[#b8860b] hover:text-white';
+    $tblGaris = $tbl . ' border border-[#c99a32] bg-white text-[#15233d] hover:bg-[#fbf6e9]';
+    $tblMati = $tbl . ' cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400';
 @endphp
 
 <article
-    class="group relative flex h-full flex-col overflow-hidden rounded-[20px] border border-[#f0ece4] bg-white text-[#15233d] transition-all duration-500 hover:-translate-y-1 hover:shadow-lg"
+    class="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[#f0ece4] bg-white text-[#15233d] transition-all duration-500 hover:-translate-y-1 hover:shadow-lg"
     style="font-family: 'Inter', sans-serif;">
 
     {{-- FOTO + LABEL --}}
-    <div class="relative aspect-[3/4] overflow-hidden bg-[#efe9dc]">
+    <div class="relative aspect-[4/5] overflow-hidden bg-[#efe9dc] sm:aspect-[3/4]">
         <a href="{{ $urlDetail }}" class="block h-full w-full" aria-label="Lihat detail {{ $nama }}">
             @if ($foto)
-                <img src="{{ $foto }}" alt="{{ $nama }}" loading="lazy"
+                <img src="{{ $foto }}" alt="{{ $nama }}" width="600" height="800" loading="lazy" decoding="async"
                     class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105">
             @endif
         </a>
 
-        <span
-            class="pointer-events-none absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-semibold leading-tight backdrop-blur-sm {{ $tersedia ? 'bg-white/90 text-[#15233d]' : 'bg-[#15233d]/85 text-[#f5efe0]' }}">
+        {{-- Label Kiri Atas (Kategori/Status) --}}
+        <span class="pointer-events-none absolute left-2 top-2 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide backdrop-blur-md {{ $tersedia ? 'bg-white/90 text-[#15233d]' : 'bg-[#15233d]/85 text-[#f5efe0]' }}">
             {{ $labelFoto }}
         </span>
 
+        {{-- Label Kanan Atas (Peringkat) --}}
         @if ($peringkat !== null)
-            <span
-                class="pointer-events-none absolute right-2.5 top-2.5 rounded-full bg-[#15233d] px-2.5 py-1 text-[11px] font-semibold leading-tight text-white">
+            <span class="pointer-events-none absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#c99a32] text-[10px] font-black text-white shadow-sm">
                 #{{ $peringkat }}
             </span>
         @endif
     </div>
 
-    <div class="flex flex-1 flex-col px-3.5 pb-3.5 pt-3 sm:px-4 sm:pb-4 sm:pt-3.5">
-
+    {{-- BODY --}}
+    <div class="flex flex-1 flex-col px-3 pb-3 pt-3">
+        
         {{-- NAMA --}}
-        <h3 class="truncate text-sm font-semibold leading-snug" title="{{ $nama }}">
+        <h3 class="truncate text-[13px] font-bold leading-tight" title="{{ $nama }}">
             <a href="{{ $urlDetail }}" class="transition-colors hover:text-[#8a6410]">{{ $nama }}</a>
         </h3>
 
-        {{-- RATING (ringkas) --}}
-        <p class="mt-1 flex items-center gap-1 text-xs text-[#6b7280]">
+        {{-- RATING --}}
+        <div class="mt-1 flex h-4 items-center gap-1 text-[10px] text-[#6b7280]">
             @if ($ulasan > 0)
-                <svg class="h-3.5 w-3.5 text-[#c99a32]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <svg class="h-3 w-3 text-[#c99a32]" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                 </svg>
-                <span class="font-semibold text-[#15233d]">{{ number_format($rating, 1, ',', '.') }}</span>
+                <span class="font-bold text-[#15233d]">{{ number_format($rating, 1, ',', '.') }}</span>
                 <span>({{ $ulasan }})</span>
             @else
-                <span>Belum ada ulasan</span>
-            @endif
-        </p>
-
-        {{-- HARGA: dua baris sejajar; yang tidak tersedia ditulis netral (tanpa merah) --}}
-        <div class="mb-3 mt-3 space-y-1.5 border-t border-[#f0ece4] pt-3 text-xs">
-            <div class="flex items-baseline justify-between gap-2">
-                <span class="text-[#6b7280]">Sewa</span>
-                @if ($bisaSewa)
-                    <span class="whitespace-nowrap text-sm font-bold text-[#15233d]">
-                        Rp {{ number_format($hargaSewa, 0, ',', '.') }}
-                        <span class="text-[10px] font-medium text-[#6b7280]">/ 3 hari</span>
-                    </span>
-                @else
-                    <span class="font-medium text-[#a39a85]">Tidak disewakan</span>
-                @endif
-            </div>
-            <div class="flex items-baseline justify-between gap-2">
-                <span class="text-[#6b7280]">Beli</span>
-                @if ($bisaBeli)
-                    <span class="whitespace-nowrap text-sm font-bold text-[#15233d]">
-                        Rp {{ number_format($hargaBeli, 0, ',', '.') }}
-                    </span>
-                @else
-                    <span class="font-medium text-[#a39a85]">Tidak dijual</span>
-                @endif
-            </div>
-
-            @if (count($warna))
-                <div class="flex flex-wrap items-center gap-1.5 pt-1">
-                    @foreach (array_slice($warna, 0, 5) as $hex)
-                        <span class="h-3 w-3 rounded-full border border-black/10"
-                            style="background-color: {{ $hex }};"></span>
-                    @endforeach
-                </div>
+                <span class="text-gray-400">Belum ada ulasan</span>
             @endif
         </div>
 
+        {{-- HARGA --}}
+        <div class="mt-3 flex flex-col justify-end gap-1 border-t border-[#f0ece4] pt-2.5 text-[11px]">
+            <div class="flex items-center justify-between">
+                <span class="text-[#6b7280] font-medium">Sewa</span>
+                @if ($bisaSewa)
+                    <span class="text-[12px] font-bold text-[#15233d]">
+                        Rp {{ number_format($hargaSewa, 0, ',', '.') }}
+                        <span class="text-[9px] font-medium text-[#6b7280]">/3hr</span>
+                    </span>
+                @else
+                    <span class="font-medium text-[#a39a85]">-</span>
+                @endif
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-[#6b7280] font-medium">Beli</span>
+                @if ($bisaBeli)
+                    <span class="text-[12px] font-bold text-[#15233d]">
+                        Rp {{ number_format($hargaBeli, 0, ',', '.') }}
+                    </span>
+                @else
+                    <span class="font-medium text-[#a39a85]">-</span>
+                @endif
+            </div>
+        </div>
+
         {{-- TOMBOL --}}
-        <div class="mt-auto grid gap-2 {{ $bisaSewa && $bisaBeli ? 'grid-cols-2' : 'grid-cols-1' }}">
+        <div class="mt-3 grid gap-1.5 {{ $bisaSewa && $bisaBeli ? 'grid-cols-2' : 'grid-cols-1' }}">
             @if ($bisaSewa && $bisaBeli)
                 <a href="{{ $urlDetail }}?mode=sewa" class="{{ $tblGaris }}">Sewa</a>
                 <a href="{{ $urlDetail }}?mode=beli" class="{{ $tblEmas }}">Beli</a>
@@ -200,7 +192,7 @@
             @elseif ($bisaBeli)
                 <a href="{{ $urlDetail }}?mode=beli" class="{{ $tblEmas }}">Beli</a>
             @else
-                <span class="{{ $tblMati }}">Belum Tersedia</span>
+                <span class="{{ $tblMati }}">Habis</span>
             @endif
         </div>
     </div>

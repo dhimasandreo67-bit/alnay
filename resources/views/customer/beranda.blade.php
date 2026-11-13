@@ -611,7 +611,7 @@
     </section>
 
 
-                {{-- ============================================================
+    {{-- ============================================================
      3. PRODUK TERBARU
      ============================================================ --}}
     <section class="max-w-7xl mx-auto px-4 py-16 md:py-24">
@@ -627,14 +627,20 @@
         </div>
 
         @if (count($produkTerbaru) > 0)
-            <div class="stagger mx-auto max-w-7xl flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-3 pb-2 sm:gap-6 xl:grid xl:grid-cols-5 xl:overflow-visible xl:snap-none items-stretch">
+            {{-- Jarak antar card lebih lega (gap-4) --}}
+            <div class="stagger flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-4 pb-4 px-4 -mx-4 sm:mx-0 sm:px-0 sm:gap-6 xl:grid xl:grid-cols-5 xl:overflow-visible xl:snap-none items-stretch">
+                
+                {{-- PERBAIKAN: Gunakan $produkTerbaru (bukan $produkTerpopuler) --}}
                 @foreach ($produkTerbaru as $p)
-                    <div class="reveal h-full shrink-0 w-[44%] sm:w-[31%] md:w-[24%] xl:w-auto snap-start">
+                    {{-- Lebar card di HP 48% agar sejajar rapi --}}
+                    <div class="reveal h-full shrink-0 w-[48%] sm:w-[31%] md:w-[24%] xl:w-auto snap-center">
+                        {{-- PERBAIKAN: Jangan kirim peringkat (karena ini produk baru, bukan populer) --}}
                         <x-product-card :produk="$p" />
                     </div>
                 @endforeach
             </div>
-            <div class="mt-4 flex items-center justify-center gap-2 text-[11px] font-medium text-[#9a9384] xl:hidden">
+            
+            <div class="mt-2 flex items-center justify-center gap-2 text-[11px] font-medium text-[#9a9384] xl:hidden">
                 <span>Geser untuk melihat lebih banyak</span>
                 <svg class="h-3.5 w-3.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5-5 5M6 7l5 5-5 5" />
@@ -660,14 +666,15 @@
             </div>
 
             @if (count($produkTerpopuler) > 0)
-                <div class="stagger mx-auto max-w-7xl flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-3 pb-2 sm:gap-6 xl:grid xl:grid-cols-5 xl:overflow-visible xl:snap-none items-stretch">
+                <div class="stagger flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-4 pb-4 px-4 -mx-4 sm:mx-0 sm:px-0 sm:gap-6 xl:grid xl:grid-cols-5 xl:overflow-visible xl:snap-none items-stretch">
                     @foreach ($produkTerpopuler as $index => $p)
-                        <div class="reveal h-full shrink-0 w-[44%] sm:w-[31%] md:w-[24%] xl:w-auto snap-start">
+                        <div class="reveal h-full shrink-0 w-[48%] sm:w-[31%] md:w-[24%] xl:w-auto snap-center">
+                            {{-- Disini baru pakai peringkat --}}
                             <x-product-card :produk="$p" :peringkat="$index + 1" />
                         </div>
                     @endforeach
                 </div>
-                <div class="mt-4 flex items-center justify-center gap-2 text-[11px] font-medium text-[#9a9384] xl:hidden">
+                <div class="mt-2 flex items-center justify-center gap-2 text-[11px] font-medium text-[#9a9384] xl:hidden">
                     <span>Geser untuk melihat lebih banyak</span>
                     <svg class="h-3.5 w-3.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5-5 5M6 7l5 5-5 5" />
