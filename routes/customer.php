@@ -3,6 +3,7 @@
 use App\Http\Controllers\Customer\AkunController;
 use App\Http\Controllers\Customer\AlamatController;
 use App\Http\Controllers\Customer\ProfilController;
+use App\Http\Controllers\Customer\RefundController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\FittingController;
@@ -28,8 +29,13 @@ Route::middleware('auth:web')->prefix('akun')->name('akun.')->group(function () 
     Route::get('/fitting', [AkunController::class, 'fitting'])->name('fitting.index');
     Route::get('/fitting/riwayat', [FittingController::class, 'index'])->name('akun.fitting.index');
 
-    Route::get('/refund', [AkunController::class, 'refund'])->name('refund.index');
-    Route::match(['get', 'post'], '/refund/{id}', [AkunController::class, 'ajukanRefund'])->name('refund.store');
+    // Refund pembelian
+    Route::get('/refund', [RefundController::class, 'index'])->name('refund.index');
+    Route::get('/refund/pesanan/{id}', [RefundController::class, 'create'])->name('refund.create');
+    Route::post('/refund/pesanan/{id}', [RefundController::class, 'store'])->name('refund.store');
+    Route::get('/refund/{id}', [RefundController::class, 'show'])->whereNumber('id')->name('refund.show');
+    Route::patch('/refund/{id}/kirim', [RefundController::class, 'kirim'])->name('refund.kirim');
+    Route::patch('/refund/{id}/batal', [RefundController::class, 'batal'])->name('refund.batal');
 });
 
 // Grup Khusus Fitur Auth (Bebas URL)
