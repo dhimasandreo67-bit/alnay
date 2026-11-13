@@ -108,13 +108,19 @@ class RefundController extends Controller
     /** disetujui / barang_dikirim -> barang_diterima. Opsional kembalikan stok. */
     public function terimaBarang(Request $request, $id)
     {
-        $request->validate(['restock' => ['nullable', 'boolean']]);
+        $request->validate([
+            'restock_detail'   => ['nullable', 'array'],
+            'restock_detail.*' => ['integer'],
+        ]);
 
         $refund = Refund::with('transaksi.detail')->findOrFail($id);
-        $restock = $request->boolean('restock');
+
+        // Stok hanya dikembalikan untuk produk yang dicentang admin (penting bila pesanan berisi banyak produk).
+        $idRestock = collect($request->input('restock_detail', []))->map(fn ($v) => (int) $v)->all();
+        $restock = ! empty($idRestock);
         $stokKembali = false;
 
-        $ok = DB::transaction(function () use ($refund, $restock, &$stokKembali) {
+        $ok = DB::transaction(function () use ($refund, $restock, $idRestock, &$stokKembali) {
             $berhasil = $refund->pindahKe('barang_diterima', [
                 'tanggal_barang_diterima' => now(),
                 'diproses_oleh'           => auth('admin')->id(),
@@ -126,7 +132,7 @@ class RefundController extends Controller
 
             // Stok hanya dikembalikan sekali, dan hanya jika transaksi ini memang sudah memotong stok.
             if ($restock && ! $refund->stok_dikembalikan && $refund->transaksi->stokSudahDipotong()) {
-                foreach ($refund->transaksi->detail as $d) {
+                foreach ($refund->transaksi->detail->whereIn('id', $idRestock) as $d) {
                     $produk = Produk::lockForUpdate()->find($d->produk_id);
                     $produk?->tambahStok('jual', $d->ukuran, $d->warna, (int) $d->jumlah);
                 }
