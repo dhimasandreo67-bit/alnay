@@ -337,10 +337,15 @@
 
         if (!form || !areaUlasan) return;
 
-        async function muatData(url) {
-            // Tampilkan efek loading halus
+                async function muatData(url) {
+            // Tampilkan efek loading (Redupkan area + Munculkan Spinner)
+            const loadingSpinner = document.getElementById('loading-ulasan');
+            
             areaUlasan.style.opacity = '0.5';
             areaUlasan.style.pointerEvents = 'none';
+            if (loadingSpinner) {
+                loadingSpinner.classList.remove('hidden');
+            }
 
             try {
                 const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -375,8 +380,12 @@
                 console.error(error);
                 window.location.href = url; // Fallback jika AJAX gagal
             } finally {
+                // Sembunyikan Loading (Kembalikan opacity + Hilangkan Spinner)
                 areaUlasan.style.opacity = '1';
                 areaUlasan.style.pointerEvents = 'auto';
+                if (loadingSpinner) {
+                    loadingSpinner.classList.add('hidden');
+                }
             }
         }
 

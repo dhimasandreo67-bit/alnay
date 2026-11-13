@@ -110,7 +110,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/fitting', [ReservasiFittingController::class, 'index'])->name('fitting.index');
         Route::patch('/fitting/{id}/status', [ReservasiFittingController::class, 'updateStatus'])->name('fitting.update-status');
         Route::delete('/fitting/bulk-destroy', [ReservasiFittingController::class, 'bulkDestroy'])->name('fitting.bulk-destroy'); // <-- TAMBAH INI
-        Route::delete('/fitting/{id}', [ReservasiFittingController::class, 'destroy'])->name('fitting.destroy'); 
+        Route::delete('/fitting/{id}', [ReservasiFittingController::class, 'destroy'])->name('fitting.destroy');
+
+        Route::get('/rating', [RatingController::class, 'index'])->name('rating.index');
 
         // 7. Sistem
         Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit.index');
