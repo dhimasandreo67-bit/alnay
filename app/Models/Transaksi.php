@@ -174,6 +174,60 @@ class Transaksi extends Model
         return $this->hasMany(Refund::class);
     }
 
+    /** Refund yang sedang berjalan untuk transaksi ini (hanya boleh satu pada satu waktu). */
+    public function refundAktif(): ?Refund
+    {
+        return $this->refund->first(fn ($r) => in_array($r->status, Refund::AKTIF, true));
+    }
+
+    /**
+     * Aturan pengajuan refund oleh pelanggan.
+     *
+     * @return array{0: bool, 1: ?string} [boleh, alasan bila tidak boleh]
+     */
+    public function cekBisaRefund(): array
+    {
+        if ($this->jenis !== 'beli') {
+            return [false, 'Refund hanya berlaku untuk transaksi pembelian.'];
+        }
+
+        if (! $this->sudahLunas()) {
+            return [false, 'Refund hanya bisa diajukan untuk pesanan yang sudah lunas.'];
+        }
+
+        $this->loadMissing('refund', 'pengiriman');
+
+        if ($this->refund->contains(fn ($r) => in_array($r->status, [...Refund::AKTIF, 'selesai'], true))) {
+            return [false, 'Pesanan ini sudah memiliki pengajuan refund.'];
+        }
+
+        // Titik awal batas waktu: saat barang diterima. Pesanan ambil di toko tidak punya data
+        // pengiriman, jadi memakai tanggal transaksi.
+        if ($this->pengiriman) {
+            if ($this->pengiriman->status_kirim !== 'diterima') {
+                return [false, 'Refund bisa diajukan setelah pesanan diterima. Konfirmasi "Pesanan Diterima" lebih dulu.'];
+            }
+
+            $diterima = $this->pengiriman->tanggal_diterima ?? $this->pengiriman->updated_at;
+        } else {
+            $diterima = $this->tanggal;
+        }
+
+        $batas = \Carbon\Carbon::parse($diterima)->startOfDay()->addDays(Refund::BATAS_HARI)->endOfDay();
+
+        if (now()->gt($batas)) {
+            return [false, 'Batas pengajuan refund (' . Refund::BATAS_HARI . ' hari setelah barang diterima) sudah terlewati.'];
+        }
+
+        return [true, null];
+    }
+
+    /** Nilai barang saja (tanpa ongkir), dipakai sebagai usulan nominal refund. */
+    public function nilaiBarang(): int
+    {
+        return (int) round($this->detail->sum(fn ($d) => $d->jumlah * (float) $d->harga_satuan));
+    }
+
     public function pengembalian()
     {
         return $this->hasMany(Pengembalian::class);
