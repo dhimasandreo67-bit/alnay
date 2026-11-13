@@ -37,7 +37,7 @@ class AlamatController extends Controller
         $data['label'] = $data['label'] ?? 'Rumah';
         $userId = auth()->id();
 
-        DB::transaction(function () use ($data, $userId) {
+        $alamatBaru = DB::transaction(function () use ($data, $userId) {
             $sudahAdaAlamat = AlamatPengiriman::where('user_id', $userId)->exists();
 
             // Alamat pertama otomatis jadi utama
@@ -47,23 +47,43 @@ class AlamatController extends Controller
                 AlamatPengiriman::where('user_id', $userId)->update(['is_utama' => false]);
             }
 
-            AlamatPengiriman::create(array_merge($data, [
+            $model = (new AlamatPengiriman())->forceFill(array_merge($data, [
                 'user_id' => $userId,
                 'is_utama' => $jadiUtama,
             ]));
+            $model->save();
+
+            return $model;
         });
+
+        // Alamat baru yang langsung jadi utama -> samakan nomor telepon profil
+        if ($alamatBaru->is_utama) {
+            $this->sinkronNoHpProfil($alamatBaru);
+        }
 
         return $this->kembali()->with('success_alamat', 'Alamat berhasil ditambahkan.');
     }
 
-    public function jadikanUtama($id)
+    public function jadikanUtama(Request $request, $id)
     {
         $alamat = $this->milikSaya($id);
 
         DB::transaction(function () use ($alamat) {
             AlamatPengiriman::where('user_id', $alamat->user_id)->update(['is_utama' => false]);
-            $alamat->update(['is_utama' => true]);
+            $alamat->forceFill(['is_utama' => true])->save();
         });
+
+        // Nomor telepon di tab profil mengikuti alamat utama yang baru
+        $this->sinkronNoHpProfil($alamat);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'id' => $alamat->id,
+                'no_hp' => $alamat->no_hp,
+                'message' => 'Alamat utama diperbarui.',
+            ]);
+        }
 
         return $this->kembali()->with('success_alamat', 'Alamat utama diperbarui.');
     }
@@ -78,10 +98,34 @@ class AlamatController extends Controller
 
         // Kalau alamat utama dihapus, pilih alamat terbaru sebagai pengganti
         if ($wasUtama) {
-            AlamatPengiriman::where('user_id', $userId)->latest()->first()?->update(['is_utama' => true]);
+            $pengganti = AlamatPengiriman::where('user_id', $userId)->latest()->first();
+            if ($pengganti) {
+                $pengganti->forceFill(['is_utama' => true])->save();
+                $this->sinkronNoHpProfil($pengganti);
+            }
         }
 
         return $this->kembali()->with('success_alamat', 'Alamat dihapus.');
+    }
+
+    /**
+     * Samakan nomor telepon profil (users.no_hp) dengan nomor pada alamat utama.
+     * Dipanggil SETELAH transaksi alamat selesai; kegagalan (mis. no_hp unik bentrok)
+     * hanya dicatat di log dan tidak membatalkan perubahan alamat.
+     */
+    private function sinkronNoHpProfil(AlamatPengiriman $alamat): void
+    {
+        $user = auth()->user();
+
+        if (! $user || blank($alamat->no_hp)) {
+            return;
+        }
+
+        try {
+            $user->forceFill(['no_hp' => $alamat->no_hp])->save();
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     private function milikSaya($id): AlamatPengiriman
@@ -135,8 +179,13 @@ class AlamatController extends Controller
             // Timpa nilai is_utama di data dengan hasil kalkulasi di atas
             $data['is_utama'] = $jadiUtama;
 
-            $alamat->update($data);
+            $alamat->forceFill($data)->save();
         });
+
+        // Jika yang diedit adalah alamat utama (atau baru dijadikan utama), profil ikut disamakan
+        if ($alamat->is_utama) {
+            $this->sinkronNoHpProfil($alamat);
+        }
 
         return $this->kembali()->with('success_alamat', 'Alamat berhasil diperbarui.');
     }
