@@ -310,16 +310,19 @@
 
                 {{-- REFUND --}}
                 @if (! empty($refund))
+                    @php
+                        $chipRefund = $refund->status === 'selesai' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : (in_array($refund->status, ['ditolak', 'dibatalkan']) ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200');
+                    @endphp
                     <section class="p-5 md:p-6 border-t border-line/40">
                         <div class="flex items-center justify-between gap-3 mb-2">
                             <h2 class="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Pengajuan Refund</h2>
-                            <span class="px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase
-                                {{ $refund->status === 'disetujui' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : ($refund->status === 'ditolak' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-700 border-amber-200') }}">
-                                {{ $refund->status }}
-                            </span>
+                            <span class="px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase {{ $chipRefund }}">{{ $refund->label_status }}</span>
                         </div>
                         <p class="text-[12px] text-ink/65">Alasan: <span class="font-semibold text-ink/85">{{ $refund->alasan }}</span></p>
                         <p class="mt-1 text-[10px] text-ink/45">Diajukan {{ $refund->created_at->format('d M Y, H:i') }}</p>
+                        <a href="{{ route('akun.refund.show', $refund->id) }}" class="inline-block mt-3 text-[12px] font-bold text-gold hover:underline">Lihat status & langkah berikutnya →</a>
                     </section>
                 @endif
 
@@ -399,52 +402,16 @@
                         </a>
                     </div>
 
-                    @if ($statusKey === 'lunas' && empty($refund))
-                        <button type="button" onclick="document.getElementById('modalRefund').classList.remove('hidden')"
-                            class="w-full py-2.5 rounded-xl border border-rose-200 text-rose-600 text-[12px] font-semibold hover:bg-rose-50 transition-all duration-300">
+                    @if (! empty($bisaRefund))
+                        <a href="{{ route('akun.refund.create', $transaksi->id) }}"
+                            class="block text-center w-full py-2.5 rounded-xl border border-rose-200 text-rose-600 text-[12px] font-semibold hover:bg-rose-50 transition-all duration-300">
                             Ajukan Refund
-                        </button>
+                        </a>
+                    @elseif (! $isSewa && $statusKey === 'lunas' && empty($refund) && ! empty($alasanTakBisaRefund))
+                        <p class="text-center text-[11px] text-ink/45">{{ $alasanTakBisaRefund }}</p>
                     @endif
                 </section>
             </div>
-        </div>
-    </div>
-
-    {{-- MODAL REFUND --}}
-    <div id="modalRefund" class="hidden fixed inset-0 z-50 bg-gray-900/50 backdrop-blur-sm items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="font-display text-xl font-bold text-gray-900">Ajukan Refund</h3>
-                <button type="button" onclick="document.getElementById('modalRefund').classList.add('hidden')"
-                    class="text-gray-400 hover:text-rose-500 transition-colors" aria-label="Tutup">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-
-            <p class="text-xs text-gray-500 mb-5 leading-relaxed">
-                Silakan jelaskan alasan pengajuan refund Anda. Tim kami akan meninjau pengajuan ini maksimal 1x24 jam.
-            </p>
-
-            <form action="{{ route('akun.refund.store', $transaksi->id) }}" method="POST">
-                @csrf
-                <div class="mb-5">
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">Alasan Refund <span class="text-rose-500">*</span></label>
-                    <textarea name="alasan" rows="4" required placeholder="Contoh: Barang rusak saat diterima..."
-                        class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"></textarea>
-                </div>
-                <div class="flex gap-3">
-                    <button type="button" onclick="document.getElementById('modalRefund').classList.add('hidden')"
-                        class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold text-sm hover:bg-gray-200 transition-colors">
-                        Batal
-                    </button>
-                    <button type="submit"
-                        class="flex-1 py-3 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-colors shadow-md shadow-rose-600/30">
-                        Kirim Pengajuan
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 
