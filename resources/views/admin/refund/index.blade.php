@@ -90,21 +90,42 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100/80">
                     @forelse ($refundList as $r)
-                        @php $t = $r->transaksi; @endphp
+                        @php
+                            $t = $r->transaksi;
+                            $daftarItem = $t?->detail ?? collect();
+                            $alasanMentah = (string) $r->alasan;
+                            $jmlBermasalah = 0;
+                            if (preg_match('/^\[Produk bermasalah:\s*(.*?)\]\s*/su', $alasanMentah, $mm)) {
+                                $jmlBermasalah = count(array_filter(array_map('trim', explode(';', $mm[1]))));
+                                $alasanMentah = trim(substr($alasanMentah, strlen($mm[0])));
+                            }
+                        @endphp
                         <tr class="transition-colors hover:bg-amber-50/30">
                             <td class="px-4 py-3.5 align-top">
                                 <p class="font-bold text-gray-900 whitespace-nowrap">{{ $t->kode_transaksi ?? '-' }}</p>
-                                <p class="mt-0.5 max-w-[170px] truncate text-xs text-gray-500">{{ $t?->detail?->first()?->produk?->nama ?? '-' }}</p>
+                                <p class="mt-0.5 max-w-[170px] truncate text-xs text-gray-500">{{ $daftarItem->first()?->produk?->nama ?? '-' }}</p>
+                                @if ($daftarItem->count() > 1)
+                                    <p class="text-[10px] font-semibold text-amber-700">+{{ $daftarItem->count() - 1 }} produk lainnya</p>
+                                @endif
                                 <p class="mt-1 text-[10px] text-gray-400">{{ $r->created_at?->format('d M Y, H:i') }}</p>
                             </td>
                             <td class="px-4 py-3.5 align-top">
                                 <p class="max-w-[150px] truncate font-bold text-gray-900">{{ $t->user->name ?? '-' }}</p>
                                 <p class="text-xs text-gray-500">{{ $t->user->no_hp ?? '-' }}</p>
                             </td>
-                            <td class="px-4 py-3.5 align-top"><p class="line-clamp-2 max-w-[240px] text-xs text-gray-600">{{ $r->alasan }}</p></td>
+                            <td class="px-4 py-3.5 align-top">
+                                @if ($jmlBermasalah > 0)
+                                    <span class="mb-1 inline-block rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">{{ $jmlBermasalah }} produk bermasalah</span>
+                                @endif
+                                <p class="line-clamp-2 max-w-[240px] text-xs text-gray-600">{{ $alasanMentah }}</p>
+                            </td>
                             <td class="px-4 py-3.5 align-top text-right font-semibold tabular-nums">Rp{{ number_format($r->jumlah, 0, ',', '.') }}</td>
                             <td class="px-4 py-3.5 align-top text-center">
                                 <span class="inline-block rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider {{ $badge[$r->status] ?? $badge['diajukan'] }}">{{ str_replace('_', ' ', $r->status) }}</span>
+                                @if ($r->status === 'diajukan')
+                                    @php $jam = (int) abs($r->created_at->diffInHours(now())); @endphp
+                                    <p class="mt-1 text-[10px] {{ $jam >= 24 ? 'font-bold text-rose-600' : 'text-gray-400' }}">Menunggu {{ $jam }} jam</p>
+                                @endif
                             </td>
                             <td class="px-4 py-3.5 align-top text-right">
                                 <a href="{{ route('admin.refund.show', $r->id) }}"
