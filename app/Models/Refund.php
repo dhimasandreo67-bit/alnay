@@ -117,12 +117,32 @@ class Refund extends Model
         return ! isset(self::ALUR[$this->status]);
     }
 
-    /** @return string[] URL foto bukti dari pelanggan. */
+    /**
+     * URL foto bukti dari pelanggan.
+     * Memakai asset() (host & port sesuai request), bukan Storage::url() yang bergantung pada APP_URL,
+     * sehingga gambar tetap tampil walau APP_URL berbeda dari alamat yang dibuka (mis. 127.0.0.1:8001).
+     *
+     * @return string[]
+     */
     public function fotoBuktiUrl(): array
     {
-        return collect($this->bukti_foto ?? [])
-            ->map(fn ($p) => Storage::disk('public')->url($p))
+        $daftar = $this->bukti_foto ?? [];
+        if (is_string($daftar)) {
+            $dec = json_decode($daftar, true);
+            $daftar = is_array($dec) ? $dec : [$daftar];
+        }
+
+        return collect($daftar)
+            ->filter()
+            ->map(fn ($p) => preg_match('#^https?://#', $p) ? $p : asset('storage/' . ltrim($p, '/')))
+            ->values()
             ->all();
+    }
+
+    /** URL bukti transfer dari admin (null bila belum ada). */
+    public function buktiTransferUrl(): ?string
+    {
+        return $this->bukti_transfer ? asset('storage/' . ltrim($this->bukti_transfer, '/')) : null;
     }
 
     /**
