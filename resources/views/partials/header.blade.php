@@ -12,13 +12,20 @@
         from { transform: translateX(0); }
         to   { transform: translateX(-307px); }
     }
-    :root {
+            :root {
         --al-gold: #c99a32;
         --al-gold-soft: #e6c877;
         --al-bg: #ffffff;
         --al-cream: #f5efe0;
         --al-muted: #b9ae96;
         --al-line: rgba(201, 154, 50, .28);
+
+        /* ===== Atur motif tapis di belakang menu ===== */
+        --motif-opacity: .70;   /* kejelasan motif keseluruhan: 0 = hilang, 1 = penuh */
+        --motif-tepi: .55;      /* kekuatan motif di pinggir kiri dan kanan: 0 = hilang, 1 = penuh */
+        --motif-tengah: .17;      /* kekuatan motif di tengah: 0 = hilang, .3 = samar, 1 = penuh */
+        --motif-kiri: 30%;      /* batas kiri area tengah */
+        --motif-kanan: 70%;     /* batas kanan area tengah */
     }
     .al-header { border-bottom: 1px solid var(--al-gold); background: rgba(255, 255, 255, .98); transition: background-color .3s ease, box-shadow .3s ease; }
     .al-header.is-scrolled {
@@ -54,12 +61,10 @@
         pointer-events: none;
         transition: transform .5s cubic-bezier(.4, 0, .2, 1), clip-path .5s cubic-bezier(.4, 0, .2, 1), opacity .38s ease, visibility 0s linear .5s;
     }
-    .al-tapis-motif {
+            .al-tapis-motif {
         position: absolute; inset: 0; display: block; overflow: hidden;
-        opacity: .42;
+        opacity: var(--motif-opacity);
         mix-blend-mode: multiply;
-        -webkit-mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,.55) 12%, transparent 30%, transparent 70%, rgba(0,0,0,.55) 88%, #000 100%);
-        mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,.55) 12%, transparent 30%, transparent 70%, rgba(0,0,0,.55) 88%, #000 100%);
         pointer-events: none;
     }
     .al-tapis-track {
@@ -71,15 +76,16 @@
         display: block; flex: none; width: 307px; height: 100%;
         background: url("{{ asset('images/home/tapis.png') }}") -323.16px bottom / 2111.1px 63.68px no-repeat;
     }
-    .al-tapis::after {
+            .al-tapis::after {
         content: '';
-        position: absolute; inset: 0;
+        position: absolute; inset: 0; z-index: 0;
         background: linear-gradient(90deg,
-            rgba(253, 248, 234, 0) 0%,
-            rgba(253, 248, 234, .55) 25%,
-            rgba(253, 248, 234, .85) 50%,
-            rgba(253, 248, 234, .55) 75%,
-            rgba(253, 248, 234, 0) 100%);
+            rgb(253 248 234 / calc(1 - var(--motif-tepi))) 0%,
+            rgb(253 248 234 / calc(1 - var(--motif-tepi))) 12%,
+            rgb(253 248 234 / calc(1 - var(--motif-tengah))) var(--motif-kiri),
+            rgb(253 248 234 / calc(1 - var(--motif-tengah))) var(--motif-kanan),
+            rgb(253 248 234 / calc(1 - var(--motif-tepi))) 88%,
+            rgb(253 248 234 / calc(1 - var(--motif-tepi))) 100%);
         pointer-events: none;
     }
     .al-tapis > div { position: relative; z-index: 1; transition: opacity .4s ease; }
@@ -347,7 +353,7 @@
     </div>
 
     {{-- NAV DESKTOP --}}
-    <nav class="al-tapis hidden md:block" :class="{ 'is-hidden': hideMenu }">
+    <nav class="al-tapis hidden md:block">
         <span class="al-tapis-motif" aria-hidden="true">
             <span class="al-tapis-track" id="alTapisTrack">@for ($t = 0; $t < 14; $t++)<i></i>@endfor</span>
         </span>
@@ -449,19 +455,9 @@
 <script>
     function alnayHeader() {
         return {
-            mobileOpen: false, koleksiOpen: false, scrolled: false, hideMenu: false, last: 0,
-            init() { this.last = window.scrollY; this.scrolled = this.last > 30; },
-            onScroll() {
-                const y = window.scrollY;
-                this.scrolled = y > 30;
-                if (this.koleksiOpen || y < 80) { this.hideMenu = false; }
-                else {
-                    const d = y - this.last;
-                    if (d > 6) this.hideMenu = true;
-                    else if (d < -6) this.hideMenu = false;
-                }
-                this.last = y;
-            },
+            mobileOpen: false, koleksiOpen: false, scrolled: false,
+            init() { this.scrolled = window.scrollY > 30; },
+            onScroll() { this.scrolled = window.scrollY > 30; },
         };
     }
 </script>
