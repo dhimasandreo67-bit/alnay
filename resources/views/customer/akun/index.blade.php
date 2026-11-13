@@ -438,27 +438,44 @@
                     <button type="button" data-buka-alamat class="{{ $btnEmas }}">+ Tambah Alamat</button>
                 </div>
                 
+                @if (session('success_alamat'))
+                    <div data-flash-alamat class="mb-4 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-700">
+                        {{ session('success_alamat') }}
+                    </div>
+                @endif
+
                 {{-- List Alamat --}}
+                <div id="alamat-list">
                 @forelse ($alamatList as $i => $a)
-                    <div class="ak-rise mt-4 border border-line/60 rounded-xl p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4 transition hover:border-gold/40 hover:shadow-sm">
-                        <div class="min-w-0">
+                    <div data-alamat-card="{{ $a->id }}" class="ak-rise relative overflow-hidden mt-4 border border-line/60 rounded-xl p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4 transition hover:border-gold/40 hover:shadow-sm">
+                        {{-- Penanda alamat utama: garis emas di sisi kiri + tint tipis (di-toggle lewat JS) --}}
+                        <span data-penanda-utama aria-hidden="true" class="absolute left-0 inset-y-0 w-1.5 bg-gold {{ $a->is_utama ? '' : 'hidden' }}" @unless ($a->is_utama) style="display:none" @endunless></span>
+                        <span data-penanda-utama aria-hidden="true" class="absolute inset-0 bg-gold {{ $a->is_utama ? '' : 'hidden' }}" style="opacity:.06;pointer-events:none;{{ $a->is_utama ? '' : 'display:none' }}"></span>
+                        <div class="min-w-0 pl-1">
                             <div class="flex flex-wrap items-center gap-2">
                                 <p class="font-semibold text-ink/90">{{ $a->nama_penerima }}</p>
                                 <span class="text-sm text-ink/60">{{ $a->no_hp }}</span>
                                 <span class="text-xs px-2 py-0.5 rounded border border-line/60 text-ink/60">{{ $a->label }}</span>
-                                @if ($a->is_utama) <span class="text-xs px-2 py-0.5 rounded border border-gold text-gold">Utama</span> @endif
+                                <span data-badge-utama class="{{ $a->is_utama ? '' : 'hidden' }}" @unless ($a->is_utama) style="display:none" @endunless>
+                                    <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-gold text-white">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        Alamat Utama
+                                    </span>
+                                </span>
                             </div>
                             <p class="text-sm text-ink/70 mt-2">{{ $a->alamat }}</p>
                             <p class="text-sm text-ink/60">{{ $a->kecamatan }}, {{ $a->kota_kabupaten }}, {{ $a->provinsi }} {{ $a->kode_pos }}</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-3 shrink-0">
-                            @unless ($a->is_utama)
-                                <form method="POST" action="{{ route('akun.alamat.utama', $a->id) }}">
-                                    @csrf @method('PATCH')
-                                    <button type="submit" class="{{ $btnTepi }} text-xs px-3 py-1.5">Atur Utama</button>
-                                </form>
-                            @endunless
-                            <button type="button" data-edit-alamat="{{ json_encode($a) }}" class="text-sm font-semibold text-gold hover:underline">Edit</button>
+                            <form method="POST" action="{{ route('akun.alamat.utama', $a->id) }}" data-form-utama class="{{ $a->is_utama ? 'hidden' : '' }}" @if ($a->is_utama) style="display:none" @endif>
+                                @csrf @method('PATCH')
+                                <button type="submit" class="{{ $btnTepi }} text-xs px-3 py-1.5">Atur Utama</button>
+                            </form>
+                            <button type="button" disabled data-tombol-utama style="opacity:.6;cursor:not-allowed;{{ $a->is_utama ? '' : 'display:none' }}"
+                                    class="{{ $btnTepi }} text-xs px-3 py-1.5 {{ $a->is_utama ? '' : 'hidden' }}">
+                                Alamat Utama
+                            </button>
+                            <button type="button" data-edit-alamat="{{ json_encode($a->only(['id','nama_penerima','no_hp','alamat','provinsi','kota_kabupaten','kecamatan','kode_pos','label','is_utama','ongkir_tujuan_id','ongkir_tujuan_label'])) }}" class="text-sm font-semibold text-gold hover:underline">Edit</button>
                             <form method="POST" action="{{ route('akun.alamat.destroy', $a->id) }}" onsubmit="return confirm('Hapus alamat ini?')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="text-sm font-semibold text-rose-600 hover:underline">Hapus</button>
@@ -472,6 +489,7 @@
                         <p class="text-sm text-ink/60 mt-1">Tambahkan alamat untuk memudahkan pembelian dan penyewaan.</p>
                     </div>
                 @endforelse
+                </div>
             </div>
 
         </section>
@@ -487,10 +505,11 @@
         </div>
         <form id="form-alamat" method="POST" action="{{ route('akun.alamat.store') }}" class="flex flex-col overflow-hidden">
             @csrf
-            <input type="hidden" name="_method" id="form-alamat-method" value="POST">
+            <input type="hidden" name="_method" id="form-alamat-method" value="{{ old('_method', 'POST') }}">
+            <input type="hidden" name="_edit_id" id="form-alamat-edit-id" value="{{ old('_edit_id') }}">
             <div class="px-6 py-5 overflow-y-auto space-y-4">
                 @if ($errAlamat->any())
-                    <div class="px-4 py-3 rounded-xl bg-rose-50 border border-rose-200 text-sm text-rose-700 space-y-1">
+                    <div id="alamat-error" class="px-4 py-3 rounded-xl bg-rose-50 border border-rose-200 text-sm text-rose-700 space-y-1">
                         @foreach ($errAlamat->all() as $error) <p>{{ $error }}</p> @endforeach
                     </div>
                 @endif
@@ -544,7 +563,6 @@
 </div>
 
 <script>
-    // ... (Script modal alamat dan JS persis seperti yang Anda miliki sebelumnya, tidak ada yang diubah) ...
     (function () {
         const modal = document.getElementById('alamat-modal');
         if (!modal) return;
@@ -554,6 +572,7 @@
         const URL_KECAMATAN = '{{ url('/ongkir/kecamatan') }}';
         const URL_TUJUAN = '{{ route('ongkir.tujuan') }}';
         const URL_STORE = "{{ route('akun.alamat.store') }}";
+        const URL_BASE = "{{ url('/akun/alamat') }}";
 
         const selProv = document.getElementById('alamat-provinsi');
         const selKota = document.getElementById('alamat-kota');
@@ -568,29 +587,105 @@
         const formAlamat = document.getElementById('form-alamat');
         const modalTitle = document.getElementById('alamat-modal-title');
         const methodInput = document.getElementById('form-alamat-method');
+        const editIdInput = document.getElementById('form-alamat-edit-id');
+        const inNama = document.getElementById('input-nama-penerima');
+        const inHp = document.getElementById('input-no-hp');
+        const inAlamat = document.getElementById('input-alamat');
+        const inUtama = document.getElementById('input-is-utama');
 
-        let sudahMuat = false;
+        // Token supaya respons API lama (modal sudah ditutup / dibuka ulang) tidak menimpa pilihan terbaru
+        let muatToken = 0;
+        let timer;
 
-        function bukaModal() {
+        /* ---------- Mode form ---------- */
+        function modeTambah() {
+            formAlamat.action = URL_STORE;
+            methodInput.value = 'POST';
+            editIdInput.value = '';
+            modalTitle.textContent = 'Alamat Baru';
+        }
+
+        function modeEdit(id) {
+            formAlamat.action = `${URL_BASE}/${id}`;
+            methodInput.value = 'PUT';
+            editIdInput.value = id;
+            modalTitle.textContent = 'Edit Alamat';
+        }
+
+        // NB: formAlamat.reset() TIDAK dipakai karena akan mengembalikan nilai old() dari validasi sebelumnya
+        function kosongkanForm() {
+            inNama.value = '';
+            inHp.value = '';
+            inAlamat.value = '';
+            kodePos.value = '';
+            inUtama.checked = false;
+            document.querySelectorAll('.label-radio').forEach(r => { r.checked = r.value === 'Rumah'; });
+            resetOngkir();
+            const err = document.getElementById('alamat-error');
+            if (err) err.remove();
+        }
+
+        function resetSelect() {
+            gagal(selProv, 'Memuat provinsi...');
+            gagal(selKota, 'Pilih provinsi terlebih dahulu');
+            gagal(selKec, 'Pilih kota terlebih dahulu');
+        }
+
+        function tampilModal() {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-            if (!sudahMuat) {
-                sudahMuat = true;
-                muatProvinsi(@json(old('provinsi', '')), @json(old('kota_kabupaten', '')), @json(old('kecamatan', '')));
-            }
+        }
+
+        function bukaTambah() {
+            muatToken++;
+            modeTambah();
+            kosongkanForm();
+            resetSelect();
+            tampilModal();
+            muatProvinsi();
+        }
+
+        function bukaEdit(data) {
+            muatToken++;
+            modeEdit(data.id);
+            const err = document.getElementById('alamat-error');
+            if (err) err.remove();
+            inNama.value = data.nama_penerima || '';
+            inHp.value = data.no_hp || '';
+            inAlamat.value = data.alamat || '';
+            kodePos.value = data.kode_pos || '';
+            cari.value = data.ongkir_tujuan_label || '';
+            idInput.value = data.ongkir_tujuan_id || '';
+            labelInput.value = data.ongkir_tujuan_label || '';
+            terpilih.textContent = data.ongkir_tujuan_label ? 'Dipilih: ' + data.ongkir_tujuan_label : '';
+            hasil.classList.add('hidden');
+            document.querySelectorAll('.label-radio').forEach(r => { r.checked = r.value === data.label; });
+            inUtama.checked = (data.is_utama == 1 || data.is_utama === true || data.is_utama === '1');
+            resetSelect();
+            tampilModal();
+            muatProvinsi(data.provinsi || '', data.kota_kabupaten || '', data.kecamatan || '');
+        }
+
+        // Dipakai saat halaman dimuat ulang karena validasi gagal: pertahankan input & mode (tambah/edit)
+        function bukaDariError() {
+            muatToken++;
+            const editId = editIdInput.value;
+            if (editId) modeEdit(editId); else modeTambah();
+            resetSelect();
+            tampilModal();
+            muatProvinsi(@json(old('provinsi', '')), @json(old('kota_kabupaten', '')), @json(old('kecamatan', '')));
         }
 
         function tutupModal() {
+            muatToken++;
+            clearTimeout(timer);
             modal.classList.add('hidden');
             modal.classList.remove('flex');
-            formAlamat.action = URL_STORE;
-            methodInput.value = 'POST';
-            modalTitle.textContent = 'Alamat Baru';
-            formAlamat.reset();
-            resetOngkir();
-            sudahMuat = false;
+            modeTambah();
+            kosongkanForm();
         }
 
+        /* ---------- Data wilayah ---------- */
         async function ambilData(url) {
             const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
             if (!res.ok) throw new Error();
@@ -615,6 +710,7 @@
         }
 
         function resetOngkir() {
+            clearTimeout(timer);
             cari.value = '';
             idInput.value = '';
             labelInput.value = '';
@@ -623,50 +719,64 @@
         }
 
         async function muatProvinsi(pilihProv = '', pilihKota = '', pilihKec = '') {
+            const t = ++muatToken;
+            let data;
             try {
-                isiPilihan(selProv, await ambilData(URL_PROVINSI), 'Pilih Provinsi', pilihProv);
+                data = await ambilData(URL_PROVINSI);
             } catch (e) {
-                gagal(selProv, 'Gagal memuat provinsi');
+                if (t === muatToken) gagal(selProv, 'Gagal memuat provinsi');
                 return;
             }
-            if (selProv.value) await muatKota(pilihKota, pilihKec);
+            if (t !== muatToken) return;
+            isiPilihan(selProv, data, 'Pilih Provinsi', pilihProv);
+            if (selProv.value) await muatKota(pilihKota, pilihKec, t);
         }
 
-        async function muatKota(pilihKota = '', pilihKec = '') {
+        async function muatKota(pilihKota = '', pilihKec = '', t = ++muatToken) {
             const provOpt = selProv.selectedOptions[0];
             gagal(selKec, 'Pilih kota terlebih dahulu');
             if (!provOpt || !provOpt.dataset.id) {
                 gagal(selKota, 'Pilih provinsi terlebih dahulu');
                 return;
             }
+            gagal(selKota, 'Memuat kota...');
+            let data;
             try {
-                isiPilihan(selKota, await ambilData(`${URL_KOTA}/${provOpt.dataset.id}`), 'Pilih Kota/Kabupaten', pilihKota);
+                data = await ambilData(`${URL_KOTA}/${provOpt.dataset.id}`);
             } catch (e) {
-                gagal(selKota, 'Gagal memuat kota');
+                if (t === muatToken) gagal(selKota, 'Gagal memuat kota');
                 return;
             }
-            if (selKota.value) await muatKecamatan(pilihKec);
+            if (t !== muatToken) return;
+            isiPilihan(selKota, data, 'Pilih Kota/Kabupaten', pilihKota);
+            if (selKota.value) await muatKecamatan(pilihKec, t);
         }
 
-        async function muatKecamatan(pilihKec = '') {
+        async function muatKecamatan(pilihKec = '', t = ++muatToken) {
             const kotaOpt = selKota.selectedOptions[0];
             if (!kotaOpt || !kotaOpt.dataset.id) {
                 gagal(selKec, 'Pilih kota terlebih dahulu');
                 return;
             }
+            gagal(selKec, 'Memuat kecamatan...');
+            let data;
             try {
-                isiPilihan(selKec, await ambilData(`${URL_KECAMATAN}/${kotaOpt.dataset.id}`), 'Pilih Kecamatan', pilihKec);
+                data = await ambilData(`${URL_KECAMATAN}/${kotaOpt.dataset.id}`);
             } catch (e) {
-                gagal(selKec, 'Gagal memuat kecamatan');
+                if (t === muatToken) gagal(selKec, 'Gagal memuat kecamatan');
+                return;
             }
+            if (t !== muatToken) return;
+            isiPilihan(selKec, data, 'Pilih Kecamatan', pilihKec);
         }
 
-        selProv.addEventListener('change', () => { resetOngkir(); muatKota(); });
-        selKota.addEventListener('change', () => { resetOngkir(); muatKecamatan(); });
+        selProv.addEventListener('change', () => { resetOngkir(); kodePos.value = ''; muatKota(); });
+        selKota.addEventListener('change', () => { resetOngkir(); kodePos.value = ''; muatKecamatan(); });
         selKec.addEventListener('change', function () {
             idInput.value = '';
             labelInput.value = '';
             terpilih.textContent = '';
+            kodePos.value = '';
             if (this.value) {
                 cari.value = this.value;
                 cari.dispatchEvent(new Event('input'));
@@ -676,7 +786,7 @@
             }
         });
 
-        let timer;
+        /* ---------- Pencarian kelurahan (ongkir) ---------- */
         cari.addEventListener('input', () => {
             clearTimeout(timer);
             idInput.value = '';
@@ -685,15 +795,23 @@
             const q = cari.value.trim();
             if (q.length < 3) { hasil.classList.add('hidden'); return; }
             timer = setTimeout(async () => {
-                hasil.innerHTML = '';
+                let data = null;
                 try {
-                    const data = await ambilData(URL_TUJUAN + '?q=' + encodeURIComponent(q));
-                    if (!data.length) {
-                        const li = document.createElement('li');
-                        li.className = 'px-4 py-2 text-sm text-ink/60';
-                        li.textContent = 'Tidak ditemukan';
-                        hasil.appendChild(li);
-                    }
+                    data = await ambilData(URL_TUJUAN + '?q=' + encodeURIComponent(q));
+                } catch (e) { /* ditangani di bawah */ }
+                if (cari.value.trim() !== q) return; // input sudah berubah / form direset
+                hasil.innerHTML = '';
+                if (data === null) {
+                    const li = document.createElement('li');
+                    li.className = 'px-4 py-2 text-sm text-rose-600';
+                    li.textContent = 'Layanan ongkir sedang tidak tersedia';
+                    hasil.appendChild(li);
+                } else if (!data.length) {
+                    const li = document.createElement('li');
+                    li.className = 'px-4 py-2 text-sm text-ink/60';
+                    li.textContent = 'Tidak ditemukan';
+                    hasil.appendChild(li);
+                } else {
                     data.forEach(d => {
                         const li = document.createElement('li');
                         li.textContent = d.label;
@@ -708,49 +826,112 @@
                         });
                         hasil.appendChild(li);
                     });
-                } catch (e) {
-                    const li = document.createElement('li');
-                    li.className = 'px-4 py-2 text-sm text-rose-600';
-                    li.textContent = 'Layanan ongkir sedang tidak tersedia';
-                    hasil.appendChild(li);
                 }
                 hasil.classList.remove('hidden');
             }, 400);
         });
 
+        document.addEventListener('click', e => {
+            if (!hasil.contains(e.target) && e.target !== cari) hasil.classList.add('hidden');
+        });
+
+        /* ---------- Tombol-tombol ---------- */
         document.querySelectorAll('[data-edit-alamat]').forEach(btn => {
-            btn.addEventListener('click', async function () {
-                const data = JSON.parse(this.dataset.editAlamat);
-                modalTitle.textContent = 'Edit Alamat';
-                formAlamat.action = `/akun/alamat/${data.id}`;
-                methodInput.value = 'PUT';
-                document.getElementById('input-nama-penerima').value = data.nama_penerima || '';
-                document.getElementById('input-no-hp').value = data.no_hp || '';
-                document.getElementById('input-alamat').value = data.alamat || '';
-                kodePos.value = data.kode_pos || '';
-                cari.value = data.ongkir_tujuan_label || '';
-                idInput.value = data.ongkir_tujuan_id || '';
-                labelInput.value = data.ongkir_tujuan_label || '';
-                terpilih.textContent = data.ongkir_tujuan_label ? 'Dipilih: ' + data.ongkir_tujuan_label : '';
-                document.querySelectorAll('.label-radio').forEach(radio => {
-                    radio.checked = radio.value === data.label;
-                });
-                const isUtamaChecked = (data.is_utama == 1 || data.is_utama === true || data.is_utama === '1');
-                document.getElementById('input-is-utama').checked = isUtamaChecked;
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                sudahMuat = true;
-                await muatProvinsi(data.provinsi || '', data.kota_kabupaten || '', data.kecamatan || '');
+            btn.addEventListener('click', function () {
+                bukaEdit(JSON.parse(this.dataset.editAlamat));
+            });
+        });
+        document.querySelectorAll('[data-buka-alamat]').forEach(el => el.addEventListener('click', bukaTambah));
+        modal.querySelectorAll('[data-tutup-alamat]').forEach(el => el.addEventListener('click', tutupModal));
+
+        // Tutup hanya jika mouse-down DAN mouse-up sama-sama di area gelap (hindari tertutup saat drag teks)
+        let downDiOverlay = false;
+        modal.addEventListener('mousedown', e => { downDiOverlay = e.target === modal; });
+        modal.addEventListener('click', e => { if (e.target === modal && downDiOverlay) tutupModal(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) tutupModal(); });
+
+        /* ---------- Atur alamat utama tanpa reload ---------- */
+        const daftar = document.getElementById('alamat-list');
+
+        function tampilFlash(pesan, error = false) {
+            const panel = document.querySelector('[data-panel-content="alamat"]');
+            if (!panel || !daftar) return;
+            panel.querySelectorAll('[data-flash-alamat]').forEach(el => el.remove());
+            const el = document.createElement('div');
+            el.setAttribute('data-flash-alamat', '');
+            el.className = 'mb-4 px-4 py-3 rounded-xl border text-sm ' + (error
+                ? 'bg-rose-50 border-rose-200 text-rose-700'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-700');
+            el.textContent = pesan;
+            daftar.before(el);
+            setTimeout(() => el.remove(), 3500);
+        }
+
+        // tampil/sembunyi yang tahan terhadap bentrok class display (inline-flex vs hidden)
+        function tampil(el, ya) {
+            if (!el) return;
+            el.classList.toggle('hidden', !ya);
+            el.style.display = ya ? '' : 'none';
+        }
+
+        function tandaiUtama(idUtama) {
+            if (!daftar) return;
+            let kartuBaru = null;
+            daftar.querySelectorAll('[data-alamat-card]').forEach(card => {
+                const utama = card.dataset.alamatCard === String(idUtama);
+                tampil(card.querySelector('[data-badge-utama]'), utama);
+                tampil(card.querySelector('[data-form-utama]'), !utama);
+                tampil(card.querySelector('[data-tombol-utama]'), utama);
+                card.querySelectorAll('[data-penanda-utama]').forEach(el => tampil(el, utama));
+
+                // sinkronkan data untuk modal Edit supaya checkbox "alamat utama" tidak basi
+                const edit = card.querySelector('[data-edit-alamat]');
+                if (edit) {
+                    try {
+                        const d = JSON.parse(edit.dataset.editAlamat);
+                        d.is_utama = utama ? 1 : 0;
+                        edit.dataset.editAlamat = JSON.stringify(d);
+                    } catch (e) {}
+                }
+                if (utama) kartuBaru = card;
+            });
+            if (kartuBaru) daftar.prepend(kartuBaru); // alamat utama selalu di paling atas
+        }
+
+        document.querySelectorAll('[data-form-utama]').forEach(f => {
+            f.addEventListener('submit', async e => {
+                e.preventDefault();
+                const btn = f.querySelector('button[type="submit"]');
+                if (btn.disabled) return;
+                const teksAsal = btn.textContent;
+                btn.disabled = true;
+                btn.textContent = 'Memproses...';
+                const id = f.closest('[data-alamat-card]').dataset.alamatCard;
+                try {
+                    const res = await fetch(f.action, {
+                        method: 'POST',
+                        body: new FormData(f),
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    });
+                    if (!res.ok) throw new Error();
+                    const json = await res.json();
+                    tandaiUtama(json.id ?? id);
+                    // Nomor telepon di tab Profil mengikuti nomor alamat utama
+                    const hpProfil = document.getElementById('profil-hp');
+                    if (hpProfil && json.no_hp) hpProfil.value = json.no_hp;
+                    tampilFlash(json.message || 'Alamat utama diperbarui.');
+                } catch (err) {
+                    // Gagal (sesi habis, jaringan, dll) -> kembali ke cara biasa dengan reload halaman
+                    btn.textContent = teksAsal;
+                    f.submit();
+                }
+                btn.disabled = false;
+                btn.textContent = teksAsal;
             });
         });
 
-        modal.querySelectorAll('[data-tutup-alamat]').forEach(el => el.addEventListener('click', tutupModal));
-        modal.addEventListener('click', e => { if (e.target === modal) tutupModal(); });
-        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) tutupModal(); });
-        document.querySelectorAll('[data-buka-alamat]').forEach(el => el.addEventListener('click', bukaModal));
-
         @if ($errAlamat->any())
-            bukaModal();
+            bukaDariError();
         @endif
     })();
 </script>
@@ -763,6 +944,9 @@
 
         function panelAwal() {
             if (location.hash.length > 1) return location.hash.slice(1);
+            @if ($errAlamat->any())
+                return 'alamat';
+            @endif
             return PANEL_DEFAULT;
         }
 
