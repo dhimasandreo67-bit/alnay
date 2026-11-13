@@ -193,35 +193,30 @@
      HEADER UTAMA
      ============================================================ --}}
 <header x-data="alnayHeader()" @scroll.window.passive="onScroll()" :class="{ 'is-scrolled': scrolled }" class="al-header sticky top-0 z-50">
-    <div class="al-main max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-4">
+        <div class="al-main max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-4">
 
         {{-- Logo --}}
-        <a href="{{ route('beranda') }}" class="flex items-center gap-2.5 shrink-0 min-h-[40px] sm:min-h-[44px]">
-            <img src="{{ asset('images/home/alnaylogo.png') }}" alt="ALNAY.ID" class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl border border-[#c99a32] bg-[#fbf6e9] object-contain p-1 shadow-[0_6px_20px_-6px_rgba(201,154,50,.65)]">
+        <a href="{{ route('beranda') }}" class="flex items-center gap-2 shrink-0 min-h-[40px] sm:min-h-[44px]">
+            <img src="{{ asset('images/home/alnaylogo.png') }}" alt="ALNAY.ID" class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl border border-[#c99a32] bg-[#fbf6e9] object-contain p-1 shadow-[0_6px_20px_-6px_rgba(201,154,50,.65)]">
             <span class="hidden sm:block leading-tight">
                 <span class="block font-display font-bold text-[#15233d] text-lg tracking-tight">ALNAY.ID</span>
                 <span class="block text-[9px] uppercase tracking-[0.24em] text-[#a97c1a]">Muda Gaya Berbudaya</span>
             </span>
         </a>
 
-        {{-- Search Desktop --}}
-        <form action="{{ route('koleksi.index') }}" method="GET" class="relative flex-1 min-w-0 hidden sm:block">
-            <x-icon name="search" :size="18" class="absolute left-3 top-1/2 -translate-y-1/2 text-[#a97c1a] pointer-events-none" />
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari busana, jas, atau gown..."
-                class="al-search w-full pl-10 pr-4 py-2.5 rounded-full border border-[#c99a32]/25 bg-[#fbf6e9] text-[#15233d] text-sm placeholder:text-[#9a9384] focus:outline-none focus:border-[#c99a32] transition-shadow">
+        {{-- Search Bar (Tampil di HP & Desktop) --}}
+        <form action="{{ route('koleksi.index') }}" method="GET" class="relative flex-1 min-w-0 mx-1 sm:mx-0">
+            <x-icon name="search" :size="16" class="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-[#a97c1a] pointer-events-none sm:w-[18px] sm:h-[18px]" />
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari busana..."
+                class="al-search w-full pl-8 sm:pl-10 pr-2 sm:pr-4 py-1.5 sm:py-2.5 rounded-full border border-[#c99a32]/25 bg-[#fbf6e9] text-[#15233d] text-xs sm:text-sm placeholder:text-[#9a9384] focus:outline-none focus:border-[#c99a32] transition-shadow">
         </form>
 
         {{-- Aksi Kanan --}}
         <div class="flex items-center gap-1 sm:gap-2 shrink-0 ml-auto">
             
-            {{-- Tombol Search (Mobile Only) --}}
-            <button type="button" onclick="document.getElementById('mobileSearch').classList.toggle('hidden')" class="sm:hidden al-icon-btn w-9 h-9 rounded-full flex items-center justify-center">
-                <x-icon name="search" :size="18" />
-            </button>
-
-            {{-- Keranjang --}}
-            <a href="{{ route('keranjang.index') }}" class="al-icon-btn relative inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-11 sm:px-4 sm:gap-2 rounded-full" aria-label="Keranjang">
-                <x-icon name="cart" :size="18" class="sm:w-5 sm:h-5" />
+            {{-- Keranjang (Hanya Ikon di HP) --}}
+            <a href="{{ route('keranjang.index') }}" class="al-icon-btn relative inline-flex items-center justify-center w-8 h-8 sm:w-auto sm:h-11 sm:px-4 sm:gap-2 rounded-full" aria-label="Keranjang">
+                <x-icon name="cart" :size="16" class="sm:w-5 sm:h-5" />
                 <span class="hidden sm:inline text-sm font-medium">Keranjang</span>
                 @php
                     $totalKeranjang = 0;
@@ -237,10 +232,10 @@
 
             {{-- Notifikasi --}}
             <div class="relative" x-data="{ notifOpen: false }">
-                <button type="button" @click="notifOpen = !notifOpen" class="al-icon-btn group relative w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center active:scale-95" aria-label="Notifikasi">
-                    <div class="group-active:animate-[wiggle_0.3s_ease-in-out]"><x-icon name="bell" :size="18" class="sm:w-5 sm:h-5" /></div>
+                <button type="button" @click="notifOpen = !notifOpen" class="al-icon-btn group relative w-8 h-8 sm:w-11 sm:h-11 rounded-full flex items-center justify-center active:scale-95" aria-label="Notifikasi">
+                    <div class="group-active:animate-[wiggle_0.3s_ease-in-out]"><x-icon name="bell" :size="16" class="sm:w-5 sm:h-5" /></div>
                     @if (isset($jumlahNotifikasi) && $jumlahNotifikasi > 0)
-                        <span class="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white">
+                        <span class="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 sm:w-5 sm:h-5 rounded-full bg-rose-500 text-white text-[8px] sm:text-[9px] font-bold flex items-center justify-center border-2 border-white">
                             {{ $jumlahNotifikasi }}
                         </span>
                     @endif
@@ -288,8 +283,8 @@
 
             {{-- Profil & Daftar / Login --}}
             @guest
-                <a href="{{ route('masuk') }}" class="hidden sm:inline-flex items-center px-4 py-2 text-sm font-semibold text-[#15233d] hover:text-[#8a6410] transition-colors">Masuk</a>
-                <a href="{{ route('daftar') }}" class="inline-flex items-center justify-center px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-gradient-to-b from-[#e2b93e] to-[#b8860b] text-[#1a1408] text-[11px] sm:text-sm font-bold shadow-[0_8px_20px_-8px_rgba(201,154,50,.8)] hover:brightness-110 transition">Daftar</a>
+                <a href="{{ route('masuk') }}" class="hidden md:inline-flex items-center px-4 py-2 text-sm font-semibold text-[#15233d] hover:text-[#8a6410] transition-colors">Masuk</a>
+                <a href="{{ route('daftar') }}" class="hidden sm:inline-flex items-center justify-center px-4 sm:px-5 py-1.5 sm:py-2 rounded-full bg-gradient-to-b from-[#e2b93e] to-[#b8860b] text-[#1a1408] text-[11px] sm:text-sm font-bold shadow-[0_8px_20px_-8px_rgba(201,154,50,.8)] hover:brightness-110 transition">Daftar</a>
             @endguest
 
             @auth
@@ -300,13 +295,13 @@
                     else { $profileRoute = route('akun.dashboard'); $profileText = 'Profil'; }
                 @endphp
 
-                {{-- Profil Desktop --}}
+                {{-- Profil (Desktop) --}}
                 <a href="{{ $profileRoute }}" class="hidden md:inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-11 sm:px-4 rounded-full border border-[#c99a32]/40 text-sm font-semibold text-[#8a6410] hover:bg-[#c99a32]/15 transition-colors">
                     <x-icon name="user" :size="18" />
                     <span class="hidden sm:inline ml-1.5">{{ $profileText }}</span>
                 </a>
 
-                {{-- Keluar Desktop --}}
+                {{-- Keluar (Desktop) --}}
                 <form method="POST" action="{{ route('keluar') }}" class="hidden md:inline-block">
                     @csrf
                     <button type="submit" class="al-icon-btn inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-11 sm:px-4 rounded-full text-sm font-medium">
@@ -317,19 +312,11 @@
             @endauth
 
             {{-- Hamburger Menu Mobile --}}
-            <button type="button" @click="mobileOpen = !mobileOpen" class="al-icon-btn md:hidden w-9 h-9 rounded-full flex items-center justify-center" aria-label="Menu">
-                <template x-if="!mobileOpen"><x-icon name="menu" :size="20" /></template>
-                <template x-if="mobileOpen"><x-icon name="close" :size="20" /></template>
+            <button type="button" @click="mobileOpen = !mobileOpen" class="al-icon-btn md:hidden w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center" aria-label="Menu">
+                <template x-if="!mobileOpen"><x-icon name="menu" :size="18" class="sm:w-[20px] sm:h-[20px]" /></template>
+                <template x-if="mobileOpen"><x-icon name="close" :size="18" class="sm:w-[20px] sm:h-[20px]" /></template>
             </button>
         </div>
-    </div>
-
-    {{-- Search Mobile (Tersembunyi, muncul saat icon search diklik) --}}
-    <div id="mobileSearch" class="hidden sm:hidden px-4 pb-3 bg-white">
-        <form action="{{ route('koleksi.index') }}" method="GET" class="relative w-full">
-            <x-icon name="search" :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-[#a97c1a] pointer-events-none" />
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari busana..." class="w-full pl-9 pr-4 py-2 rounded-full border border-[#c99a32]/25 bg-[#fbf6e9] text-sm focus:outline-none focus:border-[#c99a32]">
-        </form>
     </div>
 
     {{-- ============================================================
