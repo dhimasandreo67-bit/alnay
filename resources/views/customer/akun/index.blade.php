@@ -324,14 +324,14 @@
                             default => 'amber',
                         };
                     @endphp
-                    <div class="ak-rise {{ $kartu }} p-5" style="--d: {{ min($i, 6) * 0.05 }}s;">
+                    <a href="{{ route('akun.refund.show', $r->id) }}" class="ak-rise {{ $kartu }} p-5 block hover:border-gold/50 transition-colors" style="--d: {{ min($i, 6) * 0.05 }}s;">
                         <div class="flex items-start justify-between gap-3">
                             <p class="font-mono text-sm font-bold text-ink/90 break-all">{{ $r->transaksi?->kode_transaksi ?? 'Pesanan' }}</p>
-                            <span class="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 shrink-0 {{ $chip[$ndRefund] }}">{{ ucwords(str_replace('_', ' ', (string) $r->status)) }}</span>
+                            <span class="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 shrink-0 {{ $chip[$ndRefund] }}">{{ $r->label_status }}</span>
                         </div>
                         <p class="mt-2 text-sm text-ink/70">{{ $r->alasan }}</p>
                         <p class="mt-1 text-xs text-ink/45">{{ $r->created_at?->locale('id')->translatedFormat('d F Y') }}</p>
-                    </div>
+                    </a>
                 @empty
                     <div class="ak-rise {{ $kartu }} p-8 flex flex-col items-center text-center">
                         <div class="w-16 h-16 rounded-full bg-cream flex items-center justify-center"><x-icon name="refresh-cw" :size="28" class="text-ink/50" /></div>
