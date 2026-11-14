@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\PenggunaController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\LaporanController;
 use App\Http\Controllers\Admin\PengirimanController;
+use App\Http\Controllers\Admin\NotifikasiController;
 use App\Http\Controllers\OngkirController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SewaController;
@@ -113,6 +114,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/fitting/{id}', [ReservasiFittingController::class, 'destroy'])->name('fitting.destroy');
 
         Route::get('/rating', [RatingController::class, 'index'])->name('rating.index');
+
+        // --- NOTIFIKASI (lonceng & riwayat) ---
+        // Nama route 'admin.notifikasi.*' tidak ada di AdminMenu, jadi lolos EnsureAdminPermission:
+        // semua admin boleh membuka notifikasinya sendiri (isinya sudah disaring per hak akses).
+        Route::prefix('notifikasi')->name('notifikasi.')->group(function () {
+            Route::get('/', [NotifikasiController::class, 'index'])->name('index');
+            Route::get('/feed', [NotifikasiController::class, 'feed'])->name('feed');
+            Route::post('/baca-semua', [NotifikasiController::class, 'bacaSemua'])->name('baca-semua');
+            Route::delete('/dibaca', [NotifikasiController::class, 'hapusDibaca'])->name('hapus-dibaca');
+            Route::get('/{id}/buka', [NotifikasiController::class, 'buka'])->name('buka');
+        });
 
         // 7. Sistem
         Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit.index');
