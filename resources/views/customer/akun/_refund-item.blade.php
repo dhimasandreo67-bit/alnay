@@ -26,7 +26,12 @@
     </div>
 
     <div class="min-w-0 flex-1">
-        <p class="text-[13px] font-semibold text-ink/85 leading-snug">{{ $p->nama ?? 'Produk' }}</p>
+        <div class="flex items-start justify-between gap-2">
+            <p class="text-[13px] font-semibold text-ink/85 leading-snug">{{ $p->nama ?? 'Produk' }}</p>
+            @if ($tandaiBermasalah ?? false)
+                <span class="shrink-0 px-1.5 py-0.5 rounded-md border border-rose-200 bg-rose-50 text-[10px] font-bold text-rose-700">Diajukan refund</span>
+            @endif
+        </div>
 
         <div class="mt-1.5 flex flex-wrap gap-1.5 text-[10px]">
             @if ($d->ukuran)
