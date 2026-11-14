@@ -26,7 +26,7 @@
         [
             'heading' => 'Sewa & Jaminan',
             'items' => [
-                ['label' => 'Data Sewa', 'route' => 'admin.sewa.*', 'icon' => 'calendar', 'badge' => fn () => \App\Support\AdminBadge::jaminan()],
+                ['label' => 'Data Sewa', 'route' => 'admin.sewa.*', 'icon' => 'calendar', 'badge' => fn () => \App\Support\AdminBadge::sewa()],
             ],
         ],
         [
