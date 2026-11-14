@@ -58,6 +58,14 @@
         $nilaiBarang = $items->sum($subtotal);
         $nilaiBermasalah = $items->filter($itemBermasalah)->sum($subtotal);
         $selisih = (int) $t->total - $nilaiBarang;
+        $kirim = $t->pengiriman;
+        $ongkir = (int) ($kirim?->biaya_kirim ?? 0);
+        $lain = $selisih - $ongkir;
+        $alamatKirim = $kirim ? collect([
+            $kirim->alamat_tujuan, $kirim->kecamatan_tujuan, $kirim->kota_tujuan, $kirim->provinsi_tujuan, $kirim->kode_pos_tujuan,
+        ])->filter()->implode(', ') : '';
+        $waPenerima = preg_replace('/\D/', '', (string) ($kirim?->no_wa_penerima ?? ''));
+        if ($waPenerima !== '' && str_starts_with($waPenerima, '0')) { $waPenerima = '62' . substr($waPenerima, 1); }
 
         // Jarak pengajuan dari tanggal barang diterima
         $tglTerima = $t->pengiriman?->tanggal_diterima;
@@ -160,6 +168,31 @@
                     </div>
                 </section>
 
+                {{-- Pengiriman --}}
+                @if ($kirim)
+                    <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                        <h2 class="mb-3 text-[11px] font-bold uppercase tracking-wider text-gray-400">Pengiriman pesanan</h2>
+                        <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+                            <div><dt class="text-[11px] text-gray-400">Kurir</dt><dd class="font-semibold text-gray-800">{{ collect([$kirim->kurir ? strtoupper($kirim->kurir) : null, $kirim->layanan_ongkir])->filter()->implode(' · ') ?: '-' }}</dd></div>
+                            <div><dt class="text-[11px] text-gray-400">No. resi</dt><dd class="font-mono font-semibold text-gray-800">{{ $kirim->no_resi ?: '-' }}</dd></div>
+                            <div><dt class="text-[11px] text-gray-400">Status</dt><dd class="font-semibold text-gray-800">{{ ucfirst((string) $kirim->status_kirim) }}</dd></div>
+                            <div><dt class="text-[11px] text-gray-400">Tanggal kirim</dt><dd class="font-semibold text-gray-800">{{ $kirim->tanggal_kirim?->format('d M Y') ?? '-' }}</dd></div>
+                            <div><dt class="text-[11px] text-gray-400">Tanggal diterima</dt><dd class="font-semibold text-gray-800">{{ $kirim->tanggal_diterima?->format('d M Y') ?? '-' }}</dd></div>
+                            <div><dt class="text-[11px] text-gray-400">Berat</dt><dd class="font-semibold text-gray-800">{{ $kirim->berat_gram ? number_format($kirim->berat_gram, 0, ',', '.') . ' g' : '-' }}</dd></div>
+                        </dl>
+                        @if ($alamatKirim !== '' || $kirim->nama_penerima)
+                            <div class="mt-4 rounded-xl bg-gray-50 p-3 text-xs text-gray-600">
+                                <p class="font-bold text-gray-700">Alamat tujuan (untuk penjemputan barang)</p>
+                                <p class="mt-0.5">{{ $kirim->nama_penerima }}@if ($kirim->no_wa_penerima) · {{ $kirim->no_wa_penerima }}@endif</p>
+                                <p class="leading-relaxed">{{ $alamatKirim }}</p>
+                                @if ($waPenerima !== '')
+                                    <a href="https://wa.me/{{ $waPenerima }}" target="_blank" rel="noopener" class="mt-1.5 inline-block font-bold text-emerald-700 hover:underline">Hubungi penerima via WhatsApp</a>
+                                @endif
+                            </div>
+                        @endif
+                    </section>
+                @endif
+
                 {{-- Barang --}}
                 <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                     <div class="mb-3 flex items-center justify-between">
@@ -203,8 +236,11 @@
 
                     <dl class="mt-4 space-y-1.5 border-t border-gray-100 pt-3 text-xs">
                         <div class="flex justify-between"><dt class="text-gray-500">Subtotal barang</dt><dd class="tabular-nums text-gray-700">Rp{{ number_format($nilaiBarang, 0, ',', '.') }}</dd></div>
-                        @if ($selisih !== 0)
-                            <div class="flex justify-between"><dt class="text-gray-500">Ongkir / biaya lain</dt><dd class="tabular-nums text-gray-700">{{ $selisih < 0 ? '−' : '' }}Rp{{ number_format(abs($selisih), 0, ',', '.') }}</dd></div>
+                        @if ($ongkir > 0)
+                            <div class="flex justify-between"><dt class="text-gray-500">Ongkos kirim</dt><dd class="tabular-nums text-gray-700">Rp{{ number_format($ongkir, 0, ',', '.') }}</dd></div>
+                        @endif
+                        @if ($lain !== 0)
+                            <div class="flex justify-between"><dt class="text-gray-500">{{ $lain < 0 ? 'Potongan / diskon' : 'Biaya lain' }}</dt><dd class="tabular-nums text-gray-700">{{ $lain < 0 ? '−' : '' }}Rp{{ number_format(abs($lain), 0, ',', '.') }}</dd></div>
                         @endif
                         <div class="flex justify-between text-sm"><dt class="font-semibold text-gray-700">Total transaksi</dt><dd class="font-bold tabular-nums text-gray-900">Rp{{ number_format($t->total, 0, ',', '.') }}</dd></div>
                         @if ($t->pengiriman?->status_kirim)

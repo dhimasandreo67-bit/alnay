@@ -74,10 +74,20 @@ class AkunController extends Controller
             ->take(10)
             ->get();
 
-        $refundList = Refund::with('transaksi')
+        $refundList = Refund::with('transaksi.detail.produk')
             ->where('diajukan_oleh', $user->id)
             ->latest()
             ->get();
+
+        // Pesanan pembelian yang masih memenuhi syarat refund (aturan ada di Transaksi::cekBisaRefund)
+        $bisaDirefund = Transaksi::with(['detail.produk', 'pengiriman', 'refund'])
+            ->where('user_id', $user->id)
+            ->where('jenis', 'beli')
+            ->latest()
+            ->take(20)
+            ->get()
+            ->filter(fn ($t) => ($t->cekBisaRefund()[0] ?? false))
+            ->values();
 
         // --- 3. ALAMAT ---
         $alamatList = AlamatPengiriman::where('user_id', $user->id)
@@ -89,7 +99,7 @@ class AkunController extends Controller
 
         return view('customer.akun.index', compact(
             'user', 'totalFitting', 'fittingAktif', 'pesananAktif', 'penyewaanAktif', 'refundAktif',
-            'alamatList', 'adaAktivitas', 'pesananList', 'penyewaanList', 'fittingList', 'refundList'
+            'alamatList', 'adaAktivitas', 'pesananList', 'penyewaanList', 'fittingList', 'refundList', 'bisaDirefund'
         ));
     }
 

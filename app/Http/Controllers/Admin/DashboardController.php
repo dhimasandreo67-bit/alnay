@@ -9,7 +9,6 @@ use App\Models\Refund;
 use App\Models\ReservasiFitting;
 use App\Models\Sewa;
 use App\Models\Transaksi;
-use App\Support\KetersediaanSewa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
@@ -108,22 +107,11 @@ class DashboardController extends Controller
         $antreanTotal = collect($actionQueue)->sum('count');
 
         // ======================= STOK PERLU PERHATIAN =======================
-        // Perawatan (dicuci / rusak) + stok HABIS + stok HAMPIR HABIS, dengan rumus stok yang sama
-        // seperti Kelola Produk (stok sewa = kapasitas dikurangi unit yang belum dikembalikan).
-        $semuaProduk  = Produk::all();
-        $sewaTerpakai = KetersediaanSewa::terpakaiHariIni($semuaProduk);
+        // Hanya produk PENJUALAN: stok habis + stok hampir habis (+ status rusak / dicuci).
+        // Stok sewa tidak ikut dihitung; produk khusus sewa tidak ditampilkan.
+        $semuaProduk = Produk::where('dapat_dijual', true)->get();
 
-        $stokTersedia = function (Produk $p) use ($sewaTerpakai) {
-            $nilai = [];
-            if ($p->bisa_disewa) {
-                $nilai[] = max(0, $p->stokUntuk('sewa') - ($sewaTerpakai[$p->id] ?? 0));
-            }
-            if ($p->dapat_dijual) {
-                $nilai[] = $p->stokUntuk('jual');
-            }
-
-            return $nilai ? min($nilai) : (int) $p->stok;
-        };
+        $stokTersedia = fn (Produk $p) => max(0, $p->stokUntuk('jual'));
 
         $semuaAlert = $semuaProduk->map(function (Produk $p) use ($stokTersedia) {
             if (in_array($p->status, ['rusak', 'dicuci'], true)) {
