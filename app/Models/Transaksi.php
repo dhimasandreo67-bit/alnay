@@ -105,7 +105,33 @@ class Transaksi extends Model
         // Pembayaran tunai: tanggal bayar = saat admin menerima uang di toko
         $this->pembayaran()->where('metode', 'tunai')->update(['tanggal_bayar' => now()]);
 
+        // Pembelian online: stok baru dipotong saat lunas (juga untuk "Tandai Lunas" manual / tunai ambil di toko)
+        $this->potongStokPembelianOnline();
+
         return true;
+    }
+
+    /**
+     * Potong stok jual untuk pembelian ONLINE (per ukuran & warna di detail transaksi).
+     * Dipanggil tepat saat status berubah menjadi lunas (lihat tandaiLunas() dan MidtransQris::terapkan()),
+     * dan masing-masing hanya berjalan sekali per transaksi.
+     * Tidak berlaku untuk sewa (ketersediaan per tanggal) maupun beli kasir (stok sudah dipotong saat dibuat).
+     */
+    public function potongStokPembelianOnline(): void
+    {
+        if ($this->jenis !== 'beli' || ($this->channel ?? null) === 'kasir') {
+            return;
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () {
+            foreach ($this->detail()->get() as $detail) {
+                $produk = Produk::whereKey($detail->produk_id)->lockForUpdate()->first();
+
+                if ($produk) {
+                    $produk->kurangiStok('jual', $detail->ukuran, $detail->warna, (int) $detail->jumlah);
+                }
+            }
+        });
     }
 
     /*
