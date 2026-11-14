@@ -16,7 +16,7 @@
         ['panel' => 'ringkasan', 'icon' => 'cart',       'label' => 'Pesanan Saya',  'jumlah' => $pesananAktif],
         ['panel' => 'penyewaan', 'icon' => 'cart',       'label' => 'Penyewaan',     'jumlah' => $penyewaanAktif],
         ['panel' => 'fitting',   'icon' => 'calendar',   'label' => 'Fitting Saya',  'jumlah' => $totalFitting],
-        ['panel' => 'refund',    'icon' => 'refresh-cw', 'label' => 'Ajukan Refund', 'jumlah' => $refundAktif],
+        ['panel' => 'refund',    'icon' => 'refresh-cw', 'label' => 'Refund & Return', 'jumlah' => $refundAktif],
     ];
 
     $statKartu = [
@@ -310,38 +310,16 @@
             <div data-panel-content="refund" class="hidden space-y-4">
                 <div class="{{ $kartu }} p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h2 class="font-display text-2xl font-bold text-ink/90">Ajukan Refund</h2>
-                        <p class="text-sm text-ink/60 mt-1">Refund diajukan per pesanan. Buka pesanan Anda lalu pilih ajukan refund.</p>
+                        <h2 class="font-display text-2xl font-bold text-ink/90">Refund &amp; Return</h2>
+                        <p class="text-sm text-ink/60 mt-1">Ajukan pengembalian barang untuk pesanan pembelian, lalu pantau prosesnya di sini.</p>
                     </div>
                     <a href="{{ route('akun.refund.index') }}" class="{{ $btnTepi }} shrink-0">Buka Halaman Refund</a>
                 </div>
-                @forelse ($refundList as $i => $r)
-                    @php
-                        $stRefund = strtolower((string) $r->status);
-                        $ndRefund = match (true) {
-                            str_contains($stRefund, 'setuju') || str_contains($stRefund, 'selesai') || str_contains($stRefund, 'berhasil') => 'emerald',
-                            str_contains($stRefund, 'tolak') || str_contains($stRefund, 'batal') => 'rose',
-                            default => 'amber',
-                        };
-                    @endphp
-                    <a href="{{ route('akun.refund.show', $r->id) }}" class="ak-rise {{ $kartu }} p-5 block hover:border-gold/50 transition-colors" style="--d: {{ min($i, 6) * 0.05 }}s;">
-                        <div class="flex items-start justify-between gap-3">
-                            <p class="font-mono text-sm font-bold text-ink/90 break-all">{{ $r->transaksi?->kode_transaksi ?? 'Pesanan' }}</p>
-                            <span class="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 shrink-0 {{ $chip[$ndRefund] }}">{{ $r->label_status }}</span>
-                        </div>
-                        <p class="mt-2 text-sm text-ink/70">{{ $r->alasan }}</p>
-                        <p class="mt-1 text-xs text-ink/45">{{ $r->created_at?->locale('id')->translatedFormat('d F Y') }}</p>
-                    </a>
-                @empty
-                    <div class="ak-rise {{ $kartu }} p-8 flex flex-col items-center text-center">
-                        <div class="w-16 h-16 rounded-full bg-cream flex items-center justify-center"><x-icon name="refresh-cw" :size="28" class="text-ink/50" /></div>
-                        <p class="font-semibold text-ink/90 mt-4">Belum ada pengajuan refund</p>
-                        <p class="text-sm text-ink/60 mt-1 max-w-md">Pengajuan refund Anda akan tampil di sini.</p>
-                    </div>
-                @endforelse
+
+                @include('customer.akun._refund-tab')
             </div>
 
-                        {{-- ===== PANEL: EDIT PROFIL ===== --}}
+            {{-- ===== PANEL: EDIT PROFIL ===== --}}
             <div data-panel-content="profil" class="hidden tab-panel {{ $kartu }} overflow-hidden">
                 <div class="p-5 md:p-6 border-b border-line/60">
                     <h2 class="font-display text-xl font-bold text-ink/90">Profil Saya</h2>
