@@ -390,7 +390,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="font-display text-lg font-bold text-gray-900">Stok Perlu Perhatian</h2>
-                        <p class="mt-0.5 text-xs text-gray-500">Perawatan, stok habis &amp; hampir habis</p>
+                        <p class="mt-0.5 text-xs text-gray-500">Stok penjualan habis &amp; hampir habis</p>
                     </div>
                     <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800">{{ $stockAlertTotal }} busana</span>
                 </div>
