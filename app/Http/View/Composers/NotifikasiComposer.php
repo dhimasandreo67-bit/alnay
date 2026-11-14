@@ -2,43 +2,21 @@
 
 namespace App\Http\View\Composers;
 
+use App\Support\NotifikasiAdmin;
 use Illuminate\View\View;
-use App\Models\Pengiriman;
 
+/**
+ * Menyuplai data lonceng notifikasi di topbar admin.
+ * Nama variabel ($totalNotif, $pesanNotif) sengaja dipertahankan supaya
+ * pendaftaran composer yang sudah ada tidak perlu diubah.
+ */
 class NotifikasiComposer
 {
-    public function compose(View $view)
+    public function compose(View $view): void
     {
-        // 1. Hitung pesanan yang belum dikirim
-        $belumDikirim = Pengiriman::where('status_kirim', 'menunggu')->count();
-        
-        $totalNotif = $belumDikirim;
+        $data = NotifikasiAdmin::ringkasanSaatIni();
 
-        // Buat daftar pesan notifikasi
-        $pesanNotif = [];
-        if ($belumDikirim > 0) {
-            $pesanNotif[] = [
-                'judul' => 'Pengiriman Tertunda',
-                'pesan' => "Ada {$belumDikirim} pesanan yang menunggu untuk dikirim.",
-                'url' => route('admin.pengiriman.index', ['status' => 'menunggu']),
-                'warna' => 'text-amber-500',
-                'icon' => 'truck'
-            ];
-        }
-
-        // Jika kosong, tampilkan pesan aman
-        if (empty($pesanNotif)) {
-            $pesanNotif[] = [
-                'judul' => 'Semua aman',
-                'pesan' => 'Tidak ada notifikasi baru.',
-                'url' => '#',
-                'warna' => 'text-emerald-500',
-                'icon' => 'check'
-            ];
-        }
-
-        // Kirim data ke view
-        $view->with('totalNotif', $totalNotif)
-             ->with('pesanNotif', $pesanNotif);
+        $view->with('totalNotif', $data['unread'])
+             ->with('pesanNotif', $data['items']);
     }
 }
