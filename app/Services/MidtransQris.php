@@ -229,27 +229,25 @@ class MidtransQris
         }
 
         if ($sukses) {
-            $t->update(['status_pembayaran' => $t->jenis === 'sewa' ? 'dp_dibayar' : 'lunas']);
-            $this->tagihan($t)?->update([
-                'status_midtrans' => 'success',
-                'metode' => $type ?: 'qris',
-                'tanggal_bayar' => now(),
-            ]);
+            // Satu transaksi + kunci baris: webhook dan polling yang datang bersamaan
+            // tidak bisa memotong stok dua kali.
+            DB::transaction(function () use ($t, $type) {
+                $kunci = Transaksi::whereKey($t->id)->lockForUpdate()->first();
+                if (! $kunci || $this->sudahLunas($kunci)) {
+                    return;
+                }
 
-            // ==== KURANGI STOK PRODUK (Hanya untuk transaksi BELI) ====
-            // Stok jual dikurangi per ukuran & warna yang dibeli (disimpan di detail_transaksi).
-            // Stok SEWA tidak dikurangi: ketersediaannya dihitung per tanggal (lihat Support\KetersediaanSewa).
-            if ($t->jenis === 'beli') {
-                DB::transaction(function () use ($t) {
-                    foreach ($t->detail as $detail) {
-                        $produk = Produk::whereKey($detail->produk_id)->lockForUpdate()->first();
-                        if ($produk) {
-                            $produk->kurangiStok('jual', $detail->ukuran, $detail->warna, (int) $detail->jumlah);
-                        }
-                    }
-                });
-            }
-            // ==========================================================
+                $t->update(['status_pembayaran' => $t->jenis === 'sewa' ? 'dp_dibayar' : 'lunas']);
+                $this->tagihan($t)?->update([
+                    'status_midtrans' => 'success',
+                    'metode' => $type ?: 'qris',
+                    'tanggal_bayar' => now(),
+                ]);
+
+                // ==== KURANGI STOK PRODUK (hanya transaksi BELI) ====
+                // Stok SEWA tidak dikurangi: ketersediaannya dihitung per tanggal (Support\KetersediaanSewa).
+                $t->potongStokPembelianOnline();
+            });
 
             Cache::forget($this->key($t));
         } elseif (in_array($status, ['expire', 'cancel', 'deny', 'failure'], true)) {
