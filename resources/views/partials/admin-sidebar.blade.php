@@ -12,13 +12,13 @@
             'items' => [
                 ['label' => 'Kategori', 'route' => 'admin.kategori.*', 'icon' => 'box'],
                 ['label' => 'Produk', 'route' => 'admin.produk.*', 'icon' => 'hanger'],
-                ['label' => 'Pengguna', 'route' => 'admin.pengguna.*', 'icon' => 'users'],
+                ['label' => 'Pengguna', 'route' => 'admin.pengguna.*', 'icon' => 'users', 'badge' => fn () => \App\Support\AdminBadge::penggunaBaru(), 'seen' => 'pengguna', 'tone' => 'sky'],
             ],
         ],
         [
             'heading' => 'Transaksi',
             'items' => [
-                ['label' => 'Semua Transaksi', 'route' => 'admin.transaksi.index', 'icon' => 'wallet'],
+                ['label' => 'Semua Transaksi', 'route' => 'admin.transaksi.index', 'icon' => 'wallet', 'badge' => fn () => \App\Support\AdminBadge::transaksiBaru(), 'seen' => 'transaksi', 'tone' => 'sky'],
                 ['label' => 'Buat Transaksi Baru', 'route' => 'admin.transaksi.create', 'icon' => 'plus-circle'],
                 ['label' => 'Laporan Pendapatan', 'route' => 'admin.laporan.*', 'icon' => 'file-text'],
             ],
@@ -26,16 +26,16 @@
         [
             'heading' => 'Sewa & Jaminan',
             'items' => [
-                ['label' => 'Data Sewa', 'route' => 'admin.sewa.*', 'icon' => 'calendar', 'badge' => fn () => \App\Models\JaminanSewa::where('status_verifikasi', 'pending')->count()],
+                ['label' => 'Data Sewa', 'route' => 'admin.sewa.*', 'icon' => 'calendar', 'badge' => fn () => \App\Support\AdminBadge::jaminan()],
             ],
         ],
         [
             'heading' => 'Layanan Atelier',
             'items' => [
-                ['label' => 'Refund & Return', 'route' => 'admin.refund.*', 'icon' => 'undo', 'badge' => fn () => \App\Models\Refund::where('status', 'pending')->count()],
-                ['label' => 'Pengiriman', 'route' => 'admin.pengiriman.*', 'icon' => 'truck'],
-                ['label' => 'Reservasi Fitting', 'route' => 'admin.fitting.*', 'icon' => 'clock'],
-                ['label' => 'Rating & Ulasan', 'route' => 'admin.rating.*', 'icon' => 'star'],
+                ['label' => 'Refund & Return', 'route' => 'admin.refund.*', 'icon' => 'undo', 'badge' => fn () => \App\Support\AdminBadge::refund()],
+                ['label' => 'Pengiriman', 'route' => 'admin.pengiriman.*', 'icon' => 'truck', 'badge' => fn () => \App\Support\AdminBadge::pengiriman()],
+                ['label' => 'Reservasi Fitting', 'route' => 'admin.fitting.*', 'icon' => 'clock', 'badge' => fn () => \App\Support\AdminBadge::fitting()],
+                ['label' => 'Rating & Ulasan', 'route' => 'admin.rating.*', 'icon' => 'star', 'badge' => fn () => \App\Support\AdminBadge::ratingBaru(), 'seen' => 'rating', 'tone' => 'sky'],
             ],
         ],
         [
@@ -160,7 +160,19 @@
                             @php
                                 $patterns = (array) $item['route'];
                                 $active   = request()->routeIs(...$patterns);
-                                $count    = isset($item['badge']) ? value($item['badge']) : null;
+                                $tone     = $item['tone'] ?? 'rose';
+                                $tones    = [
+                                    'rose' => ['from-rose-500 to-pink-500 shadow-rose-500/40', 'bg-rose-400'],
+                                    'sky'  => ['from-sky-500 to-cyan-500 shadow-sky-500/40', 'bg-sky-400'],
+                                ][$tone] ?? ['from-rose-500 to-pink-500 shadow-rose-500/40', 'bg-rose-400'];
+
+                                // Badge "baru": reset saat menunya dibuka; badge "perlu tindakan": tetap sampai ditangani.
+                                if ($active && isset($item['seen'])) {
+                                    \App\Support\AdminBadge::tandaiDilihat($item['seen']);
+                                    $count = 0;
+                                } else {
+                                    $count = isset($item['badge']) ? value($item['badge']) : null;
+                                }
                             @endphp
 
                             <a href="{{ Route::has(str_replace('*', 'index', $item['route'])) ? route(str_replace('*', 'index', $item['route'])) : '#' }}"
@@ -190,10 +202,10 @@
 
                                 @if ($count)
                                     <span class="relative flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full
-                                                 bg-gradient-to-r from-rose-500 to-pink-500 px-1.5 text-[10px] font-bold text-white
-                                                 shadow-sm shadow-rose-500/40">
+                                                 bg-gradient-to-r {{ $tones[0] }} px-1.5 text-[10px] font-bold text-white shadow-sm"
+                                          title="{{ isset($item['seen']) ? 'Baru sejak terakhir dibuka' : 'Perlu tindakan' }}">
                                         {{ $count > 99 ? '99+' : $count }}
-                                        <span class="absolute inset-0 rounded-full bg-rose-400 animate-ping opacity-20"></span>
+                                        <span class="absolute inset-0 rounded-full {{ $tones[1] }} animate-ping opacity-20"></span>
                                     </span>
                                 @endif
                             </a>
