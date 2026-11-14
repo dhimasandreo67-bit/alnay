@@ -962,7 +962,8 @@
                             </div>
                         </div>
                         <dl class="atelier-jam">
-                            <div><dt>Senin–Sabtu</dt><dd>07.00–19.00</dd></div>
+                            <div><dt>Senin–Sabtu</dt><dd>08.00–19.00</dd></div>
+                            <div><dt>Minggu</dt><dd>Tutup</dd></div>
                         </dl>
                     </div>
                 </li>
@@ -1200,6 +1201,60 @@
             stage.addEventListener('mouseleave', startAuto);
         }
 
+        // Jam operasional (WIB). 0 = Minggu ... 6 = Sabtu. null = tutup.
+        const JAM_BUKA = {
+            0: null,
+            1: [8, 19], 2: [8, 19], 3: [8, 19], 4: [8, 19], 5: [8, 19], 6: [8, 19]
+        };
+        const NAMA_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const pad2 = n => String(n).padStart(2, '0');
+
+        // Ambil hari & jam saat ini di zona waktu WIB, apa pun zona waktu perangkat pengunjung
+        function sekarangWIB() {
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Jakarta', weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false
+            }).formatToParts(new Date());
+            const get = t => parts.find(p => p.type === t).value;
+            const hari = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday'));
+            return { hari, menit: (parseInt(get('hour'), 10) % 24) * 60 + parseInt(get('minute'), 10) };
+        }
+
+        function initOpenStatus() {
+            const el = document.getElementById('open-status');
+            if (!el) return;
+
+            const render = () => {
+                const { hari, menit } = sekarangWIB();
+                const jam = JAM_BUKA[hari];
+                let buka = false, teks = '';
+
+                if (jam && menit >= jam[0] * 60 && menit < jam[1] * 60) {
+                    buka = true;
+                    teks = `Buka · tutup ${pad2(jam[1])}.00`;
+                } else {
+                    // cari jadwal buka berikutnya
+                    let tambah = (jam && menit < jam[0] * 60) ? 0 : 1;
+                    while (!JAM_BUKA[(hari + tambah) % 7]) tambah++;
+                    const hariBuka = (hari + tambah) % 7;
+                    const jamBuka = pad2(JAM_BUKA[hariBuka][0]) + '.00';
+                    teks = tambah === 0 ? `Tutup · buka ${jamBuka}`
+                        : tambah === 1 ? `Tutup · buka besok ${jamBuka}`
+                        : `Tutup · buka ${NAMA_HARI[hariBuka]} ${jamBuka}`;
+                }
+
+                const warna = buka ? '#16a34a' : '#dc2626';
+                el.innerHTML = `
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/95 text-[10px] font-bold border border-gray-100"
+                          style="color:${warna}" role="status">
+                        <span style="width:6px;height:6px;border-radius:9999px;background:${warna};display:inline-block"></span>
+                        <span>${teks}</span>
+                    </span>`;
+            };
+
+            render();
+            setInterval(render, 30000); // perbarui otomatis tiap 30 detik
+        }
+
         function initMap() {
             const el = document.getElementById('peta-alnay');
             if (!el || el.dataset.ready) return;
@@ -1219,6 +1274,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            initOpenStatus();
             buildCarousel();
             bindSwipe();
             startAuto();
