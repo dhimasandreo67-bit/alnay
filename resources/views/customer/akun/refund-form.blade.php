@@ -15,6 +15,19 @@
     $banyak = $transaksi->detail->count();
     $subtotalBarang = $transaksi->detail->sum(fn ($d) => (int) $d->jumlah * (int) $d->harga_satuan);
     $selisih = (int) $transaksi->total - $subtotalBarang;
+    $pengiriman = $transaksi->pengiriman;
+    $tglTerima = $pengiriman?->tanggal_diterima;
+    $ongkir = (int) ($pengiriman?->biaya_kirim ?? 0);
+    $lain = $selisih - $ongkir; // biaya lain / potongan (voucher, dll.)
+    $infoKirim = collect([
+        'Kurir'         => $pengiriman ? collect([$pengiriman->kurir ? strtoupper($pengiriman->kurir) : null, $pengiriman->layanan_ongkir])->filter()->implode(' · ') : null,
+        'No. resi'      => $pengiriman?->no_resi,
+        'Tanggal kirim' => $pengiriman?->tanggal_kirim?->format('d M Y'),
+    ])->filter();
+    $alamatKirim = $pengiriman ? collect([
+        $pengiriman->alamat_tujuan, $pengiriman->kecamatan_tujuan, $pengiriman->kota_tujuan,
+        $pengiriman->provinsi_tujuan, $pengiriman->kode_pos_tujuan,
+    ])->filter()->implode(', ') : '';
 @endphp
 
 <div class="bg-cream min-h-screen py-8 md:py-12">
@@ -47,6 +60,45 @@
             </ul>
         </div>
 
+        {{-- Batas waktu pengajuan --}}
+        <div class="mb-4">@include('customer.akun._refund-batas', ['t' => $transaksi])</div>
+
+        {{-- Info pesanan --}}
+        <div class="bg-panel border border-line/40 rounded-2xl p-5 mb-4">
+            <h2 class="text-[11px] font-semibold uppercase tracking-wider text-ink/60 mb-3">Info pesanan</h2>
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-[12px]">
+                <div>
+                    <dt class="text-ink/45">Kode pesanan</dt>
+                    <dd class="font-semibold text-ink/85 font-mono">{{ $transaksi->kode_transaksi }}</dd>
+                </div>
+                <div>
+                    <dt class="text-ink/45">Tanggal pesanan</dt>
+                    <dd class="font-semibold text-ink/85">{{ $transaksi->created_at?->format('d M Y, H:i') }}</dd>
+                </div>
+                <div>
+                    <dt class="text-ink/45">Barang diterima</dt>
+                    <dd class="font-semibold text-ink/85">{{ $tglTerima instanceof \Carbon\CarbonInterface ? $tglTerima->format('d M Y') : 'Belum tercatat' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-ink/45">Status pembayaran</dt>
+                    <dd class="font-semibold text-ink/85">{{ ucfirst(str_replace('_', ' ', (string) ($transaksi->status_pembayaran ?? '-'))) }}</dd>
+                </div>
+                @foreach ($infoKirim as $label => $nilai)
+                    <div>
+                        <dt class="text-ink/45">{{ $label }}</dt>
+                        <dd class="font-semibold text-ink/85">{{ $nilai }}</dd>
+                    </div>
+                @endforeach
+            </dl>
+            @if ($alamatKirim !== '')
+                <div class="mt-3 pt-3 border-t border-line/30 text-[12px]">
+                    <p class="text-ink/45">Dikirim ke</p>
+                    <p class="font-semibold text-ink/85">{{ $pengiriman->nama_penerima ?: '' }}</p>
+                    <p class="text-ink/65 leading-relaxed">{{ $alamatKirim }}</p>
+                </div>
+            @endif
+        </div>
+
         {{-- Ringkasan produk --}}
         <div class="bg-panel border border-line/40 rounded-2xl p-5 mb-4">
             <div class="flex items-center justify-between mb-3">
@@ -69,10 +121,16 @@
                         <dd class="text-ink/80 tabular-nums">Rp{{ number_format($subtotalBarang, 0, ',', '.') }}</dd>
                     </div>
                 @endif
-                @if ($selisih !== 0)
+                @if ($ongkir > 0)
                     <div class="flex items-center justify-between">
-                        <dt class="text-ink/55">Ongkir / biaya lain</dt>
-                        <dd class="text-ink/80 tabular-nums">{{ $selisih < 0 ? '−' : '' }}Rp{{ number_format(abs($selisih), 0, ',', '.') }}</dd>
+                        <dt class="text-ink/55">Ongkos kirim</dt>
+                        <dd class="text-ink/80 tabular-nums">Rp{{ number_format($ongkir, 0, ',', '.') }}</dd>
+                    </div>
+                @endif
+                @if ($lain !== 0)
+                    <div class="flex items-center justify-between">
+                        <dt class="text-ink/55">{{ $lain < 0 ? 'Potongan / diskon' : 'Biaya lain' }}</dt>
+                        <dd class="text-ink/80 tabular-nums">{{ $lain < 0 ? '−' : '' }}Rp{{ number_format(abs($lain), 0, ',', '.') }}</dd>
                     </div>
                 @endif
                 <div class="flex items-center justify-between">
@@ -107,7 +165,7 @@
                                     . ' ×' . $d->jumlah;
                             @endphp
                             <label class="flex items-start gap-2.5 px-3 py-2.5 rounded-xl border border-line/50 bg-white text-[12px] text-ink/75 cursor-pointer hover:border-gold/60 transition-colors">
-                                <input type="checkbox" value="{{ $labelProduk }}" class="mt-0.5 rounded border-line/60 text-gold focus:ring-gold">
+                                <input type="checkbox" value="{{ $labelProduk }}" data-subtotal="{{ (int) $d->jumlah * (int) $d->harga_satuan }}" class="mt-0.5 rounded border-line/60 text-gold focus:ring-gold">
                                 <span class="flex-1 min-w-0">{{ $labelProduk }}</span>
                                 <span class="shrink-0 tabular-nums text-ink/50">Rp{{ number_format((int) $d->jumlah * (int) $d->harga_satuan, 0, ',', '.') }}</span>
                             </label>
@@ -162,6 +220,20 @@
                            class="sm:col-span-2 px-4 py-2.5 border border-line/50 rounded-xl text-sm bg-white focus:outline-none focus:border-gold">
                 </div>
                 <p class="mt-1.5 text-[11px] text-ink/50">Periksa kembali nomor dan nama pemilik. Kesalahan data rekening dapat menunda transfer dana.</p>
+            </div>
+
+            {{-- Estimasi nilai barang --}}
+            <div class="rounded-xl border border-line/40 bg-white p-4 text-[12px]">
+                <div class="flex items-center justify-between gap-3">
+                    <span class="text-ink/60">{{ $banyak > 1 ? 'Nilai barang yang dipilih' : 'Nilai barang' }}</span>
+                    <span id="estimasi-nilai" class="font-bold text-ink/90 tabular-nums" data-semua="{{ $subtotalBarang }}">
+                        Rp{{ number_format($banyak > 1 ? 0 : $subtotalBarang, 0, ',', '.') }}
+                    </span>
+                </div>
+                <p class="mt-1.5 text-[11px] text-ink/50 leading-relaxed">
+                    Ini hanya perkiraan nilai barang. Nominal refund akhir ditentukan admin setelah barang dicek
+                    dan bisa berbeda (misalnya terkait ongkir atau kondisi barang).
+                </p>
             </div>
 
             {{-- Alur setelah pengajuan --}}
@@ -240,6 +312,19 @@
             }
             alasan.value = awal + isi;
         });
+
+        // Estimasi nilai barang yang dipilih
+        const estimasi = document.getElementById('estimasi-nilai');
+        const rupiah = n => 'Rp' + Math.round(n).toLocaleString('id-ID');
+        if (pilih && estimasi) {
+            const hitungEstimasi = () => {
+                const total = [...pilih.querySelectorAll('input:checked')]
+                    .reduce((a, i) => a + Number(i.dataset.subtotal || 0), 0);
+                estimasi.textContent = rupiah(total);
+            };
+            pilih.addEventListener('change', hitungEstimasi);
+            hitungEstimasi();
+        }
 
         const input = document.getElementById('bukti-foto');
         const info = document.getElementById('bukti-info');
