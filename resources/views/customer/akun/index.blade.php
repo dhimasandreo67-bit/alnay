@@ -20,9 +20,9 @@
     ];
 
     $statKartu = [
-        ['panel' => 'fitting',   'label' => 'Total Fitting',    'nilai' => $totalFitting,   'icon' => 'calendar'],
-        ['panel' => 'ringkasan', 'label' => 'Pesanan Aktif',    'nilai' => $pesananAktif,   'icon' => 'cart'],
-        ['panel' => 'penyewaan', 'label' => 'Penyewaan Aktif',  'nilai' => $penyewaanAktif, 'icon' => 'cart'],
+        ['panel' => 'fitting',   'label' => 'Total Fitting',    'nilai' => $totalFitting,   'icon' => 'calendar',    'cta' => 'Lihat jadwal'],
+        ['panel' => 'ringkasan', 'label' => 'Pesanan Aktif',    'nilai' => $pesananAktif,   'icon' => 'cart',        'cta' => 'Lihat pesanan'],
+        ['panel' => 'refund',    'label' => 'Refund Berjalan',  'nilai' => $refundAktif,    'icon' => 'refresh-cw',  'cta' => 'Lacak refund', 'aksen' => true],
     ];
 
     $kartu    = 'bg-white rounded-2xl border border-line/60 shadow-sm';
@@ -171,10 +171,10 @@
                             style="--d: {{ $i * 0.06 }}s;">
                         <div class="flex items-start justify-between gap-2">
                             <p class="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-ink/50 leading-tight">{{ $k['label'] }}</p>
-                            <span class="w-8 h-8 rounded-lg bg-gold/10 text-gold flex items-center justify-center shrink-0"><x-icon name="{{ $k['icon'] }}" :size="16" /></span>
+                            <span class="w-8 h-8 rounded-lg {{ ($k['aksen'] ?? false) && $k['nilai'] > 0 ? 'bg-amber-100 text-amber-700' : 'bg-gold/10 text-gold' }} flex items-center justify-center shrink-0"><x-icon name="{{ $k['icon'] }}" :size="16" /></span>
                         </div>
                         <p class="font-display text-3xl font-bold text-ink/90 mt-3">{{ $k['nilai'] }}</p>
-                        <span class="mt-auto pt-4 text-xs md:text-sm font-semibold text-gold">Lihat semua &rsaquo;</span>
+                        <span class="mt-auto pt-4 text-xs md:text-sm font-semibold text-gold">{{ $k['cta'] ?? 'Lihat semua' }} &rsaquo;</span>
                     </button>
                 @endforeach
             </div>
