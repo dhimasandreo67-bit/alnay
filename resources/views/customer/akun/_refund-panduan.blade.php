@@ -1,6 +1,7 @@
 {{-- Panduan refund / return. Variabel opsional: $compact (bool) = tampil sebagai akordeon tertutup --}}
 @php
     $compact = $compact ?? false;
+    $grid = $grid ?? false; // true = 2 kolom di desktop (hanya untuk halaman lebar)
     $batas = \App\Models\Refund::BATAS_HARI;
 
     $langkahPanduan = [
@@ -21,7 +22,7 @@
 @endphp
 
 @if ($compact)
-    <details class="group bg-panel border border-line/40 rounded-2xl overflow-hidden">
+    <details id="panduan-refund" class="group bg-panel border border-line/40 rounded-2xl overflow-hidden">
         <summary class="cursor-pointer list-none px-5 py-4 flex items-center justify-between gap-3">
             <span class="text-[11px] font-semibold uppercase tracking-wider text-ink/60">Panduan &amp; ketentuan refund</span>
             <x-icon name="chevron-right" :size="14" class="text-ink/40 transition-transform group-open:rotate-90" />
@@ -31,6 +32,8 @@
     <section class="bg-panel border border-line/40 rounded-2xl p-5 md:p-6">
 @endif
 
+    <div class="{{ $grid ? 'lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start' : '' }}">
+    <div>
     {{-- Alur --}}
     <h2 class="text-[11px] font-semibold uppercase tracking-wider text-ink/60 mb-4">Cara refund / return</h2>
     <ol class="space-y-4">
@@ -44,9 +47,11 @@
             </li>
         @endforeach
     </ol>
+    </div>
 
+    <div class="{{ $grid ? 'mt-6 lg:mt-0' : '' }}">
     {{-- Syarat --}}
-    <div class="grid sm:grid-cols-2 gap-3 mt-6">
+    <div class="grid {{ $grid ? 'grid-cols-1' : 'sm:grid-cols-2' }} gap-3 {{ $grid ? '' : 'mt-6' }}">
         <div class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
             <p class="text-[11px] font-bold text-emerald-800 mb-2">Yang perlu disiapkan</p>
             <ul class="space-y-1.5 text-[11px] text-emerald-900 leading-relaxed list-disc pl-4">
@@ -83,6 +88,8 @@
     <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya ingin bertanya tentang refund/return.') }}"
        target="_blank" rel="noopener"
        class="inline-block mt-4 text-[12px] font-bold text-gold hover:underline">Masih bingung? Tanya CS via WhatsApp</a>
+    </div>
+    </div>
 
 @if ($compact)
         </div>
