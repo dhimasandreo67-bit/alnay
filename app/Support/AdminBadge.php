@@ -40,6 +40,18 @@ class AdminBadge
         return self::ingat('refund', fn () => Refund::whereIn('status', ['diajukan', 'barang_dikirim', 'barang_diterima'])->count());
     }
 
+    /** Sewa yang sudah lewat tanggal kembali tapi barangnya belum dikembalikan. Hilang setelah sewa diselesaikan. */
+    public static function sewaTelat(): int
+    {
+        return self::ingat('sewa_telat', fn () => NotifikasiAdmin::sewaTelatQuery()->count());
+    }
+
+    /** Badge menu "Data Sewa": jaminan menunggu verifikasi + sewa terlambat. */
+    public static function sewa(): int
+    {
+        return self::jaminan() + self::sewaTelat();
+    }
+
     public static function fitting(): int
     {
         return self::ingat('fitting', fn () => ReservasiFitting::where('status', 'pending')->count());
