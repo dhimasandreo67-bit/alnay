@@ -4,6 +4,7 @@ namespace App\Http\View\Composers;
 
 use Illuminate\View\View;
 use App\Models\Pengiriman;
+use App\Models\Refund;
 
 class NotifikasiComposer
 {
@@ -12,10 +13,15 @@ class NotifikasiComposer
         // 1. Hitung pesanan yang belum dikirim
         $belumDikirim = Pengiriman::where('status_kirim', 'menunggu')->count();
         
-        $totalNotif = $belumDikirim;
+        // 2. Hitung pengajuan refund yang baru masuk
+        $refundBaru = Refund::where('status', 'diajukan')->count();
+        
+        // 3. Total keseluruhan notifikasi untuk angka di lonceng
+        $totalNotif = $belumDikirim + $refundBaru;
 
         // Buat daftar pesan notifikasi
         $pesanNotif = [];
+        
         if ($belumDikirim > 0) {
             $pesanNotif[] = [
                 'judul' => 'Pengiriman Tertunda',
@@ -23,6 +29,16 @@ class NotifikasiComposer
                 'url' => route('admin.pengiriman.index', ['status' => 'menunggu']),
                 'warna' => 'text-amber-500',
                 'icon' => 'truck'
+            ];
+        }
+
+        if ($refundBaru > 0) {
+            $pesanNotif[] = [
+                'judul' => 'Pengajuan Refund Baru',
+                'pesan' => "Ada {$refundBaru} pengajuan refund yang menunggu tinjauan.",
+                'url' => route('admin.refund.index'), // Sesuaikan dengan nama route index refund admin
+                'warna' => 'text-rose-500',
+                'icon' => 'refund'
             ];
         }
 

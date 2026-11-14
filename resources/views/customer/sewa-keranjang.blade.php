@@ -396,10 +396,14 @@
                             e.preventDefault();
                             return;
                         }
-                        if (!confirm('Yakin ingin menghapus ' + terpilih.length + ' item terpilih?')) {
+                        if (formHapus.dataset.ok !== '1') {
                             e.preventDefault();
+                            konfirmasi('Yakin ingin menghapus ' + terpilih.length + ' item terpilih?').then(function (ya) {
+                                if (ya) { formHapus.dataset.ok = '1'; formHapus.requestSubmit(); }
+                            });
                             return;
                         }
+                        formHapus.dataset.ok = '';
 
                         // Hapus input hidden lama jika ada
                         formHapus.querySelectorAll('input[name="ids[]"]').forEach(el => el.remove());

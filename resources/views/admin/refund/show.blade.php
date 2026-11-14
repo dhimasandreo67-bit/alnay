@@ -290,7 +290,7 @@
                             @csrf @method('PATCH')
                             <div>
                                 <label class="mb-1 block text-xs font-bold text-gray-600">Nominal refund (Rp)</label>
-                                <input type="number" id="input-jumlah" name="jumlah" min="1" max="{{ (int) $t->total }}" value="{{ old('jumlah', (int) $refund->jumlah) }}" required class="{{ $input }}">
+                                <input type="text" inputmode="numeric" data-rupiah id="input-jumlah" name="jumlah" value="{{ old('jumlah', (int) $refund->jumlah) }}" required class="{{ $input }}">
                                 <div class="mt-2 flex flex-wrap gap-1.5">
                                     @if ($adaTanda && $nilaiBermasalah > 0)
                                         <button type="button" data-isi="{{ $nilaiBermasalah }}" class="rounded-lg border border-rose-200 px-2 py-1 text-[10px] font-bold text-rose-700 hover:bg-rose-50">Produk bermasalah · Rp{{ number_format($nilaiBermasalah, 0, ',', '.') }}</button>
@@ -301,9 +301,35 @@
                                 <p class="mt-1.5 text-[11px] text-gray-400">Maks total transaksi. Pilih salah satu tombol atau isi manual.</p>
                             </div>
                             <div>
-                                <label class="mb-1 block text-xs font-bold text-gray-600">No. resi penjemputan <span class="font-normal text-gray-400">(opsional)</span></label>
-                                <input type="text" name="no_resi_penjemputan" maxlength="100" value="{{ old('no_resi_penjemputan') }}" placeholder="Kosongkan bila pelanggan kirim sendiri" class="{{ $input }}">
+                                <label class="mb-1 block text-xs font-bold text-gray-600">Cara barang kembali ke toko <span class="text-rose-500">*</span></label>
+                                <select name="metode_pengembalian" id="input-metode" required class="{{ $input }}">
+                                    <option value="">— Pilih metode —</option>
+                                    <option value="dijemput" @selected(old('metode_pengembalian') === 'dijemput')>Dijemput kurir (toko pesan kurir)</option>
+                                    <option value="kirim_sendiri" @selected(old('metode_pengembalian') === 'kirim_sendiri')>Antar ke agen (pembeli antar, ongkir diganti)</option>
+                                </select>
+                                <div class="mt-1.5 rounded-lg bg-amber-50 p-2 text-[11px] leading-relaxed text-amber-900">
+                                    <b>Panduan:</b> barang salah/cacat/tidak sesuai → pilih <b>Dijemput</b> dan nominal <b>Total transaksi</b> (pembeli tidak keluar uang).
+                                    Pembeli berubah pikiran → <b>Dijemput</b>, kurangi nominal sebesar ongkir bila perlu.
+                                    "Antar ke agen" hanya bila wilayah tidak terjangkau jemput.
+                                </div>
+                                <p class="mt-1 text-[11px] text-gray-400">Utamakan "Dijemput". Pilih "Antar ke agen" bila wilayah pelanggan tidak terjangkau jemput. Pelanggan punya {{ \App\Models\Refund::BATAS_KIRIM_HARI }} hari, lewat itu refund batal otomatis.</p>
                             </div>
+                            <div id="wrap-resi" style="display:none">
+                                <label class="mb-1 block text-xs font-bold text-gray-600">Kurir penjemput <span class="text-rose-500">*</span></label>
+                                <input type="text" name="kurir_penjemput" maxlength="50" value="{{ old('kurir_penjemput') }}" placeholder="mis. J&T, JNE, SiCepat" class="{{ $input }} mb-2">
+                                <label class="mb-1 block text-xs font-bold text-gray-600">No. resi penjemputan <span class="text-rose-500">*</span> <span class="font-normal text-gray-400">(pesan kurir jemput dulu)</span></label>
+                                <input type="text" name="no_resi_penjemputan" maxlength="100" value="{{ old('no_resi_penjemputan') }}" placeholder="Wajib diisi" class="{{ $input }}">
+                                <label class="mb-1 mt-2 block text-xs font-bold text-gray-600">Biaya jemput (Rp) <span class="font-normal text-gray-400">(opsional, catatan pembukuan)</span></label>
+                                <input type="text" inputmode="numeric" data-rupiah name="biaya_jemput" value="{{ old('biaya_jemput') }}" class="{{ $input }}">
+                            </div>
+                            <script>
+                                (function () {
+                                    var s = document.getElementById('input-metode'), w = document.getElementById('wrap-resi');
+                                    if (!s || !w) return;
+                                    var f = function () { var d = s.value === 'dijemput'; w.style.display = d ? '' : 'none'; w.querySelectorAll('input[name=kurir_penjemput], input[name=no_resi_penjemputan]').forEach(function (i) { i.required = d; }); };
+                                    s.addEventListener('change', f); f();
+                                })();
+                            </script>
                             <div>
                                 <label class="mb-1 block text-xs font-bold text-gray-600">Catatan / instruksi untuk pelanggan</label>
                                 <textarea name="catatan_negosiasi" rows="3" maxlength="1000" placeholder="Alamat pengiriman balik, potongan, dll." class="{{ $input }}">{{ old('catatan_negosiasi') }}</textarea>
@@ -328,8 +354,26 @@
                             {{ $st === 'barang_dikirim' ? 'Pelanggan menandai barang sudah dikirim.' : 'Menunggu pelanggan mengirim barang.' }}
                             Catat setelah barang benar-benar sampai dan dicek.
                         </p>
-                        <p class="mb-3 text-xs text-gray-600">Nominal disetujui: <b>Rp{{ number_format($refund->jumlah, 0, ',', '.') }}</b>
-                            @if ($refund->no_resi_penjemputan)<br>Resi: <span class="font-mono">{{ $refund->no_resi_penjemputan }}</span>@endif</p>
+                        <div class="mb-3 space-y-1 text-xs text-gray-600">
+                            <p>Nominal disetujui: <b>Rp{{ number_format($refund->jumlah, 0, ',', '.') }}</b></p>
+                            <p>Metode: <b>{{ $refund->label_metode ?? 'Tidak dicatat (refund lama)' }}</b></p>
+                            @if ($refund->no_resi_penjemputan)<p>Resi penjemputan{{ $refund->metode_pengembalian === 'dijemput' && $refund->kurir_retur ? ' (' . $refund->kurir_retur . ')' : '' }}: <span class="font-mono">{{ $refund->no_resi_penjemputan }}</span></p>@endif
+                            @if ($refund->no_resi_retur)
+                                <p>Resi dari pelanggan: <b>{{ $refund->kurir_retur }}</b> · <span class="font-mono">{{ $refund->no_resi_retur }}</span></p>
+                            @endif
+                            @if ($refund->buktiPengirimanUrl())
+                                <p><a href="{{ $refund->buktiPengirimanUrl() }}" target="_blank" rel="noopener" class="font-bold text-sky-700 underline">Lihat foto bukti pengiriman</a></p>
+                            @endif
+                            @if ($refund->biaya_ongkir_retur !== null)
+                                <p>Ongkir dibayar pelanggan: <b>Rp{{ number_format($refund->biaya_ongkir_retur, 0, ',', '.') }}</b></p>
+                            @endif
+                            @if ($st === 'disetujui' && $refund->batas_kirim)
+                                <p>Batas kirim: <b>{{ $refund->batas_kirim->format('d M Y') }}</b></p>
+                            @endif
+                            @if ($st === 'barang_dikirim' && $refund->metode_pengembalian === 'kirim_sendiri' && ! $refund->no_resi_retur)
+                                <p class="rounded-lg bg-amber-50 p-2 font-bold text-amber-700">Pelanggan menandai terkirim tetapi tidak ada resi. Pastikan barang benar-benar sampai sebelum menekan "Barang diterima".</p>
+                            @endif
+                        </div>
                         <form action="{{ route('admin.refund.terima-barang', $refund->id) }}" method="POST" class="space-y-3">
                             @csrf @method('PATCH')
                             <div>
@@ -346,6 +390,13 @@
                                 </div>
                                 <p class="mt-1.5 text-[11px] text-gray-400">Kosongkan semua bila stok tidak dikembalikan.</p>
                             </div>
+                            @if ($refund->metode_pengembalian === 'kirim_sendiri')
+                                <div>
+                                    <label class="mb-1 block text-xs font-bold text-gray-600">Ongkir yang diganti toko (Rp)</label>
+                                    <input type="text" inputmode="numeric" data-rupiah name="ganti_ongkir" value="{{ old('ganti_ongkir', (int) $refund->biaya_ongkir_retur) }}" class="{{ $input }}">
+                                    <p class="mt-1 text-[11px] text-gray-400">Cocokkan dengan foto struk pelanggan. Nominal ini ditambahkan ke transfer.</p>
+                                </div>
+                            @endif
                             <button class="w-full rounded-xl bg-sky-600 py-2.5 text-sm font-bold text-white hover:bg-sky-700">Barang diterima</button>
                         </form>
                     </section>
@@ -354,7 +405,8 @@
                     <section class="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
                         <h2 class="mb-1 text-sm font-bold text-amber-800">Transfer dana</h2>
                         <div class="mb-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
-                            <p class="text-lg font-black">Rp{{ number_format($refund->jumlah, 0, ',', '.') }}</p>
+                            <p class="text-lg font-black">Rp{{ number_format($refund->totalTransfer(), 0, ',', '.') }}</p>
+                            @if ($refund->ganti_ongkir)<p class="mb-1 text-[11px]">Refund Rp{{ number_format($refund->jumlah, 0, ',', '.') }} + ganti ongkir Rp{{ number_format($refund->ganti_ongkir, 0, ',', '.') }}</p>@endif
                             {{ $refund->bank_tujuan }} · <span class="font-mono">{{ $refund->no_rekening }}</span><br>a.n. {{ $refund->atas_nama }}
                         </div>
                         <form action="{{ route('admin.refund.selesai', $refund->id) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
@@ -370,7 +422,7 @@
                 @elseif ($st === 'selesai')
                     <section class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 text-sm text-emerald-900 shadow-sm">
                         <p class="font-bold">Refund selesai</p>
-                        <p class="text-xs">Rp{{ number_format($refund->jumlah, 0, ',', '.') }} · {{ $refund->tanggal_selesai?->format('d M Y, H:i') }}</p>
+                        <p class="text-xs">Rp{{ number_format($refund->totalTransfer(), 0, ',', '.') }} · {{ $refund->tanggal_selesai?->format('d M Y, H:i') }}</p>
                         @if ($buktiTransfer)
                             <p class="mt-3 text-[11px] font-bold">Bukti transfer (terlihat oleh pelanggan)</p>
                             @unless ($tfPdf)
@@ -397,10 +449,24 @@
     </div>
 
     <script>
+        (function () {
+            var fmt = function (v) { v = String(v).replace(/\D/g, ''); return v ? v.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''; };
+            window.fmtRupiah = fmt;
+            document.querySelectorAll('input[data-rupiah]').forEach(function (el) {
+                el.value = fmt(el.value);
+                el.addEventListener('input', function () { el.value = fmt(el.value); });
+                if (el.form) {
+                    el.form.addEventListener('submit', function (e) {
+                        if (e.defaultPrevented) return;
+                        el.value = el.value.replace(/\./g, '');
+                    });
+                }
+            });
+        })();
         document.querySelectorAll('[data-isi]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const el = document.getElementById('input-jumlah');
-                if (el) { el.value = btn.dataset.isi; el.focus(); }
+                if (el) { el.value = window.fmtRupiah(btn.dataset.isi); el.focus(); }
             });
         });
     </script>

@@ -128,12 +128,45 @@ class RefundController extends Controller
         return view('customer.akun.refund-detail', compact('refund', 'riwayat'));
     }
 
-    /** Pelanggan mengonfirmasi barang sudah diserahkan ke kurir / dikirim balik. */
-    public function kirim($id)
+    /**
+     * Pelanggan mengonfirmasi barang sudah diserahkan ke kurir / dikirim balik.
+     * Metode "kirim sendiri": kurir + no. resi wajib, foto serah-terima opsional.
+     * Metode lain (dijemput / antar langsung) dan refund lama (tanpa metode): cukup konfirmasi.
+     */
+    public function kirim(Request $request, $id)
     {
         $refund = $this->refundSaya($id);
 
-        if (! $refund->pindahKe('barang_dikirim', [], auth()->id())) {
+        $perluResi = $refund->metode_pengembalian === 'kirim_sendiri';
+        $atribut = ['tanggal_dikirim' => now()];
+        $path = null;
+
+        if ($perluResi) {
+            $data = $request->validate([
+                'kurir_retur'      => ['required', 'string', 'max:50'],
+                'no_resi_retur'    => ['required', 'string', 'max:100'],
+                'biaya_ongkir_retur' => ['required', 'numeric', 'min:0', 'max:99999999'],
+                'bukti_pengiriman' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            ], [
+                'biaya_ongkir_retur.required' => 'Isi biaya ongkir yang Anda bayar (sesuai struk).',
+                'bukti_pengiriman.required'   => 'Unggah foto struk/resi agar toko bisa mengganti ongkir.',
+                'kurir_retur.required'   => 'Isi nama kurir (mis. JNE, J&T, SiCepat).',
+                'no_resi_retur.required' => 'Isi nomor resi pengiriman.',
+            ]);
+
+            $atribut['kurir_retur'] = $data['kurir_retur'];
+            $atribut['no_resi_retur'] = trim($data['no_resi_retur']);
+            $atribut['biaya_ongkir_retur'] = $data['biaya_ongkir_retur'];
+
+            $path = $request->file('bukti_pengiriman')->store('refund/pengiriman', 'public');
+            $atribut['bukti_pengiriman'] = $path;
+        }
+
+        if (! $refund->pindahKe('barang_dikirim', $atribut, auth()->id())) {
+            if ($path) {
+                Storage::disk('public')->delete($path);
+            }
+
             return back()->with('error', 'Status refund tidak bisa diubah ke "barang dikirim" saat ini.');
         }
 
@@ -146,7 +179,7 @@ class RefundController extends Controller
         $refund = $this->refundSaya($id);
 
         if (! $refund->pindahKe('dibatalkan', [], auth()->id())) {
-            return back()->with('error', 'Pengajuan ini sudah diproses admin dan tidak bisa dibatalkan.');
+            return back()->with('error', 'Pengajuan ini sudah tidak bisa dibatalkan (barang sudah dikirim atau pengajuan sudah selesai).');
         }
 
         return back()->with('success', 'Pengajuan refund dibatalkan.');

@@ -504,10 +504,10 @@
             perbaruiBulk();
         });
 
-        $('bulk-hapus').addEventListener('click', function () {
+        $('bulk-hapus').addEventListener('click', async function () {
             var ids = daftarCek().filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
             if (!ids.length) return;
-            if (!confirm('Hapus ' + ids.length + ' log terpilih? Tindakan ini tidak bisa dibatalkan.')) return;
+            if (!(await konfirmasi('Hapus ' + ids.length + ' log terpilih? Tindakan ini tidak bisa dibatalkan.'))) return;
 
             var f = $('form-hapus-terpilih');
             Array.prototype.slice.call(f.querySelectorAll('input[name="ids[]"]')).forEach(function (i) { i.remove(); });

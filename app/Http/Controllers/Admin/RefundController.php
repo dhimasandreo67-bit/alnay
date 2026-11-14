@@ -68,15 +68,27 @@ class RefundController extends Controller
 
         $data = $request->validate([
             'jumlah'              => ['required', 'numeric', 'min:1', 'max:' . $maks],
-            'no_resi_penjemputan' => ['nullable', 'string', 'max:100'],
+            'metode_pengembalian' => ['required', 'in:dijemput,kirim_sendiri'],
+            'kurir_penjemput'     => ['required_if:metode_pengembalian,dijemput', 'nullable', 'string', 'max:50'],
+            'no_resi_penjemputan' => ['required_if:metode_pengembalian,dijemput', 'nullable', 'string', 'max:100'],
+            'biaya_jemput'        => ['nullable', 'numeric', 'min:0', 'max:99999999'],
             'catatan_negosiasi'   => ['nullable', 'string', 'max:1000'],
         ], [
+            'metode_pengembalian.required'  => 'Pilih cara barang kembali ke toko.',
+            'kurir_penjemput.required_if' => 'Isi nama kurir yang menjemput (mis. J&T, JNE).',
+            'no_resi_penjemputan.required_if' => 'No. resi penjemputan wajib diisi. Pesan kurir jemput dulu, lalu isi resinya.',
             'jumlah.max' => 'Nominal refund tidak boleh melebihi total transaksi (Rp ' . number_format($maks, 0, ',', '.') . ').',
         ]);
 
+        $dijemput = $data['metode_pengembalian'] === 'dijemput';
+
         $ok = $refund->pindahKe('disetujui', [
             'jumlah'              => $data['jumlah'],
-            'no_resi_penjemputan' => $data['no_resi_penjemputan'] ?? null,
+            'metode_pengembalian' => $data['metode_pengembalian'],
+            'no_resi_penjemputan' => $dijemput ? ($data['no_resi_penjemputan'] ?? null) : null,
+            'kurir_retur'         => $dijemput ? ($data['kurir_penjemput'] ?? null) : null,
+            'biaya_jemput'        => $dijemput ? ($data['biaya_jemput'] ?? null) : null,
+            'batas_kirim'         => now()->addDays(Refund::BATAS_KIRIM_HARI),
             'catatan_negosiasi'   => $data['catatan_negosiasi'] ?? null,
             'diproses_oleh'       => auth('admin')->id(),
         ], auth('admin')->id());
@@ -111,6 +123,7 @@ class RefundController extends Controller
         $request->validate([
             'restock_detail'   => ['nullable', 'array'],
             'restock_detail.*' => ['integer'],
+            'ganti_ongkir'     => ['nullable', 'numeric', 'min:0', 'max:99999999'],
         ]);
 
         $refund = Refund::with('transaksi.detail')->findOrFail($id);
@@ -123,6 +136,8 @@ class RefundController extends Controller
         $ok = DB::transaction(function () use ($refund, $restock, $idRestock, &$stokKembali) {
             $berhasil = $refund->pindahKe('barang_diterima', [
                 'tanggal_barang_diterima' => now(),
+                'ganti_ongkir'            => $refund->metode_pengembalian === 'kirim_sendiri'
+                    ? (float) $request->input('ganti_ongkir', 0) : null,
                 'diproses_oleh'           => auth('admin')->id(),
             ], auth('admin')->id());
 

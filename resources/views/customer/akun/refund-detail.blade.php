@@ -28,12 +28,12 @@
     // Penjelasan singkat "apa yang terjadi sekarang" per status
     $keterangan = [
         'diajukan'        => 'Admin sedang meninjau pengajuan dan foto bukti Anda. Tidak ada yang perlu dilakukan saat ini.',
-        'disetujui'       => 'Langkah Anda: kemas barang dan kirim kembali, lalu tekan tombol "Saya sudah mengirim barang".',
+        'disetujui'       => 'Langkah Anda: kemas barang dan kirim kembali sesuai metode yang ditentukan, lalu konfirmasi di bawah.',
         'barang_dikirim'  => 'Admin menunggu barang sampai. Status akan diperbarui setelah barang diterima dan dicek.',
         'barang_diterima' => 'Barang sedang/telah dicek admin. Setelah lolos pengecekan, dana ditransfer ke rekening Anda.',
         'selesai'         => 'Proses refund selesai. Dana sudah dikirim ke rekening tujuan.',
         'ditolak'         => 'Pengajuan tidak dapat diproses. Lihat alasan di bawah atau hubungi CS.',
-        'dibatalkan'      => 'Pengajuan ini dibatalkan oleh Anda.',
+        'dibatalkan'      => 'Pengajuan ini dibatalkan.',
     ];
 @endphp
 
@@ -93,9 +93,26 @@
                 </div>
             @elseif ($st === 'disetujui')
                 <div class="px-5 md:px-6 py-4 border-t border-line/40 bg-emerald-50/60">
-                    <p class="text-[13px] font-semibold text-emerald-800 mb-1">Refund disetujui — kirim barang kembali</p>
+                    <p class="text-[13px] font-semibold text-emerald-800 mb-1">Refund disetujui — {{ $refund->metode_pengembalian === 'dijemput' ? 'siapkan barang untuk dijemput kurir' : 'kirim barang kembali' }}</p>
+                    @if ($refund->label_metode)
+                        <p class="text-[12px] text-emerald-900">Metode: <b>{{ $refund->label_metode }}</b></p>
+                    @endif
+                    @if ($refund->metode_pengembalian === 'dijemput' && $refund->kurir_retur)
+                        <p class="text-[12px] text-emerald-900">Kurir penjemput: <b>{{ $refund->kurir_retur }}</b></p>
+                    @endif
                     @if ($refund->no_resi_penjemputan)
                         <p class="text-[12px] text-emerald-900">No. resi penjemputan: <span class="font-mono font-bold">{{ $refund->no_resi_penjemputan }}</span></p>
+                    @endif
+                    @if ($refund->batas_kirim)
+                        <p class="mt-1 text-[12px] font-semibold text-rose-700">{{ $refund->metode_pengembalian === 'dijemput' ? 'Serahkan barang ke kurir' : 'Kirim barang' }} paling lambat {{ $refund->batas_kirim->format('d M Y') }}. Lewat tanggal ini pengajuan dibatalkan otomatis.</p>
+                    @endif
+                    @if ($refund->metode_pengembalian === 'kirim_sendiri' && ($alamatRetur = \App\Models\Refund::alamatRetur()))
+                        <div class="mt-2 rounded-lg bg-white/70 border border-emerald-200 p-3 text-[12px] text-emerald-900">
+                            <p class="text-[11px] font-bold text-emerald-800 mb-1">Kirim barang ke</p>
+                            <p class="font-semibold">{{ $alamatRetur['nama'] ?? '' }}</p>
+                            <p class="whitespace-pre-line">{{ $alamatRetur['alamat'] }}</p>
+                            @if (!empty($alamatRetur['telepon']))<p>Telp: {{ $alamatRetur['telepon'] }}</p>@endif
+                        </div>
                     @endif
                     @if ($refund->catatan_negosiasi)
                         <p class="mt-1 text-[12px] text-emerald-900 whitespace-pre-line">{{ $refund->catatan_negosiasi }}</p>
@@ -106,23 +123,49 @@
                         <ol class="list-decimal pl-4 space-y-1 text-[11px] text-emerald-900 leading-relaxed">
                             <li>Periksa barang dan kelengkapannya sesuai pesanan.</li>
                             <li>Kemas rapi dan aman agar tidak rusak/kusut selama perjalanan.</li>
-                            <li>Serahkan ke kurir, atau tunggu penjemputan bila admin memberi no. resi penjemputan.</li>
+                            <li>{{ $refund->metode_pengembalian === 'kirim_sendiri' ? 'Antar ke agen kurir, simpan struk dan resinya. Ongkir akan diganti toko.' : 'Tunggu kurir menjemput. Pengembalian ini tanpa biaya untuk Anda.' }}</li>
                             <li>Simpan bukti pengiriman/resi sampai refund selesai.</li>
                             <li>Tekan tombol di bawah setelah barang diserahkan.</li>
                         </ol>
                     </div>
 
-                    <form action="{{ route('akun.refund.kirim', $refund->id) }}" method="POST" class="mt-3"
-                          onsubmit="return confirm('Pastikan barang sudah diserahkan ke kurir / dikirim. Lanjutkan?')">
+                    <form action="{{ route('akun.refund.kirim', $refund->id) }}" method="POST" class="mt-3 space-y-2" enctype="multipart/form-data"
+                          onsubmit="return confirm('{{ $refund->metode_pengembalian === 'dijemput' ? 'Pastikan barang sudah diambil oleh kurir. Lanjutkan?' : 'Pastikan barang sudah diserahkan ke kurir / dikirim. Lanjutkan?' }}')">
                         @csrf @method('PATCH')
-                        <button class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-[12px] font-bold hover:bg-emerald-700 transition-colors">Saya sudah mengirim barang</button>
+                        @if ($refund->metode_pengembalian === 'kirim_sendiri')
+                            <div class="grid gap-2 sm:grid-cols-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-emerald-800 mb-1">Kurir <span class="text-rose-500">*</span></label>
+                                    <input type="text" name="kurir_retur" maxlength="50" required value="{{ old('kurir_retur') }}" placeholder="JNE / J&T / SiCepat" class="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-[12px]">
+                                    @error('kurir_retur')<p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p>@enderror
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-emerald-800 mb-1">No. resi <span class="text-rose-500">*</span></label>
+                                    <input type="text" name="no_resi_retur" maxlength="100" required value="{{ old('no_resi_retur') }}" class="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-[12px] font-mono">
+                                    @error('no_resi_retur')<p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p>@enderror
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-emerald-800 mb-1">Ongkir yang Anda bayar (Rp) <span class="text-rose-500">*</span> <span class="font-normal text-emerald-700">(akan diganti toko)</span></label>
+                                <input type="text" inputmode="numeric" data-rupiah name="biaya_ongkir_retur" required value="{{ old('biaya_ongkir_retur') }}" class="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-[12px]">
+                                @error('biaya_ongkir_retur')<p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-emerald-800 mb-1">Foto struk / resi <span class="text-rose-500">*</span> <span class="font-normal text-emerald-700">(maks 3 MB)</span></label>
+                                <input type="file" name="bukti_pengiriman" accept="image/*" required class="block w-full text-[12px]">
+                                @error('bukti_pengiriman')<p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p>@enderror
+                            </div>
+                        @endif
+                        <button class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-[12px] font-bold hover:bg-emerald-700 transition-colors">{{ $refund->metode_pengembalian === 'dijemput' ? 'Barang sudah diambil kurir' : 'Saya sudah mengirim barang' }}</button>
                     </form>
                 </div>
             @elseif ($st === 'barang_dikirim')
                 <div class="px-5 md:px-6 py-4 border-t border-line/40 bg-sky-50/60 text-[12px] text-sky-900">
                     Barang Anda dalam perjalanan. Admin akan memperbarui status setelah barang diterima dan dicek.
-                    @if ($refund->no_resi_penjemputan)
-                        <p class="mt-1">No. resi: <span class="font-mono font-bold">{{ $refund->no_resi_penjemputan }}</span></p>
+                    @if ($refund->no_resi_retur)
+                        <p class="mt-1">Resi Anda ({{ $refund->kurir_retur }}): <span class="font-mono font-bold">{{ $refund->no_resi_retur }}</span></p>
+                    @elseif ($refund->no_resi_penjemputan)
+                        <p class="mt-1">{{ $refund->kurir_retur ? 'Kurir ' . $refund->kurir_retur . ' · ' : '' }}No. resi penjemputan: <span class="font-mono font-bold">{{ $refund->no_resi_penjemputan }}</span></p>
                     @endif
                 </div>
             @elseif ($st === 'barang_diterima')
@@ -165,7 +208,7 @@
                        target="_blank" rel="noopener" class="inline-block mt-2 text-[12px] font-bold text-rose-700 hover:underline">Tanyakan ke CS via WhatsApp</a>
                 </div>
             @elseif ($st === 'dibatalkan')
-                <div class="px-5 md:px-6 py-4 border-t border-line/40 bg-gray-50 text-[12px] text-ink/60">Anda membatalkan pengajuan ini.</div>
+                <div class="px-5 md:px-6 py-4 border-t border-line/40 bg-gray-50 text-[12px] text-ink/60">{{ $refund->alasan_penolakan ?: 'Pengajuan ini dibatalkan.' }}</div>
             @endif
 
             {{-- Barang yang direfund --}}
@@ -243,4 +286,20 @@
         @include('customer.akun._refund-panduan', ['compact' => true])
     </div>
 </div>
+<script>
+        (function () {
+            var fmt = function (v) { v = String(v).replace(/\D/g, ''); return v ? v.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''; };
+            window.fmtRupiah = fmt;
+            document.querySelectorAll('input[data-rupiah]').forEach(function (el) {
+                el.value = fmt(el.value);
+                el.addEventListener('input', function () { el.value = fmt(el.value); });
+                if (el.form) {
+                    el.form.addEventListener('submit', function (e) {
+                        if (e.defaultPrevented) return;
+                        el.value = el.value.replace(/\./g, '');
+                    });
+                }
+            });
+        })();
+    </script>
 @endsection

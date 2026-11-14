@@ -272,11 +272,105 @@
             if (!openStack.includes(m)) m.hidden = true;
         });
         flushAntrianToast();
+        ubahConfirmLama();
     }
+
+    /* =====================================================
+     * KONFIRMASI (pengganti confirm() bawaan browser)
+     *   if (!(await konfirmasi('Pesan'))) return;
+     *   <form data-confirm="Pesan">  <button data-confirm="Pesan">
+     * onsubmit/onclick="return confirm('...')" lama otomatis diubah jadi modal ini.
+     * ===================================================== */
+    function konfirmasi(pesan, opsi = {}) {
+        injectStyles();
+        return new Promise((selesai) => {
+            const teks = String(pesan == null ? '' : pesan);
+            const bahaya = opsi.bahaya != null ? !!opsi.bahaya : /hapus|batalkan|tolak|buang/i.test(teks);
+
+            const modal = document.createElement('div');
+            modal.className = 'ui-modal';
+            modal.setAttribute('data-modal', '');
+            modal.hidden = true;
+            modal.innerHTML =
+                '<div class="ui-modal__backdrop" data-modal-close></div>' +
+                '<div class="ui-modal__panel ui-modal__panel--sm" role="alertdialog" aria-modal="true" aria-labelledby="ui-konf-judul" aria-describedby="ui-konf-isi" tabindex="-1">' +
+                '<div class="ui-modal__header"><h2 class="ui-modal__title" id="ui-konf-judul"></h2></div>' +
+                '<div class="ui-modal__body"><p id="ui-konf-isi" style="margin:0;font-size:.875rem;line-height:1.55;color:#4b5563;white-space:pre-line;word-break:break-word"></p></div>' +
+                '<div class="ui-modal__footer">' +
+                '<button type="button" class="ui-btn ui-btn--ghost" data-modal-close></button>' +
+                '<button type="button" class="ui-btn ' + (bahaya ? 'ui-btn--danger' : 'ui-btn--primary') + '" data-konf-ya></button>' +
+                '</div></div>';
+            modal.querySelector('.ui-modal__title').textContent = opsi.judul || 'Konfirmasi';
+            modal.querySelector('#ui-konf-isi').textContent = teks;
+            const bBatal = modal.querySelector('.ui-btn--ghost');
+            const bYa = modal.querySelector('[data-konf-ya]');
+            bBatal.textContent = opsi.batal || 'Batal';
+            bYa.textContent = opsi.ya || 'Ya, lanjutkan';
+            (bahaya ? bBatal : bYa).setAttribute('data-autofocus', '');
+
+            bYa.addEventListener('click', () => { selesai(true); closeModal(modal); });
+            modal.addEventListener('modal:close', () => { selesai(false); modal.remove(); });
+
+            document.body.appendChild(modal);
+            openModal(modal, document.activeElement);
+        });
+    }
+
+    // Ubah  onsubmit/onclick="return confirm(...)"  lama menjadi data-confirm.
+    function ubahConfirmLama() {
+        document.querySelectorAll('[onsubmit*="confirm("],[onclick*="confirm("]').forEach((n) => {
+            ['onsubmit', 'onclick'].forEach((a) => {
+                const v = n.getAttribute(a);
+                if (!v) return;
+                const m = v.match(/^\s*return\s+confirm\(([\s\S]*)\)\s*;?\s*$/);
+                if (!m) return;
+                let pesan;
+                try { pesan = (new Function('return (' + m[1] + ');'))(); } catch (e) { return; } // gagal: biarkan confirm bawaan
+                n.removeAttribute(a);
+                n.setAttribute('data-confirm', String(pesan));
+            });
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const el = e.target.closest && e.target.closest('[data-confirm]');
+        if (!el || el.tagName === 'FORM' || el.__konfLewat) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        konfirmasi(el.getAttribute('data-confirm')).then((ok) => {
+            if (!ok) return;
+            const form = el.form;
+            if (form && (el.tagName === 'BUTTON' || el.tagName === 'INPUT') && el.type !== 'button' && el.type !== 'reset') {
+                form.__konfLewat = true;
+                try { form.requestSubmit(el); } finally { form.__konfLewat = false; }
+            } else if (el.tagName === 'A' && el.href) {
+                window.location.href = el.href;
+            } else {
+                el.__konfLewat = true; el.click(); el.__konfLewat = false;
+            }
+        });
+    }, true);
+
+    document.addEventListener('submit', (e) => {
+        const f = e.target;
+        if (!f.hasAttribute || !f.hasAttribute('data-confirm') || f.__konfLewat) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const pengirim = e.submitter || null;
+        konfirmasi(f.getAttribute('data-confirm')).then((ok) => {
+            if (!ok) return;
+            f.__konfLewat = true;
+            try { pengirim ? f.requestSubmit(pengirim) : f.requestSubmit(); } finally { f.__konfLewat = false; }
+        });
+    }, true);
+
+    // alert() bawaan browser diganti toast
+    window.alert = (pesan) => showToast(pesan, 'warning');
 
     window.showToast = showToast;
     window.openModal = openModal;
     window.closeModal = closeModal;
+    window.konfirmasi = konfirmasi;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

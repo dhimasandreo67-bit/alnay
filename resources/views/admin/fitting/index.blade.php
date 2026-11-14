@@ -734,9 +734,9 @@
 
         // --- LOGIKA HAPUS SATUAN (AJAX) ---
         document.querySelectorAll('.form-delete').forEach(form => {
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                if (!confirm('Yakin ingin menghapus reservasi ini?')) return;
+                if (!(await konfirmasi('Yakin ingin menghapus reservasi ini?'))) return;
 
                 fetch(this.action, {
                     method: 'POST',
@@ -796,11 +796,11 @@
 
         if (btnBulkDelete) {
             btnBulkDelete.replaceWith(btnBulkDelete.cloneNode(true));
-            document.getElementById('btnBulkDelete').addEventListener('click', function() {
+            document.getElementById('btnBulkDelete').addEventListener('click', async function() {
                 const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
                 if (ids.length === 0) return;
                 
-                if (!confirm(`Yakin ingin menghapus ${ids.length} reservasi terpilih?`)) return;
+                if (!(await konfirmasi(`Yakin ingin menghapus ${ids.length} reservasi terpilih?`))) return;
 
                 fetch("{{ route('admin.fitting.bulk-destroy') }}", {
                     method: 'POST',

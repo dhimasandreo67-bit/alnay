@@ -22,6 +22,14 @@ class Refund extends Model
     /** Pelanggan hanya boleh mengajukan refund maksimal sekian hari setelah barang diterima. */
     public const BATAS_HARI = 7;
 
+    /** Setelah disetujui, pelanggan punya sekian hari untuk mengirim/mengantar barang. Lewat itu refund dibatalkan otomatis. */
+    public const BATAS_KIRIM_HARI = 7;
+
+    public const METODE = [
+        'dijemput'      => 'Dijemput kurir (gratis untuk Anda)',
+        'kirim_sendiri' => 'Antar ke agen kurir (ongkir diganti toko)',
+    ];
+
     public const LABEL = [
         'diajukan'        => 'Menunggu tinjauan',
         'disetujui'       => 'Disetujui — kirim barang',
@@ -35,7 +43,7 @@ class Refund extends Model
     /** Perpindahan status yang diizinkan. Status di luar peta ini = final. */
     public const ALUR = [
         'diajukan'        => ['disetujui', 'ditolak', 'dibatalkan'],
-        'disetujui'       => ['barang_dikirim', 'barang_diterima'],
+        'disetujui'       => ['barang_dikirim', 'barang_diterima', 'dibatalkan'],
         'barang_dikirim'  => ['barang_diterima'],
         'barang_diterima' => ['selesai'],
     ];
@@ -55,6 +63,15 @@ class Refund extends Model
         'atas_nama',
         'catatan_negosiasi',
         'no_resi_penjemputan',
+        'metode_pengembalian',
+        'kurir_retur',
+        'no_resi_retur',
+        'bukti_pengiriman',
+        'tanggal_dikirim',
+        'batas_kirim',
+        'biaya_jemput',
+        'biaya_ongkir_retur',
+        'ganti_ongkir',
         'jumlah',
         'bukti_transfer',
         'stok_dikembalikan',
@@ -71,6 +88,11 @@ class Refund extends Model
             'stok_dikembalikan'       => 'boolean',
             'tanggal_barang_diterima' => 'datetime',
             'tanggal_selesai'         => 'datetime',
+            'tanggal_dikirim'         => 'datetime',
+            'batas_kirim'             => 'datetime',
+            'biaya_jemput'            => 'decimal:2',
+            'biaya_ongkir_retur'      => 'decimal:2',
+            'ganti_ongkir'            => 'decimal:2',
         ];
     }
 
@@ -137,6 +159,32 @@ class Refund extends Model
             ->map(fn ($p) => preg_match('#^https?://#', $p) ? $p : asset('storage/' . ltrim($p, '/')))
             ->values()
             ->all();
+    }
+
+    /** Label metode pengembalian (null untuk refund lama yang dibuat sebelum fitur metode ada). */
+    public function getLabelMetodeAttribute(): ?string
+    {
+        return self::METODE[$this->metode_pengembalian] ?? null;
+    }
+
+    /** Total yang ditransfer ke pelanggan: nominal refund + ongkir retur yang diganti toko. */
+    public function totalTransfer(): float
+    {
+        return (float) $this->jumlah + (float) ($this->ganti_ongkir ?? 0);
+    }
+
+    /** URL foto serah-terima ke kurir dari pelanggan (null bila tidak ada). */
+    public function buktiPengirimanUrl(): ?string
+    {
+        return $this->bukti_pengiriman ? asset('storage/' . ltrim($this->bukti_pengiriman, '/')) : null;
+    }
+
+    /** Alamat tujuan retur dari config/refund.php (null bila belum diisi). */
+    public static function alamatRetur(): ?array
+    {
+        $a = config('refund.alamat_retur');
+
+        return is_array($a) && filled($a['alamat'] ?? null) ? $a : null;
     }
 
     /** URL bukti transfer dari admin (null bila belum ada). */

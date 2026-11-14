@@ -286,7 +286,14 @@
                 formHapus.querySelectorAll('input[name="ids[]"][type="hidden"]').forEach(function (el) { el.remove(); });
                 const terpilih = boxes.filter(function (b) { return b.checked; });
                 if (terpilih.length === 0) { e.preventDefault(); return; }
-                if (!confirm('Yakin ingin menghapus ' + terpilih.length + ' item terpilih?')) { e.preventDefault(); return; }
+                if (formHapus.dataset.ok !== '1') {
+                    e.preventDefault();
+                    konfirmasi('Yakin ingin menghapus ' + terpilih.length + ' item terpilih?').then(function (ya) {
+                        if (ya) { formHapus.dataset.ok = '1'; formHapus.requestSubmit(); }
+                    });
+                    return;
+                }
+                formHapus.dataset.ok = '';  
                 terpilih.forEach(function (cb) { const input = document.createElement('input'); input.type = 'hidden'; input.name = 'ids[]'; input.value = cb.value; formHapus.appendChild(input); });
             });
         }
