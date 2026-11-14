@@ -24,6 +24,8 @@
     $items = $refund->transaksi->detail ?? collect();
     $subtotalBarang = $items->sum(fn ($x) => (int) $x->jumlah * (int) $x->harga_satuan);
     $selisih = (int) $refund->transaksi->total - $subtotalBarang;
+    $ongkir = (int) ($refund->transaksi->pengiriman?->biaya_kirim ?? 0);
+    $lain = $selisih - $ongkir;
 
     // Penjelasan singkat "apa yang terjadi sekarang" per status
     $keterangan = [
@@ -196,9 +198,13 @@
                         <dt class="text-ink/50">Subtotal barang</dt>
                         <dd class="text-ink/80 tabular-nums">Rp{{ number_format($subtotalBarang, 0, ',', '.') }}</dd>
                     @endif
-                    @if ($selisih !== 0)
-                        <dt class="text-ink/50">Ongkir / biaya lain</dt>
-                        <dd class="text-ink/80 tabular-nums">{{ $selisih < 0 ? '−' : '' }}Rp{{ number_format(abs($selisih), 0, ',', '.') }}</dd>
+                    @if ($ongkir > 0)
+                        <dt class="text-ink/50">Ongkos kirim</dt>
+                        <dd class="text-ink/80 tabular-nums">Rp{{ number_format($ongkir, 0, ',', '.') }}</dd>
+                    @endif
+                    @if ($lain !== 0)
+                        <dt class="text-ink/50">{{ $lain < 0 ? 'Potongan / diskon' : 'Biaya lain' }}</dt>
+                        <dd class="text-ink/80 tabular-nums">{{ $lain < 0 ? '−' : '' }}Rp{{ number_format(abs($lain), 0, ',', '.') }}</dd>
                     @endif
                     <dt class="text-ink/50">Total pesanan</dt>
                     <dd class="font-semibold text-ink/85 tabular-nums">Rp{{ number_format($refund->transaksi->total, 0, ',', '.') }}</dd>
