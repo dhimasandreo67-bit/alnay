@@ -45,10 +45,10 @@ class AdminBadge
         return self::ingat('fitting', fn () => ReservasiFitting::where('status', 'pending')->count());
     }
 
-    /** Pengiriman yang belum dikirim / belum selesai. Sesuaikan daftar status bila alur pengiriman berbeda. */
+    /** Pengiriman yang belum dikirim: status "menunggu" atau "dikemas" (lihat Pengiriman::STATUS). */
     public static function pengiriman(): int
     {
-        return self::ingat('pengiriman', fn () => Pengiriman::whereNotIn('status_kirim', ['dikirim', 'diterima', 'batal', 'dibatalkan', 'selesai'])->count());
+        return self::ingat('pengiriman', fn () => Pengiriman::whereIn('status_kirim', ['menunggu', 'dikemas'])->count());
     }
 
     /* ---------- Data masuk sejak terakhir dibuka ---------- */
