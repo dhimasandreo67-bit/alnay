@@ -723,21 +723,22 @@
                         }
                     @endphp
 
-                    {{-- Tab jenis: terlihat langsung tanpa membuka filter --}}
-                    <div class="mb-4 flex items-center gap-3">
-                        <span class="hidden sm:inline text-[13px] text-ink/55">Tampilkan:</span>
-                        <div class="grid grid-cols-3 w-full sm:w-auto p-1 rounded-2xl bg-cream border border-line/40" role="group"
-                            aria-label="Tampilkan produk sewa atau beli">
-                            @foreach (['' => 'Semua', 'sewa' => 'Sewa', 'beli' => 'Beli'] as $v => $l)
-                                <button type="button" @click="pilihJenis('{{ $v }}')" :aria-pressed="jenis === '{{ $v }}'"
-                                    class="min-h-[44px] sm:px-7 rounded-xl text-[14px] font-semibold transition-all active:scale-95"
-                                    :class="jenis === '{{ $v }}' ? 'bg-ink text-gold shadow-sm' : 'text-ink/65 hover:text-ink'">{{ $l }}</button>
-                            @endforeach
-                        </div>
+                    {{-- Tab jenis: Desain Clean dengan Garis Animasi --}}
+                    <div class="mb-5 flex items-center gap-4 sm:gap-6 border-b border-line/40 relative">
+                        @foreach (['' => 'Semua', 'sewa' => 'Sewa', 'beli' => 'Beli'] as $v => $l)
+                            <button type="button" @click="pilihJenis('{{ $v }}')" :aria-pressed="jenis === '{{ $v }}'"
+                                class="relative px-1 py-3 text-[14px] font-semibold transition-colors duration-300 active:scale-95 group"
+                                :class="jenis === '{{ $v }}' ? 'text-gold' : 'text-ink/50 hover:text-ink'">
+                                {{ $l }}
+                                {{-- Garis Animasi Bawah --}}
+                                <span class="absolute bottom-0 left-0 w-full h-[2px] bg-gold transition-transform duration-500 ease-[cubic-bezier(.22,.8,.3,1)] origin-left"
+                                      :class="jenis === '{{ $v }}' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'"></span>
+                            </button>
+                        @endforeach
                     </div>
 
                     {{-- Toolbar --}}
-                    <div class="relative z-30 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <div class="relative z-30 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-2 mb-5">
                         <p class="text-[14px] text-ink/60 min-w-0" aria-live="polite">
                             <span class="hidden sm:inline">Menampilkan </span><b
                                 class="text-ink/85">{{ $produkList->firstItem() ?? 0 }}–{{ $produkList->lastItem() ?? 0 }}</b>
