@@ -47,14 +47,14 @@ class HomeController extends Controller
         // 4. Testimoni (Rating & Ulasan)
         $testimoni = Rating::with(['user', 'produk'])
             ->where('rating', '>=', 4)
-            ->whereNotNull('ulasan')
             ->latest()
             ->limit(3)
             ->get()
             ->map(fn ($r) => [
                 'nama'    => $r->user->name ?? 'User',
                 'konteks' => $r->produk->nama ?? 'Produk',
-                'teks'    => $r->ulasan,
+                // Jika ulasan kosong, beri teks default agar tidak terlihat aneh di beranda
+                'teks'    => $r->ulasan ?: 'Pelanggan memberikan rating ' . $r->rating . ' bintang.', 
                 'bintang' => $r->rating,
                 'foto'    => $r->produk ? $r->produk->sampulUrl() : null,
                 'foto_user' => $r->user->foto_profil ?? null, 

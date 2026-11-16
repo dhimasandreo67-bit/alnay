@@ -17,13 +17,13 @@ use Illuminate\Http\Request;
 
 class TestimoniController extends Controller
 {
-    public function index(Request $request)
+        public function index(Request $request)
     {
         $bintang = $request->integer('bintang');
         $bintang = ($bintang >= 1 && $bintang <= 5) ? $bintang : null;
 
-        $ulasan = $ulasan = Rating::with(['user:id,name,foto_profil', 'produk:id,sku,nama,foto_produk'])
-            ->whereNotNull('ulasan')
+        // 1. Hapus ->whereNotNull('ulasan') dan perbaiki typo $ulasan = $ulasan =
+        $ulasan = Rating::with(['user:id,name,foto_profil', 'produk:id,sku,nama,foto_produk'])
             ->when($bintang, fn ($q) => $q->where('rating', $bintang))
             ->latest('tanggal')
             ->latest('id')
@@ -34,7 +34,7 @@ class TestimoniController extends Controller
         $totalRating = Rating::count();
         $rataRata    = $totalRating > 0 ? round((float) Rating::avg('rating'), 1) : 0;
 
-        // [bintang => jumlah], contoh: [5 => 12, 4 => 3, ...]
+        // [bintang => jumlah]
         $sebaran = Rating::selectRaw('rating, COUNT(*) as total')
             ->groupBy('rating')
             ->pluck('total', 'rating')

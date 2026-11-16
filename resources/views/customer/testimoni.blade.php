@@ -300,7 +300,7 @@
                                 </div>
 
                                 {{-- Teks ulasan --}}
-                                <p class="tm-text relative flex-1">{{ $r->ulasan }}</p>
+                                <p class="tm-text relative flex-1">{{ $r->ulasan ?: 'Pelanggan memberikan rating ' . $r->rating . ' bintang.' }}</p>
 
                                 {{-- Profil & foto produk --}}
                                 <div class="relative mt-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
