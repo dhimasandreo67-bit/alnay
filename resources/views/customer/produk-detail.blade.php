@@ -276,8 +276,30 @@
                         <div aria-hidden="true"
                             class="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 to-transparent"></div>
 
-                        <span
-                            class="absolute top-3 left-3 px-3 py-1.5 rounded-md bg-white/95 backdrop-blur text-ink/80 text-xs font-medium tracking-wide shadow-sm">
+                        {{-- Badge ketersediaan: ikut mode (sewa/beli), ukuran, warna & tanggal yang dipilih --}}
+                        <span x-data="{
+                                get info() {
+                                    const sewa = mode === 'sewa';
+                                    if (sewa && sewaTanpaTanggal) {
+                                        if (kapasitasSewa <= 0) return { t: 'Stok Sewa Habis', c: 'rose' };
+                                        if (sisaHariIniDipilih <= 0) return { t: 'Disewa Semua', c: 'amber' };
+                                        if (sisaHariIniDipilih <= 2) return { t: 'Sisa ' + sisaHariIniDipilih + ' Unit', c: 'amber' };
+                                        return { t: 'Tersedia', c: 'ok' };
+                                    }
+                                    const n = stok;
+                                    if (n <= 0) return { t: sewa ? 'Tidak Tersedia' : 'Stok Habis', c: 'rose' };
+                                    if (n <= 3) return { t: 'Stok Menipis · Sisa ' + n, c: 'amber' };
+                                    return { t: 'Tersedia', c: 'ok' };
+                                }
+                            }"
+                            x-cloak
+                            x-text="info.t"
+                            :class="{
+                                'bg-rose-600 text-white': info.c === 'rose',
+                                'bg-amber-400 text-ink': info.c === 'amber',
+                                'bg-white/95 text-ink/80': info.c === 'ok'
+                            }"
+                            class="absolute top-3 left-3 px-3 py-1.5 rounded-md backdrop-blur text-xs font-medium tracking-wide shadow-sm bg-white/95 text-ink/80">
                             {{ $statusLabel }}
                         </span>
 
