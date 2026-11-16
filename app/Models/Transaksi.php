@@ -28,6 +28,7 @@ class Transaksi extends Model
         return [
             'tanggal' => 'date',
             'total' => 'decimal:2',
+            'stok_ditahan' => 'boolean',
         ];
     }
 
@@ -63,7 +64,8 @@ class Transaksi extends Model
      * - Sewa (kasir maupun online): TIDAK pernah memotong stok. Ketersediaan dihitung per tanggal
      *   (lihat Support\KetersediaanSewa), jadi tidak ada stok yang perlu dikembalikan.
      * - Beli kasir: terpotong saat transaksi dibuat.
-     * - Beli online: terpotong saat pembayaran lunas.
+     * - Beli online: terpotong (ditahan) saat checkout, dan dikembalikan bila pesanan batal/kedaluwarsa.
+     *   Penandanya kolom stok_ditahan.
      */
     public function stokSudahDipotong(): bool
     {
@@ -75,7 +77,7 @@ class Transaksi extends Model
             return true;
         }
 
-        return $this->jenis === 'beli' && $this->status_pembayaran === 'lunas';
+        return $this->jenis === 'beli' && (bool) $this->stok_ditahan;
     }
 
     /**
@@ -105,33 +107,106 @@ class Transaksi extends Model
         // Pembayaran tunai: tanggal bayar = saat admin menerima uang di toko
         $this->pembayaran()->where('metode', 'tunai')->update(['tanggal_bayar' => now()]);
 
-        // Pembelian online: stok baru dipotong saat lunas (juga untuk "Tandai Lunas" manual / tunai ambil di toko)
-        $this->potongStokPembelianOnline();
+        // Stok pembelian online sudah ditahan saat checkout, jadi ini tidak memotong lagi.
+        // Tetap dipanggil untuk pesanan lama yang dibuat sebelum stok ditahan saat checkout.
+        $this->tahanStok();
+
+        return true;
+    }
+
+    /** Pembelian online (bukan sewa, bukan kasir): satu-satunya jenis yang stoknya ditahan di sini. */
+    protected function menahanStokOnline(): bool
+    {
+        return $this->jenis === 'beli' && ($this->channel ?? null) !== 'kasir';
+    }
+
+    /** Apakah stok semua item masih cukup (dipakai sebelum menghidupkan lagi pesanan yang sudah kedaluwarsa). */
+    public function stokCukup(): bool
+    {
+        foreach ($this->detail()->get() as $d) {
+            $produk = Produk::find($d->produk_id);
+
+            if (! $produk || $produk->stokTersedia('jual', $d->ukuran, $d->warna) < (int) $d->jumlah) {
+                return false;
+            }
+        }
 
         return true;
     }
 
     /**
-     * Potong stok jual untuk pembelian ONLINE (per ukuran & warna di detail transaksi).
-     * Dipanggil tepat saat status berubah menjadi lunas (lihat tandaiLunas() dan MidtransQris::terapkan()),
-     * dan masing-masing hanya berjalan sekali per transaksi.
-     * Tidak berlaku untuk sewa (ketersediaan per tanggal) maupun beli kasir (stok sudah dipotong saat dibuat).
+     * TAHAN stok: potong stok jual (per ukuran & warna) untuk pembelian ONLINE.
+     * Dipanggil saat checkout, sehingga pelanggan lain langsung melihat stok yang sudah berkurang.
+     * Aman dipanggil berulang: hanya berjalan sekali per pesanan (dijaga kolom stok_ditahan + kunci baris).
+     *
+     * @return bool true bila stok benar-benar dipotong sekarang
      */
-    public function potongStokPembelianOnline(): void
+    public function tahanStok(): bool
     {
-        if ($this->jenis !== 'beli' || ($this->channel ?? null) === 'kasir') {
-            return;
+        if (! $this->menahanStokOnline()) {
+            return false;
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () {
-            foreach ($this->detail()->get() as $detail) {
+        return \Illuminate\Support\Facades\DB::transaction(function () {
+            $kunci = static::whereKey($this->id)->lockForUpdate()->first();
+
+            if (! $kunci || $kunci->stok_ditahan) {
+                return false;
+            }
+
+            foreach ($kunci->detail()->get() as $detail) {
                 $produk = Produk::whereKey($detail->produk_id)->lockForUpdate()->first();
 
                 if ($produk) {
                     $produk->kurangiStok('jual', $detail->ukuran, $detail->warna, (int) $detail->jumlah);
                 }
             }
+
+            $kunci->forceFill(['stok_ditahan' => true])->save();
+            $this->stok_ditahan = true;
+
+            return true;
         });
+    }
+
+    /**
+     * KEMBALIKAN stok yang ditahan (pesanan kedaluwarsa / gagal / dibatalkan).
+     * Hanya berjalan bila stok memang sedang ditahan, jadi tidak pernah mengembalikan dua kali.
+     *
+     * @return bool true bila stok benar-benar dikembalikan sekarang
+     */
+    public function lepasStok(): bool
+    {
+        if (! $this->menahanStokOnline()) {
+            return false;
+        }
+
+        return \Illuminate\Support\Facades\DB::transaction(function () {
+            $kunci = static::whereKey($this->id)->lockForUpdate()->first();
+
+            if (! $kunci || ! $kunci->stok_ditahan) {
+                return false;
+            }
+
+            foreach ($kunci->detail()->get() as $detail) {
+                $produk = Produk::whereKey($detail->produk_id)->lockForUpdate()->first();
+
+                if ($produk) {
+                    $produk->tambahStok('jual', $detail->ukuran, $detail->warna, (int) $detail->jumlah);
+                }
+            }
+
+            $kunci->forceFill(['stok_ditahan' => false])->save();
+            $this->stok_ditahan = false;
+
+            return true;
+        });
+    }
+
+    /** Nama lama, dipertahankan agar pemanggil lama (MidtransQris::terapkan) tetap bekerja. */
+    public function potongStokPembelianOnline(): void
+    {
+        $this->tahanStok();
     }
 
     /*

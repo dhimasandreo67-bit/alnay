@@ -448,8 +448,14 @@ class TransaksiController extends Controller
     {
         $transaksi = Transaksi::with(['detail', 'sewa'])->findOrFail($id);
         $kode = $transaksi->kode_transaksi;
-        // Hanya kembalikan stok bila transaksi ini memang sudah memotong stok (lihat Transaksi::stokSudahDipotong)
-        $kembalikanStok = $request->boolean('restock') && $transaksi->stokSudahDipotong();
+        // Hanya kembalikan stok bila transaksi ini memang sudah memotong stok (lihat Transaksi::stokSudahDipotong).
+        // Pesanan online yang BELUM LUNAS menahan stok tanpa pernah terjual (mis. bayar tunai yang tidak jadi diambil),
+        // jadi stoknya selalu dikembalikan otomatis. Pesanan lunas tetap mengikuti centang "restock".
+        $stokDitahanBelumLunas = $transaksi->jenis === 'beli'
+            && ($transaksi->channel ?? null) !== 'kasir'
+            && ! $transaksi->sudahLunas();
+        $kembalikanStok = $transaksi->stokSudahDipotong()
+            && ($request->boolean('restock') || $stokDitahanBelumLunas);
 
         try {
             DB::transaction(function () use ($transaksi, $kembalikanStok) {
