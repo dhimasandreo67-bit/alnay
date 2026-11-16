@@ -584,7 +584,7 @@
                                 </a>
 
                                 <p class="text-[11px] text-ink/50 leading-relaxed mt-3.5 text-center"
-                                   x-text="kirim ? 'Nomor resi pengiriman akan dikirim otomatis ke WhatsApp Anda.' : (bayarTunai ? 'Pesanan dicatat dan dibayar tunai saat pengambilan di toko.' : 'Pesanan siap diambil di toko setelah pembayaran terverifikasi.')"></p>
+                                   x-text="kirim ? 'Nomor resi pengiriman akan dikirim ke Pesanan Anda.' : (bayarTunai ? 'Pesanan dicatat dan dibayar tunai saat pengambilan di toko.' : 'Pesanan siap diambil di toko setelah pembayaran terverifikasi.')"></p>
                             </div>
                         </div>
                     </div>
