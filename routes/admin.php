@@ -114,6 +114,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/fitting/{id}', [ReservasiFittingController::class, 'destroy'])->name('fitting.destroy');
 
         Route::get('/rating', [RatingController::class, 'index'])->name('rating.index');
+        Route::delete('/rating/{id}', [RatingController::class, 'destroy'])->whereNumber('id')->name('rating.destroy');
 
         // --- NOTIFIKASI (lonceng & riwayat) ---
         // Nama route 'admin.notifikasi.*' tidak ada di AdminMenu, jadi lolos EnsureAdminPermission:
