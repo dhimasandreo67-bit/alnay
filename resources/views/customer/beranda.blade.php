@@ -1204,7 +1204,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            initOpenStatus();
+            buildCarousel();
             bindSwipe();
             startAuto();
 
