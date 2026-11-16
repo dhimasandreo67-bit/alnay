@@ -123,7 +123,7 @@
         $tabs = ['semua' => 'Semua', 'beli' => 'Pembelian', 'sewa' => 'Penyewaan'];
         $adaFilter = request()->filled('search') || request()->filled('status') || $channel !== '';
     @endphp
-    <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Jenis transaksi">
+    <div id="tabs-transaksi" class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Jenis transaksi">
         @foreach($tabs as $key => $nama)
             @php $aktif = $tab === $key; @endphp
             <a href="{{ request()->fullUrlWithQuery(['tab' => $key, 'page' => null]) }}"
@@ -139,24 +139,24 @@
     </div>
 
     {{-- Filter & Search --}}
-    <form method="GET" action="{{ route('admin.transaksi.index') }}" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <input type="hidden" name="tab" value="{{ $tab }}">
+    <form id="form-filter-transaksi" method="GET" action="{{ route('admin.transaksi.index') }}" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <input type="hidden" name="tab" id="filter-tab" value="{{ $tab }}">
 
         <div class="relative w-full sm:w-80">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </span>
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari kode atau nama pelanggan..."
+            <input type="text" name="search" id="input-search-transaksi" value="{{ request('search') }}" placeholder="Cari kode atau nama pelanggan..." autocomplete="off"
                    class="w-full pl-10 pr-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
         </div>
 
         <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-            <select name="channel" onchange="this.form.submit()" aria-label="Asal transaksi" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
+            <select name="channel" aria-label="Asal transaksi" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
                 <option value="">Semua Asal</option>
                 <option value="online" {{ $channel === 'online' ? 'selected' : '' }}>Online (Website)</option>
                 <option value="kasir" {{ $channel === 'kasir' ? 'selected' : '' }}>Via Kasir</option>
             </select>
-            <select name="status" onchange="this.form.submit()" aria-label="Status pembayaran" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
+            <select name="status" aria-label="Status pembayaran" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
                 <option value="">Semua Status</option>
                 <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
                 <option value="dp" {{ request('status') === 'dp' ? 'selected' : '' }}>DP</option>
@@ -164,15 +164,13 @@
                 <option value="lunas" {{ request('status') === 'lunas' ? 'selected' : '' }}>Lunas</option>
                 <option value="gagal" {{ request('status') === 'gagal' ? 'selected' : '' }}>Gagal</option>
             </select>
-            <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-800 transition-all cursor-pointer">Cari</button>
-            @if($adaFilter)
-                <a href="{{ route('admin.transaksi.index', ['tab' => $tab]) }}" class="text-xs font-bold text-gray-500 hover:text-amber-600">Reset</a>
-            @endif
+            <a href="{{ route('admin.transaksi.index', ['tab' => $tab]) }}" id="btn-reset-filter"
+               class="text-xs font-bold text-gray-500 hover:text-amber-600 {{ $adaFilter ? '' : 'hidden' }}">Reset</a>
         </div>
     </form>
 
     {{-- Tabel Transaksi --}}
-    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+    <div id="hasil-transaksi" class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden transition-opacity duration-200">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gray-50/80">
@@ -460,16 +458,132 @@
         }
 
         // ==========================================
-        // 4. LOGIKA RINCIAN ITEM (BUKA/TUTUP)
+        // 4. LOGIKA RINCIAN ITEM (BUKA/TUTUP) - delegasi event
+        //    agar tetap jalan setelah tabel diganti oleh live search
         // ==========================================
-        document.querySelectorAll('[data-toggle-rincian]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var baris = document.getElementById('rincian-' + btn.dataset.toggleRincian);
-                var buka = baris.classList.toggle('hidden') === false;
-                btn.setAttribute('aria-expanded', buka ? 'true' : 'false');
-                btn.querySelector('[data-chevron]').classList.toggle('rotate-180', buka);
-            });
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-toggle-rincian]');
+            if (!btn) return;
+            var baris = document.getElementById('rincian-' + btn.dataset.toggleRincian);
+            if (!baris) return;
+            var buka = baris.classList.toggle('hidden') === false;
+            btn.setAttribute('aria-expanded', buka ? 'true' : 'false');
+            var chevron = btn.querySelector('[data-chevron]');
+            if (chevron) chevron.classList.toggle('rotate-180', buka);
         });
+
+        // ==========================================
+        // 5. LIVE SEARCH & FILTER (tanpa reload halaman)
+        // ==========================================
+        var formFilter = document.getElementById('form-filter-transaksi');
+        var inputSearch = document.getElementById('input-search-transaksi');
+        var btnReset = document.getElementById('btn-reset-filter');
+        var hasilWrap = document.getElementById('hasil-transaksi');
+        var tabsWrap = document.getElementById('tabs-transaksi');
+
+        if (formFilter && inputSearch && hasilWrap) {
+            var DEBOUNCE_MS = 350;
+            var timer = null;
+            var controller = null;
+
+            function bangunUrl() {
+                var params = new URLSearchParams();
+                new FormData(formFilter).forEach(function (val, key) {
+                    val = String(val).trim();
+                    if (val !== '') params.set(key, val);
+                });
+                var qs = params.toString();
+                return formFilter.action + (qs ? '?' + qs : '');
+            }
+
+            function adaFilterAktif() {
+                var d = new FormData(formFilter);
+                return ['search', 'status', 'channel'].some(function (k) {
+                    return String(d.get(k) || '').trim() !== '';
+                });
+            }
+
+            function muatData(url) {
+                // batalkan request sebelumnya agar hasil lama tidak menimpa yang baru
+                if (controller) controller.abort();
+                controller = new AbortController();
+
+                hasilWrap.classList.add('opacity-50', 'pointer-events-none');
+
+                fetch(url, {
+                    signal: controller.signal,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+                    credentials: 'same-origin'
+                })
+                .then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.text();
+                })
+                .then(function (html) {
+                    var doc = new DOMParser().parseFromString(html, 'text/html');
+                    var hasilBaru = doc.getElementById('hasil-transaksi');
+                    var tabsBaru = doc.getElementById('tabs-transaksi');
+                    if (!hasilBaru) throw new Error('Respons tidak valid');
+
+                    hasilWrap.innerHTML = hasilBaru.innerHTML;
+                    if (tabsWrap && tabsBaru) tabsWrap.innerHTML = tabsBaru.innerHTML;
+
+                    // samakan URL di address bar (refresh tetap membawa keyword)
+                    history.replaceState(null, '', url);
+
+                    if (btnReset) btnReset.classList.toggle('hidden', !adaFilterAktif());
+                })
+                .catch(function (err) {
+                    if (err.name === 'AbortError') return;
+                    // fallback: kalau AJAX gagal, pakai cara biasa
+                    window.location.href = url;
+                })
+                .finally(function () {
+                    hasilWrap.classList.remove('opacity-50', 'pointer-events-none');
+                });
+            }
+
+            // Ketik keyword -> otomatis cari setelah berhenti mengetik sejenak
+            inputSearch.addEventListener('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(function () { muatData(bangunUrl()); }, DEBOUNCE_MS);
+            });
+
+            // Enter / tombol "Cari" -> langsung cari
+            formFilter.addEventListener('submit', function (e) {
+                e.preventDefault();
+                clearTimeout(timer);
+                muatData(bangunUrl());
+            });
+
+            // Ganti dropdown asal / status -> langsung cari
+            formFilter.querySelectorAll('select').forEach(function (sel) {
+                sel.addEventListener('change', function () {
+                    clearTimeout(timer);
+                    muatData(bangunUrl());
+                });
+            });
+
+            // Reset filter tanpa reload
+            if (btnReset) {
+                btnReset.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    clearTimeout(timer);
+                    inputSearch.value = '';
+                    formFilter.querySelectorAll('select').forEach(function (sel) { sel.value = ''; });
+                    muatData(bangunUrl());
+                    inputSearch.focus();
+                });
+            }
+
+            // Pagination: tetap di halaman ini, hanya tabel yang diganti
+            hasilWrap.addEventListener('click', function (e) {
+                var link = e.target.closest('nav a[href], .pagination a[href]');
+                if (!link || !hasilWrap.contains(link)) return;
+                e.preventDefault();
+                muatData(link.href);
+            });
+        }
     });
 </script>
 @endsection
