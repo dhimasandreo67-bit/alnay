@@ -311,9 +311,21 @@
                 <div class="{{ $kartu }} p-6 md:p-8">
                     
                     {{-- Header --}}
-                    <div class="mb-6">
-                        <h2 class="font-display text-2xl font-bold text-ink/90">Refund &amp; Return</h2>
-                        <p class="text-sm text-ink/60 mt-1">Ringkasan dan riwayat pengembalian barang Anda.</p>
+                    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                            <h2 class="font-display text-2xl font-bold text-ink/90">Refund &amp; Return</h2>
+                            <p class="text-sm text-ink/60 mt-1">Ringkasan dan riwayat pengembalian barang Anda.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <button type="button" data-refund-info="panduan" class="{{ $btnTepi }} gap-2 flex-1 sm:flex-none">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                                Panduan Refund
+                            </button>
+                            <button type="button" data-refund-info="ketentuan" class="{{ $btnEmas }} gap-2 flex-1 sm:flex-none">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                Ketentuan Refund
+                            </button>
+                        </div>
                     </div>
 
                     {{-- Kotak Statistik --}}
@@ -632,6 +644,192 @@
     <img id="foto-modal-img" src="" alt="Foto profil" class="hidden w-64 h-64 md:w-96 md:h-96 rounded-full object-cover border-4 border-white/40 shadow-2xl">
     <div id="foto-modal-inisial" class="hidden w-64 h-64 md:w-96 md:h-96 rounded-full bg-gradient-to-br from-gold to-[#8f5a2c] text-white font-display text-8xl items-center justify-center border-4 border-white/40 shadow-2xl"></div>
 </div>
+
+{{-- ===== MODAL PANDUAN & KETENTUAN REFUND ===== --}}
+@php
+    $cfgRefund        = (array) config('alnay.refund', []);
+    $batasPengajuan   = $cfgRefund['batas_pengajuan_hari'] ?? null;   // opsional, mis. 7
+    $estimasiDana     = $cfgRefund['estimasi_dana_hari'] ?? null;     // opsional, mis. 3
+    $waCsRefund       = config('alnay.kontak.wa_cs');
+@endphp
+<style>
+    #refund-info-modal .ri-tab { border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
+    #refund-info-modal .ri-tab[aria-selected="true"] { color: #C27C3E; border-bottom-color: #C27C3E; }
+    #refund-info-modal .ri-step { position: relative; padding-left: 2.9rem; padding-bottom: 1.3rem; }
+    #refund-info-modal .ri-step:last-child { padding-bottom: 0; }
+    #refund-info-modal .ri-step::before { content: ""; position: absolute; left: .85rem; top: 2rem; bottom: .3rem; width: 2px; background: rgba(0, 0, 0, .08); }
+    #refund-info-modal .ri-step:last-child::before { display: none; }
+    #refund-info-modal .ri-step-n { position: absolute; left: 0; top: 0; width: 1.75rem; height: 1.75rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(194, 124, 62, .14); color: #C27C3E; font-size: .78rem; font-weight: 700; }
+    #refund-info-modal .ri-step-n.is-end { background: #d1fae5; color: #047857; }
+    #refund-info-modal .ri-flow { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+</style>
+<div id="refund-info-modal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="refund-info-title">
+    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] flex flex-col">
+        <div class="px-6 py-5 border-b border-line/60 flex items-start justify-between gap-4">
+            <div>
+                <h3 id="refund-info-title" class="font-display text-xl font-bold text-ink/90">Panduan &amp; Ketentuan Refund</h3>
+                <p class="text-xs text-ink/55 mt-1">Baca sebelum mengajukan refund agar prosesnya lancar.</p>
+            </div>
+            <button type="button" data-tutup-refund-info aria-label="Tutup" class="w-9 h-9 shrink-0 rounded-full hover:bg-cream text-2xl leading-none text-ink/60 transition">&times;</button>
+        </div>
+
+        {{-- Tab --}}
+        <div class="px-6 border-b border-line/60 flex gap-2" role="tablist" aria-label="Panduan dan ketentuan">
+            <button type="button" role="tab" id="ri-tab-panduan" data-ri-tab="panduan" aria-selected="true" aria-controls="ri-panel-panduan" class="ri-tab px-4 py-3 text-sm font-semibold text-ink/60">Panduan</button>
+            <button type="button" role="tab" id="ri-tab-ketentuan" data-ri-tab="ketentuan" aria-selected="false" aria-controls="ri-panel-ketentuan" class="ri-tab px-4 py-3 text-sm font-semibold text-ink/60">Ketentuan</button>
+        </div>
+
+        <div class="px-6 py-5 overflow-y-auto">
+            {{-- ===== PANDUAN ===== --}}
+            <div id="ri-panel-panduan" role="tabpanel" aria-labelledby="ri-tab-panduan">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-ink/45 mb-2">Alur singkat</p>
+                <div class="ri-flow mb-6 text-[11px] font-bold">
+                    <span class="px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">Diajukan</span><span class="text-ink/30">→</span>
+                    <span class="px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">Disetujui</span><span class="text-ink/30">→</span>
+                    <span class="px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">Dikirim</span><span class="text-ink/30">→</span>
+                    <span class="px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">Diterima</span><span class="text-ink/30">→</span>
+                    <span class="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">Dana Kembali</span>
+                </div>
+
+                <ol class="list-none m-0 p-0">
+                    <li class="ri-step">
+                        <span class="ri-step-n">1</span>
+                        <h4 class="text-sm font-bold text-ink/90">Ajukan refund</h4>
+                        <p class="text-[13px] text-ink/65 leading-relaxed mt-1">Ajukan untuk pesanan yang memenuhi syarat (jumlahnya tampil di kotak <b>Bisa Refund</b>). Tulis alasan dengan jelas, sebutkan produk yang bermasalah, unggah foto bukti kondisi barang, dan lengkapi data rekening tujuan: bank, nomor rekening, dan atas nama.</p>
+                    </li>
+                    <li class="ri-step">
+                        <span class="ri-step-n">2</span>
+                        <h4 class="text-sm font-bold text-ink/90">Tunggu tinjauan admin</h4>
+                        <p class="text-[13px] text-ink/65 leading-relaxed mt-1">Status berubah menjadi <b>Menunggu Tinjauan Admin</b>. Admin memeriksa alasan dan foto bukti Anda. Pada tahap ini belum ada yang perlu Anda lakukan.</p>
+                    </li>
+                    <li class="ri-step">
+                        <span class="ri-step-n">3</span>
+                        <h4 class="text-sm font-bold text-ink/90">Kirim barang kembali setelah disetujui</h4>
+                        <p class="text-[13px] text-ink/65 leading-relaxed mt-1">Kotak hijau <b>Refund disetujui!</b> akan muncul di halaman ini. Buka detail refund untuk melihat metode pengembalian dan batas waktu kirim, lalu:</p>
+                        <ul class="mt-2 space-y-1.5 text-[13px] text-ink/65 leading-relaxed list-disc pl-5">
+                            <li><b>Dijemput kurir:</b> siapkan barang, lalu serahkan ke kurir saat datang. Tanpa biaya.</li>
+                            <li><b>Kirim sendiri:</b> antar ke agen kurir menuju alamat retur yang tertera di detail refund. Simpan struk dan resinya.</li>
+                            <li>Periksa kelengkapan barang sesuai pesanan dan kemas dengan rapi agar aman selama perjalanan.</li>
+                            <li>Setelah barang diserahkan, isi dan kirim formulir konfirmasi pengiriman di detail refund.</li>
+                        </ul>
+                    </li>
+                    <li class="ri-step">
+                        <span class="ri-step-n">4</span>
+                        <h4 class="text-sm font-bold text-ink/90">Barang diterima dan diperiksa</h4>
+                        <p class="text-[13px] text-ink/65 leading-relaxed mt-1">Admin menunggu barang sampai, lalu memeriksa kondisinya. Status akan diperbarui pada tiap tahap ini.</p>
+                    </li>
+                    <li class="ri-step">
+                        <span class="ri-step-n is-end">5</span>
+                        <h4 class="text-sm font-bold text-ink/90">Dana dikembalikan</h4>
+                        <p class="text-[13px] text-ink/65 leading-relaxed mt-1">Jika barang lolos pengecekan, dana ditransfer ke rekening tujuan Anda. Bukti transfer dari admin dapat dilihat dan diunduh di detail refund.</p>
+                    </li>
+                </ol>
+
+                <div class="mt-6 rounded-xl bg-cream/70 border border-line/60 p-4">
+                    <p class="text-xs font-bold text-ink/80 mb-2">Tips agar prosesnya cepat</p>
+                    <ul class="space-y-1 text-[12px] text-ink/65 leading-relaxed list-disc pl-5">
+                        <li>Gunakan foto yang terang dan jelas, tunjukkan bagian yang bermasalah.</li>
+                        <li>Pastikan nama bank, nomor rekening, dan atas nama sudah benar.</li>
+                        <li>Simpan bukti pengiriman atau resi sampai refund berstatus selesai.</li>
+                    </ul>
+                </div>
+            </div>
+
+            {{-- ===== KETENTUAN ===== --}}
+            <div id="ri-panel-ketentuan" role="tabpanel" aria-labelledby="ri-tab-ketentuan" class="hidden space-y-5">
+                <section>
+                    <h4 class="text-sm font-bold text-ink/90 mb-2">1. Pengajuan</h4>
+                    <ul class="space-y-1.5 text-[13px] text-ink/65 leading-relaxed list-disc pl-5">
+                        <li>Refund hanya dapat diajukan untuk pesanan yang tercatat <b>Bisa Refund</b> di halaman ini.</li>
+                        @if ($batasPengajuan)
+                            <li>Pengajuan dilakukan paling lambat <b>{{ $batasPengajuan }} hari</b> setelah pesanan diterima.</li>
+                        @endif
+                        <li>Pengajuan wajib disertai alasan yang jelas dan foto bukti kondisi barang.</li>
+                        <li>Data rekening tujuan harus benar. Dana hanya dikirim ke rekening yang Anda cantumkan.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h4 class="text-sm font-bold text-ink/90 mb-2">2. Peninjauan admin</h4>
+                    <ul class="space-y-1.5 text-[13px] text-ink/65 leading-relaxed list-disc pl-5">
+                        <li>Admin meninjau alasan dan foto bukti, lalu menyetujui atau menolak pengajuan.</li>
+                        <li>Jika ditolak, alasan penolakan ditampilkan di detail refund. Anda dapat menanyakannya lewat WhatsApp CS.</li>
+                        <li>Pengajuan yang dibatalkan tidak diproses lebih lanjut.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h4 class="text-sm font-bold text-ink/90 mb-2">3. Pengembalian barang</h4>
+                    <ul class="space-y-1.5 text-[13px] text-ink/65 leading-relaxed list-disc pl-5">
+                        <li>Barang harus dikirim atau diserahkan ke kurir <b>sebelum batas kirim</b> yang tertera di detail refund.</li>
+                        <li>Barang dikembalikan lengkap sesuai pesanan dan dikemas dengan aman.</li>
+                        <li><b>Dijemput kurir:</b> tanpa biaya pengembalian.</li>
+                        <li><b>Kirim sendiri:</b> ongkir pengembalian akan diganti. Siapkan nominal ongkir yang Anda bayar dan foto struk atau resi (maksimal 3 MB).</li>
+                        <li>Simpan bukti pengiriman sampai refund selesai.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h4 class="text-sm font-bold text-ink/90 mb-2">4. Pengembalian dana</h4>
+                    <ul class="space-y-1.5 text-[13px] text-ink/65 leading-relaxed list-disc pl-5">
+                        <li>Dana ditransfer setelah barang diterima dan lolos pengecekan admin.</li>
+                        @if ($estimasiDana)
+                            <li>Estimasi dana masuk sekitar <b>{{ $estimasiDana }} hari kerja</b> setelah barang dinyatakan lolos pengecekan.</li>
+                        @endif
+                        <li>Bukti transfer tersedia di detail refund. Jika dana belum diterima atau bukti belum tersedia, hubungi CS.</li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+
+        <div class="px-6 py-4 border-t border-line/60 flex flex-wrap items-center justify-between gap-3">
+            @if ($waCsRefund)
+                <a href="https://wa.me/{{ $waCsRefund }}?text={{ urlencode('Halo, saya ingin bertanya tentang refund / return.') }}" target="_blank" rel="noopener" class="text-sm font-semibold text-emerald-700 hover:underline">Tanya CS via WhatsApp</a>
+            @else
+                <span></span>
+            @endif
+            <button type="button" data-tutup-refund-info class="{{ $btnEmas }} px-8">Mengerti</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const modal = document.getElementById('refund-info-modal');
+        if (!modal) return;
+        const tabs = modal.querySelectorAll('[data-ri-tab]');
+        const panels = { panduan: document.getElementById('ri-panel-panduan'), ketentuan: document.getElementById('ri-panel-ketentuan') };
+        let pembuka = null;
+        let downDiOverlay = false;
+
+        function pilihTab(nama) {
+            tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.riTab === nama)));
+            Object.keys(panels).forEach(k => panels[k].classList.toggle('hidden', k !== nama));
+            modal.querySelector('.overflow-y-auto').scrollTop = 0;
+        }
+        function buka(nama, dari) {
+            pembuka = dari || null;
+            pilihTab(nama);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            modal.querySelector('[data-tutup-refund-info]').focus();
+        }
+        function tutup() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+            if (pembuka) pembuka.focus();
+        }
+
+        document.querySelectorAll('[data-refund-info]').forEach(b => b.addEventListener('click', () => buka(b.dataset.refundInfo, b)));
+        tabs.forEach(t => t.addEventListener('click', () => pilihTab(t.dataset.riTab)));
+        modal.querySelectorAll('[data-tutup-refund-info]').forEach(b => b.addEventListener('click', tutup));
+        modal.addEventListener('mousedown', e => { downDiOverlay = e.target === modal; });
+        modal.addEventListener('click', e => { if (e.target === modal && downDiOverlay) tutup(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) tutup(); });
+    })();
+</script>
 
 <script>
     (function () {
