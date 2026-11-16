@@ -268,20 +268,36 @@
                                                 method="POST" class="flex flex-col gap-2 items-end ml-auto w-48">
                                                 @csrf @method('PATCH')
                                                 <input type="hidden" name="status_kirim" value="dikirim">
-                                                <select name="kurir" required
-                                                    class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-sky-500">
-                                                    <option value="">Pilih Kurir</option>
-                                                    @foreach (['jne' => 'JNE', 'jnt' => 'JNT', 'sicepat' => 'SiCepat', 'pos' => 'POS', 'tiki' => 'TIKI'] as $val => $label)
-                                                        <option value="{{ $val }}" @selected(old('kurir', $p->kurir) === $val)>
-                                                            {{ $label }}</option>
-                                                    @endforeach
-                                                </select>
-                                                <input type="text" name="layanan_ongkir"
-                                                    value="{{ old('layanan_ongkir', $p->layanan_ongkir ?? '') }}"
-                                                    placeholder="Layanan (REG, EZ)" required
-                                                    class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg">
-                                                <input type="text" name="no_resi" placeholder="No. Resi" required
-                                                    class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg">
+                                                @php
+                                                    // Ekspedisi & layanan sudah dipilih pelanggan saat checkout
+                                                    $kurirTerkunci = filled($p->kurir) && filled($p->layanan_ongkir);
+                                                @endphp
+                                                @if ($kurirTerkunci)
+                                                    <input type="hidden" name="kurir" value="{{ $p->kurir }}">
+                                                    <input type="hidden" name="layanan_ongkir" value="{{ $p->layanan_ongkir }}">
+                                                    <div class="w-full rounded-lg border border-sky-100 bg-sky-50/70 px-2.5 py-2 text-left">
+                                                        <p class="text-[9px] font-bold uppercase tracking-wider text-sky-600">Pilihan pelanggan saat checkout</p>
+                                                        <p class="mt-0.5 text-xs font-bold text-gray-800">{{ strtoupper($p->kurir) }} &middot; {{ $p->layanan_ongkir }}</p>
+                                                        <p class="text-[10px] text-gray-500">Ongkir Rp{{ number_format($p->biaya_kirim ?? 0, 0, ',', '.') }}</p>
+                                                    </div>
+                                                @else
+                                                    {{-- Cadangan: data lama yang belum punya ekspedisi --}}
+                                                    <p class="text-[10px] font-semibold text-amber-600 text-right leading-tight">Data ekspedisi belum tercatat. Lengkapi manual.</p>
+                                                    <select name="kurir" required
+                                                        class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-sky-500">
+                                                        <option value="">Pilih Kurir</option>
+                                                        @foreach (['jne' => 'JNE', 'jnt' => 'JNT', 'sicepat' => 'SiCepat', 'pos' => 'POS', 'tiki' => 'TIKI'] as $val => $label)
+                                                            <option value="{{ $val }}" @selected(old('kurir', $p->kurir) === $val)>{{ $label }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <input type="text" name="layanan_ongkir" value="{{ old('layanan_ongkir', $p->layanan_ongkir ?? '') }}"
+                                                        placeholder="Layanan (REG, EZ)" required
+                                                        class="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg">
+                                                @endif
+                                                <label for="resi-{{ $p->id }}" class="sr-only">Nomor resi</label>
+                                                <input id="resi-{{ $p->id }}" type="text" name="no_resi" placeholder="Masukkan No. Resi" required
+                                                    maxlength="100" autocomplete="off"
+                                                    class="w-full px-2 py-1.5 text-xs font-mono border border-gray-200 rounded-lg focus:ring-1 focus:ring-sky-500">
                                                 <button type="submit"
                                                     class="w-full py-1.5 rounded-lg text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 transition-all">Kirim</button>
                                             </form>
