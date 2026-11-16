@@ -251,7 +251,7 @@
                         <template x-for="n in items" :key="n.id">
                             <a :href="n.url"
                                class="flex items-start gap-3 border-b border-gray-50 px-4 py-3 transition hover:bg-amber-50/50"
-                               :class="n.dibaca ? 'bg-white' : 'bg-amber-50/30'">
+                               :class="[n.dibaca ? 'bg-white' : 'bg-amber-50/30', n.terhapus ? 'opacity-70' : '']">
                                 <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full" :class="nadaKelas(n.nada)">
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="ikon[n.ikon] || ikon.bell"></path>
@@ -263,6 +263,12 @@
                                         <span x-show="!n.dibaca" class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500"></span>
                                     </span>
                                     <span class="mt-0.5 block break-words text-xs text-gray-500" x-text="n.pesan"></span>
+                                    {{-- Data asal notifikasi sudah dihapus --}}
+                                    <span x-show="n.terhapus" x-cloak
+                                          class="mt-1.5 inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-500">
+                                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        <span x-text="n.terhapus_teks"></span>
+                                    </span>
                                     <span class="mt-1 block text-[10px] font-medium text-gray-400" x-text="n.waktu"></span>
                                 </span>
                             </a>

@@ -50,6 +50,20 @@ class NotifikasiAdmin
         'truck'    => 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0',
     ];
 
+    /**
+     * Jenis data yang dirujuk notifikasi -> model + nama yang ditampilkan.
+     * Dipakai untuk mendeteksi data yang sudah dihapus setelah notifikasinya terkirim.
+     */
+    private const REF = [
+        'transaksi'  => [Transaksi::class, 'Transaksi'],
+        'sewa'       => [Sewa::class, 'Data sewa'],
+        'fitting'    => [ReservasiFitting::class, 'Reservasi fitting'],
+        'refund'     => [Refund::class, 'Pengajuan refund'],
+        'pengguna'   => [User::class, 'Akun pelanggan'],
+        'rating'     => [Rating::class, 'Ulasan'],
+        'pengiriman' => [Pengiriman::class, 'Data pengiriman'],
+    ];
+
     /** Sewa yang sudah telat lebih lama dari ini dianggap data lama dan diabaikan (cegah banjir notifikasi). */
     public const BATAS_HARI_TELAT = 30;
 
@@ -194,6 +208,7 @@ class NotifikasiAdmin
                 'url'       => $sewa
                     ? route('admin.sewa.show', $sewa->id, false)
                     : route('admin.transaksi.show', $t->id, false),
+                'ref'       => $sewa ? self::ref('sewa', $sewa->id) : self::ref('transaksi', $t->id),
             ]);
 
             return;
@@ -218,6 +233,7 @@ class NotifikasiAdmin
             'judul'     => 'Pesanan beli baru',
             'pesan'     => implode(' · ', $bagian),
             'url'       => route('admin.transaksi.show', $t->id, false),
+            'ref'       => self::ref('transaksi', $t->id),
         ]);
     }
 
@@ -250,6 +266,7 @@ class NotifikasiAdmin
             'url'       => ($sewa && $t->sewa)
                 ? route('admin.sewa.show', $t->sewa->id, false)
                 : route('admin.transaksi.show', $t->id, false),
+            'ref'       => ($sewa && $t->sewa) ? self::ref('sewa', $t->sewa->id) : self::ref('transaksi', $t->id),
         ]);
     }
 
@@ -268,6 +285,7 @@ class NotifikasiAdmin
             'judul'     => 'Booking fitting baru',
             'pesan'     => implode(' · ', array_filter([$r->user?->name, $r->kode_booking, self::jadwalFitting($r)])),
             'url'       => route('admin.fitting.index', [], false),
+            'ref'       => self::ref('fitting', $r->id),
         ]);
     }
 
@@ -292,6 +310,7 @@ class NotifikasiAdmin
                 $batal ? null : 'jadwal baru: ' . self::jadwalFitting($r),
             ])),
             'url'       => route('admin.fitting.index', [], false),
+            'ref'       => self::ref('fitting', $r->id),
         ]);
     }
 
@@ -315,6 +334,7 @@ class NotifikasiAdmin
                 Str::limit((string) $r->alasan, 60),
             ])),
             'url'       => route('admin.refund.show', $r->id, false),
+            'ref'       => self::ref('refund', $r->id),
         ]);
     }
 
@@ -339,6 +359,7 @@ class NotifikasiAdmin
                 $kirim ? 'catat saat barang tiba' : null,
             ])),
             'url'       => route('admin.refund.show', $r->id, false),
+            'ref'       => self::ref('refund', $r->id),
         ]);
     }
 
@@ -357,6 +378,7 @@ class NotifikasiAdmin
             'judul'     => 'Pelanggan baru terdaftar',
             'pesan'     => implode(' · ', array_filter([$u->name, $u->email])),
             'url'       => route('admin.pengguna.index', [], false),
+            'ref'       => self::ref('pengguna', $u->id),
         ]);
     }
 
@@ -384,6 +406,7 @@ class NotifikasiAdmin
             'judul'     => ($rendah ? 'Ulasan rendah ' : 'Ulasan baru ') . '★' . (int) $r->rating,
             'pesan'     => $isi,
             'url'       => route('admin.rating.index', [], false),
+            'ref'       => self::ref('rating', $r->id),
         ]);
     }
 
@@ -412,6 +435,7 @@ class NotifikasiAdmin
             'judul'     => 'Pesanan diterima pelanggan',
             'pesan'     => implode(' · ', array_filter($bagian)),
             'url'       => route('admin.pengiriman.index', ['status' => 'diterima', 'search' => $t->kode_transaksi], false),
+            'ref'       => self::ref('pengiriman', $p->id),
         ]);
     }
 
@@ -552,6 +576,7 @@ class NotifikasiAdmin
             'judul'     => $judul,
             'pesan'     => implode(' · ', array_filter($bagian)),
             'url'       => route('admin.sewa.show', $sewa->id, false),
+            'ref'       => self::ref('sewa', $sewa->id),
         ];
     }
 
@@ -619,20 +644,36 @@ class NotifikasiAdmin
 
     public static function ringkasan(User $user, int $batas = 15): array
     {
+        $notifs = $user->notifications()->latest()->limit($batas)->get();
+        $ada    = self::refAda($notifs); // satu query per jenis data, bukan per notifikasi
+
         return [
             'unread' => $user->unreadNotifications()->count(),
-            'items'  => $user->notifications()->latest()->limit($batas)->get()
-                ->map(fn (DatabaseNotification $n) => self::ringkas($n))
-                ->all(),
+            'items'  => $notifs->map(fn (DatabaseNotification $n) => self::ringkas($n, $ada))->all(),
         ];
     }
 
-    /** Bentuk data satu notifikasi yang dipakai view/JSON. */
-    public static function ringkas(DatabaseNotification $n): array
+    /**
+     * Bentuk data satu notifikasi yang dipakai view/JSON.
+     *
+     * @param array<string,bool>|null $ada hasil refAda() untuk banyak notifikasi sekaligus (hemat query);
+     *                                     bila null, keberadaan data diperiksa untuk notifikasi ini saja.
+     */
+    public static function ringkas(DatabaseNotification $n, ?array $ada = null): array
     {
         $d = $n->data ?? [];
 
+        $ref = self::refDari($n);
+        $terhapus = false;
+        if ($ref) {
+            $ada ??= self::refAda([$n]);
+            $terhapus = ($ada[$ref['jenis'] . ':' . $ref['id']] ?? true) === false;
+        }
+
         return [
+            // true bila data yang dirujuk (ulasan, transaksi, refund, dst.) sudah dihapus
+            'terhapus'      => $terhapus,
+            'terhapus_teks' => $terhapus ? self::REF[$ref['jenis']][1] . ' ini sudah dihapus' : null,
             'id'        => $n->id,
             'judul'     => $d['judul'] ?? 'Notifikasi',
             'pesan'     => $d['pesan'] ?? '',
@@ -646,6 +687,101 @@ class NotifikasiAdmin
             'waktu'     => $n->created_at?->copy()->locale('id')->diffForHumans(),
             'waktu_lengkap' => $n->created_at?->copy()->locale('id')->translatedFormat('j F Y, H:i'),
         ];
+    }
+
+    /* ======================================================================
+     |  DATA YANG SUDAH DIHAPUS
+     * ==================================================================== */
+
+    /** Referensi ke data asal notifikasi, disimpan di payload agar bisa dicek keberadaannya nanti. */
+    private static function ref(string $jenis, $id): array
+    {
+        return ['jenis' => $jenis, 'id' => (int) $id];
+    }
+
+    /**
+     * Referensi data dari sebuah notifikasi. Notifikasi lama (sebelum 'ref' ada) tetap bisa dikenali
+     * bila URL tujuannya memuat id (transaksi, sewa, refund).
+     *
+     * @return array{jenis:string,id:int}|null
+     */
+    private static function refDari(DatabaseNotification $n): ?array
+    {
+        $d = $n->data ?? [];
+        $r = $d['ref'] ?? null;
+
+        if (is_array($r) && isset(self::REF[$r['jenis'] ?? '']) && ! empty($r['id'])) {
+            return ['jenis' => $r['jenis'], 'id' => (int) $r['id']];
+        }
+
+        if (preg_match('#^/admin/(transaksi|sewa|refund)/(\d+)#', (string) ($d['url'] ?? ''), $m)) {
+            return ['jenis' => $m[1], 'id' => (int) $m[2]];
+        }
+
+        // Notifikasi ulasan lama (dibuat sebelum 'ref' ada): ulasannya tercatat pada detik yang sama dengan
+        // notifikasinya. Tidak ada ulasan di rentang itu berarti ulasannya sudah dihapus (id 0 tidak pernah ada).
+        // Hanya berlaku untuk notifikasi lama; setelah semuanya terganti yang baru, bagian ini bisa dibuang.
+        if (($d['ikon'] ?? '') === 'star' && $n->created_at) {
+            try {
+                $waktu = $n->created_at;
+                $id = Rating::query()
+                    ->whereBetween('created_at', [$waktu->copy()->subSeconds(5), $waktu->copy()->addSeconds(5)])
+                    ->get(['id', 'created_at'])
+                    ->sortBy(fn ($r) => abs($r->created_at->diffInSeconds($waktu, false)))
+                    ->first()?->id;
+
+                return ['jenis' => 'rating', 'id' => (int) ($id ?? 0)];
+            } catch (\Throwable $e) {
+                report($e);
+
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Cek sekaligus apakah data yang dirujuk banyak notifikasi masih ada.
+     *
+     * @param  iterable<DatabaseNotification> $notifs
+     * @return array<string,bool> "jenis:id" => masih ada?
+     */
+    public static function refAda(iterable $notifs): array
+    {
+        $perJenis = [];
+        foreach ($notifs as $n) {
+            if ($r = self::refDari($n)) {
+                $perJenis[$r['jenis']][] = $r['id'];
+            }
+        }
+
+        $hasil = [];
+        foreach ($perJenis as $jenis => $ids) {
+            $ids = array_values(array_unique($ids));
+
+            try {
+                $model  = self::REF[$jenis][0];
+                $adaIds = $model::query()->whereIn('id', $ids)->pluck('id')->map(fn ($v) => (int) $v)->all();
+            } catch (\Throwable $e) {
+                report($e);
+                $adaIds = $ids; // gagal memeriksa: anggap masih ada, jangan salah menandai terhapus
+            }
+
+            foreach ($ids as $id) {
+                $hasil["{$jenis}:{$id}"] = in_array($id, $adaIds, true);
+            }
+        }
+
+        return $hasil;
+    }
+
+    /** True bila data yang dirujuk notifikasi ini sudah dihapus. */
+    public static function terhapus(DatabaseNotification $n): bool
+    {
+        $ref = self::refDari($n);
+
+        return $ref !== null && (self::refAda([$n])[$ref['jenis'] . ':' . $ref['id']] ?? true) === false;
     }
 
     /* ======================================================================
