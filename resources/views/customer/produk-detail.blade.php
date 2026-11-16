@@ -470,8 +470,7 @@
 
                             <div class="mt-3 text-[13px] text-ink/60 leading-relaxed">
                                 <p class="font-semibold text-ink/75 mb-1">Jadwal Penyewaan:</p>
-                                <p>Penyewaan memiliki 3 tahap utama: pengambilan, pemakaian, dan pengembalian. Contoh
-                                    normal: diambil hari Senin, dipakai untuk acara hari Selasa, dikembalikan hari Rabu.</p>
+                                <p>Penyewaan memiliki 3 tahap utama: pengambilan, pemakaian, dan pengembalian. Contoh normal: diambil di hari pertama, dipakai untuk acara, dan dikembalikan di hari ketiga.
                             </div>
 
                             <div

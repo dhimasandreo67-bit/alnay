@@ -10,7 +10,7 @@
     ];
 
     $butuhBantuan = [
-        ['label' => 'Senin - Sabtu: 08:00 - 19:00 WIB', 'href' => '#', 'isText' => true],
+                ['label' => 'Ketersediaan toko bisa berubah. Konfirmasi via WA.', 'href' => '#', 'isText' => true],
     ];
 
     $layananInfo = [

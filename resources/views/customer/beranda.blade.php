@@ -932,39 +932,21 @@
             </p>
 
             <ul class="atelier-list">
-                <li class="atelier-row">
-                    <span class="atelier-ico" aria-hidden="true">
-                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </span>
-                    <div class="min-w-0">
-                        <p class="atelier-label">Alamat</p>
-                        <p class="atelier-value">Kedaung, Kemiling, Bandar Lampung</p>
-                    </div>
-                </li>
-
-                <li class="atelier-row">
+                                <li class="atelier-row">
                     <span class="atelier-ico" aria-hidden="true">
                         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </span>
                     <div class="min-w-0 flex-1">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                            <p class="atelier-label">Jam buka (WIB)</p>
-                            <div id="open-status">
-                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/95 text-[10px] font-bold text-gray-700 border border-gray-100">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
-                                    <span>Memuat...</span>
-                                </span>
-                            </div>
+                                                <div class="mb-1">
+                            <p class="atelier-label">Ketersediaan Toko</p>
                         </div>
-                        <dl class="atelier-jam">
-                            <div><dt>Senin–Sabtu</dt><dd>08.00–19.00</dd></div>
-                            <div><dt>Minggu</dt><dd>Tutup</dd></div>
-                        </dl>
+                        <p class="text-[11px] text-gray-500 leading-relaxed mb-3">Jadwal operasional bersifat fleksibel. Silakan hubungi WhatsApp CS untuk memastikan staf dan ruang fitting tersedia sebelum Anda berkunjung.</p>
+                        <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text=Halo%20Admin%20ALNAY,%20apakah%20toko%20sedang%20buka%20hari%20ini?" target="_blank" class="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-[#25D366] text-white text-[11px] font-bold hover:bg-[#128C7E] transition-colors shadow-sm">
+                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                            Cek Ketersediaan Toko
+                        </a>
                     </div>
                 </li>
             </ul>
@@ -1201,59 +1183,7 @@
             stage.addEventListener('mouseleave', startAuto);
         }
 
-        // Jam operasional (WIB). 0 = Minggu ... 6 = Sabtu. null = tutup.
-        const JAM_BUKA = {
-            0: null,
-            1: [8, 19], 2: [8, 19], 3: [8, 19], 4: [8, 19], 5: [8, 19], 6: [8, 19]
-        };
-        const NAMA_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-        const pad2 = n => String(n).padStart(2, '0');
-
-        // Ambil hari & jam saat ini di zona waktu WIB, apa pun zona waktu perangkat pengunjung
-        function sekarangWIB() {
-            const parts = new Intl.DateTimeFormat('en-US', {
-                timeZone: 'Asia/Jakarta', weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false
-            }).formatToParts(new Date());
-            const get = t => parts.find(p => p.type === t).value;
-            const hari = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday'));
-            return { hari, menit: (parseInt(get('hour'), 10) % 24) * 60 + parseInt(get('minute'), 10) };
-        }
-
-        function initOpenStatus() {
-            const el = document.getElementById('open-status');
-            if (!el) return;
-
-            const render = () => {
-                const { hari, menit } = sekarangWIB();
-                const jam = JAM_BUKA[hari];
-                let buka = false, teks = '';
-
-                if (jam && menit >= jam[0] * 60 && menit < jam[1] * 60) {
-                    buka = true;
-                    teks = `Buka · tutup ${pad2(jam[1])}.00`;
-                } else {
-                    // cari jadwal buka berikutnya
-                    let tambah = (jam && menit < jam[0] * 60) ? 0 : 1;
-                    while (!JAM_BUKA[(hari + tambah) % 7]) tambah++;
-                    const hariBuka = (hari + tambah) % 7;
-                    const jamBuka = pad2(JAM_BUKA[hariBuka][0]) + '.00';
-                    teks = tambah === 0 ? `Tutup · buka ${jamBuka}`
-                        : tambah === 1 ? `Tutup · buka besok ${jamBuka}`
-                        : `Tutup · buka ${NAMA_HARI[hariBuka]} ${jamBuka}`;
-                }
-
-                const warna = buka ? '#16a34a' : '#dc2626';
-                el.innerHTML = `
-                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/95 text-[10px] font-bold border border-gray-100"
-                          style="color:${warna}" role="status">
-                        <span style="width:6px;height:6px;border-radius:9999px;background:${warna};display:inline-block"></span>
-                        <span>${teks}</span>
-                    </span>`;
-            };
-
-            render();
-            setInterval(render, 30000); // perbarui otomatis tiap 30 detik
-        }
+       
 
         function initMap() {
             const el = document.getElementById('peta-alnay');
@@ -1275,7 +1205,6 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             initOpenStatus();
-            buildCarousel();
             bindSwipe();
             startAuto();
 
