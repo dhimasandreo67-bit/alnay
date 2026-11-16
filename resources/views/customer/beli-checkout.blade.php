@@ -134,7 +134,6 @@
                     </a>
                     <div class="flex items-center gap-2.5 flex-wrap">
                         <h1 class="font-display text-2xl sm:text-3xl font-semibold text-ink">Checkout Pembelian</h1>
-                        <span class="px-2.5 py-0.5 rounded-full bg-gold/15 text-gold text-[11px] font-bold tracking-wide uppercase">Hak Milik</span>
                     </div>
                     <p class="text-xs sm:text-[13px] text-ink/60 mt-1">Ikuti 4 langkah singkat berikut untuk menyelesaikan pembelian Anda.</p>
                 </div>
