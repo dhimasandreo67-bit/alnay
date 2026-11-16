@@ -176,6 +176,7 @@
                             @endphp
 
                             <a href="{{ Route::has(str_replace('*', 'index', $item['route'])) ? route(str_replace('*', 'index', $item['route'])) : '#' }}"
+                               data-nav-item="{{ $patterns[0] }}"
                                @if($active) aria-current="page" @endif
                                class="group/item relative flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-medium
                                       transition-all duration-200
@@ -200,6 +201,7 @@
                                     <span class="truncate {{ $active ? 'font-bold' : '' }}">{{ $item['label'] }}</span>
                                 </span>
 
+                                <span data-nav-badge class="contents">
                                 @if ($count)
                                     <span class="relative flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full
                                                  bg-gradient-to-r {{ $tones[0] }} px-1.5 text-[10px] font-bold text-white shadow-sm"
@@ -208,6 +210,7 @@
                                         <span class="absolute inset-0 rounded-full {{ $tones[1] }} animate-ping opacity-20"></span>
                                     </span>
                                 @endif
+                                </span>
                             </a>
                         @endforeach
                     </div>
@@ -244,3 +247,33 @@
         </div>
     </div>
 </aside>
+
+<script>
+    /**
+     * Segarkan angka badge sidebar tanpa reload halaman.
+     * Panggil window.refreshSidebarBadges() setelah aksi AJAX yang mengubah jumlah badge
+     * (ubah status, hapus data, dsb).
+     */
+    window.refreshSidebarBadges = function () {
+        return fetch(window.location.href, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-Refresh-Badge': '1', 'Accept': 'text/html' },
+            credentials: 'same-origin',
+            cache: 'no-store'
+        })
+        .then(function (res) { return res.ok ? res.text() : Promise.reject(); })
+        .then(function (html) {
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            doc.querySelectorAll('[data-nav-item]').forEach(function (linkBaru) {
+                var key = linkBaru.getAttribute('data-nav-item');
+                var linkLama = document.querySelector('[data-nav-item="' + key + '"]');
+                if (!linkLama) return;
+                var badgeBaru = linkBaru.querySelector('[data-nav-badge]');
+                var badgeLama = linkLama.querySelector('[data-nav-badge]');
+                if (badgeBaru && badgeLama && badgeBaru.innerHTML.trim() !== badgeLama.innerHTML.trim()) {
+                    badgeLama.innerHTML = badgeBaru.innerHTML;
+                }
+            });
+        })
+        .catch(function () { /* diam saja: badge akan menyesuaikan di muat berikutnya */ });
+    };
+</script>
