@@ -63,6 +63,18 @@ class RatingController extends Controller
         ));
     }
 
+    /** Hapus satu ulasan. Dipanggil via AJAX dari halaman Rating & Ulasan (balasan JSON). */
+    public function destroy(Request $request, $id)
+    {
+        Rating::findOrFail($id)->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Ulasan berhasil dihapus.']);
+        }
+
+        return redirect()->route('admin.rating.index')->with('success', 'Ulasan berhasil dihapus.');
+    }
+
     /** Filter bersama untuk daftar dan statistik. */
     private function terapkanFilter(Request $request, bool $denganBintang)
     {

@@ -633,6 +633,7 @@
                 if(checkbox) checkbox.parentElement.innerHTML = newStatus === 'hadir' ? '<input type="checkbox" disabled class="w-4 h-4 text-gray-300 bg-gray-100 border-gray-200 rounded cursor-not-allowed">' : '<input type="checkbox" value="'+row.dataset.id+'" class="row-checkbox w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 cursor-pointer">';
 
                 if(typeof showToast === 'function') showToast(data.message, 'success');
+                if (typeof window.refreshSidebarBadges === 'function') window.refreshSidebarBadges();
             }
         })
         .catch(err => {
@@ -748,6 +749,7 @@
                     if (data.success) {
                         this.closest('tr').remove();
                         showToast(data.message || 'Data berhasil dihapus', 'success');
+                        if (typeof window.refreshSidebarBadges === 'function') window.refreshSidebarBadges();
                     } else {
                         showToast(data.message || 'Gagal menghapus', 'error');
                     }
@@ -817,6 +819,7 @@
                         if(document.getElementById('selectAll')) document.getElementById('selectAll').checked = false;
                         updateBulkBtn();
                         showToast(data.message, 'success');
+                        if (typeof window.refreshSidebarBadges === 'function') window.refreshSidebarBadges();
                     } else {
                         showToast(data.message, 'error');
                     }

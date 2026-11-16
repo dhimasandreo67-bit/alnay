@@ -106,7 +106,18 @@ class AdminBadge
     private static function ingat(string $kunci, \Closure $hitung): int
     {
         try {
-            return (int) Cache::remember("admin_badge:{$kunci}", self::TTL, $hitung);
+            $kunciCache = "admin_badge:{$kunci}";
+
+            // Request penyegar badge dari sidebar (window.refreshSidebarBadges) mengirim header ini:
+            // lewati cache, hitung ulang, lalu simpan agar halaman berikutnya ikut akurat.
+            if (request()->hasHeader('X-Refresh-Badge')) {
+                $nilai = (int) $hitung();
+                Cache::put($kunciCache, $nilai, self::TTL);
+
+                return $nilai;
+            }
+
+            return (int) Cache::remember($kunciCache, self::TTL, $hitung);
         } catch (\Throwable $e) {
             report($e);
 

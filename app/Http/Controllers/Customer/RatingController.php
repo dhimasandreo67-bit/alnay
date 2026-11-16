@@ -25,16 +25,27 @@ class RatingController extends Controller
 
         $detail = DetailTransaksi::findOrFail($detail_id);
 
-        Rating::create([
-            'detail_transaksi_id' => $detail->id,
-            'produk_id' => $detail->produk_id,
-            'user_id' => Auth::id(),
-            'rating' => $request->rating,
-            'ulasan' => $request->ulasan,
-            'tanggal' => now()->toDateString(),
-        ]);
+        // Satu ulasan per item pesanan per pelanggan. Tanpa ini, klik ganda pada tombol kirim,
+        // refresh/back-forward browser, atau request yang terkirim dua kali akan membuat
+        // dua baris rating, dan Rating::created memicu dua notifikasi "Ulasan baru" ke admin.
+        $rating = Rating::firstOrCreate(
+            [
+                'detail_transaksi_id' => $detail->id,
+                'user_id' => Auth::id(),
+            ],
+            [
+                'produk_id' => $detail->produk_id,
+                'rating' => $request->rating,
+                'ulasan' => $request->ulasan,
+                'tanggal' => now()->toDateString(),
+            ]
+        );
+
+        $pesan = $rating->wasRecentlyCreated
+            ? 'Terima kasih atas ulasan Anda!'
+            : 'Anda sudah memberikan ulasan untuk produk ini.';
 
         return redirect()->route('akun.pesanan.detail', $detail->transaksi_id)
-                 ->with('success', 'Terima kasih atas ulasan Anda!');
+                 ->with('success', $pesan);
     }
 }
