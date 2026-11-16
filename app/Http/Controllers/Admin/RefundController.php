@@ -55,7 +55,7 @@ class RefundController extends Controller
             'pengaju', 'pemroses',
         ])->findOrFail($id);
 
-        $riwayat = $refund->riwayat()->with('pengubah')->get();
+        $riwayat = $refund->riwayat()->with('pengubah')->orderBy('waktu_ubah', 'asc')->get();
 
         return view('admin.refund.show', compact('refund', 'riwayat'));
     }

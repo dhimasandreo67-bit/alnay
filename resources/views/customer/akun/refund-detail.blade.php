@@ -15,9 +15,9 @@
     $langkah = [
         'diajukan'        => 'Diajukan',
         'disetujui'       => 'Disetujui',
-        'barang_dikirim'  => 'Barang dikirim',
-        'barang_diterima' => 'Barang diterima',
-        'selesai'         => 'Dana kembali',
+        'barang_dikirim'  => 'Dikirim',
+        'barang_diterima' => 'Diterima',
+        'selesai'         => 'Dana Kembali',
     ];
 
     $foto = $refund->fotoBuktiUrl();
@@ -30,7 +30,7 @@
     $ongkir = (int) ($t->pengiriman?->biaya_kirim ?? 0);
     $lain = $selisih - $ongkir;
 
-    // Pisahkan daftar "produk bermasalah" (dicatat di awal alasan) dari teks alasan
+    // Pisahkan daftar "produk bermasalah"
     $labelItem = fn ($d) => ($d->produk->nama ?? 'Produk')
         . ($d->ukuran || $d->warna ? ' (' . collect([$d->ukuran, $d->warna])->filter()->implode(', ') . ')' : '')
         . ' ×' . $d->jumlah;
@@ -43,11 +43,11 @@
 
     // Warna kartu status
     $nada = match ($st) {
-        'diajukan'                          => 'bg-amber-50/70 border-amber-200',
-        'disetujui', 'selesai'              => 'bg-emerald-50/70 border-emerald-200',
-        'barang_dikirim', 'barang_diterima' => 'bg-sky-50/70 border-sky-200',
-        'ditolak'                           => 'bg-rose-50/70 border-rose-200',
-        default                             => 'bg-gray-50 border-line/50',
+        'diajukan'                          => 'bg-amber-50/50 border-amber-200/60',
+        'disetujui', 'selesai'              => 'bg-emerald-50/50 border-emerald-200/60',
+        'barang_dikirim', 'barang_diterima' => 'bg-sky-50/50 border-sky-200/60',
+        'ditolak'                           => 'bg-rose-50/50 border-rose-200/60',
+        default                             => 'bg-gray-50 border-gray-200',
     };
 
     $keterangan = [
@@ -58,281 +58,318 @@
         'selesai'         => 'Proses refund selesai. Dana sudah dikirim ke rekening tujuan.',
     ];
 
-    $kartu = 'break-inside-avoid mb-4 rounded-2xl border border-line/40 bg-panel p-4 sm:p-5';
-    $judul = 'text-[11px] font-semibold uppercase tracking-wider text-ink/60';
-    $btn = 'w-full sm:w-auto min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:py-2 rounded-lg text-[12px] font-semibold transition-colors';
+    $kartu = 'bg-panel rounded-2xl border border-line/40 p-5 sm:p-6 shadow-sm';
+    $judul = 'text-[11px] font-bold uppercase tracking-wider text-ink/50 mb-4';
+    $btn = 'w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all shadow-sm';
 @endphp
 
-<div class="bg-cream min-h-screen py-6 md:py-10">
+<div class="bg-cream min-h-screen py-8 md:py-12">
     <div class="max-w-5xl mx-auto px-4 sm:px-6">
 
-        {{-- Header --}}
-        <div class="grid grid-cols-[auto_1fr] sm:grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-2 mb-5">
-            <a href="{{ route('akun.refund.index') }}" aria-label="Kembali"
-               class="w-10 h-10 shrink-0 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold hover:border-gold/50 transition-all">
-                <x-icon name="chevron-right" :size="14" class="rotate-180" />
-            </a>
-            <div class="min-w-0">
-                <h1 class="font-display text-xl sm:text-2xl font-medium text-ink/90 leading-tight">Detail Refund</h1>
-                <a href="{{ route('akun.pesanan.detail', $refund->transaksi_id) }}" class="text-[11px] text-gold font-mono hover:underline break-all">
-                    {{ $t->kode_transaksi }}
+        {{-- HEADER --}}
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-4">
+                <a href="{{ route('akun.dashboard') }}#refund" aria-label="Kembali"
+                class="w-10 h-10 shrink-0 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/60 hover:text-gold hover:border-gold/50 hover:bg-gold/5 transition-all">
+                    <x-icon name="chevron-right" :size="16" class="rotate-180" />
                 </a>
+                <div>
+                    <h1 class="font-display text-2xl font-bold text-ink">Detail Refund</h1>
+                    <a href="{{ route('akun.pesanan.detail', $refund->transaksi_id) }}" class="text-xs text-gold font-mono font-semibold hover:underline">
+                        {{ $t->kode_transaksi }}
+                    </a>
+                </div>
             </div>
-            <span class="col-span-2 sm:col-span-1 w-fit px-2.5 py-1 rounded-md border text-[11px] font-bold {{ $chip }}">{{ $refund->label_status }}</span>
+            <span class="w-fit px-3 py-1.5 rounded-lg border text-xs font-bold {{ $chip }} uppercase tracking-wide">
+                {{ $refund->label_status }}
+            </span>
         </div>
 
         @foreach (['success' => 'bg-emerald-50 border-emerald-200 text-emerald-700', 'error' => 'bg-rose-50 border-rose-200 text-rose-700'] as $tipe => $kelas)
             @if (session($tipe))
-                <div class="mb-4 px-4 py-3 rounded-xl border text-sm {{ $kelas }}">{{ session($tipe) }}</div>
+                <div class="mb-6 px-4 py-3 rounded-xl border text-sm font-medium shadow-sm {{ $kelas }}">{{ session($tipe) }}</div>
             @endif
         @endforeach
 
-        {{-- Progres (lebar penuh) --}}
+        {{-- PROGRES BAR --}}
         @if (! $gagal)
-            <section class="mb-4 rounded-2xl border border-line/40 bg-panel px-3 sm:px-6 py-4 sm:py-5">
+            <section class="mb-6 bg-panel rounded-2xl border border-line/40 p-5 sm:p-6 shadow-sm">
                 <ol class="flex items-start">
                     @foreach ($langkah as $kunci => $label)
                         @php $selesaiLangkah = $posisi !== false && array_search($kunci, $urutan, true) <= $posisi; @endphp
                         <li class="flex-1 min-w-0 flex flex-col items-center text-center relative">
                             @if (! $loop->last)
-                                <span class="absolute top-3 left-1/2 w-full h-px {{ $selesaiLangkah && array_search($kunci, $urutan, true) < $posisi ? 'bg-gold' : 'bg-line/70' }}"></span>
+                                <span class="absolute top-[14px] left-1/2 w-full h-[2px] {{ $selesaiLangkah && array_search($kunci, $urutan, true) < $posisi ? 'bg-gold' : 'bg-line/60' }}"></span>
                             @endif
-                            <span class="relative z-10 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold
-                                {{ $selesaiLangkah ? 'bg-gold text-white' : 'bg-white border border-line/60 text-ink/40' }}">{{ $selesaiLangkah ? '✓' : $loop->iteration }}</span>
-                            <span class="mt-1.5 px-0.5 text-[9px] sm:text-[10px] leading-tight font-medium {{ $selesaiLangkah ? 'text-ink/80' : 'text-ink/40' }}">{{ $label }}</span>
+                            <span class="relative z-10 w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shadow-sm
+                                {{ $selesaiLangkah ? 'bg-gold text-white ring-4 ring-amber-50' : 'bg-white border-2 border-line/60 text-ink/40' }}">
+                                {{ $selesaiLangkah ? '✓' : $loop->iteration }}
+                            </span>
+                            <span class="mt-2 text-[10px] sm:text-[11px] leading-tight font-semibold {{ $selesaiLangkah ? 'text-ink' : 'text-ink/50' }}">
+                                {{ $label }}
+                            </span>
                         </li>
                     @endforeach
                 </ol>
-                <p class="mt-3 sm:mt-4 text-[11px] sm:text-xs text-ink/55 leading-relaxed text-center">{{ $keterangan[$st] ?? '' }}</p>
+                <p class="mt-5 text-xs text-ink/60 leading-relaxed text-center bg-cream/50 p-3 rounded-lg">{{ $keterangan[$st] ?? '' }}</p>
             </section>
         @endif
 
-        {{-- Konten: 2 kolom di desktop (mengalir kiri → kanan), 1 kolom di mobile --}}
-        <div class="lg:columns-2 lg:gap-6">
+        {{-- GRID KONTEN --}}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
-            {{-- Status & tindakan --}}
-            <section class="break-inside-avoid mb-4 rounded-2xl border p-4 sm:p-5 {{ $nada }}">
-                @if ($st === 'diajukan')
-                    <p class="text-[13px] font-semibold text-amber-900">Menunggu tinjauan admin</p>
-                    <p class="text-[12px] text-amber-900/80 mt-0.5 mb-3">Pengajuan Anda sedang ditinjau (maksimal 1x24 jam). Anda masih bisa membatalkannya.</p>
-                    <form action="{{ route('akun.refund.batal', $refund->id) }}" method="POST" onsubmit="return confirm('Batalkan pengajuan refund ini?')">
-                        @csrf @method('PATCH')
-                        <button class="{{ $btn }} border border-rose-200 bg-white text-rose-600 hover:bg-rose-50">Batalkan Pengajuan</button>
-                    </form>
+            {{-- KOLOM KIRI --}}
+            <div class="space-y-6">
+                
+                {{-- Status & Tindakan --}}
+                <section class="rounded-2xl border p-5 sm:p-6 {{ $nada }}">
+                    @if ($st === 'diajukan')
+                        <p class="text-[14px] font-bold text-amber-900">Menunggu tinjauan admin</p>
+                        <p class="text-[12px] text-amber-800/80 mt-1 mb-4 leading-relaxed">Pengajuan Anda sedang ditinjau (maksimal 1x24 jam). Anda masih bisa membatalkannya.</p>
+                        <form action="{{ route('akun.refund.batal', $refund->id) }}" method="POST" onsubmit="return confirm('Batalkan pengajuan refund ini?')">
+                            @csrf @method('PATCH')
+                            <button class="{{ $btn }} border border-rose-200 bg-white text-rose-600 hover:bg-rose-50">Batalkan Pengajuan</button>
+                        </form>
 
-                @elseif ($st === 'disetujui')
-                    <p class="text-[13px] font-semibold text-emerald-800 mb-1">Refund disetujui — {{ $refund->metode_pengembalian === 'dijemput' ? 'siapkan barang untuk dijemput kurir' : 'kirim barang kembali' }}</p>
-                    @if ($refund->label_metode)
-                        <p class="text-[12px] text-emerald-900">Metode: <b>{{ $refund->label_metode }}</b></p>
-                    @endif
-                    @if ($refund->metode_pengembalian === 'dijemput' && $refund->kurir_retur)
-                        <p class="text-[12px] text-emerald-900">Kurir penjemput: <b>{{ $refund->kurir_retur }}</b></p>
-                    @endif
-                    @if ($refund->no_resi_penjemputan)
-                        <p class="text-[12px] text-emerald-900">No. resi penjemputan: <span class="font-mono font-bold break-all">{{ $refund->no_resi_penjemputan }}</span></p>
-                    @endif
-                    @if ($refund->batas_kirim)
-                        <p class="mt-1 text-[12px] font-semibold text-rose-700">{{ $refund->metode_pengembalian === 'dijemput' ? 'Serahkan barang ke kurir' : 'Kirim barang' }} paling lambat {{ $refund->batas_kirim->format('d M Y') }}. Lewat tanggal ini pengajuan dibatalkan otomatis.</p>
-                    @endif
-                    @if ($refund->metode_pengembalian === 'kirim_sendiri' && ($alamatRetur = \App\Models\Refund::alamatRetur()))
-                        <div class="mt-2 rounded-lg bg-white/70 border border-emerald-200 p-3 text-[12px] text-emerald-900">
-                            <p class="text-[11px] font-bold text-emerald-800 mb-1">Kirim barang ke</p>
-                            <p class="font-semibold">{{ $alamatRetur['nama'] ?? '' }}</p>
-                            <p class="whitespace-pre-line">{{ $alamatRetur['alamat'] }}</p>
-                            @if (!empty($alamatRetur['telepon']))<p>Telp: {{ $alamatRetur['telepon'] }}</p>@endif
-                        </div>
-                    @endif
-                    @if ($refund->catatan_negosiasi)
-                        <p class="mt-1 text-[12px] text-emerald-900 whitespace-pre-line">{{ $refund->catatan_negosiasi }}</p>
-                    @endif
+                    @elseif ($st === 'disetujui')
+                        <p class="text-[14px] font-bold text-emerald-900 mb-1">Refund disetujui — {{ $refund->metode_pengembalian === 'dijemput' ? 'siapkan barang untuk dijemput kurir' : 'kirim barang kembali' }}</p>
+                        @if ($refund->label_metode)
+                            <p class="text-[12px] text-emerald-800">Metode: <b>{{ $refund->label_metode }}</b></p>
+                        @endif
+                        @if ($refund->metode_pengembalian === 'dijemput' && $refund->kurir_retur)
+                            <p class="text-[12px] text-emerald-800">Kurir penjemput: <b>{{ $refund->kurir_retur }}</b></p>
+                        @endif
+                        @if ($refund->no_resi_penjemputan)
+                            <p class="text-[12px] text-emerald-800">No. resi penjemputan: <span class="font-mono font-bold">{{ $refund->no_resi_penjemputan }}</span></p>
+                        @endif
+                        @if ($refund->batas_kirim)
+                            <p class="mt-2 text-[12px] font-bold text-rose-700 bg-rose-50 p-2 rounded-lg inline-block">{{ $refund->metode_pengembalian === 'dijemput' ? 'Serahkan barang ke kurir' : 'Kirim barang' }} paling lambat {{ $refund->batas_kirim->format('d M Y') }}.</p>
+                        @endif
 
-                    <div class="mt-3 rounded-lg bg-white/70 border border-emerald-200 p-3">
-                        <p class="text-[11px] font-bold text-emerald-800 mb-1.5">Panduan mengirim barang kembali</p>
-                        <ol class="list-decimal pl-4 space-y-1 text-[11px] text-emerald-900 leading-relaxed">
-                            <li>Periksa barang dan kelengkapannya sesuai pesanan.</li>
-                            <li>Kemas rapi dan aman agar tidak rusak/kusut selama perjalanan.</li>
-                            <li>{{ $refund->metode_pengembalian === 'kirim_sendiri' ? 'Antar ke agen kurir, simpan struk dan resinya. Ongkir akan diganti toko.' : 'Tunggu kurir menjemput. Pengembalian ini tanpa biaya untuk Anda.' }}</li>
-                            <li>Simpan bukti pengiriman/resi sampai refund selesai.</li>
-                            <li>Tekan tombol di bawah setelah barang diserahkan.</li>
-                        </ol>
-                    </div>
-
-                    <form action="{{ route('akun.refund.kirim', $refund->id) }}" method="POST" class="mt-3 space-y-2" enctype="multipart/form-data"
-                          onsubmit="return confirm('{{ $refund->metode_pengembalian === 'dijemput' ? 'Pastikan barang sudah diambil oleh kurir. Lanjutkan?' : 'Pastikan barang sudah diserahkan ke kurir / dikirim. Lanjutkan?' }}')">
-                        @csrf @method('PATCH')
-                        @if ($refund->metode_pengembalian === 'kirim_sendiri')
-                            <div class="grid gap-2 sm:grid-cols-2">
-                                <div>
-                                    <label class="block text-[11px] font-bold text-emerald-800 mb-1">Kurir <span class="text-rose-500">*</span></label>
-                                    <input type="text" name="kurir_retur" maxlength="50" required value="{{ old('kurir_retur') }}" placeholder="JNE / J&T / SiCepat" class="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-[12px]">
-                                    @error('kurir_retur')<p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p>@enderror
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-bold text-emerald-800 mb-1">No. resi <span class="text-rose-500">*</span></label>
-                                    <input type="text" name="no_resi_retur" maxlength="100" required value="{{ old('no_resi_retur') }}" class="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-[12px] font-mono">
-                                    @error('no_resi_retur')<p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p>@enderror
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-emerald-800 mb-1">Ongkir yang Anda bayar (Rp) <span class="text-rose-500">*</span> <span class="font-normal text-emerald-700">(akan diganti toko)</span></label>
-                                <input type="text" inputmode="numeric" data-rupiah name="biaya_ongkir_retur" required value="{{ old('biaya_ongkir_retur') }}" class="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-[12px]">
-                                @error('biaya_ongkir_retur')<p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p>@enderror
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-emerald-800 mb-1">Foto struk / resi <span class="text-rose-500">*</span> <span class="font-normal text-emerald-700">(maks 3 MB)</span></label>
-                                <input type="file" name="bukti_pengiriman" accept="image/*" required class="block w-full text-[12px]">
-                                @error('bukti_pengiriman')<p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p>@enderror
+                        @if ($refund->metode_pengembalian === 'kirim_sendiri' && ($alamatRetur = \App\Models\Refund::alamatRetur()))
+                            <div class="mt-4 rounded-xl bg-white/80 border border-emerald-200 p-4 text-[12px] text-emerald-900 shadow-sm">
+                                <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Kirim barang ke</p>
+                                <p class="font-bold">{{ $alamatRetur['nama'] ?? '' }}</p>
+                                <p class="whitespace-pre-line mt-0.5">{{ $alamatRetur['alamat'] }}</p>
+                                @if (!empty($alamatRetur['telepon']))<p class="mt-1">Telp: {{ $alamatRetur['telepon'] }}</p>@endif
                             </div>
                         @endif
-                        <button class="{{ $btn }} bg-emerald-600 text-white font-bold hover:bg-emerald-700">{{ $refund->metode_pengembalian === 'dijemput' ? 'Barang sudah diambil kurir' : 'Saya sudah mengirim barang' }}</button>
-                    </form>
 
-                @elseif ($st === 'barang_dikirim')
-                    <p class="text-[13px] font-semibold text-sky-900">Barang dalam perjalanan</p>
-                    <p class="text-[12px] text-sky-900/80 mt-0.5">Admin akan memperbarui status setelah barang diterima dan dicek.</p>
-                    @if ($refund->no_resi_retur)
-                        <p class="mt-1 text-[12px] text-sky-900">Resi Anda ({{ $refund->kurir_retur }}): <span class="font-mono font-bold break-all">{{ $refund->no_resi_retur }}</span></p>
-                    @elseif ($refund->no_resi_penjemputan)
-                        <p class="mt-1 text-[12px] text-sky-900">{{ $refund->kurir_retur ? 'Kurir ' . $refund->kurir_retur . ' · ' : '' }}No. resi penjemputan: <span class="font-mono font-bold break-all">{{ $refund->no_resi_penjemputan }}</span></p>
-                    @endif
-
-                @elseif ($st === 'barang_diterima')
-                    <p class="text-[13px] font-semibold text-sky-900">Barang sudah diterima</p>
-                    <p class="text-[12px] text-sky-900/80 mt-0.5">
-                        {{ $refund->tanggal_barang_diterima ? 'Diterima pada ' . $refund->tanggal_barang_diterima->format('d M Y') . '. ' : '' }}
-                        Dana sedang diproses dan akan ditransfer ke rekening Anda.
-                    </p>
-
-                @elseif ($st === 'selesai')
-                    <p class="text-[13px] font-semibold text-emerald-900">
-                        Dana Rp{{ number_format($refund->jumlah, 0, ',', '.') }} sudah ditransfer{{ $refund->tanggal_selesai ? ' pada ' . $refund->tanggal_selesai->format('d M Y') : '' }}.
-                    </p>
-                    <p class="text-[12px] text-emerald-800/80 mt-0.5 break-words">Ke {{ $refund->bank_tujuan }} · {{ $refund->no_rekening }} · a.n. {{ $refund->atas_nama }}</p>
-
-                    @if ($buktiTf)
-                        <div class="mt-3 rounded-xl bg-white/70 border border-emerald-200 p-3">
-                            <p class="text-[11px] font-bold text-emerald-800 mb-2">Bukti transfer dari admin</p>
-                            @unless ($tfPdf)
-                                <a href="{{ $buktiTf }}" target="_blank" rel="noopener" class="block w-fit max-w-full">
-                                    <img src="{{ $buktiTf }}" alt="Bukti transfer refund" loading="lazy"
-                                         class="max-h-56 sm:max-h-64 max-w-full rounded-lg border border-emerald-200 bg-white object-contain"
-                                         onerror="this.replaceWith(document.createTextNode('Gambar gagal dimuat. Gunakan tombol di bawah.'))">
-                                </a>
-                            @else
-                                <p class="text-[11px] text-emerald-900/80">Bukti berformat PDF.</p>
-                            @endunless
-                            <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
-                                <a href="{{ $buktiTf }}" target="_blank" rel="noopener" class="font-bold text-emerald-700 hover:underline py-1">{{ $tfPdf ? 'Buka PDF' : 'Lihat ukuran penuh' }}</a>
-                                <a href="{{ $buktiTf }}" download class="font-bold text-emerald-700 hover:underline py-1">Unduh</a>
-                            </div>
+                        <div class="mt-4 rounded-xl bg-white/80 border border-emerald-200 p-4 shadow-sm">
+                            <p class="text-[11px] font-bold text-emerald-800 mb-2">Panduan mengirim barang kembali</p>
+                            <ol class="list-decimal pl-4 space-y-1.5 text-[11px] text-emerald-900/80 leading-relaxed">
+                                <li>Periksa barang dan kelengkapannya sesuai pesanan.</li>
+                                <li>Kemas rapi dan aman agar tidak rusak selama perjalanan.</li>
+                                <li>{{ $refund->metode_pengembalian === 'kirim_sendiri' ? 'Antar ke agen kurir, simpan struk dan resinya.' : 'Tunggu kurir menjemput. Pengembalian tanpa biaya.' }}</li>
+                                <li>Simpan bukti pengiriman/resi sampai refund selesai.</li>
+                                <li>Tekan tombol di bawah setelah barang diserahkan.</li>
+                            </ol>
                         </div>
+
+                        <form action="{{ route('akun.refund.kirim', $refund->id) }}" method="POST" class="mt-4 space-y-3" enctype="multipart/form-data"
+                              onsubmit="return confirm('{{ $refund->metode_pengembalian === 'dijemput' ? 'Pastikan barang sudah diambil oleh kurir. Lanjutkan?' : 'Pastikan barang sudah diserahkan ke kurir / dikirim. Lanjutkan?' }}')">
+                            @csrf @method('PATCH')
+                            @if ($refund->metode_pengembalian === 'kirim_sendiri')
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-emerald-800 mb-1">Nama Kurir <span class="text-rose-500">*</span></label>
+                                        <input type="text" name="kurir_retur" maxlength="50" required value="{{ old('kurir_retur') }}" placeholder="JNE / J&T / SiCepat" class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                        @error('kurir_retur')<p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p>@enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-emerald-800 mb-1">No. Resi <span class="text-rose-500">*</span></label>
+                                        <input type="text" name="no_resi_retur" maxlength="100" required value="{{ old('no_resi_retur') }}" class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                        @error('no_resi_retur')<p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p>@enderror
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-emerald-800 mb-1">Ongkir yang Anda bayar (Rp) <span class="text-rose-500">*</span> <span class="font-normal text-emerald-700">(akan diganti)</span></label>
+                                    <input type="text" inputmode="numeric" data-rupiah name="biaya_ongkir_retur" required value="{{ old('biaya_ongkir_retur') }}" class="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                                    @error('biaya_ongkir_retur')<p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p>@enderror
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-emerald-800 mb-1">Foto Struk / Resi <span class="text-rose-500">*</span> <span class="font-normal text-emerald-700">(Maks 3 MB)</span></label>
+                                    <input type="file" name="bukti_pengiriman" accept="image/*" required class="block w-full text-xs text-emerald-800 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-100 file:text-emerald-800 hover:file:bg-emerald-200 cursor-pointer">
+                                    @error('bukti_pengiriman')<p class="mt-1 text-[10px] text-rose-600">{{ $message }}</p>@enderror
+                                </div>
+                            @endif
+                            <button class="{{ $btn }} bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-500/30 w-full">{{ $refund->metode_pengembalian === 'dijemput' ? 'Barang sudah diambil kurir' : 'Saya sudah mengirim barang' }}</button>
+                        </form>
+
+                    @elseif ($st === 'barang_dikirim')
+                        <p class="text-[14px] font-bold text-sky-900">Barang dalam perjalanan</p>
+                        <p class="text-[12px] text-sky-800/80 mt-1">Admin akan memperbarui status setelah barang diterima dan dicek.</p>
+                        @if ($refund->no_resi_retur)
+                            <p class="mt-2 text-[12px] text-sky-900 bg-sky-100/50 p-2.5 rounded-lg">Resi ({{ $refund->kurir_retur }}): <span class="font-mono font-bold">{{ $refund->no_resi_retur }}</span></p>
+                        @elseif ($refund->no_resi_penjemputan)
+                            <p class="mt-2 text-[12px] text-sky-900 bg-sky-100/50 p-2.5 rounded-lg">{{ $refund->kurir_retur ? $refund->kurir_retur . ' · ' : '' }}Resi Penjemputan: <span class="font-mono font-bold">{{ $refund->no_resi_penjemputan }}</span></p>
+                        @endif
+
+                    @elseif ($st === 'barang_diterima')
+                        <p class="text-[14px] font-bold text-sky-900">Barang sudah diterima</p>
+                        <p class="text-[12px] text-sky-800/80 mt-1">
+                            {{ $refund->tanggal_barang_diterima ? 'Diterima pada ' . $refund->tanggal_barang_diterima->format('d M Y') . '. ' : '' }}
+                            Dana sedang diproses dan akan ditransfer ke rekening Anda.
+                        </p>
+
+                    @elseif ($st === 'selesai')
+                        <p class="text-[14px] font-bold text-emerald-900">
+                            Dana Rp{{ number_format($refund->jumlah, 0, ',', '.') }} sudah ditransfer{{ $refund->tanggal_selesai ? ' pada ' . $refund->tanggal_selesai->format('d M Y') : '' }}.
+                        </p>
+                        <p class="text-[12px] text-emerald-800/80 mt-1">Ke {{ $refund->bank_tujuan }} · {{ $refund->no_rekening }} · a.n. {{ $refund->atas_nama }}</p>
+
+                        @if ($buktiTf)
+                            <div class="mt-4 rounded-xl bg-white border border-emerald-200 p-4 shadow-sm">
+                                <p class="text-[11px] font-bold text-emerald-800 mb-2">Bukti transfer dari admin</p>
+                                @unless ($tfPdf)
+                                    <a href="{{ $buktiTf }}" target="_blank" rel="noopener" class="block w-fit max-w-full">
+                                        <img src="{{ $buktiTf }}" alt="Bukti transfer" class="max-h-56 rounded-lg border border-emerald-100 object-contain">
+                                    </a>
+                                @else
+                                    <p class="text-[11px] text-emerald-900/80">Bukti berformat PDF.</p>
+                                @endunless
+                                <div class="mt-3 flex gap-4 text-[12px]">
+                                    <a href="{{ $buktiTf }}" target="_blank" class="font-bold text-emerald-700 hover:underline">{{ $tfPdf ? 'Buka PDF' : 'Lihat Penuh' }}</a>
+                                    <a href="{{ $buktiTf }}" download class="font-bold text-emerald-700 hover:underline">Unduh</a>
+                                </div>
+                            </div>
+                        @else
+                            <p class="mt-3 text-[11px] text-emerald-800 bg-emerald-100/50 p-3 rounded-lg">Bukti transfer belum tersedia. Hubungi CS bila dana belum diterima.</p>
+                        @endif
+
+                    @elseif ($st === 'ditolak')
+                        <p class="text-[14px] font-bold text-rose-800 mb-1">Pengajuan ditolak</p>
+                        <p class="text-[12px] text-rose-900 bg-white/50 p-3 rounded-lg mb-3">{{ $refund->alasan_penolakan ?: 'Tidak ada keterangan.' }}</p>
+                        <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya ingin menanyakan penolakan refund pesanan ' . $t->kode_transaksi) }}" target="_blank" class="inline-flex items-center justify-center gap-2 {{ $btn }} border border-rose-200 bg-white text-rose-600 hover:bg-rose-50">
+                            Tanyakan via WhatsApp
+                        </a>
                     @else
-                        <p class="mt-2 text-[12px] text-emerald-900">Bukti transfer belum tersedia. Hubungi CS bila dana belum Anda terima.</p>
+                        <p class="text-[12px] text-ink/60">{{ $refund->alasan_penolakan ?: 'Pengajuan ini dibatalkan.' }}</p>
                     @endif
-
-                @elseif ($st === 'ditolak')
-                    <p class="text-[13px] font-semibold text-rose-800 mb-1">Pengajuan ditolak</p>
-                    <p class="text-[12px] text-rose-900 whitespace-pre-line">{{ $refund->alasan_penolakan ?: 'Tidak ada keterangan.' }}</p>
-                    <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya ingin menanyakan penolakan refund pesanan ' . $t->kode_transaksi) }}"
-                       target="_blank" rel="noopener" class="inline-block mt-2 py-1 text-[12px] font-bold text-rose-700 hover:underline">Tanyakan ke CS via WhatsApp</a>
-
-                @else
-                    <p class="text-[12px] text-ink/60 whitespace-pre-line">{{ $refund->alasan_penolakan ?: 'Pengajuan ini dibatalkan.' }}</p>
-                @endif
-            </section>
-
-            {{-- Barang dalam pesanan --}}
-            <section class="{{ $kartu }}">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="{{ $judul }}">Barang dalam pesanan</h2>
-                    <span class="text-[10px] text-ink/50">{{ $items->count() }} produk</span>
-                </div>
-                <div class="space-y-3">
-                    @forelse ($items as $d)
-                        <div class="{{ ! $loop->last ? 'pb-3 border-b border-line/30' : '' }}">
-                            @include('customer.akun._refund-item', ['d' => $d, 'tandaiBermasalah' => count($bermasalah) > 0 && in_array($labelItem($d), $bermasalah, true)])
-                        </div>
-                    @empty
-                        <p class="text-[12px] text-ink/50">Data barang tidak tersedia.</p>
-                    @endforelse
-                </div>
-
-                <dl class="mt-4 pt-3 border-t border-line/40 space-y-1.5 text-[12px]">
-                    @if ($items->count() > 1 || $selisih !== 0)
-                        <div class="flex justify-between gap-3"><dt class="text-ink/50">Subtotal barang</dt><dd class="text-ink/80 tabular-nums">Rp{{ number_format($subtotalBarang, 0, ',', '.') }}</dd></div>
-                    @endif
-                    @if ($ongkir > 0)
-                        <div class="flex justify-between gap-3"><dt class="text-ink/50">Ongkos kirim</dt><dd class="text-ink/80 tabular-nums">Rp{{ number_format($ongkir, 0, ',', '.') }}</dd></div>
-                    @endif
-                    @if ($lain !== 0)
-                        <div class="flex justify-between gap-3"><dt class="text-ink/50">{{ $lain < 0 ? 'Potongan / diskon' : 'Biaya lain' }}</dt><dd class="text-ink/80 tabular-nums">{{ $lain < 0 ? '−' : '' }}Rp{{ number_format(abs($lain), 0, ',', '.') }}</dd></div>
-                    @endif
-                    <div class="flex justify-between gap-3 text-[13px]"><dt class="font-semibold text-ink/70">Total pesanan</dt><dd class="font-bold text-ink/90 tabular-nums">Rp{{ number_format($t->total, 0, ',', '.') }}</dd></div>
-                </dl>
-            </section>
-
-            {{-- Rincian pengajuan --}}
-            <section class="{{ $kartu }}">
-                <h2 class="{{ $judul }} mb-3">Rincian pengajuan</h2>
-
-                @if (count($bermasalah) > 0)
-                    <div class="mb-3 flex flex-wrap gap-1.5">
-                        @foreach ($bermasalah as $b)
-                            <span class="px-2 py-0.5 rounded-md border border-rose-200 bg-rose-50 text-[11px] font-semibold text-rose-700 break-words">{{ $b }}</span>
-                        @endforeach
-                    </div>
-                @endif
-
-                <dl class="grid grid-cols-[6.5rem_1fr] sm:grid-cols-[7.5rem_1fr] gap-x-3 gap-y-2.5 text-[12px]">
-                    <dt class="text-ink/50">Diajukan</dt>
-                    <dd class="font-semibold text-ink/85">{{ $refund->created_at->format('d M Y, H:i') }}</dd>
-
-                    <dt class="text-ink/50">Alasan</dt>
-                    <dd class="font-semibold text-ink/85 whitespace-pre-line break-words">{{ $alasanBersih !== '' ? $alasanBersih : '-' }}</dd>
-
-                    <dt class="text-ink/50">Nominal refund</dt>
-                    <dd class="font-semibold text-ink/85 tabular-nums">
-                        Rp{{ number_format($refund->jumlah, 0, ',', '.') }}
-                        @if ($st === 'diajukan')<span class="font-normal text-ink/45">(usulan, ditentukan admin)</span>@endif
-                    </dd>
-
-                    <dt class="text-ink/50">Dana ke</dt>
-                    <dd class="font-semibold text-ink/85 break-words">{{ $refund->bank_tujuan }} · {{ $refund->no_rekening }} · {{ $refund->atas_nama }}</dd>
-                </dl>
-
-                @if ($foto)
-                    <p class="mt-4 mb-2 text-[11px] text-ink/50">Foto bukti yang Anda unggah ({{ count($foto) }})</p>
-                    <div class="flex flex-wrap gap-2">
-                        @foreach ($foto as $url)
-                            <a href="{{ $url }}" target="_blank" rel="noopener" class="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border border-line/50 bg-cream">
-                                <img src="{{ $url }}" alt="Bukti refund {{ $loop->iteration }}" loading="lazy" class="w-full h-full object-cover">
-                            </a>
-                        @endforeach
-                    </div>
-                @endif
-            </section>
-
-            {{-- Riwayat --}}
-            @if ($riwayat->isNotEmpty())
-                <section class="{{ $kartu }}">
-                    <h2 class="{{ $judul }} mb-4">Riwayat status</h2>
-                    <div class="relative border-l-2 border-gold/30 ml-2 space-y-4">
-                        @foreach ($riwayat as $r)
-                            <div class="relative pl-4">
-                                <span class="absolute -left-[5px] top-1 w-2 h-2 rounded-full ring-2 ring-panel bg-gold"></span>
-                                <p class="text-[12px] font-bold text-ink/85">{{ \App\Models\Refund::LABEL[$r->status_baru] ?? $r->status_baru }}</p>
-                                <p class="text-[10px] text-ink/50">{{ ($r->waktu_ubah ?? $r->created_at)->format('d M Y, H:i') }}</p>
-                            </div>
-                        @endforeach
-                    </div>
                 </section>
-            @endif
+
+                {{-- Barang dalam pesanan --}}
+                <section class="{{ $kartu }}">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="{{ $judul }} !mb-0">Barang dalam pesanan</h2>
+                        <span class="text-[10px] font-semibold bg-gray-100 px-2 py-0.5 rounded text-gray-500">{{ $items->count() }} produk</span>
+                    </div>
+                    <div class="space-y-4">
+                        @forelse ($items as $d)
+                            <div class="{{ ! $loop->last ? 'pb-4 border-b border-line/30' : '' }}">
+                                @include('customer.akun._refund-item', ['d' => $d, 'tandaiBermasalah' => count($bermasalah) > 0 && in_array($labelItem($d), $bermasalah, true)])
+                            </div>
+                        @empty
+                            <p class="text-[12px] text-ink/50">Data barang tidak tersedia.</p>
+                        @endforelse
+                    </div>
+
+                    <dl class="mt-5 pt-4 border-t border-line/40 space-y-2 text-[12px]">
+                        @if ($items->count() > 1 || $selisih !== 0)
+                            <div class="flex justify-between gap-3"><dt class="text-ink/50">Subtotal barang</dt><dd class="font-semibold text-ink/80 tabular-nums">Rp{{ number_format($subtotalBarang, 0, ',', '.') }}</dd></div>
+                        @endif
+                        @if ($ongkir > 0)
+                            <div class="flex justify-between gap-3"><dt class="text-ink/50">Ongkos kirim</dt><dd class="font-semibold text-ink/80 tabular-nums">Rp{{ number_format($ongkir, 0, ',', '.') }}</dd></div>
+                        @endif
+                        @if ($lain !== 0)
+                            <div class="flex justify-between gap-3"><dt class="text-ink/50">{{ $lain < 0 ? 'Potongan / diskon' : 'Biaya lain' }}</dt><dd class="font-semibold text-ink/80 tabular-nums">{{ $lain < 0 ? '−' : '' }}Rp{{ number_format(abs($lain), 0, ',', '.') }}</dd></div>
+                        @endif
+                        <div class="flex justify-between gap-3 text-[14px] pt-2"><dt class="font-bold text-ink/80">Total pesanan</dt><dd class="font-bold text-gold tabular-nums">Rp{{ number_format($t->total, 0, ',', '.') }}</dd></div>
+                    </dl>
+                </section>
+
+            </div>
+
+            {{-- KOLOM KANAN --}}
+            <div class="space-y-6">
+                
+                {{-- Rincian pengajuan --}}
+                <section class="{{ $kartu }}">
+                    <h2 class="{{ $judul }}">Rincian pengajuan</h2>
+
+                    @if (count($bermasalah) > 0)
+                        <div class="mb-4 flex flex-wrap gap-1.5">
+                            @foreach ($bermasalah as $b)
+                                <span class="px-2 py-1 rounded-md border border-rose-200 bg-rose-50 text-[10px] font-bold text-rose-700">{{ $b }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    <dl class="space-y-4 text-[12px]">
+                        <div>
+                            <dt class="text-ink/50 mb-0.5">Waktu Diajukan</dt>
+                            <dd class="font-bold text-ink/85">{{ $refund->created_at->format('d M Y, H:i') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-ink/50 mb-0.5">Alasan Refund</dt>
+                            <dd class="font-medium text-ink/85 whitespace-pre-line bg-gray-50 p-3 rounded-xl border border-gray-100">{{ $alasanBersih !== '' ? $alasanBersih : '-' }}</dd>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-amber-50/50 border border-amber-100">
+                            <dt class="text-amber-700/80 font-bold mb-1">Nominal Refund</dt>
+                            <dd class="text-lg font-bold text-gold">Rp{{ number_format($refund->jumlah, 0, ',', '.') }}
+                                @if ($st === 'diajukan')<span class="text-[10px] font-normal text-ink/50 ml-1 block">(Usulan, ditentukan admin)</span>@endif
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-ink/50 mb-0.5">Tujuan Transfer</dt>
+                            <dd class="font-bold text-ink/85">{{ $refund->bank_tujuan }}</dd>
+                            <dd class="font-semibold text-ink/70 mt-0.5">{{ $refund->no_rekening }}</dd>
+                            <dd class="text-ink/60 mt-0.5">a.n. {{ $refund->atas_nama }}</dd>
+                        </div>
+                    </dl>
+
+                    @if ($foto)
+                        <div class="mt-5 border-t border-line/40 pt-4">
+                            <p class="text-[11px] font-bold text-ink/50 mb-3 uppercase tracking-wide">Foto Bukti ({{ count($foto) }})</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                @foreach ($foto as $url)
+                                    <a href="{{ $url }}" target="_blank" rel="noopener" class="block aspect-square rounded-xl overflow-hidden border border-line/50 bg-cream relative group">
+                                        <img src="{{ $url }}" alt="Bukti" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                                        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                        </div>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </section>
+
+                                {{-- Riwayat Timeline --}}
+                @if ($riwayat->isNotEmpty())
+                    <section class="{{ $kartu }}">
+                        <h2 class="{{ $judul }}">Riwayat Status</h2>
+                        <div class="relative pl-6 space-y-6">
+                            {{-- Garis Vertikal --}}
+                            <div class="absolute top-2 bottom-2 left-[11px] w-0.5 bg-gray-100"></div>
+
+                            @foreach ($riwayat as $r)
+                                <div class="relative">
+                                    {{-- Titik Timeline (Warna Emas untuk status terbaru / paling akhir) --}}
+                                    <div class="absolute -left-6 top-0.5 w-3 h-3 rounded-full border-2 border-white shadow-sm {{ $loop->last ? 'bg-gold ring-4 ring-amber-100' : 'bg-gray-300' }}"></div>
+                                    
+                                    <p class="text-[13px] font-bold {{ $loop->last ? 'text-ink' : 'text-ink/70' }}">
+                                        {{ \App\Models\Refund::LABEL[$r->status_baru] ?? $r->status_baru }}
+                                    </p>
+                                    <p class="text-[10px] text-ink/50 mt-0.5">
+                                        {{ ($r->waktu_ubah ?? $r->created_at)->format('d M Y, H:i') }}
+                                    </p>
+                                </div>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+                
+            </div>
         </div>
 
-        {{-- Panduan (lebar penuh, 2 kolom di dalamnya) --}}
-        @include('customer.akun._refund-panduan', ['compact' => true, 'grid' => true])
+        {{-- Panduan Full Width --}}
+        <div class="mt-6">
+            @include('customer.akun._refund-panduan', ['compact' => true, 'grid' => true])
+        </div>
     </div>
 </div>
+
 <script>
     (function () {
         var fmt = function (v) { v = String(v).replace(/\D/g, ''); return v ? v.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''; };

@@ -32,10 +32,10 @@ class Refund extends Model
 
     public const LABEL = [
         'diajukan'        => 'Menunggu tinjauan',
-        'disetujui'       => 'Disetujui — kirim barang',
+        'disetujui'       => 'Disetujui',
         'barang_dikirim'  => 'Barang dalam pengiriman',
-        'barang_diterima' => 'Barang diterima — dana diproses',
-        'selesai'         => 'Selesai — dana dikembalikan',
+        'barang_diterima' => 'Barang diterima',
+        'selesai'         => 'Selesai',
         'ditolak'         => 'Ditolak',
         'dibatalkan'      => 'Dibatalkan',
     ];

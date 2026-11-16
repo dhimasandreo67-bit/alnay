@@ -187,37 +187,6 @@
 
                             @include('customer.partials.qris-panel', ['transaksi' => $transaksi, 'nominal' => (int) $total])
 
-                            {{-- Cek status manual --}}
-                            <div class="mt-6 pt-6 border-t border-line/40">
-                                <button type="button" @click="cekManual()" :disabled="mengecek"
-                                    class="w-full h-12 rounded-xl border border-gold/60 bg-white text-gold text-[13px] font-semibold hover:bg-gold hover:text-white disabled:opacity-70 disabled:cursor-wait transition-all duration-300 inline-flex items-center justify-center gap-2">
-                                    <svg x-show="mengecek" x-cloak class="kb-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/></svg>
-                                    <span x-text="mengecek ? 'Memeriksa pembayaran…' : 'Saya Sudah Bayar, Cek Status'"></span>
-                                </button>
-
-                                {{-- Hasil cek: peringatan jelas --}}
-                                <div x-show="hasilCek === 'belum'" x-cloak
-                                    :class="{ 'kb-shake': getar }"
-                                    x-transition:enter="transition ease-out duration-300"
-                                    x-transition:enter-start="opacity-0 translate-y-2"
-                                    x-transition:enter-end="opacity-100 translate-y-0"
-                                    class="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
-                                    <div class="flex items-start gap-3">
-                                        <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
-                                        <div>
-                                            <p class="text-sm font-semibold text-amber-900">Pembayaran belum kami terima</p>
-                                            <p class="text-[13px] text-amber-800/85 mt-1 leading-relaxed">
-                                                Pastikan Anda sudah menyelesaikan pembayaran di aplikasi. Jika sudah, tunggu sekitar satu menit lalu periksa lagi. Halaman ini juga diperbarui otomatis.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div x-show="hasilCek === 'error'" x-cloak
-                                    class="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-[13px] text-rose-700">
-                                    Gagal memeriksa status. Periksa koneksi internet Anda lalu coba lagi.
-                                </div>
-                            </div>
                         </div>
                     @endunless
                 </div>

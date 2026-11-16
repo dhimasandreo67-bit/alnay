@@ -306,17 +306,110 @@
                 @endforelse
             </div>
 
-            {{-- ===== PANEL: REFUND ===== --}}
+                        {{-- ===== PANEL: REFUND (RINGKASAN & DAFTAR) ===== --}}
             <div data-panel-content="refund" class="hidden space-y-4">
-                <div class="{{ $kartu }} p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
+                <div class="{{ $kartu }} p-6 md:p-8">
+                    
+                    {{-- Header --}}
+                    <div class="mb-6">
                         <h2 class="font-display text-2xl font-bold text-ink/90">Refund &amp; Return</h2>
-                        <p class="text-sm text-ink/60 mt-1">Ajukan pengembalian barang untuk pesanan pembelian, lalu pantau prosesnya di sini.</p>
+                        <p class="text-sm text-ink/60 mt-1">Ringkasan dan riwayat pengembalian barang Anda.</p>
                     </div>
-                    <a href="{{ route('akun.refund.index') }}" class="{{ $btnTepi }} shrink-0">Buka Halaman Refund</a>
-                </div>
 
-                @include('customer.akun._refund-tab')
+                    {{-- Kotak Statistik --}}
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                        <div class="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
+                            <span class="block text-xl font-black text-gray-800">{{ isset($bisaDirefund) ? $bisaDirefund->count() : 0 }}</span>
+                            <span class="text-[10px] font-bold text-gray-500 uppercase">Bisa Refund</span>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-3 text-center border border-amber-100">
+                            <span class="block text-xl font-black text-amber-600">{{ isset($refundList) ? $refundList->whereIn('status', ['diajukan', 'disetujui', 'barang_dikirim', 'barang_diterima'])->count() : ($refundAktif ?? 0) }}</span>
+                            <span class="text-[10px] font-bold text-amber-700 uppercase">Diproses</span>
+                        </div>
+                        <div class="bg-rose-50 rounded-xl p-3 text-center border border-rose-100">
+                            <span class="block text-xl font-black text-rose-600">{{ isset($refundList) ? $refundList->where('status', 'disetujui')->count() : 0 }}</span>
+                            <span class="text-[10px] font-bold text-rose-700 uppercase">Perlu Tindakan</span>
+                        </div>
+                        <div class="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-100">
+                            <span class="block text-xl font-black text-emerald-600">{{ isset($refundList) ? $refundList->where('status', 'selesai')->count() : 0 }}</span>
+                            <span class="text-[10px] font-bold text-emerald-700 uppercase">Selesai</span>
+                        </div>
+                    </div>
+
+                    {{-- Alert Peringatan --}}
+                    @if(isset($refundList) && $refundList->where('status', 'disetujui')->first())
+                        @php $perluTindakan = $refundList->where('status', 'disetujui')->first(); @endphp
+                        <a href="{{ route('akun.refund.show', $perluTindakan->id) }}" class="block group mb-8">
+                            <div class="bg-emerald-50 rounded-xl p-4 border border-emerald-200 flex items-start gap-3 transition-colors group-hover:bg-emerald-100/50">
+                                <div class="w-8 h-8 rounded-full bg-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-emerald-900 group-hover:text-emerald-950">Refund disetujui!</p>
+                                    <p class="text-xs text-emerald-700 mt-1 group-hover:text-emerald-800">
+                                        Refund untuk pesanan <b>{{ $perluTindakan->transaksi->kode_transaksi }}</b> telah disetujui. Klik di sini untuk melihat instruksi pengiriman barang.
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    @endif
+
+                    {{-- DAFTAR RIWAYAT REFUND --}}
+                    <div class="border-t border-gray-100 pt-6">
+                        <h3 class="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-4">Daftar Pengajuan</h3>
+                        
+                        <div class="space-y-3">
+                            @forelse($refundList as $refund)
+                                @php
+                                    $isSelesai = $refund->status === 'selesai';
+                                    $isGagal = in_array($refund->status, ['ditolak', 'dibatalkan']);
+                                    $chip = $isSelesai ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : ($isGagal ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-amber-100 text-amber-800 border-amber-200');
+                                    $statusText = match($refund->status) {
+                                        'diajukan' => 'Menunggu Tinjauan Admin',
+                                        'disetujui' => 'Menunggu Pengiriman Barang',
+                                        'barang_dikirim' => 'Barang Dalam Perjalanan',
+                                        'barang_diterima' => 'Barang Sedang Dicek',
+                                        'selesai' => 'Refund Selesai',
+                                        'ditolak' => 'Pengajuan Ditolak',
+                                        'dibatalkan' => 'Dibatalkan',
+                                        default => $refund->label_status,
+                                    };
+                                @endphp
+                                
+                                {{-- Kartu Refund --}}
+                                <a href="{{ route('akun.refund.show', $refund->id) }}" class="block group">
+                                    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm transition-all duration-300 group-hover:shadow-md group-hover:border-[#c99a32]/30">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="text-[11px] font-mono font-bold text-gray-400">{{ $refund->transaksi->kode_transaksi ?? '-' }}</span>
+                                            <span class="px-2.5 py-1 rounded-md border text-[10px] font-bold uppercase tracking-wider {{ $chip }}">{{ $refund->label_status }}</span>
+                                        </div>
+                                        <div class="flex items-start justify-between gap-4">
+                                            <div>
+                                                <p class="text-sm font-bold text-gray-900 line-clamp-1">
+                                                    {{ $refund->transaksi->detail->first()->produk->nama ?? 'Produk' }}
+                                                </p>
+                                                <p class="text-xs font-semibold text-gray-600 mt-0.5">Rp{{ number_format($refund->jumlah, 0, ',', '.') }}</p>
+                                                <p class="text-[10px] text-gray-400 mt-1">Diajukan {{ $refund->created_at->format('d M Y, H:i') }}</p>
+                                            </div>
+                                            <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#c99a32]/10 group-hover:text-[#c99a32] transition-colors shrink-0">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between">
+                                            <p class="text-[11px] font-bold {{ $isGagal ? 'text-rose-600' : ($isSelesai ? 'text-emerald-600' : 'text-amber-600') }}">
+                                                Status: {{ $statusText }}
+                                            </p>
+                                            <span class="text-[10px] font-bold text-gray-400 group-hover:text-[#c99a32]">Detail →</span>
+                                        </div>
+                                    </div>
+                                </a>
+                            @empty
+                                <p class="text-sm text-gray-500 text-center py-4">Belum ada pengajuan refund.</p>
+                            @endforelse
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
             {{-- ===== PANEL: EDIT PROFIL ===== --}}
