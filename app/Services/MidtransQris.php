@@ -118,6 +118,11 @@ class MidtransQris
                 }
             }
 
+            // Pesanan beli yang sudah kedaluwarsa (stok dilepas) hanya boleh dihidupkan lagi bila stoknya masih ada.
+            if ($t->jenis === 'beli' && $t->status_pembayaran === 'gagal' && ! $t->stok_ditahan && ! $t->stokCukup()) {
+                throw new \RuntimeException('Stok pesanan ini sudah tidak tersedia. Silakan buat pesanan baru.');
+            }
+
             $nominal = $this->nominal($t);
             $orderId = $t->kode_transaksi . '-' . time();
 
@@ -161,6 +166,7 @@ class MidtransQris
             if ($t->status_pembayaran === 'gagal') {
                 $t->update(['status_pembayaran' => $t->jenis === 'sewa' ? 'dp' : 'pending']);
                 $this->tagihan($t)?->update(['status_midtrans' => 'pending']);
+                $t->tahanStok(); // pesanan hidup lagi: tahan stoknya lagi (sewa: tidak berlaku)
             }
 
             return $this->bentuk($data);
@@ -244,7 +250,9 @@ class MidtransQris
                     'tanggal_bayar' => now(),
                 ]);
 
-                // ==== KURANGI STOK PRODUK (hanya transaksi BELI) ====
+                // ==== STOK PRODUK (hanya transaksi BELI) ====
+                // Stok sudah ditahan saat checkout, jadi ini tidak memotong lagi. Tetap dipanggil untuk
+                // pesanan lama / pesanan yang sempat dikedaluwarsakan lalu dibayar (stok ditahan lagi).
                 // Stok SEWA tidak dikurangi: ketersediaannya dihitung per tanggal (Support\KetersediaanSewa).
                 $t->potongStokPembelianOnline();
             });
@@ -253,6 +261,9 @@ class MidtransQris
         } elseif (in_array($status, ['expire', 'cancel', 'deny', 'failure'], true)) {
             $t->update(['status_pembayaran' => 'gagal']);
             $this->tagihan($t)?->update(['status_midtrans' => 'failed']);
+
+            // QRIS kedaluwarsa / dibatalkan: stok yang ditahan saat checkout dikembalikan.
+            $t->lepasStok();
         }
     }
 
