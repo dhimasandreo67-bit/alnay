@@ -100,6 +100,11 @@
 
         $riwayatQc = $transaksi->sewa?->pengecekan?->sortByDesc('created_at') ?? collect();
         $bisaBayar = in_array($statusKey, ['pending', 'dp']);
+
+        // Ulasan hanya untuk pesanan yang sudah diterima pelanggan:
+        // pengiriman berstatus "diterima", atau sewa yang sudah "selesai".
+        $sudahDiterima = $statusKirim === 'diterima'
+            || ($isSewa && strtolower((string) ($transaksi->sewa->status ?? '')) === 'selesai');
     @endphp
 
     <div class="bg-cream min-h-screen py-6 md:py-10 pb-12">
@@ -352,7 +357,7 @@
                 @endif
 
                 {{-- RATING --}}
-                @if (in_array($statusKey, ['lunas', 'settlement', 'success']))
+                @if ($sudahDiterima && in_array($statusKey, ['lunas', 'settlement', 'success']))
                     @if (! ($sudahRating ?? true) && ! empty($ratingDetailId))
                         <section class="p-5 md:p-6 border-t border-line/40">
                             <h2 class="text-[11px] font-semibold uppercase tracking-wider text-ink/60 mb-3">Beri Ulasan</h2>
@@ -367,7 +372,7 @@
                                     <input type="hidden" name="rating" x-model="rating">
                                 </div>
                                 <p class="text-[10px] text-ink/50 mb-2">Rating: <span x-text="rating"></span> / 5</p>
-                                <textarea name="ulasan" rows="2" placeholder="Ceritakan pengalaman Anda menyewa di ALNAY..."
+                                <textarea name="ulasan" rows="2" placeholder="Ceritakan pengalaman Anda {{ $isSewa ? 'menyewa' : 'berbelanja' }} di ALNAY..."
                                     class="w-full px-3 py-2 rounded-lg border border-line/50 bg-white text-xs mb-3 focus:outline-none focus:border-gold"></textarea>
                                 <button type="submit"
                                     class="px-4 py-2 bg-gold text-white text-xs font-bold rounded-lg hover:bg-gold/90">Kirim Ulasan</button>

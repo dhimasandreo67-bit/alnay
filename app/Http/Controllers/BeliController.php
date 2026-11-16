@@ -27,22 +27,13 @@ class BeliController extends Controller
 
         $user = auth()->user();
 
-        // --- LOGIKA BARU DARI CLAUDE: Cek Alamat Utama di tabel alamat_pengiriman ---
-        $alamatUtama = AlamatPengiriman::where('user_id', $user->id)
+        // Alamat tersimpan (utama tampil pertama). Tidak wajib: pembeli yang memilih
+        // "Ambil di Toko" tidak perlu punya alamat, dan yang memilih kirim bisa mengisi manual.
+        $alamatList = AlamatPengiriman::where('user_id', $user->id)
             ->orderByDesc('is_utama')
             ->orderByDesc('id')
-            ->first();
-
-        if (! $alamatUtama) {
-            return redirect(route('akun.dashboard') . '#alamat')
-                ->with('error', 'Tambahkan alamat pengiriman di "Alamat Saya" terlebih dahulu.');
-        }
-
-        if (empty($user->no_hp) && empty($alamatUtama->no_hp)) {
-            return redirect(route('akun.dashboard') . '#profil')
-                ->with('error', 'Lengkapi nomor telepon Anda terlebih dahulu.');
-        }
-        // --------------------------------------------------------------------------
+            ->get();
+        $alamatUtama = $alamatList->first();
 
         $beliData = session('beli_data');
         if (!$beliData) {
@@ -75,9 +66,9 @@ class BeliController extends Controller
         $daftarOngkir = [];
         $total        = $subtotal;
 
-        // Mengirimkan $alamatUtama ke view
+        // Mengirimkan alamat tersimpan ke view
         return view('customer.beli-checkout', compact(
-            'produk', 'beliData', 'qty', 'varian', 'subtotal', 'ongkir', 'total', 'user', 'daftarOngkir', 'alamatUtama'
+            'produk', 'beliData', 'qty', 'varian', 'subtotal', 'ongkir', 'total', 'user', 'daftarOngkir', 'alamatUtama', 'alamatList'
         ));
     }
 
@@ -140,20 +131,30 @@ class BeliController extends Controller
     public function store(Request $request, RajaOngkir $ro)
     {
         $validated = $request->validate([
-            'nama_penerima'  => ['required', 'string', 'max:100'],
-            'no_wa'          => ['required', 'string', 'max:20'],
-            'alamat'         => ['required', 'string', 'max:500'],
-            'catatan'        => ['nullable', 'string'],
-            'metode_bayar'   => ['required', 'in:qris,va,ewallet'],
-            'tujuan_id'      => ['required', 'integer'],
-            'tujuan_label'   => ['nullable', 'string', 'max:255'],
-            'kurir'          => ['required', 'string', 'max:20'],
-            'layanan_ongkir' => ['required', 'string', 'max:20'],
+            'metode_penerimaan' => ['required', 'in:ambil,kirim'],
+            'nama_penerima'     => ['required', 'string', 'max:100'],
+            'no_wa'             => ['required', 'string', 'max:20'],
+            'alamat'            => ['required_if:metode_penerimaan,kirim', 'nullable', 'string', 'max:500'],
+            'catatan'           => ['nullable', 'string'],
+            'metode_bayar'      => ['required', 'in:qris,va,ewallet,tunai'],
+            'tujuan_id'         => ['required_if:metode_penerimaan,kirim', 'nullable', 'integer'],
+            'tujuan_label'      => ['nullable', 'string', 'max:255'],
+            'kurir'             => ['required_if:metode_penerimaan,kirim', 'nullable', 'string', 'max:20'],
+            'layanan_ongkir'    => ['required_if:metode_penerimaan,kirim', 'nullable', 'string', 'max:50'],
         ], [
-            'tujuan_id.required'      => 'Pilih kelurahan/kecamatan tujuan pengiriman.',
-            'kurir.required'          => 'Pilih kurir dan layanan pengiriman.',
-            'layanan_ongkir.required' => 'Pilih kurir dan layanan pengiriman.',
+            'alamat.required_if'         => 'Alamat lengkap wajib diisi untuk pengiriman.',
+            'tujuan_id.required_if'      => 'Pilih kelurahan/kecamatan tujuan pengiriman.',
+            'kurir.required_if'          => 'Pilih kurir dan layanan pengiriman.',
+            'layanan_ongkir.required_if' => 'Pilih kurir dan layanan pengiriman.',
         ]);
+
+        $ambil = $validated['metode_penerimaan'] === 'ambil';
+
+        // Tunai hanya boleh untuk ambil di toko
+        if ($validated['metode_bayar'] === 'tunai' && ! $ambil) {
+            return back()->withInput()
+                ->withErrors(['metode_bayar' => 'Pembayaran tunai hanya tersedia untuk ambil di toko.']);
+        }
 
         $beliData = session('beli_data');
         if (!$beliData) {
@@ -188,33 +189,47 @@ class BeliController extends Controller
         ])->filter()->implode(' · ');
         $spesifikasi = $spesifikasi !== '' ? '[' . $spesifikasi . ']' : '';
 
-        // ==== HITUNG ULANG ONGKIR DI SERVER ====
-        try {
-            $berat = $ro->beratKeranjang([['id' => $produk->id, 'qty' => $qty]]);
-            $opsi  = $ro->hitungOngkir(
-                (int) $validated['tujuan_id'],
-                $berat,
-                strtolower($validated['kurir'])
+        // ==== HITUNG ULANG ONGKIR DI SERVER (hanya bila dikirim) ====
+        $ongkir  = 0;
+        $dipilih = null;
+
+        if (! $ambil) {
+            try {
+                $berat = $ro->beratKeranjang([['id' => $produk->id, 'qty' => $qty]]);
+                $opsi  = $ro->hitungOngkir(
+                    (int) $validated['tujuan_id'],
+                    $berat,
+                    strtolower($validated['kurir'])
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Ongkir error saat store: ' . $e->getMessage());
+                return back()->withInput()
+                    ->withErrors(['kurir' => 'Gagal menghitung ongkir. Coba lagi sebentar.']);
+            }
+
+            $dipilih = collect($opsi)->first(
+                fn ($o) => strcasecmp($o['layanan'], $validated['layanan_ongkir']) === 0
             );
-        } catch (\Throwable $e) {
-            Log::warning('Ongkir error saat store: ' . $e->getMessage());
-            return back()->withInput()
-                ->withErrors(['kurir' => 'Gagal menghitung ongkir. Coba lagi sebentar.']);
+
+            if (!$dipilih) {
+                return back()->withInput()
+                    ->withErrors(['kurir' => 'Layanan pengiriman yang dipilih tidak tersedia. Pilih ulang.']);
+            }
+
+            $ongkir = (int) $dipilih['biaya'];
         }
 
-        $dipilih = collect($opsi)->first(
-            fn ($o) => strcasecmp($o['layanan'], $validated['layanan_ongkir']) === 0
-        );
+        $total = $subtotal + $ongkir;
 
-        if (!$dipilih) {
-            return back()->withInput()
-                ->withErrors(['kurir' => 'Layanan pengiriman yang dipilih tidak tersedia. Pilih ulang.']);
-        }
+        // Catatan transaksi: ambil di toko tidak punya baris pengiriman, jadi info penerima ikut dicatat di sini.
+        $catatanUser = trim((string) ($validated['catatan'] ?? ''));
+        $catatan = $ambil
+            ? trim($spesifikasi . ' Ambil di toko | Penerima: ' . $validated['nama_penerima']
+                . ' | WA: ' . $validated['no_wa']
+                . ($catatanUser !== '' ? ' | Catatan: ' . $catatanUser : ''))
+            : (trim($spesifikasi . ' ' . $catatanUser) ?: null);
 
-        $ongkir = (int) $dipilih['biaya'];
-        $total  = $subtotal + $ongkir;
-
-        $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih, $spesifikasi, $ukuran, $varian) {
+        $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih, $catatan, $ukuran, $varian, $ambil) {
             $transaksi = Transaksi::create([
                 'kode_transaksi'    => 'ALN-BL-' . strtoupper(substr(uniqid(), -8)),
                 'user_id'           => auth()->id(),
@@ -223,7 +238,7 @@ class BeliController extends Controller
                 'tanggal'           => now()->toDateString(),
                 'total'             => $total,
                 'status_pembayaran' => 'pending',
-                'catatan'           => trim($spesifikasi . ' ' . ($validated['catatan'] ?? '')) ?: null,
+                'catatan'           => $catatan,
             ]);
 
             DetailTransaksi::create([
@@ -244,36 +259,47 @@ class BeliController extends Controller
                 'tanggal_bayar'   => now(),
             ]);
 
-            $tujuan = $validated['tujuan_label'] ?? null;
+            if (! $ambil) {
+                $tujuan = $validated['tujuan_label'] ?? null;
 
-            // Ekstrak kota & provinsi dari tujuan_label (jika formatnya "Kecamatan, Kota, Provinsi")
-            $bagianLabel = array_map('trim', explode(',', (string) $tujuan));
-            $kecamatanTujuan = count($bagianLabel) >= 1 ? $bagianLabel[0] : auth()->user()->kecamatan;
-            $kotaTujuan = count($bagianLabel) >= 2 ? $bagianLabel[1] : auth()->user()->kota_nama;
-            $provinsiTujuan = count($bagianLabel) >= 3 ? $bagianLabel[2] : auth()->user()->provinsi_nama;
+                // Ekstrak kota & provinsi dari tujuan_label (jika formatnya "Kecamatan, Kota, Provinsi")
+                $bagianLabel = array_map('trim', explode(',', (string) $tujuan));
+                $kecamatanTujuan = count($bagianLabel) >= 1 ? $bagianLabel[0] : auth()->user()->kecamatan;
+                $kotaTujuan = count($bagianLabel) >= 2 ? $bagianLabel[1] : auth()->user()->kota_nama;
+                $provinsiTujuan = count($bagianLabel) >= 3 ? $bagianLabel[2] : auth()->user()->provinsi_nama;
 
-            Pengiriman::create([
-                'transaksi_id'     => $transaksi->id,
-                'provinsi_tujuan'  => $provinsiTujuan ?? '-',
-                'kota_tujuan'      => $kotaTujuan ?? '-',
-                'kecamatan_tujuan' => $kecamatanTujuan ?? '-',
-                'kode_pos_tujuan'  => auth()->user()->kode_pos ?? null,
-                'alamat_tujuan'    => $validated['alamat'] . ($tujuan ? ' | Tujuan: ' . $tujuan : ''),
-                'status_kirim'     => 'menunggu',
-                'kurir'            => $dipilih['kurir'],
-                'layanan_ongkir'   => $dipilih['layanan'],
-                'biaya_kirim'      => $ongkir,
-                'nama_penerima'    => $validated['nama_penerima'],
-                'no_wa_penerima'   => $validated['no_wa'],
-            ]);
-            
+                Pengiriman::create([
+                    'transaksi_id'     => $transaksi->id,
+                    'provinsi_tujuan'  => $provinsiTujuan ?? '-',
+                    'kota_tujuan'      => $kotaTujuan ?? '-',
+                    'kecamatan_tujuan' => $kecamatanTujuan ?? '-',
+                    'kode_pos_tujuan'  => auth()->user()->kode_pos ?? null,
+                    'alamat_tujuan'    => $validated['alamat'] . ($tujuan ? ' | Tujuan: ' . $tujuan : ''),
+                    'status_kirim'     => 'menunggu',
+                    'kurir'            => $dipilih['kurir'],
+                    'layanan_ongkir'   => $dipilih['layanan'],
+                    'biaya_kirim'      => $ongkir,
+                    'nama_penerima'    => $validated['nama_penerima'],
+                    'no_wa_penerima'   => $validated['no_wa'],
+                ]);
+            }
+
             return $transaksi;
         });
 
         session()->forget('beli_data');
 
+        // Tunai: tidak ada pembayaran online. Pesanan tercatat (pending), pelanggan membayar saat
+        // ambil di toko, lalu admin menandai lunas (sama seperti checkout keranjang).
+        if ($validated['metode_bayar'] === 'tunai') {
+            return redirect()->route('akun.dashboard')
+                ->with('success', 'Pemesanan berhasil! Kode ' . $transaksi->kode_transaksi . '. Silakan bayar tunai saat mengambil pesanan di toko.');
+        }
+
         return redirect()->route('beli.konfirmasi', $transaksi->id)
-            ->with('success', 'Pesanan dibuat. Silakan selesaikan pembayaran QRIS.');
+            ->with('success', $ambil
+                ? 'Pesanan dibuat. Silakan selesaikan pembayaran, lalu ambil pesanan di toko.'
+                : 'Pesanan dibuat. Silakan selesaikan pembayaran QRIS.');
     }
 
     public function konfirmasi($id)
@@ -291,7 +317,10 @@ class BeliController extends Controller
             $spesifikasi = $mm[1];
         }
         $subtotal = $transaksi->detail->first()->harga_satuan * $qty;
-        $ongkir   = $transaksi->pengiriman->biaya_kirim ?? self::ONGKIR_DEFAULT;
+        // Ambil di toko tidak punya baris pengiriman -> ongkir 0. Default lama hanya untuk pesanan kirim tanpa biaya tersimpan.
+        $ongkir   = $transaksi->pengiriman
+            ? ($transaksi->pengiriman->biaya_kirim ?? self::ONGKIR_DEFAULT)
+            : 0;
         $total    = $transaksi->total;
 
         return view('customer.beli-konfirmasi', compact(

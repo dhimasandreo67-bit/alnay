@@ -501,6 +501,7 @@
                                 <span class="inline-block w-1.5 h-1.5 rounded-full" :class="stok > 0 ? 'bg-emerald-500' : 'bg-rose-500'"></span>
                                 <span x-text="stok > 0 ? 'Tersedia untuk dibeli' : 'Stok habis'"></span>
                             </p>
+                            <p class="mt-2 text-[11px] text-ink/50">Metode pengambilan &amp; ongkir dipilih saat checkout.</p>
                         </div>
                     </div>
 
@@ -508,33 +509,69 @@
 
                     {{-- Varian Warna & Motif --}}
 <div x-show="adaWarna" x-cloak class="pd-up mb-6" style="--d: .33s;">
-    <p class="mb-2.5 text-sm font-semibold text-ink/85">Varian Warna &amp; Motif</p>
+    <div class="flex items-baseline justify-between gap-3 mb-2.5">
+        <p class="text-sm font-semibold text-ink/85">Varian Warna &amp; Motif</p>
+        <p x-show="varianWarna" x-cloak class="min-w-0 truncate text-xs text-ink/55">
+            Dipilih: <b class="font-semibold text-ink/85" x-text="varianWarna"></b>
+        </p>
+    </div>
+
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" role="radiogroup" aria-label="Warna">
         <template x-for="w in warnaTampil" :key="jenis + '-' + w.label">
-            <label class="relative block" :class="habis(w.total) ? 'cursor-not-allowed' : 'cursor-pointer'">
+            <label class="relative block" :class="statusWarna(w) === 'habis' ? 'cursor-not-allowed' : 'cursor-pointer'">
                 <input type="radio" name="pilih_warna" :value="w.label" class="peer sr-only"
                     :checked="varianWarna === w.label"
-                    :disabled="habis(w.total)"
+                    :disabled="statusWarna(w) === 'habis'"
                     @change="pilihWarna(w.label)">
-                <div class="flex items-center gap-3 rounded-xl border border-line/60 bg-white px-3 py-3 transition-all duration-200 hover:border-gold/60 peer-checked:border-gold peer-checked:bg-[#fdf8ec] peer-disabled:opacity-50"
-                    :class="!w.ada ? 'opacity-60 border-dashed' : ''">
-                    <span class="w-9 h-9 shrink-0 rounded-md border border-black/10" :style="'background: ' + w.hex"></span>
+
+                {{-- Kartu warna.
+                     ok    = tersedia            -> tampil NORMAL (tidak pudar)
+                     lain  = ada di ukuran lain  -> tetap NORMAL, hanya diberi petunjuk
+                     habis = stok kosong         -> satu-satunya yang dipudarkan --}}
+                <div class="flex items-center gap-3 rounded-xl border px-3 py-3 transition-all duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-gold/50"
+                    :class="statusWarna(w) === 'habis'
+                        ? 'border-dashed border-line/60 bg-cream/40'
+                        : 'border-line/70 bg-white hover:border-gold/70 hover:-translate-y-0.5 hover:shadow-sm active:scale-[0.98] peer-checked:border-gold peer-checked:bg-[#fdf8ec] peer-checked:shadow-sm'">
+
+                    <span class="relative w-9 h-9 shrink-0 overflow-hidden rounded-lg border border-black/10 shadow-[inset_0_0_0_2px_rgba(255,255,255,.35)]"
+                        :class="statusWarna(w) === 'habis' ? 'grayscale opacity-45' : ''"
+                        :style="'background: ' + w.hex">
+                        <span x-show="statusWarna(w) === 'habis'" x-cloak aria-hidden="true"
+                            class="absolute inset-0 flex items-center justify-center">
+                            <span class="block h-px w-[140%] rotate-45 bg-ink/50"></span>
+                        </span>
+                    </span>
+
                     <span class="min-w-0 flex-1">
-                        <span class="block truncate text-[13px] font-medium text-ink/85" x-text="w.label"></span>
-                        <span x-show="keteranganWarna(w)" x-cloak class="block text-[10px] font-medium"
-                            :class="habis(w.total) ? 'text-rose-500' : 'text-amber-600'"
+                        <span class="block truncate text-[13px] font-medium"
+                            :class="statusWarna(w) === 'habis' ? 'text-ink/40 line-through decoration-ink/30' : 'text-ink/90'"
+                            x-text="w.label"></span>
+                        <span x-show="keteranganWarna(w)" x-cloak class="block text-[10px] font-medium leading-snug"
+                            :class="statusWarna(w) === 'habis' ? 'text-rose-500' : 'text-amber-600'"
                             x-text="keteranganWarna(w)"></span>
                     </span>
                 </div>
+
+                {{-- Centang pada warna terpilih --}}
+                <span aria-hidden="true"
+                    class="pointer-events-none absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gold text-white shadow opacity-0 scale-50 peer-checked:opacity-100 peer-checked:scale-100 transition-all duration-200">
+                    <svg viewBox="0 0 24 24" class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                </span>
             </label>
         </template>
     </div>
+
+    <p x-show="warnaTampil.some((w) => statusWarna(w) === 'habis')" x-cloak class="mt-2 text-[11px] text-ink/50">
+        Warna yang tampak pudar &amp; dicoret sedang tidak tersedia.
+    </p>
 </div>
 
                     {{-- Ukuran --}}
 <div x-show="adaUkuran" x-cloak class="pd-up mb-6" style="--d: .3s;">
     <div class="flex items-center justify-between gap-3 mb-2.5">
-        <p class="text-sm font-semibold text-ink/85">Ukuran</p>
+        <p class="text-sm font-semibold text-ink/85">Ukuran
+            <span x-show="ukuran" x-cloak class="ml-1 text-xs font-normal text-ink/55">· dipilih: <b class="font-semibold text-ink/85" x-text="ukuran"></b></span>
+        </p>
         <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya butuh panduan ukur untuk ' . $produk->nama) }}"
             target="_blank" rel="noopener"
             class="text-xs font-semibold text-gold hover:underline">Panduan Ukur Mandiri</a>
@@ -547,9 +584,9 @@
                 :title="!o.ada ? 'Tidak tersedia untuk warna ' + varianWarna : (sisaUkuran(o) <= 0 ? 'Stok habis' : (mode === 'sewa' ? 'Tersedia ' + sisaUkuran(o) + ' unit' : 'Stok ' + sisaUkuran(o)))"
                 :class="[
                     ukuran === o.label ? 'bg-ink/90 text-gold border-ink/90 shadow-md' : 'bg-white text-ink/75 border-line/60 hover:border-gold hover:text-ink',
-                    !o.ada ? 'opacity-30 line-through cursor-not-allowed' : (sisaUkuran(o) <= 0 ? 'opacity-40 line-through cursor-not-allowed' : '')
+                    !o.ada ? 'opacity-40 border-dashed line-through cursor-not-allowed' : (sisaUkuran(o) <= 0 ? 'opacity-40 line-through cursor-not-allowed bg-cream/40' : '')
                 ]"
-                class="w-16 h-11 flex items-center justify-center rounded-lg border text-[13px] font-semibold active:scale-95 transition-all duration-200"
+                class="w-16 h-11 flex items-center justify-center rounded-lg border text-[13px] font-semibold active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50"
                 x-text="o.label"></button>
         </template>
         <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya ingin pesan ukuran custom untuk ' . $produk->nama) }}"
@@ -743,41 +780,16 @@
                                 Jumlah sudah mencapai stok maksimal yang tersedia.
                             </p>
                         </div>
-
-                        {{-- Pilihan 4: Pengiriman --}}
-                        <div class="mb-5 rounded-2xl border border-line/40 bg-white/80 p-4 sm:p-5 shadow-sm">
-                            <p class="flex items-center gap-2 text-sm font-semibold text-ink/85 mb-3">
-                                <span class="flex w-5 h-5 items-center justify-center rounded-full bg-ink/90 text-gold text-[11px] font-bold"><span x-text="noKirim"></span></span>
-                                Metode Pengiriman
-                            </p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <label class="block cursor-pointer">
-                                    <input type="radio" name="metode" value="ambil" class="peer sr-only" x-model="metodeKirim">
-                                    <div class="h-full flex items-start gap-2 p-3 rounded-xl border border-line/50 hover:border-gold/60 peer-checked:border-gold peer-checked:bg-gold/5 peer-checked:shadow-sm transition-all duration-300">
-                                        <div class="flex-1">
-                                            <p class="text-[13px] font-semibold text-ink/85">Ambil di Toko</p>
-                                            <p class="text-xs text-ink/55">Gratis, tanpa ongkos kirim.</p>
-                                        </div>
-                                    </div>
-                                </label>
-                                <label class="block cursor-pointer">
-                                    <input type="radio" name="metode" value="kirim" class="peer sr-only" x-model="metodeKirim">
-                                    <div class="h-full flex items-start gap-2 p-3 rounded-xl border border-line/50 hover:border-gold/60 peer-checked:border-gold peer-checked:bg-gold/5 peer-checked:shadow-sm transition-all duration-300">
-                                        <div class="flex-1">
-                                            <p class="text-[13px] font-semibold text-ink/85">Dikirim ke Alamat</p>
-                                            <p class="text-xs text-ink/55">Ongkir dihitung otomatis saat checkout.</p>
-                                        </div>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
                     </div>
 
                     {{-- Ringkasan pilihan --}}
                     <div class="pd-up mb-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl bg-ink/[0.04] border border-line/30 px-3.5 py-2.5 text-xs text-ink/70" style="--d: .35s;">
                         <span class="font-semibold text-ink/85">Pilihanmu:</span>
                         <span x-show="adaUkuran" x-cloak class="px-2 py-0.5 rounded-md bg-white border border-line/40">Ukuran <b class="text-ink/90" x-text="ukuran"></b></span>
-                        <span x-show="varianWarna" x-cloak class="px-2 py-0.5 rounded-md bg-white border border-line/40">Warna <b class="text-ink/90" x-text="varianWarna"></b></span>
+                        <span x-show="varianWarna" x-cloak class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white border border-line/40">
+                            <span class="inline-block h-2.5 w-2.5 rounded-full ring-1 ring-black/15" :style="'background: ' + hexTerpilih"></span>
+                            Warna <b class="text-ink/90" x-text="varianWarna"></b>
+                        </span>
                         <span class="px-2 py-0.5 rounded-md bg-white border border-line/40">Jumlah <b class="text-ink/90" x-text="jumlah"></b></span>
                         <span x-show="mode === 'sewa'" x-cloak class="px-2 py-0.5 rounded-md border"
                             :class="durasi > 0 ? 'bg-white border-line/40' : 'bg-amber-50 border-amber-300 text-amber-700'">
@@ -785,7 +797,9 @@
                         </span>
                     </div>
 
-                    <p x-show="catatan" x-cloak x-transition class="mb-4 -mt-1 text-[12px] leading-snug text-amber-700">
+                    <p x-show="catatan" x-cloak x-transition
+    class="mb-4 -mt-1 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] leading-snug text-amber-800">
+    <svg viewBox="0 0 24 24" class="mt-px h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
     <span x-text="catatan"></span>
 </p>
 
@@ -1002,7 +1016,6 @@
                 tanggalKembali: null,
                 varianWarna: '',
                 jumlah: 1,
-                metodeKirim: 'ambil',
                 tahun: now.getFullYear(),
                 bulan: now.getMonth(),
                 hariIni: iso(now.getFullYear(), now.getMonth(), now.getDate()),
@@ -1365,10 +1378,37 @@ ukuranNonaktif(o) {
     return !o.ada || this.sisaUkuran(o) <= 0;
 },
 
+// Status kartu warna:
+//  'habis' = stok warna ini kosong di semua ukuran  -> satu-satunya yang dipudarkan
+//  'lain'  = tidak ada / kosong di ukuran aktif, tapi ada di ukuran lain -> tampil normal
+//  'ok'    = tersedia
+statusWarna(w) {
+    if (w.total !== null && w.total <= 0) return 'habis';
+    if (w.total !== null && (!w.ada || this.habis(w.stok))) return 'lain';
+    return 'ok';
+},
+
+// Daftar ukuran lain (selain yang aktif) yang masih punya stok untuk warna ini
+ukuranLain(w) {
+    return this.set.ukuran
+        .filter((u) => u.label !== this.ukuran && this.stokKombinasi(u.label, w.label) > 0)
+        .map((u) => u.label);
+},
+
 keteranganWarna(w) {
-    if (w.total !== null && w.total <= 0) return 'Stok Habis';
-    if (w.total !== null && (!w.ada || this.habis(w.stok))) return 'Tersedia di ukuran lain · klik untuk pindah';
+    const st = this.statusWarna(w);
+    if (st === 'habis') return 'Stok habis';
+    if (st === 'lain') {
+        const l = this.ukuranLain(w);
+        return (l.length ? 'Tersedia di ukuran ' + l.join(', ') : 'Tersedia di ukuran lain') + ' · klik untuk pindah';
+    }
+    if (w.stok !== null && w.stok > 0 && w.stok <= 3) return 'Sisa ' + w.stok + ' unit';
     return '';
+},
+
+get hexTerpilih() {
+    const w = this.warnaTampil.find((x) => x.label === this.varianWarna);
+    return w ? w.hex : 'transparent';
 },
 
 // Klik ukuran: hanya bisa dipilih bila tersedia untuk warna terpilih
@@ -1412,7 +1452,6 @@ pilihWarnaDefault() {
                 get noWarna() { return this.adaUkuran ? 2 : 1; },
                 get noTanggal() { return (this.adaUkuran ? 1 : 0) + (this.adaWarna ? 1 : 0) + 1; },
                 get noJumlah() { return this.noTanggal; },
-                get noKirim() { return this.noTanggal + 1; },
                 habis(stok) { return stok !== null && stok !== undefined && stok <= 0; },
 
                 pilihDefault() {
