@@ -29,20 +29,18 @@ class HomeController extends Controller
                 ->toArray();
 
         // 2. Produk Terbaru
+        // Dikirim sebagai model Produk utuh (bukan array) supaya <x-product-card> bisa membaca
+        // stok per ukuran/warna dan diskon lewat method model (stokUntuk, hargaJualNet, dst).
         $produkTerbaru = Produk::latest()
             ->limit(5)
-            ->get()
-            ->map(fn ($p) => $this->produkKeArray($p))
-            ->toArray();
+            ->get();
 
         // 3. Produk Terpopuler (Best Seller)
         $produkTerpopuler = Produk::withCount(['detailTransaksi'])
             ->orderByDesc('detail_transaksi_count')
             ->orderByDesc('jumlah_rating')
             ->limit(5)
-            ->get()
-            ->map(fn ($p) => $this->produkKeArray($p))
-            ->toArray();
+            ->get();
 
         // 4. Testimoni (Rating & Ulasan)
         $testimoni = Rating::with(['user', 'produk'])
@@ -54,17 +52,17 @@ class HomeController extends Controller
                 'nama'    => $r->user->name ?? 'User',
                 'konteks' => $r->produk->nama ?? 'Produk',
                 // Jika ulasan kosong, beri teks default agar tidak terlihat aneh di beranda
-                'teks'    => $r->ulasan ?: 'Pelanggan memberikan rating ' . $r->rating . ' bintang.', 
+                'teks'    => $r->ulasan ?: 'Pelanggan memberikan rating ' . $r->rating . ' bintang.',
                 'bintang' => $r->rating,
                 'foto'    => $r->produk ? $r->produk->sampulUrl() : null,
-                'foto_user' => $r->user->foto_profil ?? null, 
+                'foto_user' => $r->user->foto_profil ?? null,
             ])
             ->toArray();
 
         // =====================================================
         // STATISTIK DINAMIS (PENGGANTI DATA DUMMY)
         // =====================================================
-        
+
         // Menghitung total ulasan & rata-rata bintang
         $totalRating = Rating::count();
         $rataRata = $totalRating > 0 ? Rating::avg('rating') : 0;
@@ -80,44 +78,14 @@ class HomeController extends Controller
         // KIRIM KE VIEW
         // =====================================================
         return view('customer.beranda', compact(
-            'kategori', 
-            'produkTerbaru', 
-            'produkTerpopuler', 
+            'kategori',
+            'produkTerbaru',
+            'produkTerpopuler',
             'testimoni',
             'totalRating',
             'rataRata',
             'totalTransaksi',
             'totalProvinsi'
         ));
-    }
-
-    /**
-     * Ubah model Produk menjadi array (bentuk sama dengan dummy).
-     */
-    private function produkKeArray(Produk $p): array
-    {
-        return [
-            'id'                   => $p->id,
-            'kategori_id'          => $p->kategori_id,
-            'sku'                  => $p->sku,
-            'nama'                 => $p->nama,
-            'deskripsi'            => $p->deskripsi,
-            'foto_produk'          => $p->foto_produk ? 'storage/' . (is_array($p->foto_produk) ? ($p->foto_produk[0] ?? '') : $p->foto_produk) : null,
-            'bahan'                => $p->bahan,
-            'berat'                => $p->berat,
-            'ukuran'               => $p->ukuran,
-            'warna'       => $p->warna,
-            'warna_sewa'  => $p->warna_sewa,
-            'harga_jual'           => $p->harga_jual,
-            'harga_sewa'           => $p->harga_sewa,
-            'stok'                 => $p->stok,
-            'status'               => $p->status,
-            'dapat_dijual'         => $p->dapat_dijual,
-            'bisa_disewa'          => $p->bisa_disewa, 
-            'sampul_url'           => $p->sampulUrl(),
-            'denda_per_hari_telat' => $p->denda_per_hari_telat,
-            'rating_rata_rata'     => $p->rating_rata_rata, // accessor
-            'jumlah_rating'        => $p->jumlah_rating,    // accessor
-        ];
     }
 }
