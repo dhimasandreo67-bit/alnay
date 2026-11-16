@@ -67,15 +67,15 @@
                     </a>
                 @endforeach
             </div>
-            <form method="GET" class="flex gap-2">
+            <form id="form-filter-refund" method="GET" action="{{ route('admin.refund.index') }}" class="flex gap-2">
                 <input type="hidden" name="status" value="{{ $filter }}">
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Kode transaksi / nama pelanggan"
+                <input type="text" name="search" id="input-search-refund" value="{{ request('search') }}" placeholder="Kode transaksi / nama pelanggan" autocomplete="off"
                        class="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs focus:border-amber-500 focus:outline-none md:w-64">
-                <button class="rounded-xl bg-gray-900 px-4 py-2 text-xs font-bold text-white">Cari</button>
             </form>
         </div>
 
-        {{-- Tabel --}}
+        {{-- Tabel + pagination (diganti otomatis oleh live search) --}}
+        <div id="hasil-refund" class="space-y-6 transition-opacity duration-200">
         <div class="overflow-x-auto rounded-2xl border border-gray-100 bg-white shadow-sm">
             <table class="w-full text-left text-sm">
                 <thead>
@@ -144,5 +144,81 @@
         @if ($refundList->hasPages())
             <div>{{ $refundList->links() }}</div>
         @endif
+        </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var form = document.getElementById('form-filter-refund');
+            var input = document.getElementById('input-search-refund');
+            var hasil = document.getElementById('hasil-refund');
+            if (!form || !input || !hasil) return;
+
+            var DEBOUNCE_MS = 350;
+            var timer = null;
+            var controller = null;
+
+            function bangunUrl() {
+                var params = new URLSearchParams();
+                new FormData(form).forEach(function (val, key) {
+                    val = String(val).trim();
+                    if (val !== '') params.set(key, val);
+                });
+                var qs = params.toString();
+                return form.action + (qs ? '?' + qs : '');
+            }
+
+            function muat(url) {
+                // batalkan request sebelumnya agar hasil lama tidak menimpa yang baru
+                if (controller) controller.abort();
+                controller = new AbortController();
+                hasil.classList.add('opacity-50', 'pointer-events-none');
+
+                fetch(url, {
+                    signal: controller.signal,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+                    credentials: 'same-origin'
+                })
+                .then(function (res) {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return res.text();
+                })
+                .then(function (html) {
+                    var doc = new DOMParser().parseFromString(html, 'text/html');
+                    var baru = doc.getElementById('hasil-refund');
+                    if (!baru) throw new Error('Respons tidak valid');
+                    hasil.innerHTML = baru.innerHTML;
+                    history.replaceState(null, '', url); // refresh tetap membawa keyword
+                })
+                .catch(function (err) {
+                    if (err.name === 'AbortError') return;
+                    window.location.href = url; // fallback: cara biasa
+                })
+                .finally(function () {
+                    hasil.classList.remove('opacity-50', 'pointer-events-none');
+                });
+            }
+
+            // Ketik keyword -> cari otomatis setelah berhenti mengetik sejenak
+            input.addEventListener('input', function () {
+                clearTimeout(timer);
+                timer = setTimeout(function () { muat(bangunUrl()); }, DEBOUNCE_MS);
+            });
+
+            // Enter -> langsung cari, tanpa reload
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                clearTimeout(timer);
+                muat(bangunUrl());
+            });
+
+            // Pagination: hanya tabel yang diganti
+            hasil.addEventListener('click', function (e) {
+                var link = e.target.closest('nav a[href]');
+                if (!link || !hasil.contains(link)) return;
+                e.preventDefault();
+                muat(link.href);
+            });
+        });
+    </script>
 @endsection
