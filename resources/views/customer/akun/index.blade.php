@@ -39,11 +39,16 @@
         'amber'   => 'bg-amber-50 text-amber-700 ring-amber-200',
     ];
 
-    $statusPesanan = function ($t) {
+    // Bayar tunai di toko & belum lunas: tidak ada pembayaran online, admin yang menandai lunas.
+    $menungguTunai = fn ($t) => strtolower((string) $t->status_pembayaran) === 'pending'
+        && $t->pembayaran->contains(fn ($p) => strtolower((string) $p->metode) === 'tunai');
+
+    $statusPesanan = function ($t) use ($menungguTunai) {
         $bayar = strtolower((string) $t->status_pembayaran);
         $kirim = $t->pengiriman?->status_kirim;
         return match (true) {
             in_array($bayar, ['gagal', 'batal'], true) => ['Dibatalkan', 'rose'],
+            $menungguTunai($t)                         => ['Bayar di Toko', 'amber'],
             $bayar === 'pending'                       => ['Belum Bayar', 'amber'],
             $kirim === 'diterima'                      => ['Selesai', 'emerald'],
             $kirim === 'dikirim'                       => ['Dikirim', 'sky'],
@@ -189,6 +194,7 @@
                         $lain  = max(0, $t->detail->count() - 1);
                         $foto  = $fotoProduk($item1?->produk);
                         $kirim = $t->pengiriman;
+                        $tunaiPending = $menungguTunai($t);
                     @endphp
                     <article class="ak-rise {{ $kartu }} p-4 md:p-5 transition duration-300 hover:shadow-md" style="--d: {{ min($i, 6) * 0.05 }}s;">
                         <div class="flex items-start justify-between gap-3">
@@ -221,8 +227,14 @@
                                 <p class="mt-0.5 text-sm text-ink/85"><span class="font-semibold">{{ strtoupper((string) $kirim->kurir) }} {{ $kirim->layanan_ongkir }}</span> &middot; <span class="font-mono">{{ $kirim->no_resi }}</span></p>
                             </div>
                         @endif
+                        @if ($tunaiPending)
+                            <div class="mt-4 rounded-xl bg-amber-50 ring-1 ring-amber-100 px-4 py-3">
+                                <p class="text-[10px] font-bold uppercase tracking-wider text-amber-700/70">Bayar Tunai di Toko</p>
+                                <p class="mt-0.5 text-sm text-ink/80">Bayar langsung saat mengambil pesanan. Status diperbarui oleh admin setelah pembayaran diterima.</p>
+                            </div>
+                        @endif
                         <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
-                            @if ($t->status_pembayaran === 'pending') <a href="{{ route('beli.konfirmasi', $t->id) }}" class="{{ $btnEmas }}">Bayar Sekarang</a> @endif
+                            @if ($t->status_pembayaran === 'pending' && ! $tunaiPending) <a href="{{ route('beli.konfirmasi', $t->id) }}" class="{{ $btnEmas }}">Bayar Sekarang</a> @endif
                             @if ($kirim && $kirim->status_kirim === 'dikirim')
                                 <form method="POST" action="{{ route('akun.pengiriman.terima', $kirim->id) }}" id="form-terima-{{ $kirim->id }}">
                                     @csrf @method('PATCH')
