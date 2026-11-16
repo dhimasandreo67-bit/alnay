@@ -146,14 +146,17 @@
                             
                             {{-- Status (Hanya teks berwarna, tanpa kotak) --}}
                             @php
-                                $statusClass = match ($trx->status_pembayaran) {
-                                    'lunas' => 'text-emerald-600',
-                                    'dp', 'dp_dibayar' => 'text-amber-600',
+                                // Bayar tunai di toko: dilunasi admin, jadi tidak tampil sebagai "pending" biasa.
+                                $menungguTunai = $trx->status_pembayaran === 'pending'
+                                    && $trx->pembayaran->contains(fn ($p) => strtolower((string) $p->metode) === 'tunai');
+                                $statusClass = match (true) {
+                                    $menungguTunai, in_array($trx->status_pembayaran, ['dp', 'dp_dibayar']) => 'text-amber-600',
+                                    $trx->status_pembayaran === 'lunas' => 'text-emerald-600',
                                     default => 'text-ink/50',
                                 };
                             @endphp
                             <span class="text-[10px] font-bold uppercase tracking-wider {{ $statusClass }}">
-                                {{ str_replace('_', ' ', $trx->status_pembayaran) }}
+                                {{ $menungguTunai ? 'Bayar di toko' : str_replace('_', ' ', $trx->status_pembayaran) }}
                             </span>
                         </div>
 
