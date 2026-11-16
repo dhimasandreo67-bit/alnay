@@ -123,16 +123,11 @@ class RefundController extends Controller
             ->where('diajukan_oleh', auth()->id())
             ->findOrFail($id);
 
-        $riwayat = $refund->riwayat()->get();
+        $riwayat = $refund->riwayat()->orderBy('waktu_ubah', 'asc')->get();
 
         return view('customer.akun.refund-detail', compact('refund', 'riwayat'));
     }
 
-    /**
-     * Pelanggan mengonfirmasi barang sudah diserahkan ke kurir / dikirim balik.
-     * Metode "kirim sendiri": kurir + no. resi wajib, foto serah-terima opsional.
-     * Metode lain (dijemput / antar langsung) dan refund lama (tanpa metode): cukup konfirmasi.
-     */
     public function kirim(Request $request, $id)
     {
         $refund = $this->refundSaya($id);
