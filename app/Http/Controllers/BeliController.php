@@ -168,7 +168,8 @@ class BeliController extends Controller
         $ukuran = $beliData['ukuran'] ?? null;
         $varian = $beliData['varian'] ?? null;
 
-        // ==== VALIDASI STOK FINAL (stok jual, per ukuran & warna) ====
+        // ==== VALIDASI STOK AWAL (stok jual, per ukuran & warna) ====
+        // Pengecekan final yang mengikat dilakukan lagi di dalam transaksi (dengan kunci baris).
         $stok = $produk->dapat_dijual ? $produk->stokTersedia('jual', $ukuran, $varian) : 0;
         if ($stok <= 0) {
             session()->forget('beli_data');
@@ -230,6 +231,12 @@ class BeliController extends Controller
             : (trim($spesifikasi . ' ' . $catatanUser) ?: null);
 
         $transaksi = DB::transaction(function () use ($validated, $produk, $qty, $total, $ongkir, $dipilih, $catatan, $ukuran, $varian, $ambil) {
+            // Kunci baris produk lalu cek ulang stok: dua pembeli tidak bisa mengambil stok terakhir bersamaan.
+            $terkunci = Produk::whereKey($produk->id)->lockForUpdate()->first();
+            if (! $terkunci || $terkunci->stokTersedia('jual', $ukuran ?: null, $varian ?: null) < $qty) {
+                return null;
+            }
+
             $transaksi = Transaksi::create([
                 'kode_transaksi'    => 'ALN-BL-' . strtoupper(substr(uniqid(), -8)),
                 'user_id'           => auth()->id(),
@@ -284,8 +291,18 @@ class BeliController extends Controller
                 ]);
             }
 
+            // TAHAN STOK saat checkout (walau belum bayar), supaya pelanggan lain langsung
+            // melihat stok yang sudah berkurang. Dikembalikan otomatis bila pesanan gagal/kedaluwarsa
+            // (lihat command pesanan:lepas-stok dan MidtransQris::terapkan).
+            $transaksi->tahanStok();
+
             return $transaksi;
         });
+
+        if (! $transaksi) {
+            return redirect()->route('produk.detail', ['sku' => $produk->sku, 'mode' => 'beli'])
+                ->withErrors(['stok' => 'Maaf, stok pilihan ini baru saja habis atau berubah. Silakan periksa kembali.']);
+        }
 
         session()->forget('beli_data');
 
@@ -310,7 +327,7 @@ class BeliController extends Controller
 
         $produk   = $transaksi->detail->first()->produk;
         $qty      = $transaksi->detail->first()->jumlah;
-        
+
         $spesifikasi = [];
         if (preg_match('/^(?:\s*\[[^\]]*\])+/u', (string) $transaksi->catatan, $awal)) {
             preg_match_all('/\[([^\]]*)\]/u', $awal[0], $mm);
