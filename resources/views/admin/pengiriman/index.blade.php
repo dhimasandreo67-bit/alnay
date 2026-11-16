@@ -74,7 +74,8 @@
 
             {{-- Card 1: Menunggu Dikirim (Amber) --}}
             <div
-                class="group group-shine relative overflow-hidden rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10">
+                role="button" tabindex="0" data-kartu-status="menunggu" title="Tampilkan hanya yang menunggu"
+                class="cursor-pointer group group-shine relative overflow-hidden rounded-2xl border border-amber-200/60 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold uppercase tracking-wider text-amber-800/80">Menunggu Dikirim</span>
                     <div
@@ -95,7 +96,8 @@
 
             {{-- Card 2: Sedang Dikirim (Sky) --}}
             <div
-                class="group group-shine relative overflow-hidden rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50/80 via-white to-sky-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-500/10">
+                role="button" tabindex="0" data-kartu-status="dikirim" title="Tampilkan hanya yang dikirim"
+                class="cursor-pointer group group-shine relative overflow-hidden rounded-2xl border border-sky-200/60 bg-gradient-to-br from-sky-50/80 via-white to-sky-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-500/10">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold uppercase tracking-wider text-sky-800/80">Sedang Dikirim</span>
                     <div
@@ -120,7 +122,8 @@
 
             {{-- Card 3: Diterima (Emerald) --}}
             <div
-                class="group group-shine relative overflow-hidden rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
+                role="button" tabindex="0" data-kartu-status="diterima" title="Tampilkan hanya yang diterima"
+                class="cursor-pointer group group-shine relative overflow-hidden rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-100/30 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-semibold uppercase tracking-wider text-emerald-800/80">Diterima</span>
                     <div
@@ -144,33 +147,49 @@
             </div>
         </div>
 
-        {{-- Filter & Search (pencarian langsung, tanpa tombol Cari) --}}
+        {{-- Filter & Search (langsung, tanpa tombol Cari) --}}
+        @php
+            $totalSemua = (int) ($totalMenunggu ?? 0) + (int) ($totalDikirim ?? 0) + (int) ($totalDiterima ?? 0);
+            $tabStatus = [
+                'semua'    => ['Semua', $totalSemua],
+                'menunggu' => ['Menunggu', (int) ($totalMenunggu ?? 0)],
+                'dikirim'  => ['Dikirim', (int) ($totalDikirim ?? 0)],
+                'diterima' => ['Diterima', (int) ($totalDiterima ?? 0)],
+            ];
+        @endphp
         <form id="formFilterPengiriman" method="GET" action="{{ route('admin.pengiriman.index') }}"
             onsubmit="event.preventDefault(); muatPengiriman(0)"
-            class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="relative w-full sm:w-80">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </span>
-                <input type="search" id="cariPengiriman" name="search" value="{{ request('search') }}"
-                    placeholder="Cari kode transaksi atau nama..." autocomplete="off" oninput="muatPengiriman(300)"
-                    class="w-full pl-10 pr-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+            class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <input type="hidden" id="filterStatusPengiriman" name="status" value="{{ $filter }}">
+
+            {{-- Tab status dengan jumlah --}}
+            <div class="flex gap-2 overflow-x-auto pb-1 lg:pb-0 -mx-1 px-1" role="group" aria-label="Filter status pengiriman">
+                @foreach ($tabStatus as $kunci => [$label, $jumlah])
+                    @php $aktif = $filter === $kunci; @endphp
+                    <button type="button" data-chip-status="{{ $kunci }}" aria-pressed="{{ $aktif ? 'true' : 'false' }}"
+                        class="shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer
+                            {{ $aktif ? 'bg-amber-600 border-amber-600 text-white shadow-sm' : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-amber-300 hover:text-amber-700' }}">
+                        {{ $label }}
+                        <span class="px-1.5 py-0.5 rounded-md text-[10px] tabular-nums bg-black/10">{{ $jumlah }}</span>
+                    </button>
+                @endforeach
             </div>
 
-            <div class="flex items-center gap-3 w-full sm:w-auto">
-                <select id="filterStatusPengiriman" name="status" onchange="muatPengiriman(0)"
-                    aria-label="Status pengiriman"
-                    class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
-                    <option value="semua" {{ $filter === 'semua' ? 'selected' : '' }}>Semua Status</option>
-                    <option value="menunggu" {{ $filter === 'menunggu' ? 'selected' : '' }}>Menunggu</option>
-                    <option value="dikirim" {{ $filter === 'dikirim' ? 'selected' : '' }}>Dikirim</option>
-                    <option value="diterima" {{ $filter === 'diterima' ? 'selected' : '' }}>Diterima</option>
-                </select>
+            {{-- Pencarian --}}
+            <div class="flex items-center gap-3 w-full lg:w-auto">
+                <div class="relative w-full lg:w-80">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </span>
+                    <input type="search" id="cariPengiriman" name="search" value="{{ request('search') }}"
+                        placeholder="Cari kode transaksi atau nama..." autocomplete="off" oninput="muatPengiriman(300)"
+                        class="w-full pl-10 pr-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+                </div>
                 <button type="button" id="btnResetPengiriman" onclick="resetPengiriman()"
-                    class="{{ request()->filled('search') || request()->filled('status') ? '' : 'hidden' }} text-xs font-bold text-gray-500 hover:text-amber-600 transition-colors cursor-pointer">Reset</button>
+                    class="{{ request()->filled('search') || ($filter ?? 'semua') !== 'semua' ? '' : 'hidden' }} shrink-0 text-xs font-bold text-gray-500 hover:text-amber-600 transition-colors cursor-pointer">Reset</button>
             </div>
         </form>
 
@@ -197,27 +216,62 @@
                     <tbody class="divide-y divide-gray-100/80">
                         @forelse($pengirimanList as $p)
                             @php
-                                $namaPelanggan = $p->transaksi?->user?->name ?? '-';
+                                $akun = $p->transaksi?->user;
+                                // nama_penerima dipakai bila kolomnya ada, selain itu nama akun
+                                $namaPenerima = array_key_exists('nama_penerima', $p->getAttributes()) ? $p->nama_penerima : null;
+                                $namaPelanggan = $namaPenerima ?: ($akun?->name ?? '-');
                                 $inisial = strtoupper(mb_substr(trim($namaPelanggan) ?: '?', 0, 1));
+
+                                // Foto profil bisa berupa URL penuh (mis. akun Google) atau path di storage
+                                $foto = $akun?->foto_profil;
+                                $fotoUrl = $foto
+                                    ? (preg_match('#^https?://#i', $foto) ? $foto : asset('storage/' . ltrim($foto, '/')))
+                                    : null;
+
+                                $jenisTrx = $p->transaksi->jenis ?? 'beli';
+                                $hariMenunggu = ($p->status_kirim === 'menunggu' && $p->created_at)
+                                    ? (int) now()->startOfDay()->diffInDays($p->created_at->copy()->startOfDay(), true)
+                                    : null;
                             @endphp
                             <tr class="hover:bg-amber-50/30 transition-colors">
                                 {{-- Kolom 1: Gabungan Kode & Pelanggan --}}
                                 <td class="px-4 py-4">
                                     <p class="font-bold text-gray-900 text-sm">{{ $p->transaksi?->kode_transaksi ?? '-' }}
                                     </p>
-                                    <p class="text-[11px] text-gray-400 mb-2">
+                                    <p class="text-[11px] text-gray-400 mb-1.5">
                                         {{ $p->transaksi?->detail?->first()?->produk?->nama ?? 'Produk' }}</p>
+                                    <div class="flex flex-wrap items-center gap-1.5 mb-2">
+                                        @if ($p->created_at)
+                                            <span class="text-[10px] text-gray-400">{{ $p->created_at->format('d M Y, H:i') }}</span>
+                                        @endif
+                                        @if ($jenisTrx === 'sewa')
+                                            <span class="px-1.5 py-0.5 rounded-md bg-violet-50 border border-violet-100 text-violet-700 text-[9px] font-bold uppercase tracking-wider">Sewa</span>
+                                        @endif
+                                        @if ($hariMenunggu !== null)
+                                            <span class="px-1.5 py-0.5 rounded-md border text-[9px] font-bold uppercase tracking-wider
+                                                {{ $hariMenunggu >= 2 ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200 text-amber-700' }}">
+                                                {{ $hariMenunggu === 0 ? 'Masuk hari ini' : 'Menunggu ' . $hariMenunggu . ' hari' }}
+                                            </span>
+                                        @endif
+                                    </div>
 
                                     <div class="flex items-center gap-2 mt-1">
-                                        @if($p->transaksi?->user?->foto_profil)
-                                            <img src="{{ asset('storage/' . $p->transaksi->user->foto_profil) }}" class="h-7 w-7 shrink-0 rounded-lg object-cover border border-gray-200">
-                                        @else
-                                            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-black border bg-amber-50 text-amber-700 border-amber-100">{{ $inisial }}</span>
-                                        @endif
+                                        {{-- Inisial selalu ada di bawah; foto menimpa dan otomatis dibuang bila gagal dimuat --}}
+                                        <span class="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg text-xs font-black border bg-amber-50 text-amber-700 border-amber-100">
+                                            {{ $inisial }}
+                                            @if ($fotoUrl)
+                                                <img src="{{ $fotoUrl }}" alt="" loading="lazy" referrerpolicy="no-referrer"
+                                                    onerror="this.remove()"
+                                                    class="absolute inset-0 h-full w-full object-cover">
+                                            @endif
+                                        </span>
                                         <div class="min-w-0">
                                             <p class="text-xs font-bold text-gray-800 truncate">{{ $namaPelanggan }}</p>
                                             {{-- PERUBAHAN: Prioritas nomor WA penerima --}}
                                             <p class="text-[10px] text-gray-500">{{ $p->no_wa_penerima ?: ($p->transaksi?->user?->no_hp ?? '-') }}</p>
+                                            @if ($akun && $namaPenerima && $namaPenerima !== $akun->name)
+                                                <p class="text-[10px] text-gray-400 truncate">Akun: {{ $akun->name }}</p>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
@@ -327,6 +381,10 @@
                                                     Diantar Manual (Via WA)
                                                 @endif
                                             </p>
+                                            @if (($p->transaksi->jenis ?? 'beli') === 'beli' && $p->no_resi)
+                                                <button type="button" onclick="salinResi(this)" data-resi="{{ $p->no_resi }}"
+                                                    class="mb-2 text-[10px] font-bold text-sky-600 hover:text-sky-700 hover:underline cursor-pointer">Salin resi</button>
+                                            @endif
                                             <form action="{{ route('admin.pengiriman.update-status', $p->id) }}"
                                                 method="POST" class="inline">
                                                 @csrf @method('PATCH')
@@ -365,35 +423,45 @@
             </div>
         </div>
 
-        <div id="areaPaginasiPengiriman">{{ $pengirimanList->links() }}</div>
+        <div id="areaPaginasiPengiriman">{{ $pengirimanList->withQueryString()->links() }}</div>
 
     </div>
 
     <script>
-        // ===== Pencarian langsung: tanpa klik "Cari" =====
-        // Mengambil ulang halaman dengan keyword/status yang diketik, lalu mengganti isi tabel & pagination.
-        // Pencarian dilakukan di server, jadi mencakup SEMUA data pengiriman (bukan hanya halaman yang tampil).
-        const formPengiriman = document.getElementById('formFilterPengiriman');
-        const inputCari = document.getElementById('cariPengiriman');
-        const selectStatus = document.getElementById('filterStatusPengiriman');
-        const btnReset = document.getElementById('btnResetPengiriman');
-        let timerCari = null;
-        let permintaan = null;
+        (function () {
+            // ===== Filter langsung: tab status, kartu, dan pencarian tanpa klik "Cari" =====
+            // Mengambil ulang halaman dengan filter terbaru lalu mengganti isi tabel & pagination.
+            // Filter dijalankan di server sehingga mencakup SEMUA data, bukan hanya halaman yang tampil.
+            const form = document.getElementById('formFilterPengiriman');
+            const inputCari = document.getElementById('cariPengiriman');
+            const inputStatus = document.getElementById('filterStatusPengiriman');
+            const btnReset = document.getElementById('btnResetPengiriman');
+            const AKTIF = ['bg-amber-600', 'border-amber-600', 'text-white', 'shadow-sm'];
+            const NONAKTIF = ['bg-gray-50', 'border-gray-200', 'text-gray-600', 'hover:border-amber-300', 'hover:text-amber-700'];
+            let timer = null;
+            let permintaan = null;
 
-        function urlFilterPengiriman() {
-            const params = new URLSearchParams();
-            const q = inputCari.value.trim();
-            const st = selectStatus.value;
-            if (q) params.set('search', q);
-            if (st && st !== 'semua') params.set('status', st);
-            const qs = params.toString();
-            return formPengiriman.action + (qs ? '?' + qs : '');
-        }
+            function urlFilter() {
+                const params = new URLSearchParams();
+                const q = inputCari.value.trim();
+                const st = inputStatus.value;
+                if (q) params.set('search', q);
+                if (st && st !== 'semua') params.set('status', st);
+                const qs = params.toString();
+                return form.action.split('?')[0] + (qs ? '?' + qs : '');
+            }
 
-        function muatPengiriman(tunda = 0) {
-            clearTimeout(timerCari);
-            timerCari = setTimeout(async () => {
-                const url = urlFilterPengiriman();
+            function tandaiFilter() {
+                document.querySelectorAll('[data-chip-status]').forEach(function (b) {
+                    const on = b.dataset.chipStatus === inputStatus.value;
+                    AKTIF.forEach(function (c) { b.classList.toggle(c, on); });
+                    NONAKTIF.forEach(function (c) { b.classList.toggle(c, !on); });
+                    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                });
+                btnReset.classList.toggle('hidden', !(inputCari.value.trim() || inputStatus.value !== 'semua'));
+            }
+
+            async function muatUrl(url, gulir) {
                 const tabel = document.getElementById('areaTabelPengiriman');
 
                 // Batalkan permintaan sebelumnya supaya hasil lama tidak menimpa yang baru
@@ -402,10 +470,7 @@
                 tabel.classList.add('opacity-60');
 
                 try {
-                    const res = await fetch(url, {
-                        signal: ctrl.signal,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    });
+                    const res = await fetch(url, { signal: ctrl.signal, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                     if (!res.ok) throw new Error('HTTP ' + res.status);
 
                     const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
@@ -416,9 +481,10 @@
                     tabel.innerHTML = tabelBaru.innerHTML;
                     document.getElementById('areaPaginasiPengiriman').innerHTML = paginasiBaru.innerHTML;
                     history.replaceState(null, '', url);
-                    btnReset.classList.toggle('hidden', !(inputCari.value.trim() || selectStatus.value !== 'semua'));
+                    tandaiFilter();
+                    if (gulir) tabel.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } catch (e) {
-                    // Kalau gagal (bukan karena dibatalkan), pakai cara biasa: muat ulang halaman dengan filter
+                    // Gagal (bukan karena dibatalkan): pakai cara biasa, muat ulang halaman dengan filter
                     if (e.name !== 'AbortError') window.location.href = url;
                 } finally {
                     if (permintaan === ctrl) {
@@ -426,13 +492,60 @@
                         permintaan = null;
                     }
                 }
-            }, tunda);
-        }
+            }
 
-        function resetPengiriman() {
-            inputCari.value = '';
-            selectStatus.value = 'semua';
-            muatPengiriman(0);
-        }
+            window.muatPengiriman = function (tunda) {
+                clearTimeout(timer);
+                timer = setTimeout(function () { muatUrl(urlFilter(), false); }, tunda || 0);
+            };
+
+            window.setStatusPengiriman = function (status) {
+                inputStatus.value = status;
+                tandaiFilter();
+                window.muatPengiriman(0);
+            };
+
+            window.resetPengiriman = function () {
+                inputCari.value = '';
+                window.setStatusPengiriman('semua');
+            };
+
+            window.salinResi = function (btn) {
+                if (!navigator.clipboard) return;
+                navigator.clipboard.writeText(btn.dataset.resi).then(function () {
+                    const asal = btn.textContent;
+                    btn.textContent = 'Tersalin \u2713';
+                    setTimeout(function () { btn.textContent = asal; }, 1500);
+                });
+            };
+
+            // Tab status
+            document.querySelectorAll('[data-chip-status]').forEach(function (b) {
+                b.addEventListener('click', function () { window.setStatusPengiriman(b.dataset.chipStatus); });
+            });
+
+            // Kartu statistik ikut memfilter (klik lagi untuk kembali ke semua)
+            document.querySelectorAll('[data-kartu-status]').forEach(function (k) {
+                const pilih = function () {
+                    const st = k.dataset.kartuStatus;
+                    window.setStatusPengiriman(inputStatus.value === st ? 'semua' : st);
+                };
+                k.addEventListener('click', pilih);
+                k.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pilih(); }
+                });
+            });
+
+            // Pagination tanpa muat ulang halaman, filter tetap terbawa
+            document.addEventListener('click', function (e) {
+                if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                const a = e.target.closest('#areaPaginasiPengiriman a[href]');
+                if (!a) return;
+                e.preventDefault();
+                muatUrl(a.href, true);
+            });
+
+            tandaiFilter();
+        })();
     </script>
 @endsection
