@@ -252,7 +252,32 @@ class CheckoutController extends Controller
         })->implode(' ');
         $infoKirim = $rincian . ' ' . $infoKirim;
 
-        $transaksi = DB::transaction(function () use ($request, $baris, $total, $infoKirim, $ongkir, $alamatDipilih, $simpanAlamat) {
+        // Stok dikunci & dicek ulang di dalam transaksi, lalu langsung DITAHAN (dipotong) saat checkout.
+        $pesanStok = null;
+
+        $transaksi = DB::transaction(function () use ($request, $baris, $total, $infoKirim, $ongkir, $alamatDipilih, $simpanAlamat, &$pesanStok) {
+            // Kebutuhan dijumlahkan per produk + ukuran + warna (baris yang sama bisa muncul dua kali)
+            $kebutuhan = [];
+            foreach ($baris as $b) {
+                $kunci = $b['produk_id'] . '|' . $b['ukuran'] . '|' . $b['warna'];
+                $kebutuhan[$kunci] ??= ['b' => $b, 'qty' => 0];
+                $kebutuhan[$kunci]['qty'] += $b['qty'];
+            }
+
+            foreach ($kebutuhan as $k) {
+                $terkunci = Produk::whereKey($k['b']['produk_id'])->lockForUpdate()->first();
+                $ada = $terkunci
+                    ? $terkunci->stokTersedia('jual', $k['b']['ukuran'] ?: null, $k['b']['warna'] ?: null)
+                    : 0;
+
+                if ($ada < $k['qty']) {
+                    $pesanStok = $k['b']['nama'] . ': stok tidak mencukupi'
+                        . ($ada > 0 ? ' (tersedia ' . $ada . ' unit).' : ' (baru saja habis).');
+
+                    return null;
+                }
+            }
+
             if ($simpanAlamat) {
                 $this->simpanAlamatBaru($request);
             }
@@ -303,8 +328,14 @@ class CheckoutController extends Controller
                 ]);
             }
 
+            $transaksi->tahanStok();
+
             return $transaksi;
         });
+
+        if (! $transaksi) {
+            return redirect()->route('keranjang.index')->with('error', $pesanStok ?? 'Stok berubah. Periksa kembali keranjang Anda.');
+        }
 
         session()->forget('cart');
 
