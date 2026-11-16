@@ -28,6 +28,10 @@
         $statusKirim = $transaksi->pengiriman->status_kirim ?? null;
         $isSewa = $transaksi->jenis === 'sewa';
 
+        // Bayar tunai di toko: tidak ada pembayaran online. Status dilunasi admin lewat panel "Kelola Transaksi".
+        $bayarTunai = $transaksi->pembayaran->contains(fn ($p) => strtolower((string) $p->metode) === 'tunai');
+        $menungguTunai = $bayarTunai && $statusKey === 'pending';
+
         $statusBayar = [
             'pending'    => ['Menunggu pembayaran', 'bg-amber-50 text-amber-700 border-amber-200'],
             'dp'         => ['DP dibayar', 'bg-sky-50 text-sky-700 border-sky-200'],
@@ -39,6 +43,9 @@
         ];
         [$teksStatus, $gayaStatus] = $statusBayar[$statusKey]
             ?? [ucfirst(str_replace('_', ' ', $statusKey)), 'bg-gray-50 text-gray-600 border-gray-200'];
+        if ($menungguTunai) {
+            $teksStatus = 'Bayar di toko';
+        }
 
         $teksKirim = [
             'diterima' => 'Diterima',
@@ -58,13 +65,13 @@
             'penuh'     => 'Pembayaran Penuh',
         ];
 
-        $statusBayarItem = function ($s) {
+        $statusBayarItem = function ($s, $metode = null) {
             $s = strtolower((string) $s);
             if (in_array($s, ['success', 'settlement', 'lunas'])) {
                 return ['Berhasil', 'text-emerald-600'];
             }
             if ($s === 'pending') {
-                return ['Menunggu', 'text-amber-600'];
+                return [strtolower((string) $metode) === 'tunai' ? 'Bayar di toko' : 'Menunggu', 'text-amber-600'];
             }
             return ['Gagal', 'text-rose-600'];
         };
@@ -95,11 +102,26 @@
             ];
         }
 
+        // Beli & ambil di toko: tidak ada tahap "Dikirim/Diterima".
+        $ambilDiToko = ! $isSewa && ! $transaksi->pengiriman;
+        if ($ambilDiToko) {
+            $langkah = $bayarTunai
+                ? [
+                    ['label' => 'Pesanan dibuat', 'selesai' => true],
+                    ['label' => 'Bayar di toko', 'selesai' => $sudahBayarAwal],
+                ]
+                : [
+                    ['label' => 'Bayar', 'selesai' => $sudahBayarAwal],
+                    ['label' => 'Siap diambil', 'selesai' => $sudahBayarAwal],
+                ];
+        }
+
         $alamat = $transaksi->pengiriman->alamat_tujuan ?? null;
         $alamatTampil = $alamat ? str_replace(' | ', "\n", $alamat) : null;
 
         $riwayatQc = $transaksi->sewa?->pengecekan?->sortByDesc('created_at') ?? collect();
-        $bisaBayar = in_array($statusKey, ['pending', 'dp']);
+        // Tombol bayar online tidak ditampilkan untuk pesanan bayar tunai di toko.
+        $bisaBayar = in_array($statusKey, ['pending', 'dp']) && ! $bayarTunai;
 
         // Ulasan hanya untuk pesanan yang sudah diterima pelanggan:
         // pengiriman berstatus "diterima", atau sewa yang sudah "selesai".
@@ -289,6 +311,17 @@
                     </section>
                 @endif
 
+                {{-- PENGAMBILAN (beli, ambil di toko) --}}
+                @if ($ambilDiToko)
+                    <section class="p-5 md:p-6 border-t border-line/40">
+                        <h2 class="text-[11px] font-semibold uppercase tracking-wider text-ink/60 mb-3">Pengambilan</h2>
+                        <div class="rounded-xl bg-cream/60 border border-line/30 px-4 py-3">
+                            <p class="text-[13px] font-semibold text-ink/85">Ambil di Toko</p>
+                            <p class="mt-0.5 text-[12px] text-ink/60">{{ config('alnay.toko.alamat', 'Jl. Terusan Rajabasa No.11, Bandar Lampung') }}</p>
+                        </div>
+                    </section>
+                @endif
+
                 {{-- RIWAYAT PEMBAYARAN --}}
                 <section class="p-5 md:p-6 border-t border-line/40">
                     <h2 class="text-[11px] font-semibold uppercase tracking-wider text-ink/60 mb-3">Riwayat Pembayaran</h2>
@@ -296,7 +329,7 @@
                     @forelse ($transaksi->pembayaran->sortByDesc('created_at') as $p)
                         @php
                             $kodeBayar = strtolower((string) $p->jenis_bayar);
-                            [$teksBayar, $warnaBayar] = $statusBayarItem($p->status_midtrans);
+                            [$teksBayar, $warnaBayar] = $statusBayarItem($p->status_midtrans, $p->metode);
                         @endphp
                         <div class="flex justify-between items-center gap-3 py-2.5 {{ ! $loop->last ? 'border-b border-line/30' : '' }}">
                             <div class="min-w-0">
@@ -393,6 +426,16 @@
                             <span class="text-[13px] font-semibold">Lanjutkan Pembayaran</span>
                             <span class="text-[13px] font-bold tabular-nums">Rp{{ number_format($sisaTagihan, 0, ',', '.') }}</span>
                         </a>
+                    @elseif ($menungguTunai)
+                        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                            <div class="flex items-center justify-between gap-3">
+                                <p class="text-[13px] font-semibold text-amber-800">Bayar tunai di toko</p>
+                                <p class="text-[13px] font-bold tabular-nums text-amber-800">Rp{{ number_format($sisaTagihan, 0, ',', '.') }}</p>
+                            </div>
+                            <p class="mt-1 text-[12px] leading-relaxed text-amber-700">
+                                Tidak perlu membayar online. Bayar langsung saat mengambil pesanan. Status akan diperbarui oleh admin setelah pembayaran diterima.
+                            </p>
+                        </div>
                     @endif
 
                     <div class="grid grid-cols-2 gap-2.5">
