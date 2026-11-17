@@ -29,8 +29,7 @@ return [
     'toko' => [
         'nama'     => 'Toko ALNAY',
         'jam_buka' => env('ALNAY_JAM_BUKA', 'Senin - Sabtu, 08.00 - 19.00 WIB'),
-        'alamat'   => env('ALNAY_ALAMAT', 'Jl. Terusan Ragom Gawi III, Perumahan Taman Cinta A7, Kelurahan
-Kedaung, Kecamatan Kemiling, Kota Bandar Lampung, Lampung 35158'),
+        'alamat'   => env('ALNAY_ALAMAT', 'Jl. Terusan Ragom Gawi III, Perumahan Taman Cinta A7, Kelurahan Kedaung, Kecamatan Kemiling, Kota Bandar Lampung, Lampung 35158'),
     ],
 
     'event' => [

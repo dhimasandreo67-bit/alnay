@@ -21,7 +21,7 @@ return [
         'whatsapp' => env('ADMIN_WHATSAPP'),
         'email'    => env('ADMIN_EMAIL'),
         'jam'      => env('ADMIN_JAM_LAYANAN'),
-        'alamat'   => env('ADMIN_ALAMAT', 'Jl. Terusan Rajabasa No.11, Bandar Lampung'),
+        'alamat'   => env('ADMIN_ALAMAT', 'Jl. Terusan Ragom Gawi III, Perumahan Taman Cinta A7, Kelurahan Kedaung, Kecamatan Kemiling, Kota Bandar Lampung, Lampung 35158'),
     ],
 
 ];

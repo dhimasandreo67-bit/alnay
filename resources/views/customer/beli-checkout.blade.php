@@ -107,7 +107,7 @@
         $diskonJualCheckout = $produk->diskonJual();
 
         $metodeAwal = old('metode_penerimaan', 'kirim');
-        $alamatToko = config('alnay.toko.alamat', 'Jl. Terusan Rajabasa No.11, Bandar Lampung');
+        $alamatToko = config('alnay.toko.alamat', 'Jl. Terusan Ragom Gawi III, Perumahan Taman Cinta A7, Kelurahan Kedaung, Kecamatan Kemiling, Kota Bandar Lampung, Lampung 35158');
 
         $cfg = [
             'metode' => $metodeAwal,

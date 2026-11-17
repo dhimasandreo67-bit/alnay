@@ -368,7 +368,7 @@
                         <h2 class="text-[11px] font-semibold uppercase tracking-wider text-ink/60 mb-3">Pengambilan</h2>
                         <div class="rounded-xl bg-cream/60 border border-line/30 px-4 py-3">
                             <p class="text-[13px] font-semibold text-ink/85">Ambil di Toko</p>
-                            <p class="mt-0.5 text-[12px] text-ink/60">{{ config('alnay.toko.alamat', 'Jl. Terusan Rajabasa No.11, Bandar Lampung') }}</p>
+                            <p class="mt-0.5 text-[12px] text-ink/60">{{ config('alnay.toko.alamat', 'Jl. Terusan Ragom Gawi III, Perumahan Taman Cinta A7, Kelurahan Kedaung, Kecamatan Kemiling, Kota Bandar Lampung, Lampung 35158') }}</p>
                         </div>
                     </section>
                 @endif
