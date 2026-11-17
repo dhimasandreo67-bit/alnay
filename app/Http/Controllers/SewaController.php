@@ -118,7 +118,7 @@ class SewaController extends Controller
             'kota_kabupaten' => ['nullable', 'string'],
             'kecamatan' => ['nullable', 'string'],
             'kode_pos' => ['nullable', 'string'],
-            'metode_bayar' => ['required', 'in:qris,va,ewallet'],
+            'metode_bayar' => ['required', 'in:qris'],
             'catatan' => ['nullable', 'string', 'max:255'],
             'setuju' => ['accepted'],
         ]);

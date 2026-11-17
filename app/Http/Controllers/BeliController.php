@@ -136,7 +136,7 @@ class BeliController extends Controller
             'no_wa'             => ['required', 'string', 'max:20'],
             'alamat'            => ['required_if:metode_penerimaan,kirim', 'nullable', 'string', 'max:500'],
             'catatan'           => ['nullable', 'string'],
-            'metode_bayar'      => ['required', 'in:qris,va,ewallet,tunai'],
+            'metode_bayar'      => ['required', 'in:qris,tunai'],
             'tujuan_id'         => ['required_if:metode_penerimaan,kirim', 'nullable', 'integer'],
             'tujuan_label'      => ['nullable', 'string', 'max:255'],
             'kurir'             => ['required_if:metode_penerimaan,kirim', 'nullable', 'string', 'max:20'],

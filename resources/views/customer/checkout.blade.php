@@ -646,33 +646,6 @@
                             </div>
                         </label>
 
-                        <label class="cursor-pointer block">
-                            <input type="radio" name="metode_bayar" value="va" class="opsi-radio peer sr-only">
-                            <div
-                                class="opsi-card h-full flex items-start gap-3.5 p-4 rounded-xl border border-gray-200 hover:border-[#c99a32]/60 transition-all duration-200">
-                                <span
-                                    class="radio-dot mt-1 w-4 h-4 rounded-full border-2 border-gray-300 shrink-0 transition-all"></span>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-bold text-gray-800">Virtual Account Bank</p>
-                                    <p class="text-xs text-gray-500 mt-1">Verifikasi otomatis tanpa perlu upload bukti
-                                        transfer.</p>
-                                </div>
-                            </div>
-                        </label>
-
-                        <label class="cursor-pointer block">
-                            <input type="radio" name="metode_bayar" value="ewallet" class="opsi-radio peer sr-only">
-                            <div
-                                class="opsi-card h-full flex items-start gap-3.5 p-4 rounded-xl border border-gray-200 hover:border-[#c99a32]/60 transition-all duration-200">
-                                <span
-                                    class="radio-dot mt-1 w-4 h-4 rounded-full border-2 border-gray-300 shrink-0 transition-all"></span>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-bold text-gray-800">E-Wallet</p>
-                                    <p class="text-xs text-gray-500 mt-1">GoPay, OVO, ShopeePay, dan DANA.</p>
-                                </div>
-                            </div>
-                        </label>
-
                         {{-- Tunai: hanya untuk Ambil di Toko --}}
                         <label id="opsi-tunai" class="cursor-pointer block hidden">
                             <input type="radio" name="metode_bayar" value="tunai" disabled

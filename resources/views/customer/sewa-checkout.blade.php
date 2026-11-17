@@ -262,16 +262,6 @@
                                     </div>
                                 </div>
                             </label>
-                            <label class="cursor-pointer block">
-                                <input type="radio" name="metode_bayar" value="va" class="opsi-radio peer sr-only" x-model="metodeBayar">
-                                <div class="opsi-card flex items-center gap-3 p-3.5 rounded-lg border border-line/60 peer-checked:border-gold peer-checked:bg-gold/5 hover:border-gold/60 transition-all duration-300">
-                                    <span class="radio-dot w-4 h-4 rounded-full border-2 border-line shrink-0 transition-all"></span>
-                                    <div class="flex-1">
-                                        <p class="text-[13px] font-semibold text-ink/85">Virtual Account Bank</p>
-                                        <p class="text-xs text-ink/55">BCA, Mandiri, BNI, BRI, Permata</p>
-                                    </div>
-                                </div>
-                            </label>
                         </div>
 
                         <div class="mt-5 flex gap-2.5 p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">

@@ -458,28 +458,6 @@
                                     </div>
                                 </label>
 
-                                <label class="cursor-pointer block">
-                                    <input type="radio" name="metode_bayar" value="va" class="opsi-radio peer sr-only" x-model="metodeBayar" @change="bayarDisentuh = true">
-                                    <div class="opsi-card h-full flex items-start gap-3 p-3.5 rounded-xl border border-line/60 hover:border-gold/60 transition-all duration-200">
-                                        <span class="radio-dot w-4 h-4 mt-0.5 rounded-full border-2 border-line shrink-0 transition-all"></span>
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-[13px] font-semibold text-ink/90">Virtual Account Bank</p>
-                                            <p class="text-xs text-ink/55 mt-1">BCA, Mandiri, BNI, BRI, Permata (tanpa upload bukti).</p>
-                                        </div>
-                                    </div>
-                                </label>
-
-                                <label class="cursor-pointer block">
-                                    <input type="radio" name="metode_bayar" value="ewallet" class="opsi-radio peer sr-only" x-model="metodeBayar" @change="bayarDisentuh = true">
-                                    <div class="opsi-card h-full flex items-start gap-3 p-3.5 rounded-xl border border-line/60 hover:border-gold/60 transition-all duration-200">
-                                        <span class="radio-dot w-4 h-4 mt-0.5 rounded-full border-2 border-line shrink-0 transition-all"></span>
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-[13px] font-semibold text-ink/90">E-Wallet Direct</p>
-                                            <p class="text-xs text-ink/55 mt-1">GoPay, ShopeePay, OVO, dan DANA.</p>
-                                        </div>
-                                    </div>
-                                </label>
-
                                 {{-- Tunai: hanya untuk ambil di toko --}}
                                 <label class="cursor-pointer block" x-show="!kirim" x-cloak>
                                     <input type="radio" name="metode_bayar" value="tunai" class="opsi-radio peer sr-only" x-model="metodeBayar" :disabled="kirim" @change="bayarDisentuh = true">

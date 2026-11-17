@@ -19,9 +19,6 @@ class AppServiceProvider extends ServiceProvider
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         // 1. Share data jumlah keranjang ke SEMUA view (termasuk header)
@@ -35,6 +32,5 @@ class AppServiceProvider extends ServiceProvider
 
         // 3. Pasang perekam audit log (created/updated/deleted + login/logout)
         Audit::daftarkan();
-        \App\Support\NotifikasiAdmin::daftarkan(); 
     }
 }

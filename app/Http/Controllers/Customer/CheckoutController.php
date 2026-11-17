@@ -141,7 +141,7 @@ class CheckoutController extends Controller
         $request->validate([
             'alamat_id'         => 'nullable|string|max:20',
             'metode_penerimaan' => 'required|in:ambil,kirim',
-            'metode_bayar'      => 'required|in:qris,va,ewallet,tunai',
+            'metode_bayar'      => 'required|in:qris,tunai',
             'nama_penerima'     => 'required_if:metode_penerimaan,kirim|nullable|string|max:100',
             'no_wa'             => 'required_if:metode_penerimaan,kirim|nullable|string|max:20',
             'alamat'            => 'required_if:metode_penerimaan,kirim|nullable|string|max:500',
