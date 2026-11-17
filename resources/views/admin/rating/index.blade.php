@@ -25,6 +25,25 @@
                 background: rgba(255, 255, 255, 0.25); transform: rotate(30deg); transition: all 0.6s ease;
             }
             .group-shine:hover::after { left: 130%; }
+            /* Foto produk di sisi kiri kartu, memudar ke arah teks */
+            .kartu-foto {
+                position: absolute; inset: 0 auto 0 0; width: 42%;
+                pointer-events: none; z-index: 0;
+                -webkit-mask-image: linear-gradient(to right, #000 0%, #000 30%, transparent 100%);
+                        mask-image: linear-gradient(to right, #000 0%, #000 30%, transparent 100%);
+            }
+            .kartu-foto img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(.22,.8,.3,1); }
+            .kartu-ulasan:hover .kartu-foto img { transform: scale(1.06); }
+            .kartu-ulasan.ada-foto { min-height: 10.5rem; }
+            .kartu-ulasan.ada-foto .kartu-isi { padding-left: 38%; }
+            @media (max-width: 420px) {
+                .kartu-foto { width: 34%; }
+                .kartu-ulasan.ada-foto .kartu-isi { padding-left: 31%; }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .kartu-foto img { transition: none; }
+                .kartu-ulasan:hover .kartu-foto img { transform: none; }
+            }
             #dlg-hapus-rating::backdrop { background: rgba(17, 24, 39, 0.45); backdrop-filter: blur(2px); }
         </style>
 
@@ -227,9 +246,31 @@
                             : null;
                         $rendah = (int) $r->rating <= 2;
                         $duplikat = in_array($r->user_id . '|' . $r->detail_transaksi_id, $kunciDup, true);
+
+                        // Foto produk: bisa array, string JSON, URL penuh, atau path di storage lokal.
+                        $fotoProduk = $r->produk->foto_produk ?? null;
+                        if (is_string($fotoProduk) && str_starts_with(trim($fotoProduk), '[')) {
+                            $fotoProduk = json_decode($fotoProduk, true);
+                        }
+                        if (is_array($fotoProduk)) {
+                            $fotoProduk = $fotoProduk[0] ?? null;
+                        }
+                        $fotoProdukUrl = filled($fotoProduk)
+                            ? (\Illuminate\Support\Str::startsWith($fotoProduk, ['http://', 'https://'])
+                                ? $fotoProduk
+                                : asset('storage/' . ltrim($fotoProduk, '/')))
+                            : null;
                     @endphp
 
-                    <article class="kartu-ulasan group group-shine relative overflow-hidden bg-white rounded-2xl border {{ $rendah ? 'border-rose-100' : 'border-gray-100' }} p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-500/10">
+                    <article class="kartu-ulasan group group-shine relative overflow-hidden bg-white rounded-2xl border {{ $rendah ? 'border-rose-100' : 'border-gray-100' }} {{ $fotoProdukUrl ? 'ada-foto' : '' }} p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lg hover:shadow-amber-500/10">
+                        @if ($fotoProdukUrl)
+                            <div class="kartu-foto" aria-hidden="true">
+                                <img src="{{ $fotoProdukUrl }}" alt="" loading="lazy"
+                                     onerror="this.closest('article').classList.remove('ada-foto'); this.parentElement.remove();">
+                            </div>
+                        @endif
+
+                        <div class="kartu-isi relative z-10">
                         <div class="flex justify-between items-start gap-3 mb-3">
                             <div class="flex min-w-0 items-center gap-3">
                                 {{-- Avatar: inisial sebagai dasar, foto menimpa; kalau foto gagal dimuat, inisial tetap tampil --}}
@@ -296,6 +337,7 @@
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                             </button>
                         </div>
+                        </div>{{-- /.kartu-isi --}}
                     </article>
                 @empty
                     <div class="col-span-full text-center py-16 bg-white rounded-3xl border border-gray-100 shadow-sm">
