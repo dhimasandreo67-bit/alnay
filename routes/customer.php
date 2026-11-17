@@ -6,6 +6,7 @@ use App\Http\Controllers\Customer\ProfilController;
 use App\Http\Controllers\Customer\RefundController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
+use App\Http\Controllers\Customer\NotifikasiController;
 use App\Http\Controllers\FittingController;
 use App\Http\Controllers\SewaController;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +29,14 @@ Route::middleware('auth:web')->prefix('akun')->name('akun.')->group(function () 
 
     Route::get('/fitting', [AkunController::class, 'fitting'])->name('fitting.index');
     Route::get('/fitting/riwayat', [FittingController::class, 'index'])->name('akun.fitting.index');
+
+    // Notifikasi lonceng pelanggan (header)
+    Route::prefix('notifikasi')->name('notifikasi.')->group(function () {
+        Route::get('/{id}/buka', [NotifikasiController::class, 'buka'])->whereNumber('id')->name('buka');
+        Route::post('/baca-semua', [NotifikasiController::class, 'bacaSemua'])->name('baca-semua');
+        Route::delete('/semua', [NotifikasiController::class, 'hapusSemua'])->name('hapus-semua');
+        Route::delete('/{id}', [NotifikasiController::class, 'hapus'])->whereNumber('id')->name('hapus');
+    });
 
     // Refund pembelian
     Route::get('/refund', [RefundController::class, 'index'])->name('refund.index');
