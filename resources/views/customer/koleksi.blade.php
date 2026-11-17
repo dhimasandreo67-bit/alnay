@@ -50,6 +50,88 @@
             scrollbar-width: none;
         }
 
+        /* Toggle "Lihat produk habis" (CSS biasa, tidak bergantung pada Tailwind) */
+        .sw-track {
+            position: relative;
+            display: inline-block;
+            flex-shrink: 0;
+            width: 44px;
+            height: 24px;
+            border-radius: 999px;
+            background: rgba(21, 35, 61, .18);
+            transition: background-color .25s ease;
+        }
+
+        .sw-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+            transition: transform .25s cubic-bezier(.22, .8, .3, 1);
+        }
+
+        .sw-input:checked + .sw-track {
+            background: #c99a32;
+        }
+
+        .sw-input:checked + .sw-track .sw-knob {
+            transform: translateX(20px);
+        }
+
+        .sw-input:focus-visible + .sw-track {
+            outline: 2px solid rgba(201, 154, 50, .6);
+            outline-offset: 2px;
+        }
+
+        /* Bagian "Produk Habis": membuka halus (tinggi + fade), kartu muncul bergantian */
+        .habis-wrap {
+            display: grid;
+            grid-template-rows: 0fr;
+            opacity: 0;
+            transition: grid-template-rows .5s cubic-bezier(.22, .8, .3, 1), opacity .4s ease;
+        }
+
+        .habis-wrap.habis-open {
+            grid-template-rows: 1fr;
+            opacity: 1;
+        }
+
+        .habis-wrap > .habis-inner {
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        @keyframes habis-up {
+            from {
+                opacity: 0;
+                transform: translateY(18px) scale(.97);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .habis-wrap.habis-open .habis-item {
+            animation: habis-up .5s cubic-bezier(.22, .8, .3, 1) both;
+            animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .habis-wrap {
+                transition: none;
+            }
+
+            .habis-wrap.habis-open .habis-item {
+                animation: none;
+            }
+        }
+
         @keyframes bar-slide {
             0% {
                 transform: translateX(-100%);
@@ -65,6 +147,7 @@
         function koleksiFilter(awal = {}) {
             return {
                 filterOpen: false,
+                habisBuka: false,
                 loading: false,
                 scrolled: false,
                 sheetY: 0,
@@ -115,6 +198,19 @@
                 // Di HP hasil berada jauh di bawah hero: geser ke daftar produk
                 keHasil() {
                     const el = document.getElementById('area-produk');
+                    if (!el) return;
+                    const top = el.getBoundingClientRect().top + window.scrollY - 96;
+                    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+                },
+
+                // Buka/tutup bagian "Produk Habis" di bawah daftar (tanpa pindah halaman)
+                togelHabis() {
+                    this.habisBuka = !this.habisBuka;
+                },
+
+                // Geser ke bagian "Produk Habis"
+                keHabis() {
+                    const el = document.getElementById('produk-habis');
                     if (!el) return;
                     const top = el.getBoundingClientRect().top + window.scrollY - 96;
                     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
@@ -179,6 +275,7 @@
                 },
 
                 // Kumpulkan semua filter (form + search + harga + sort) -> URL -> muat via AJAX
+                // (checkbox "habis" ikut terkirim otomatis lewat FormData)
                 kirim(opt = {}) {
                     clearTimeout(this.timer);
                     const f = document.getElementById('form-filter');
@@ -258,6 +355,11 @@
                     if (a.dataset.ajax !== undefined) return this.reset(a.href);
                     if (a.dataset.chip !== undefined) {
                         this.muat(a.href).then(() => this.sinkronForm());
+                        return;
+                    }
+                    // Pagination di dalam bagian "Produk Habis": tetap di bagian itu
+                    if (a.closest('#produk-habis')) {
+                        this.muat(a.href).then(() => this.$nextTick(() => this.keHabis()));
                         return;
                     }
                     this.muat(a.href, { naik: true });
@@ -670,6 +772,11 @@
                     data-total="{{ $produkList->total() }}" data-aktif="{{ $jumlahAktif }}">
 
                     @php
+                        // Produk habis dikirim controller terpisah dari $produkList
+                        $produkHabis = $produkHabis ?? collect();
+                        $jumlahHabis = method_exists($produkHabis, 'total') ? $produkHabis->total() : $produkHabis->count();
+                        $adaHabis = $jumlahHabis > 0;
+
                         // ---------- Chip filter aktif (bisa dihapus satu per satu) ----------
                         $bangunUrl = function (array $q) {
                             $pairs = [];
@@ -902,7 +1009,12 @@
                                 class="pd-pop w-16 h-16 rounded-full bg-cream flex items-center justify-center text-gold mx-auto mb-4">
                                 <x-icon name="search" :size="28" />
                             </div>
-                            @if (count($chips))
+                            @if ($adaHabis)
+                                <h3 class="font-display text-xl md:text-2xl text-ink/85 mb-2">Semua produk yang cocok sedang habis</h3>
+                                <p class="text-[14px] text-ink/60 max-w-md mx-auto leading-relaxed">
+                                    Produk yang stoknya kosong dapat dilihat di bagian bawah halaman ini.
+                                </p>
+                            @elseif (count($chips))
                                 <h3 class="font-display text-xl md:text-2xl text-ink/85 mb-2">Belum ada produk yang cocok</h3>
                                 <p class="text-[14px] text-ink/60 max-w-md mx-auto mb-6 leading-relaxed">
                                     Kombinasi filter ini terlalu spesifik. Lepas salah satu filter di atas, perlebar rentang harga, atau pakai kata kunci yang lebih umum.
@@ -917,6 +1029,61 @@
                                     Produk sedang diperbarui. Silakan kembali beberapa saat lagi.
                                 </p>
                             @endif
+                        </div>
+                    @endif
+                    {{-- ============================================
+                         PRODUK HABIS — tombol + bagian terpisah di bawah daftar
+                         ============================================ --}}
+                    @if ($adaHabis)
+                        <div class="mt-10 text-center">
+                            <button type="button" @click="togelHabis()" :aria-expanded="habisBuka" aria-controls="produk-habis"
+                                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-full border border-gold/50 bg-white text-[13px] font-semibold text-ink/80 hover:bg-gold/10 active:scale-95 transition">
+                                <span x-text="habisBuka ? 'Sembunyikan produk habis' : 'Lihat produk habis'">Lihat produk habis</span>
+                                <span class="min-w-[22px] h-[22px] px-1.5 rounded-full bg-gold/15 text-[12px] font-bold text-ink/75 flex items-center justify-center">{{ $jumlahHabis }}</span>
+                                <svg class="w-4 h-4 text-ink/45 transition-transform duration-200" :class="habisBuka ? 'rotate-180' : ''"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div id="produk-habis" class="habis-wrap" :class="habisBuka ? 'habis-open' : ''"
+                            :inert="!habisBuka" :aria-hidden="!habisBuka">
+                        <section class="habis-inner mt-8 pt-8 border-t border-line/40" aria-labelledby="judul-produk-habis">
+                            <div class="flex flex-wrap items-end justify-between gap-2 mb-5">
+                                <div>
+                                    <h2 id="judul-produk-habis" class="font-display text-xl md:text-2xl text-ink">Produk Habis</h2>
+                                    <p class="mt-1 text-[13px] text-ink/55">Stok sedang kosong. Produk ini belum bisa dipesan.</p>
+                                </div>
+                                <span class="text-[13px] text-ink/60"><b class="text-ink/85">{{ $jumlahHabis }}</b> produk habis</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5 items-stretch">
+                                @foreach ($produkHabis as $index => $p)
+                                    <div class="habis-item h-full" style="--i: {{ min($index, 11) }};">
+                                        <x-product-card :produk="$p" :delay="0" />
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @if ($produkHabis->hasPages())
+                                <nav class="mt-8 flex items-center justify-center gap-3" aria-label="Navigasi halaman produk habis">
+                                    @if ($produkHabis->onFirstPage())
+                                        <span class="w-11 h-11 flex items-center justify-center rounded-full border border-line/40 text-ink/25">‹</span>
+                                    @else
+                                        <a href="{{ $produkHabis->previousPageUrl() }}" aria-label="Sebelumnya"
+                                            class="w-11 h-11 flex items-center justify-center rounded-full border border-line/60 text-ink/70 hover:bg-cream hover:border-gold transition-all">‹</a>
+                                    @endif
+                                    <span class="text-[13px] text-ink/60">Hal. <b class="text-ink">{{ $produkHabis->currentPage() }}</b> / {{ $produkHabis->lastPage() }}</span>
+                                    @if ($produkHabis->hasMorePages())
+                                        <a href="{{ $produkHabis->nextPageUrl() }}" aria-label="Berikutnya"
+                                            class="w-11 h-11 flex items-center justify-center rounded-full border border-line/60 text-ink/70 hover:bg-cream hover:border-gold transition-all">›</a>
+                                    @else
+                                        <span class="w-11 h-11 flex items-center justify-center rounded-full border border-line/40 text-ink/25">›</span>
+                                    @endif
+                                </nav>
+                            @endif
+                        </section>
                         </div>
                     @endif
                 </div>{{-- /area-produk --}}
