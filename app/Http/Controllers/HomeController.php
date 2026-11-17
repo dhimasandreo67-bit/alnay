@@ -31,12 +31,15 @@ class HomeController extends Controller
         // 2. Produk Terbaru
         // Dikirim sebagai model Produk utuh (bukan array) supaya <x-product-card> bisa membaca
         // stok per ukuran/warna dan diskon lewat method model (stokUntuk, hargaJualNet, dst).
-        $produkTerbaru = Produk::latest()
+        // Produk yang stoknya habis tidak ditampilkan di beranda.
+        $produkTerbaru = Produk::sembunyikanHabis()
+            ->latest()
             ->limit(5)
             ->get();
 
-        // 3. Produk Terpopuler (Best Seller)
-        $produkTerpopuler = Produk::withCount(['detailTransaksi'])
+        // 3. Produk Terpopuler (Best Seller) — produk habis juga disembunyikan
+        $produkTerpopuler = Produk::sembunyikanHabis()
+            ->withCount(['detailTransaksi'])
             ->orderByDesc('detail_transaksi_count')
             ->orderByDesc('jumlah_rating')
             ->limit(5)

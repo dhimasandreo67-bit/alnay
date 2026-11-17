@@ -10,15 +10,61 @@ class KoleksiController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Kategori untuk sidebar (dengan jumlah produk)
-        $kategoriList = Kategori::withCount('produks')->orderBy('nama_kategori')->get();
+        // Produk habis TIDAK dicampur dengan produk tersedia: selalu dimuat terpisah dan
+        // ditampilkan di bawah daftar lewat tombol "Lihat produk habis (jumlah)".
 
-        // 2. Daftar warna dinamis (warna jual + warna sewa)
+        // 1. Kategori untuk sidebar (jumlah = produk yang tersedia)
+        $kategoriList = Kategori::withCount([
+            'produks' => fn ($q) => $q->whereNotIn('produk.id', Produk::idHabis()),
+        ])->orderBy('nama_kategori')->get();
+
+        // 2. Daftar warna dinamis (semua produk, termasuk yang habis)
         $warnaList = $this->daftarWarna();
 
-        // 3. Query dasar
-        $query = Produk::query()->with('kategori');
+        // 3. Query dasar + semua filter (dipakai bersama oleh daftar tersedia & daftar habis)
+        $dasar = Produk::query()->with('kategori');
+        $this->terapkanFilter($dasar, $request);
 
+        // 4. Produk tersedia
+        $produkList = (clone $dasar)
+            ->sembunyikanHabis()
+            ->paginate(12)
+            ->withQueryString();
+
+        // 5. Produk habis (bagian terpisah, paginasi sendiri lewat ?hal_habis=)
+        $produkHabis = $this->ambilProdukHabis($dasar);
+
+        return view('customer.koleksi', compact('produkList', 'produkHabis', 'kategoriList', 'warnaList'));
+    }
+
+    public function showKategori(Request $request, $kode)
+    {
+        $kategori = Kategori::where('kode_kategori', $kode)->firstOrFail();
+
+        $kategoriList = Kategori::withCount([
+            'produks' => fn ($q) => $q->whereNotIn('produk.id', Produk::idHabis()),
+        ])->orderBy('nama_kategori')->get();
+        $warnaList = $this->daftarWarna();
+
+        $dasar = Produk::with('kategori')
+            ->where('kategori_id', $kategori->id)
+            ->latest();
+
+        $produkList = (clone $dasar)
+            ->sembunyikanHabis()
+            ->paginate(12)
+            ->withQueryString();
+
+        $produkHabis = $this->ambilProdukHabis($dasar);
+
+        return view('customer.koleksi', compact('produkList', 'produkHabis', 'kategoriList', 'kategori', 'warnaList'));
+    }
+
+    /**
+     * Terapkan pencarian, kategori, warna, jenis, rentang harga, dan urutan ke query.
+     */
+    private function terapkanFilter($query, Request $request): void
+    {
         // 4. PENCARIAN & RELEVANSI
         if ($request->filled('search')) {
             $rawSearch = trim($request->string('search')->toString());
@@ -126,30 +172,23 @@ class KoleksiController extends Controller
             'populer'  => $query->orderByDesc('jumlah_rating'),
             default    => $query->latest(),
         };
-
-        // 10. Pagination
-        $produkList = $query->paginate(12)->withQueryString();
-
-        return view('customer.koleksi', compact('produkList', 'kategoriList', 'warnaList'));
     }
 
-    public function showKategori($kode)
+    /**
+     * Produk stok habis (sesuai filter aktif), dipaginasi terpisah dari daftar utama.
+     */
+    private function ambilProdukHabis($dasar)
     {
-        $kategori = Kategori::where('kode_kategori', $kode)->firstOrFail();
-        $kategoriList = Kategori::withCount('produks')->orderBy('nama_kategori')->get();
-        $warnaList = $this->daftarWarna();
-
-        $produkList = Produk::with('kategori')
-            ->where('kategori_id', $kategori->id)
-            ->latest()
-            ->paginate(12);
-
-        return view('customer.koleksi', compact('produkList', 'kategoriList', 'kategori', 'warnaList'));
+        return (clone $dasar)
+            ->whereIn('produk.id', Produk::idHabis())
+            ->paginate(8, ['*'], 'hal_habis')
+            ->withQueryString();
     }
 
-    private function daftarWarna()
+    private function daftarWarna(array $kecuali = [])
     {
         return Produk::query()
+            ->whereNotIn('id', $kecuali)
             ->get(['id', 'warna', 'warna_sewa'])
             ->flatMap(fn ($p) => array_merge(
                 $this->pecahWarna($p->getRawOriginal('warna')),

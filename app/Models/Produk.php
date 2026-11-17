@@ -173,6 +173,47 @@ class Produk extends Model
     }
 
     /**
+     * Produk dianggap habis bila semua jenis yang aktif (sewa/beli) stoknya 0.
+     * Aturannya sama dengan $habisSemua di components/product-card.blade.php.
+     * Produk yang tidak bisa disewa maupun dibeli ("Belum Tersedia") bukan stok habis.
+     */
+    public function habisSemua(): bool
+    {
+        $bisaSewa = $this->bisa_disewa && (float) $this->harga_sewa > 0;
+        $bisaBeli = $this->dapat_dijual && (float) $this->harga_jual > 0;
+
+        if (! $bisaSewa && ! $bisaBeli) {
+            return false;
+        }
+
+        return (! $bisaSewa || $this->stokUntuk('sewa') <= 0)
+            && (! $bisaBeli || $this->stokUntuk('jual') <= 0);
+    }
+
+    /**
+     * ID semua produk yang habis. Di-cache per request supaya beranda/koleksi
+     * tidak menghitung dua kali. Stok disimpan sebagai JSON ukuran/warna sehingga
+     * tidak bisa difilter murni lewat SQL.
+     *
+     * @return int[]
+     */
+    public static function idHabis(): array
+    {
+        static $cache = null;
+
+        return $cache ??= static::query()->get()
+            ->filter(fn ($p) => $p->habisSemua())
+            ->pluck('id')
+            ->all();
+    }
+
+    /** Scope: sembunyikan produk yang stoknya habis. */
+    public function scopeSembunyikanHabis($query)
+    {
+        return $query->whereNotIn($this->getTable() . '.id', static::idHabis());
+    }
+
+    /**
      * Kurangi stok setelah pembelian dibayar. Mengikuti struktur form admin:
      * ukuran[].warna[].stok; total ukuran = jumlah stok warna; total stok = jumlah semua ukuran.
      * Tanpa variasi (atau data lama tanpa ukuran) hanya total stok yang dikurangi.
