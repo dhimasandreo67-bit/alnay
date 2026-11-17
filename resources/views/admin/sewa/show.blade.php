@@ -30,21 +30,10 @@
         }
         $estimasiDendaTelat = $hariTelatLive * $tarifTelat;
     @endphp
-    @php
+       @php
             $flowDiterima = $sewa->status === 'selesai';
             $jumlahDendaBelumLunas = $sewa->denda->where('status', 'belum_lunas')->count();
-            $flowDenda = $flowDiterima && $jumlahDendaBelumLunas === 0;
             $flowDeposit = ($sewa->jaminan->status_pengembalian_deposit ?? null) === 'dikembalikan';
-
-            $flowSteps = [
-                1 => ['label' => 'Sewa Berjalan', 'desc' => 'Busana di tangan pelanggan.', 'done' => true],
-                2 => ['label' => 'Barang Kembali & QC', 'desc' => 'Terima busana, cek kondisi.', 'done' => $flowDiterima],
-                3 => ['label' => 'Denda Diselesaikan', 'desc' => 'Semua denda sudah lunas.', 'done' => $flowDenda],
-                4 => ['label' => 'Deposit Dikembalikan', 'desc' => 'Deposit cair ke pelanggan.', 'done' => $flowDeposit],
-            ];
-            $flowCurrent = collect($flowSteps)->first(fn ($s) => !$s['done'], end($flowSteps));
-            $flowCurrentNum = array_search($flowCurrent, $flowSteps, true);
-            $flowSelesaiSemua = $flowDiterima && $flowDenda && $flowDeposit;
 
             // ---- Status & nilai yang dipakai banner "Langkah Berikutnya", badge, dan tab ----
             $tenggatAkhir = \Carbon\Carbon::parse($sewa->tanggal_kembali_rencana)->endOfDay();
@@ -53,7 +42,21 @@
             $rpDeposit = 'Rp ' . number_format($nilaiDeposit, 0, ',', '.');
             $totalDendaBelumLunas = (float) $sewa->denda->where('status', 'belum_lunas')->sum('jumlah');
             $jaminanVerified = ($sewa->jaminan->status_verifikasi ?? null) === 'verified';
-            $siapDeposit = $flowDiterima && $flowDenda && !$flowDeposit;
+            
+            // Definisikan siapDeposit DULU sebelum dipakai di flowDenda
+            $siapDeposit = $flowDiterima && !$flowDeposit && ($totalDendaBelumLunas <= $nilaiDeposit);
+
+            $flowDenda = $flowDiterima && ($jumlahDendaBelumLunas === 0 || $siapDeposit);
+
+            $flowSteps = [
+                1 => ['label' => 'Sewa Berjalan', 'desc' => 'Busana di tangan pelanggan.', 'done' => true],
+                2 => ['label' => 'Barang Kembali & QC', 'desc' => 'Terima busana, cek kondisi.', 'done' => $flowDiterima],
+                3 => ['label' => 'Denda Diselesaikan', 'desc' => 'Semua denda sudah lunas / terpotong deposit.', 'done' => $flowDenda],
+                4 => ['label' => 'Deposit Dikembalikan', 'desc' => 'Deposit cair ke pelanggan.', 'done' => $flowDeposit],
+            ];
+            $flowCurrent = collect($flowSteps)->first(fn ($s) => !$s['done'], end($flowSteps));
+            $flowCurrentNum = array_search($flowCurrent, $flowSteps, true);
+            $flowSelesaiSemua = $flowDiterima && $flowDenda && $flowDeposit;
 
             if ($flowSelesaiSemua) {
                 $badge = ['SELESAI — SEMUA TUNTAS', 'bg-emerald-100 text-emerald-700'];
@@ -140,13 +143,13 @@
                             ? 'Sudah lewat tenggat pengembalian. Hubungi pelanggan, lalu tandai diterima begitu busana tiba di studio.'
                             : 'Tandai sudah kembali begitu busana diterima di studio. Setelah itu lakukan QC dan cek denda.',
                     ];
-                } elseif (!$flowDenda) {
+                } elseif (!$siapDeposit) {
                     $banner = [
                         'wrap' => 'border-amber-200 bg-amber-50 text-amber-900',
                         'icon' => 'bg-amber-500',
                         'ikon' => 'fa-file-invoice-dollar',
-                        'judul' => "Selesaikan {$jumlahDendaBelumLunas} denda (Rp " . number_format($totalDendaBelumLunas, 0, ',', '.') . ')',
-                        'desc' => 'Lunasi semua denda dulu, baru deposit bisa dikembalikan. Ada kerusakan? Catat lewat tab QC, dendanya otomatis masuk ke tab denda.',
+                        'judul' => "Denda (Rp " . number_format($totalDendaBelumLunas, 0, ',', '.') . ') melebihi deposit',
+                        'desc' => 'Total denda lebih besar dari deposit. Tagih kekurangan secara manual (Tandai Lunas) terlebih dahulu agar deposit bisa diselesaikan.',
                     ];
                 } else {
                     $banner = [
@@ -155,7 +158,7 @@
                         'ikon' => 'fa-money-bill-wave',
                         'judul' => $nilaiDeposit > 0 ? "Kembalikan deposit {$rpDeposit} ke pelanggan" : 'Selesaikan pengembalian (tanpa deposit)',
                         'desc' => $nilaiDeposit > 0
-                            ? 'Busana sudah kembali dan semua denda lunas. Deposit dikembalikan penuh 100%.'
+                            ? ($totalDendaBelumLunas > 0 ? "Deposit akan dipotong denda sebesar Rp " . number_format($totalDendaBelumLunas, 0, ',', '.') . ". Sisa deposit akan dikembalikan." : 'Busana sudah kembali dan semua denda lunas. Deposit dikembalikan penuh 100%.')
                             : 'Busana sudah kembali dan semua denda lunas. Sewa ini tidak memiliki deposit yang perlu dicairkan.',
                     ];
                 }
@@ -186,7 +189,7 @@
                                 <i class="fas fa-box-open mr-1"></i> Tandai Barang Diterima Kembali
                             </button>
                         </form>
-                    @elseif (!$flowDenda)
+                    @elseif (!$siapDeposit)
                         <button type="button" @click="buka('qc')"
                             class="px-5 py-3 bg-white border border-amber-300 text-amber-800 rounded-xl text-sm font-bold hover:bg-amber-100 whitespace-nowrap">
                             Catat Kerusakan (QC)
@@ -998,8 +1001,7 @@
                         </div>
                         <h3 class="text-xl font-bold text-ink mb-2">Pengembalian Penuh 100% Deposit Sewa</h3>
                         <p class="text-sm text-gray-600 leading-relaxed max-w-3xl">
-                            Deposit selalu dikembalikan utuh 100% (Rp
-                            {{ number_format($sewa->jaminan->jumlah_deposit ?? 0, 0, ',', '.') }}) tanpa memotong denda.
+                            Deposit (Rp {{ number_format($sewa->jaminan->jumlah_deposit ?? 0, 0, ',', '.') }}) akan digunakan untuk melunasi sisa denda (jika ada). Sisa deposit akan dikembalikan ke pelanggan.
                         </p>
                         @if (!$flowDeposit && (!$flowDiterima || !$flowDenda))
                             <ul class="mt-3 space-y-1 text-xs text-amber-700">
@@ -1030,7 +1032,7 @@
                             @csrf
                             <button type="submit"
                                 class="px-5 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition flex items-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-600"
-                                {{ !($flowDiterima && $flowDenda && !$flowDeposit) ? 'disabled' : '' }}>
+                                {{ !$siapDeposit ? 'disabled' : '' }}>
                                 <i class="fas fa-money-bill-wave"></i> Kembalikan Deposit Penuh
                             </button>
                         </form>

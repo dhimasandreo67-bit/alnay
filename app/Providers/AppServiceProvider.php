@@ -35,5 +35,6 @@ class AppServiceProvider extends ServiceProvider
 
         // 3. Pasang perekam audit log (created/updated/deleted + login/logout)
         Audit::daftarkan();
+        \App\Support\NotifikasiAdmin::daftarkan(); 
     }
 }

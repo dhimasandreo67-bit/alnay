@@ -18,6 +18,13 @@
         }
         .pd-shine:hover::after { transform: translateX(120%); }
         .pd-bar { transition: width .9s cubic-bezier(.22, .8, .3, 1); }
+        @keyframes pulse-ring-smooth {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .animate-pulse-ring-smooth {
+            animation: pulse-ring-smooth 2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+        }
         @media (prefers-reduced-motion: reduce) {
             .pd-up, .pd-bar { animation: none !important; transition: none !important; }
         }
@@ -35,6 +42,7 @@
         $statusBayar = [
             'pending'    => ['Menunggu pembayaran', 'bg-amber-50 text-amber-700 border-amber-200'],
             'dp'         => ['DP dibayar', 'bg-sky-50 text-sky-700 border-sky-200'],
+            'dp_dibayar' => ['DP dibayar', 'bg-sky-50 text-sky-700 border-sky-200'],
             'lunas'      => ['Lunas', 'bg-emerald-50 text-emerald-700 border-emerald-200'],
             'settlement' => ['Lunas', 'bg-emerald-50 text-emerald-700 border-emerald-200'],
             'success'    => ['Lunas', 'bg-emerald-50 text-emerald-700 border-emerald-200'],
@@ -83,12 +91,19 @@
         $sisaTagihan = max(0, $totalTagihan - (int) $sudahDibayar);
         $persenBayar = $totalTagihan > 0 ? min(100, (int) round($sudahDibayar / $totalTagihan * 100)) : 0;
 
-        $sudahBayarAwal = in_array($statusKey, ['dp', 'lunas', 'settlement', 'success']);
+                $sewaSelesai = $isSewa && strtolower((string) ($transaksi->sewa->status ?? '')) === 'selesai';
+
+        $sudahBayarAwal = in_array($statusKey, ['dp', 'dp_dibayar', 'lunas', 'settlement', 'success']) || $transaksi->dpSudahDibayar();
+        $sudahDikirim = in_array($statusKirim, ['dikirim', 'diterima']);
+        
         $langkah = [
             ['label' => 'Bayar', 'selesai' => $sudahBayarAwal],
-            ['label' => 'Diproses', 'selesai' => $sudahBayarAwal],
-            ['label' => $isSewa ? 'Diantar' : 'Dikirim', 'selesai' => in_array($statusKirim, ['dikirim', 'diterima'])],
-            ['label' => 'Diterima', 'selesai' => $statusKirim === 'diterima'],
+            // "Diproses" baru dianggap selesai jika barang sudah dikirim
+            ['label' => 'Diproses', 'selesai' => $sudahBayarAwal && $sudahDikirim],
+            ['label' => $isSewa ? 'Diantar' : 'Dikirim', 'selesai' => $sudahDikirim],
+            $isSewa
+                ? ['label' => 'Dikembalikan', 'selesai' => $sewaSelesai]
+                : ['label' => 'Diterima', 'selesai' => $statusKirim === 'diterima'],
         ];
 
         // Sewa ambil di toko tidak punya tahap "Diantar/Diterima": ganti dengan tahap fitting.
@@ -98,7 +113,8 @@
             $langkah = [
                 ['label' => 'Bayar DP', 'selesai' => $transaksi->dpSudahDibayar()],
                 ['label' => 'Jadwal fitting', 'selesai' => (bool) $fit],
-                ['label' => 'Fitting selesai', 'selesai' => $fit && strtolower($fit->status) === 'hadir'],
+                ['label' => 'Fitting selesai', 'selesai' => ($fit && strtolower($fit->status) === 'hadir') || $sewaSelesai],
+                ['label' => 'Dikembalikan', 'selesai' => $sewaSelesai],
             ];
         }
 
@@ -134,7 +150,7 @@
 
             {{-- HEADER --}}
             <div class="pd-up flex items-center gap-3 mb-5" style="--d: .05s;">
-                <a href="{{ route('akun.dashboard') }}#ringkasan" aria-label="Kembali"
+                <a href="{{ route('akun.dashboard') }}#penyewaan" aria-label="Kembali"
                     class="w-9 h-9 shrink-0 rounded-full bg-white border border-line/50 flex items-center justify-center text-ink/50 hover:text-gold hover:border-gold/50 transition-all duration-300">
                     <x-icon name="chevron-right" :size="14" class="rotate-180" />
                 </a>
@@ -178,17 +194,52 @@
 
                 {{-- PROGRES --}}
                 <div class="px-5 md:px-6 py-4 border-t border-line/40">
+                                        @php
+                        // Cari langkah pertama yang belum selesai (itulah yang sedang aktif)
+                        $activeIndex = null;
+                        foreach ($langkah as $i => $l) {
+                            if (! $l['selesai']) {
+                                $activeIndex = $i;
+                                break;
+                            }
+                        }
+                    @endphp
+
                     <ol class="flex items-start">
                         @foreach ($langkah as $i => $l)
+                            @php $isActive = ($i === $activeIndex); @endphp
                             <li class="flex-1 flex flex-col items-center text-center relative">
                                 @if (! $loop->last)
                                     <span class="absolute top-3 left-1/2 w-full h-px {{ $l['selesai'] ? 'bg-gold' : 'bg-line/70' }}"></span>
                                 @endif
-                                <span class="relative z-10 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold
-                                    {{ $l['selesai'] ? 'bg-gold text-white' : 'bg-white border border-line/60 text-ink/40' }}">
-                                    {{ $l['selesai'] ? '✓' : $i + 1 }}
-                                </span>
-                                <span class="mt-1.5 text-[10px] font-medium {{ $l['selesai'] ? 'text-ink/80' : 'text-ink/40' }}">{{ $l['label'] }}</span>
+                                
+                                @if ($l['selesai'])
+                                    {{-- Selesai: Centang Emas --}}
+                                    <span class="relative z-10 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-gold text-white shadow-sm">
+                                        ✓
+                                    </span>
+                                @elseif ($isActive)
+                                    {{-- Sedang Berjalan: Ikon Jam Premium dengan Animasi Radar --}}
+                                    <div class="relative z-10 w-8 h-8 -mt-1 flex items-center justify-center">
+                                        {{-- Animasi Ping (Efek Radar Emas) --}}
+                                        <span class="absolute inset-0 rounded-full bg-gold/30 animate-pulse-ring-smooth"></span>
+                                        
+                                        {{-- Lingkaran Utama --}}
+                                        <span class="relative w-8 h-8 rounded-full flex items-center justify-center bg-white border-2 border-gold text-gold shadow-sm">
+                                            {{-- Ikon Jam yang lebih tegas --}}
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                        </span>
+                                    </div>
+                                @else
+                                    {{-- Belum Sampai: Angka Abu-abu --}}
+                                    <span class="relative z-10 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-white border border-line/60 text-ink/40">
+                                        {{ $i + 1 }}
+                                    </span>
+                                @endif
+                                
+                                <span class="mt-2 text-[10px] font-medium {{ $l['selesai'] ? 'text-ink/80' : ($isActive ? 'text-gold font-bold' : 'text-ink/40') }}">{{ $l['label'] }}</span>
                             </li>
                         @endforeach
                     </ol>
@@ -439,9 +490,9 @@
                     @endif
 
                     <div class="grid grid-cols-2 gap-2.5">
-                        <a href="{{ route('akun.dashboard') }}#ringkasan"
+                        <a href="{{ route('akun.dashboard') }}#penyewaan"
                             class="text-center py-2.5 rounded-xl border border-line/50 text-ink/70 text-[12px] font-semibold hover:bg-white transition-all duration-300">
-                            Kembali ke Pesanan
+                            Kembali ke Daftar Sewa
                         </a>
                         <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text={{ urlencode('Halo, saya butuh bantuan untuk pesanan ' . $transaksi->kode_transaksi) }}"
                             target="_blank" rel="noopener"

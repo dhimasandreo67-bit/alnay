@@ -87,12 +87,6 @@ class Transaksi extends Model
     {
         return in_array(strtolower((string) $this->status_pembayaran), ['lunas', 'settlement', 'success'], true);
     }
-
-    /**
-     * Tandai transaksi lunas (dipakai halaman Transaksi maupun Sewa).
-     * Return true kalau status memang berubah, false kalau sebelumnya sudah lunas
-     * (aman dipanggil berulang).
-     */
     public function tandaiLunas(): bool
     {
         if ($this->sudahLunas()) {
@@ -101,14 +95,29 @@ class Transaksi extends Model
 
         $this->update(['status_pembayaran' => 'lunas']);
 
-        // Ubah status di tabel pembayaran (jika ada tagihan DP/Pending)
-        $this->pembayaran()->update(['status_midtrans' => 'success']);
+        // Ubah status di tabel pembayaran (jika ada tagihan DP/Deposit yang pending) menjadi success
+        $this->pembayaran()->where('status_midtrans', 'pending')->update(['status_midtrans' => 'success']);
+
+        // Cek apakah ada sisa tagihan yang belum dibayar (misal pelunasan tunai)
+        $totalDibayar = $this->pembayaran()->whereIn('status_midtrans', ['success', 'settlement', 'lunas'])->sum('jumlah');
+        $sisaTagihan = (int) $this->total - $totalDibayar;
+
+        // Jika ada sisa tagihan, otomatis catat sebagai "Pelunasan (Tunai)"
+        if ($sisaTagihan > 0) {
+            Pembayaran::create([
+                'transaksi_id' => $this->id,
+                'jenis_bayar' => 'pelunasan',
+                'jumlah' => $sisaTagihan,
+                'metode' => 'tunai',
+                'status_midtrans' => 'success',
+                'tanggal_bayar' => now(),
+            ]);
+        }
 
         // Pembayaran tunai: tanggal bayar = saat admin menerima uang di toko
         $this->pembayaran()->where('metode', 'tunai')->update(['tanggal_bayar' => now()]);
 
         // Stok pembelian online sudah ditahan saat checkout, jadi ini tidak memotong lagi.
-        // Tetap dipanggil untuk pesanan lama yang dibuat sebelum stok ditahan saat checkout.
         $this->tahanStok();
 
         return true;
@@ -234,8 +243,7 @@ class Transaksi extends Model
     public function perluFitting(): bool
     {
         return $this->jenis === 'sewa'
-            && ($this->channel ?? 'online') !== 'kasir'
-            && $this->pengiriman === null;
+            && ($this->channel ?? 'online') !== 'kasir';
     }
 
     /** Reservasi fitting yang masih berjalan / sudah selesai untuk pesanan ini (bukan yang dibatalkan). */

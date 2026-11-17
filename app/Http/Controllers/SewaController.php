@@ -216,15 +216,31 @@ class SewaController extends Controller
             return $transaksi;
         });
 
-        $dp = array_sum(array_map(fn($i) => $i->dp ?? 0, $items));
-        Pembayaran::create([
-            'transaksi_id' => $transaksi->id,
-            'jenis_bayar' => 'dp',
-            'jumlah' => $dp + $deposit,
-            'metode' => $validated['metode_bayar'],
-            'status_midtrans' => 'pending',
-            'tanggal_bayar' => now(),
-        ]);
+                $dp = array_sum(array_map(fn($i) => $i->dp ?? 0, $items));
+        
+        // 1. Catat Uang Muka (DP) Sewa
+        if ($dp > 0) {
+            Pembayaran::create([
+                'transaksi_id' => $transaksi->id,
+                'jenis_bayar' => 'dp',
+                'jumlah' => $dp,
+                'metode' => $validated['metode_bayar'],
+                'status_midtrans' => 'pending',
+                'tanggal_bayar' => now(),
+            ]);
+        }
+
+        // 2. Catat Deposit Jaminan (Terpisah)
+        if ($deposit > 0) {
+            Pembayaran::create([
+                'transaksi_id' => $transaksi->id,
+                'jenis_bayar' => 'deposit',
+                'jumlah' => $deposit,
+                'metode' => $validated['metode_bayar'],
+                'status_midtrans' => 'pending',
+                'tanggal_bayar' => now(),
+            ]);
+        }
 
         if ($validated['metode_penerimaan'] === 'kirim') {
             Pengiriman::create([

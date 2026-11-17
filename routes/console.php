@@ -11,6 +11,14 @@ Schedule::command('users:deactivate-inactive --days=360')
     ->onOneServer()          // kalau pakai multi-server
     ->runInBackground();
 
+// --- TAMBAHKAN BLOK INI ---
+// Bersihkan notifikasi lama, tiap hari jam 01:00 pagi
+Schedule::command('notifikasi:bersihkan')
+    ->dailyAt('01:00')
+    ->withoutOverlapping()
+    ->runInBackground();
+// --------------------------
+
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
