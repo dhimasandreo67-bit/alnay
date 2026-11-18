@@ -19,6 +19,14 @@
     $waktu = $log->created_at ? $log->created_at->copy()->locale('id') : null;
     $inisial = strtoupper(mb_substr(trim((string) $log->pelaku) ?: '?', 0, 1));
     $rincian = is_array($log->perubahan) ? $log->perubahan : [];
+
+    // Nilai rincian bisa berupa array/objek/boolean: ubah ke teks agar aman dicetak oleh {{ }}.
+    $teks = function ($v) {
+        if ($v === null || $v === '') return '—';
+        if (is_bool($v)) return $v ? 'ya' : 'tidak';
+        if (is_scalar($v)) return (string) $v;
+        return json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '—';
+    };
 @endphp
 <tr data-log-id="{{ $log->id }}" data-tanggal="{{ $waktu?->isoFormat('dddd, D MMMM Y') }}" class="align-top transition-colors duration-1000 hover:bg-amber-50/30">
     <td class="w-10 px-4 py-4">
@@ -50,14 +58,15 @@
                 <summary class="cursor-pointer select-none text-[11px] font-bold text-amber-700 hover:text-amber-800">Lihat rincian ({{ count($rincian) }})</summary>
                 <div class="mt-2 max-w-md space-y-1">
                     @foreach ($rincian as $p)
+                        @php $p = is_array($p) ? $p : ['field' => '-', 'baru' => $p]; @endphp
                         <div class="rounded-lg bg-gray-50 px-2.5 py-1.5 text-[11px] leading-relaxed">
-                            <span class="font-bold text-gray-500">{{ $p['field'] ?? '-' }}</span>
+                            <span class="font-bold text-gray-500">{{ $teks($p['field'] ?? '-') }}</span>
                             @if (array_key_exists('lama', $p))
-                                <span class="break-all text-rose-600 line-through">{{ $p['lama'] ?? '—' }}</span>
+                                <span class="break-all text-rose-600 line-through">{{ $teks($p['lama'] ?? null) }}</span>
                                 <span class="text-gray-400">&rarr;</span>
-                                <span class="break-all font-medium text-emerald-700">{{ $p['baru'] ?? '—' }}</span>
+                                <span class="break-all font-medium text-emerald-700">{{ $teks($p['baru'] ?? null) }}</span>
                             @else
-                                <span class="break-all text-gray-800">{{ $p['baru'] ?? '—' }}</span>
+                                <span class="break-all text-gray-800">{{ $teks($p['baru'] ?? null) }}</span>
                             @endif
                         </div>
                     @endforeach
