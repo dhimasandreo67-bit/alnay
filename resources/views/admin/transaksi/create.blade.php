@@ -88,7 +88,7 @@
         ];
     })->values();
 
-    $oldJenis    = old('jenis', 'beli');
+    $oldJenis    = old('jenis', 'sewa');
     $oldCustomer = old('customer_type', 'terdaftar');
     $oldStatus   = old('status_pembayaran', 'lunas');
 @endphp
