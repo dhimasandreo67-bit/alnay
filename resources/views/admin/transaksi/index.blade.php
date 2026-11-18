@@ -245,8 +245,10 @@
                             <td class="px-6 py-4">
                                 @php
                                     $statusColor = match($t->status_pembayaran) {
-                                        'lunas', 'dp_dibayar' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
-                                        'pending' => 'bg-amber-100 text-amber-700 border-amber-200',
+                                        'lunas' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                        'dp_dibayar' => 'bg-sky-100 text-sky-700 border-sky-200',
+                                        'pending', 'dp' => 'bg-amber-100 text-amber-700 border-amber-200',
+                                        'gagal' => 'bg-rose-100 text-rose-700 border-rose-200',
                                         default => 'bg-gray-100 text-gray-500 border-gray-200',
                                     };
                                 @endphp
