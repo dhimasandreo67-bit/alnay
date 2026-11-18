@@ -33,7 +33,7 @@
             'heading' => 'Layanan Atelier',
             'items' => [
                 ['label' => 'Refund & Return', 'route' => 'admin.refund.*', 'icon' => 'undo', 'badge' => fn () => \App\Support\AdminBadge::refund()],
-                ['label' => 'Pengiriman', 'route' => 'admin.pengiriman.*', 'icon' => 'truck', 'badge' => fn () => \App\Support\AdminBadge::pengiriman()],
+                ['label' => 'Pengiriman', 'route' => 'admin.pengiriman.*', 'icon' => 'truck', 'badge' => fn () => \App\Support\AdminBadge::pengiriman(), 'title' => 'Pengiriman belum diterima'],
                 ['label' => 'Reservasi Fitting', 'route' => 'admin.fitting.*', 'icon' => 'clock', 'badge' => fn () => \App\Support\AdminBadge::fitting()],
                 ['label' => 'Rating & Ulasan', 'route' => 'admin.rating.*', 'icon' => 'star', 'badge' => fn () => \App\Support\AdminBadge::ratingBaru(), 'seen' => 'rating', 'tone' => 'sky'],
             ],
