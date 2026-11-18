@@ -329,6 +329,7 @@
                                 <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-amber-100"></span> Rentang sewa yang dipilih</span>
                                 <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-sky-50 ring-1 ring-sky-300"></span> Sebagian unit disewa, masih bisa dipilih</span>
                                 <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-rose-200"></span> Merah: semua unit disewa, tidak bisa dipilih</span>
+                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-rose-100 ring-1 ring-rose-200"></span> Merah muda + tulisan TELAT: tanggal sudah lewat tapi barang belum dikembalikan</span>
                                 <span class="flex items-center gap-2"><span class="flex h-4 w-4 items-center justify-center rounded-md bg-gray-50 text-[9px] text-gray-300">12</span> Abu-abu: sudah lewat</span>
                                 <span class="flex items-center gap-2 sm:col-span-2"><span class="w-4 text-center text-[8px] font-semibold uppercase text-gray-500">aa</span> Tulisan kecil di tanggal: AMBIL (barang diambil), DIPAKAI, KEMBALI (barang dikembalikan)</span>
                             </div>
@@ -1159,12 +1160,16 @@
         const hariIni = hariIniIso();
         const daftarRentang = rentangKeranjang();
         renderJadwal(daftarRentang, a, b);
+        // Booking yang telat (belum dikembalikan): tanggal lampau sejak diambil sampai hari ini tetap ditandai "disewa"
+        const telatRentang = daftarRentang.filter((x) => x.terlambat);
 
         el('kal-judul').textContent = new Date(Date.UTC(kal.tahun, kal.bulan, 1))
             .toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 
-        const sekarang = new Date();
-        el('kal-mundur').disabled = kal.tahun < sekarang.getFullYear() || (kal.tahun === sekarang.getFullYear() && kal.bulan <= sekarang.getMonth());
+        // Tombol mundur boleh sampai bulan awal sewa yang telat (atau bulan ini bila tidak ada yang telat)
+        const awalTelat = telatRentang.reduce((m, x) => (!m || x.mulai < m ? x.mulai : m), '');
+        const batasBulan = (awalTelat && awalTelat < hariIni ? awalTelat : hariIni).split('-').map(Number);
+        el('kal-mundur').disabled = kal.tahun * 12 + kal.bulan <= batasBulan[0] * 12 + (batasBulan[1] - 1);
 
         const offset = (new Date(Date.UTC(kal.tahun, kal.bulan, 1)).getUTCDay() + 6) % 7;
         let sel = [];
@@ -1176,20 +1181,24 @@
 
         grid.innerHTML = sel.map((c) => {
             const lalu = c.t < hariIni, isPenuh = penuh.has(c.t), isSebagian = sebagian.has(c.t);
+            const telatLalu = (lalu && !c.luar) ? telatRentang.filter((x) => c.t >= x.mulai) : [];
             const dipilih = c.t === a || c.t === b;
             const dalam = a && b && c.t > a && c.t < b;
             let kelas = 'flex h-11 flex-col items-center justify-center leading-none mx-px rounded-lg text-xs font-medium transition-all duration-200 ';
             let mati = false, judul = '';
             if (dipilih) kelas += 'relative z-10 scale-105 bg-amber-600 font-bold text-white shadow-md';
             else if (dalam) kelas += 'bg-amber-100 font-semibold text-amber-900';
+            else if (telatLalu.length) { kelas += 'cursor-default bg-rose-100 font-semibold text-rose-600 ring-1 ring-rose-200'; mati = true; judul = 'Masih disewa: telat, belum dikembalikan'; }
             else if (c.luar || lalu) { kelas += 'cursor-default text-gray-300'; mati = true; }
             else if (isPenuh) { kelas += 'cursor-not-allowed bg-rose-100 text-rose-500 line-through decoration-rose-400'; mati = true; judul = 'Sedang disewa, tidak tersedia'; }
             else if (isSebagian) { kelas += 'bg-sky-50 text-sky-700 ring-1 ring-sky-200 hover:bg-sky-100 hover:scale-110 active:scale-95'; judul = sebagian.get(c.t); }
             else kelas += 'text-gray-700 hover:scale-110 hover:bg-amber-50 active:scale-95' + (c.t === hariIni ? ' ring-1 ring-amber-400' : '');
             // Tulisan kecil: ambil / dipakai / kembali (pilihan sekarang lebih dulu, lalu booking yang sudah ada)
-            const peran = (c.luar || lalu) ? [] : perananBooking(c.t, daftarRentang);
+            const peran = c.luar ? [] : (lalu
+                ? telatLalu.map((x) => ({ peran: c.t === x.mulai ? 'ambil' : 'belum kembali', x }))
+                : perananBooking(c.t, daftarRentang));
             let label = '';
-            if (!c.luar && !lalu) {
+            if (!c.luar && (!lalu || telatLalu.length)) {
                 if (a && b && c.t === a && c.t === b) label = '1 hari';
                 else if (c.t === a) label = 'ambil';
                 else if (c.t === b) label = 'kembali';
