@@ -6,7 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Kategori;
-use App\Models\Transaksi;
+use App\Models\NotifikasiPelanggan;
 
 class ViewServiceProvider extends ServiceProvider
 {
@@ -17,21 +17,24 @@ class ViewServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Lonceng notifikasi pelanggan: yang tampil = pesanan menunggu pembayaran yang belum dihapus.
+        // Badge hanya menghitung yang BELUM dibuka.
         View::composer('layouts.public', function ($view) {
             if (auth()->check()) {
-                $notifikasi = Transaksi::where('user_id', auth()->id())
-                    ->whereIn('status_pembayaran', ['pending', 'dp'])
-                    ->latest()
-                    ->take(5)
-                    ->get();
-                $jumlahNotifikasi = $notifikasi->count();
+                $ringkasan = NotifikasiPelanggan::ringkasan(auth()->id());
+
+                $notifikasi       = $ringkasan['items'];
+                $jumlahNotifikasi = $ringkasan['belum_dibaca'];
+                $totalNotifikasi  = $ringkasan['total'];
             } else {
-                $notifikasi = collect();
+                $notifikasi       = collect();
                 $jumlahNotifikasi = 0;
+                $totalNotifikasi  = 0;
             }
 
             $view->with('notifikasi', $notifikasi)
-                 ->with('jumlahNotifikasi', $jumlahNotifikasi);
+                 ->with('jumlahNotifikasi', $jumlahNotifikasi)
+                 ->with('totalNotifikasi', $totalNotifikasi);
         });
 
         // Dropdown Koleksi di header: 4 kategori terpopuler (berdasarkan jumlah produk terpesan)

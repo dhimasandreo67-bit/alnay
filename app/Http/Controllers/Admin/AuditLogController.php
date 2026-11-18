@@ -4,15 +4,23 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 /**
  * Halaman Audit Log: jejak siapa melakukan apa di sistem, dengan pembaruan hampir real-time
- * (halaman menarik baris baru dari feed() tiap beberapa detik).
+ * (halaman menarik baris baru dari feed() secara berkala).
+ *
+ * Catatan performa (supaya tetap ringan saat log mencapai jutaan baris):
+ *  - Paginasi memakai cursor (WHERE id < ?), bukan OFFSET dan bukan COUNT(*) tiap halaman.
+ *  - Hitungan berat (total, per umur) TIDAK dihitung saat halaman dibuka, hanya saat modal "Bersihkan" dibuka (hitung()).
+ *  - Ringkasan hari ini & daftar modul di-cache singkat, jadi banyak tab/admin tidak melipatgandakan query.
+ *  - Penghapusan massal dilakukan bertahap (per 5.000 baris) supaya tidak mengunci tabel / timeout.
  */
 class AuditLogController extends Controller
 {
@@ -20,6 +28,12 @@ class AuditLogController extends Controller
 
     /** Aksi baku yang punya label sendiri; selain ini dikelompokkan sebagai "Aksi lain". */
     protected const AKSI_BAKU = ['created', 'updated', 'deleted', 'login', 'logout', 'login_gagal'];
+
+    /** Hanya kolom yang benar-benar dipakai tampilan tabel. */
+    protected const KOLOM_TAMPIL = [
+        'id', 'created_at', 'pelaku', 'peran', 'aksi', 'modul',
+        'deskripsi', 'perubahan', 'ip_address', 'user_agent', 'method', 'url',
+    ];
 
     /** Pilihan umur log untuk fitur "Bersihkan Log" (hari => label). */
     protected const BATAS_HARI = [
@@ -34,28 +48,19 @@ class AuditLogController extends Controller
     {
         $this->izin();
 
-        $logs = $this->query($request)->orderByDesc('id')->paginate(25)->withQueryString();
-
-        // Jumlah log per batas umur + total, dihitung dalam satu query untuk pratinjau di modal "Bersihkan Log".
-        $hitung = AuditLog::query()->selectRaw('COUNT(*) as semua');
-        foreach (array_keys(self::BATAS_HARI) as $h) {
-            $hitung->selectRaw("COALESCE(SUM(created_at < ?), 0) as h{$h}", [now()->subDays($h)->toDateTimeString()]);
-        }
-        $hitung = $hitung->first();
-
-        $hitungUmur = [];
-        foreach (array_keys(self::BATAS_HARI) as $h) {
-            $hitungUmur[$h] = (int) ($hitung->{"h{$h}"} ?? 0);
-        }
+        $logs = $this->query($request)
+            ->select(self::KOLOM_TAMPIL)
+            ->orderByDesc('id')
+            ->cursorPaginate(25)
+            ->withQueryString();
 
         return view('admin.audit.index', [
             'logs' => $logs,
-            'modulList' => AuditLog::query()->whereNotNull('modul')->distinct()->orderBy('modul')->pluck('modul'),
+            'modulList' => Cache::remember('audit:modul', 600, fn () => AuditLog::query()
+                ->whereNotNull('modul')->distinct()->orderBy('modul')->pluck('modul')),
             'ringkasan' => $this->ringkasan(),
             'idTerbaru' => (int) AuditLog::max('id'),
             'adaFilter' => $this->adaFilter($request),
-            'totalSemua' => (int) ($hitung->semua ?? 0),
-            'hitungUmur' => $hitungUmur,
             'batasHari' => self::BATAS_HARI,
         ]);
     }
@@ -70,6 +75,7 @@ class AuditLogController extends Controller
         $setelah = (int) $request->input('after', 0);
 
         $logs = $this->query($request)
+            ->select(self::KOLOM_TAMPIL)
             ->where('id', '>', $setelah)
             ->orderByDesc('id')
             ->limit(50)
@@ -82,6 +88,35 @@ class AuditLogController extends Controller
         ]);
     }
 
+    /**
+     * Jumlah log untuk pratinjau modal "Bersihkan Log". Dihitung hanya saat modal dibuka
+     * (bukan di setiap pemuatan halaman) dan bagian umum di-cache 1 menit.
+     */
+    public function hitung(Request $request): JsonResponse
+    {
+        $this->izin();
+
+        $umum = Cache::remember('audit:hitung', 60, function () {
+            $q = AuditLog::query()->selectRaw('COUNT(*) as semua');
+
+            foreach (array_keys(self::BATAS_HARI) as $h) {
+                $q->selectRaw("COALESCE(SUM(created_at < ?), 0) as h{$h}", [now()->subDays($h)->toDateTimeString()]);
+            }
+
+            $r = $q->first();
+            $umur = [];
+
+            foreach (array_keys(self::BATAS_HARI) as $h) {
+                $umur[$h] = (int) ($r->{"h{$h}"} ?? 0);
+            }
+
+            return ['semua' => (int) ($r->semua ?? 0), 'umur' => $umur];
+        });
+
+        return response()->json($umum + [
+            'filter' => $this->adaFilter($request) ? (int) $this->query($request)->count() : 0,
+        ]);
+    }
 
     /**
      * Hapus log yang dicentang di tabel.
@@ -100,6 +135,7 @@ class AuditLogController extends Controller
         $jumlah = AuditLog::whereIn('id', $ids)->delete();
 
         $this->catatPembersihan('terpilih', $jumlah);
+        $this->lupakanCache();
 
         return redirect()
             ->route('admin.audit.index', $request->only(self::FILTER))
@@ -145,13 +181,20 @@ class AuditLogController extends Controller
             $q = AuditLog::query();
         }
 
-        $jumlah = $q->delete();
+        [$jumlah, $selesai] = $this->hapusBertahap($q);
 
-        $this->catatPembersihan($ket, $jumlah);
+        $this->catatPembersihan($ket . ($selesai ? '' : ' (sebagian)'), $jumlah);
+        $this->lupakanCache();
+
+        $pesan = match (true) {
+            $jumlah === 0 => 'Tidak ada log yang cocok untuk dihapus.',
+            $selesai => "{$jumlah} log berhasil dibersihkan.",
+            default => "{$jumlah} log dihapus, tapi masih ada sisa. Jalankan Bersihkan Log sekali lagi.",
+        };
 
         return redirect()
             ->route('admin.audit.index')
-            ->with('success', $jumlah > 0 ? "{$jumlah} log berhasil dibersihkan." : 'Tidak ada log yang cocok untuk dihapus.');
+            ->with('success', $pesan);
     }
 
     // ------------------------------------------------------------------ helper
@@ -181,6 +224,33 @@ class AuditLogController extends Controller
     }
 
     /**
+     * Hapus per potongan supaya satu DELETE raksasa tidak mengunci tabel atau kena timeout.
+     * Berhenti kalau sudah melewati batas waktu; $selesai false berarti masih ada sisa.
+     *
+     * @return array{0: int, 1: bool}  [jumlah terhapus, apakah sudah tuntas]
+     */
+    protected function hapusBertahap(Builder $q, int $ukuran = 5000, int $detik = 25): array
+    {
+        @set_time_limit($detik + 15);
+
+        $mulai = microtime(true);
+        $total = 0;
+
+        do {
+            $n = (clone $q)->limit($ukuran)->delete();
+            $total += $n;
+        } while ($n === $ukuran && (microtime(true) - $mulai) < $detik);
+
+        return [$total, $n < $ukuran];
+    }
+
+    protected function lupakanCache(): void
+    {
+        Cache::forget('audit:hitung');
+        Cache::forget('audit:modul');
+    }
+
+    /**
      * Jejak pembersihan disimpan di log aplikasi (storage/logs), bukan di tabel audit yang baru saja dibersihkan.
      */
     protected function catatPembersihan(string $cakupan, int $jumlah): void
@@ -196,18 +266,21 @@ class AuditLogController extends Controller
         ]);
     }
 
-    protected function query(Request $request)
+    protected function query(Request $request): Builder
     {
         $q = AuditLog::query();
 
         if ($request->filled('search')) {
-            $cari = $request->input('search');
-            $q->where(function ($w) use ($cari) {
-                $w->where('deskripsi', 'like', "%{$cari}%")
-                  ->orWhere('pelaku', 'like', "%{$cari}%")
-                  ->orWhere('subjek_label', 'like', "%{$cari}%")
-                  ->orWhere('ip_address', 'like', "%{$cari}%");
-            });
+            $cari = trim((string) $request->input('search'));
+            $like = addcslashes($cari, '%_\\');
+
+            // Nama pelaku & label data sudah ada di dalam kolom deskripsi, jadi cukup satu kolom.
+            // Kalau yang diketik berbentuk alamat IP, pakai pencarian awalan agar index ip_address terpakai.
+            if (preg_match('/^[\da-f:.]+$/i', $cari) && preg_match('/[.:]/', $cari)) {
+                $q->where('ip_address', 'like', "{$like}%");
+            } else {
+                $q->where('deskripsi', 'like', "%{$like}%");
+            }
         }
 
         if ($request->filled('aksi')) {
@@ -253,23 +326,25 @@ class AuditLogController extends Controller
     }
 
     /**
-     * Angka ringkasan hari ini (satu query).
+     * Angka ringkasan hari ini (satu query, di-cache 10 detik dan dipakai bersama semua admin/tab).
      */
     protected function ringkasan(): array
     {
-        $r = AuditLog::query()
-            ->where('created_at', '>=', now()->startOfDay())
-            ->selectRaw("COUNT(*) as total,
-                         COUNT(DISTINCT user_id) as pelaku,
-                         COALESCE(SUM(aksi = 'deleted'), 0) as dihapus,
-                         COALESCE(SUM(aksi = 'login_gagal'), 0) as gagal")
-            ->first();
+        return Cache::remember('audit:ringkasan:' . now()->format('Ymd'), 10, function () {
+            $r = AuditLog::query()
+                ->where('created_at', '>=', now()->startOfDay())
+                ->selectRaw("COUNT(*) as total,
+                             COUNT(DISTINCT user_id) as pelaku,
+                             COALESCE(SUM(aksi = 'deleted'), 0) as dihapus,
+                             COALESCE(SUM(aksi = 'login_gagal'), 0) as gagal")
+                ->first();
 
-        return [
-            'total' => (int) ($r->total ?? 0),
-            'pelaku' => (int) ($r->pelaku ?? 0),
-            'dihapus' => (int) ($r->dihapus ?? 0),
-            'gagal' => (int) ($r->gagal ?? 0),
-        ];
+            return [
+                'total' => (int) ($r->total ?? 0),
+                'pelaku' => (int) ($r->pelaku ?? 0),
+                'dihapus' => (int) ($r->dihapus ?? 0),
+                'gagal' => (int) ($r->gagal ?? 0),
+            ];
+        });
     }
 }

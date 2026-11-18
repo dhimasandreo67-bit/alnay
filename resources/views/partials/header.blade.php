@@ -55,6 +55,20 @@
     }
     .al-icon-btn:hover { border-color: var(--al-gold); color: #9a6f12; background: #fff; transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(201, 154, 50, .55); }
 
+    /* Badge jumlah notifikasi: bulat untuk 1 digit, melebar rapi untuk 2-3 digit */
+    .al-badge {
+        position: absolute; top: -4px; right: -4px; z-index: 2;
+        box-sizing: border-box; min-width: 18px; height: 18px; padding: 0 4px;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px solid #fff; border-radius: 9999px;
+        background: #f43f5e; color: #fff;
+        font-size: 9px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+        pointer-events: none;
+    }
+    @media (min-width: 640px) {
+        .al-badge { top: -2px; right: -2px; min-width: 20px; height: 20px; padding: 0 5px; font-size: 10px; }
+    }
+
     /* --- ANIMASI TAPIS (BISA HILANG KE ATAS) --- */
     .al-tapis {
         position: absolute; left: 0; right: 0; top: calc(100% + 1px);
@@ -237,52 +251,88 @@
             </a>
 
             {{-- Notifikasi --}}
-            <div class="relative" x-data="{ notifOpen: false }">
-                <button type="button" @click="notifOpen = !notifOpen" class="al-icon-btn group relative w-8 h-8 sm:w-11 sm:h-11 rounded-full flex items-center justify-center active:scale-95" aria-label="Notifikasi">
+            @php
+                $notifData = [
+                    'unread'        => (int) ($jumlahNotifikasi ?? 0),
+                    'total'         => (int) ($totalNotifikasi ?? collect($notifikasi ?? [])->count()),
+                    'csrf'          => csrf_token(),
+                    'urlBacaSemua'  => route('akun.notifikasi.baca-semua'),
+                    'urlHapusSemua' => route('akun.notifikasi.hapus-semua'),
+                    'items'         => collect($notifikasi ?? [])->map(fn ($n) => [
+                        'id'       => $n->id,
+                        'kode'     => $n->kode_transaksi,
+                        'jenis'    => $n->jenis,
+                        'waktu'    => $n->created_at?->diffForHumans(),
+                        'dibaca'   => ! empty($n->dibaca_at),
+                        'urlBuka'  => route('akun.notifikasi.buka', $n->id),
+                        'urlHapus' => route('akun.notifikasi.hapus', $n->id),
+                    ])->values()->all(),
+                ];
+            @endphp
+            <div class="relative" x-data="notifLonceng(@js($notifData))">
+                <button type="button" @click="notifOpen = !notifOpen" class="al-icon-btn group relative w-8 h-8 sm:w-11 sm:h-11 rounded-full flex items-center justify-center active:scale-95" aria-label="Notifikasi" :aria-expanded="notifOpen">
                     <div class="group-active:animate-[wiggle_0.3s_ease-in-out]"><x-icon name="bell" :size="16" class="sm:w-5 sm:h-5" /></div>
-                    @if (isset($jumlahNotifikasi) && $jumlahNotifikasi > 0)
-                        <span class="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 sm:w-5 sm:h-5 rounded-full bg-rose-500 text-white text-[8px] sm:text-[9px] font-bold flex items-center justify-center border-2 border-white">
-                            {{ $jumlahNotifikasi }}
-                        </span>
-                    @endif
+                    {{-- Badge: hanya jumlah notifikasi yang BELUM dibuka --}}
+                    <span x-show="unread > 0" x-cloak x-text="unread > 99 ? '99+' : unread" class="al-badge"></span>
                 </button>
 
                 {{-- Dropdown Notif --}}
-                <div x-show="notifOpen" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 scale-90" x-transition:enter-end="opacity-100 translate-y-0 scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 scale-100" x-transition:leave-end="opacity-0 translate-y-4 scale-90" @click.outside="notifOpen = false" x-cloak class="al-dd-panel fixed sm:absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 top-[60px] sm:top-full mt-0 sm:mt-2 w-[calc(100vw-2rem)] max-w-[320px] rounded-2xl z-50 overflow-hidden origin-top-center sm:origin-top-right">
+                <div x-show="notifOpen" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 scale-90" x-transition:enter-end="opacity-100 translate-y-0 scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 scale-100" x-transition:leave-end="opacity-0 translate-y-4 scale-90" @click.outside="notifOpen = false" @keydown.escape.window="notifOpen = false" x-cloak class="al-dd-panel fixed sm:absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 top-[60px] sm:top-full mt-0 sm:mt-2 w-[calc(100vw-2rem)] max-w-[320px] rounded-2xl z-50 overflow-hidden origin-top-center sm:origin-top-right">
                     <div class="px-5 py-4 border-b border-[#c99a32]/15 flex items-center justify-between bg-white sticky top-0 z-10">
-                        <h3 class="text-[13px] font-bold text-[#15233d]">Notifikasi</h3>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-[13px] font-bold text-[#15233d]">Notifikasi</h3>
+                            <span x-show="unread > 0" x-cloak x-text="unread + ' baru'" class="px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 text-[10px] font-bold"></span>
+                        </div>
                         <button type="button" @click="notifOpen = false" class="text-[#6b7280] hover:text-[#8a6410] p-1 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors" aria-label="Tutup">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
+
+                    {{-- Aksi massal --}}
+                    <div x-show="items.length > 0" x-cloak class="px-5 py-2 flex items-center justify-between gap-3 bg-[#faf7f0] border-b border-[#c99a32]/15 text-[11px]">
+                        <button type="button" @click="bacaSemua()" :disabled="unread === 0 || busy"
+                                class="font-semibold text-[#15233d] transition-colors disabled:opacity-40 disabled:cursor-default enabled:hover:text-[#8a6410]">
+                            Tandai semua dibaca
+                        </button>
+                        <button type="button" @click="hapusSemua()" :disabled="busy"
+                                class="font-semibold transition-colors disabled:opacity-40"
+                                :class="konfirmasi ? 'text-rose-600' : 'text-[#6b7280] hover:text-rose-600'"
+                                x-text="konfirmasi ? 'Yakin hapus semua?' : 'Hapus semua'"></button>
+                    </div>
+
+                    <p x-show="galat" x-cloak x-text="galat" class="px-5 py-2 text-[11px] text-rose-600 bg-rose-50 border-b border-rose-100"></p>
+
                     <div class="max-h-[320px] overflow-y-auto custom-scrollbar">
-                        @forelse($notifikasi ?? [] as $n)
-                            <a href="{{ route('akun.pesanan.detail', $n->id) }}" class="flex items-center gap-3.5 px-5 py-3.5 hover:bg-[#c99a32]/10 transition-colors group">
-                                <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 {{ $n->jenis === 'sewa' ? 'bg-amber-50 text-amber-500' : 'bg-sky-50 text-sky-500' }}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        @if($n->jenis === 'sewa')
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-                                        @else
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                        @endif
-                                    </svg>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <p class="text-[12px] font-bold text-[#15233d] truncate">{{ $n->kode_transaksi }}</p>
-                                        <span class="text-[9px] text-[#9a9384] whitespace-nowrap">{{ $n->created_at->diffForHumans() }}</span>
+                        <template x-for="n in items" :key="n.id">
+                            <div class="flex items-center transition-colors" :class="n.dibaca ? '' : 'bg-[#c99a32]/[0.07]'">
+                                <a :href="n.urlBuka" class="flex flex-1 min-w-0 items-center gap-3.5 pl-5 pr-2 py-3.5 hover:bg-[#c99a32]/10 transition-colors">
+                                    <div class="relative w-8 h-8 rounded-full flex items-center justify-center shrink-0" :class="n.jenis === 'sewa' ? 'bg-amber-50 text-amber-500' : 'bg-sky-50 text-sky-500'">
+                                        <span x-show="!n.dibaca" class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white"></span>
+                                        <svg x-show="n.jenis === 'sewa'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                                        <svg x-show="n.jenis !== 'sewa'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                                     </div>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        <span class="text-[10px] text-[#6b7280]">Pesanan {{ strtoupper($n->jenis) }}</span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <p class="text-[12px] text-[#15233d] truncate" :class="n.dibaca ? 'font-medium' : 'font-bold'" x-text="n.kode"></p>
+                                            <span class="text-[9px] text-[#9a9384] whitespace-nowrap" x-text="n.waktu"></span>
+                                        </div>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <span class="text-[10px] text-[#6b7280]" x-text="'Pesanan ' + String(n.jenis).toUpperCase()"></span>
+                                        </div>
                                     </div>
-                                </div>
-                            </a>
-                        @empty
-                            <div class="py-12 text-center">
-                                <div class="w-12 h-12 rounded-full bg-gray-50 text-[#9a9384] flex items-center justify-center mx-auto mb-3"><x-icon name="bell" :size="24" /></div>
-                                <p class="text-xs text-[#9a9384]">Belum ada notifikasi baru.</p>
+                                </a>
+                                <button type="button" @click.stop="hapus(n)" :disabled="busy"
+                                        class="mr-3 w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-[#9a9384] hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40"
+                                        aria-label="Hapus notifikasi" title="Hapus notifikasi">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
                             </div>
-                        @endforelse
+                        </template>
+
+                        <div x-show="items.length === 0" x-cloak class="py-12 text-center">
+                            <div class="w-12 h-12 rounded-full bg-gray-50 text-[#9a9384] flex items-center justify-center mx-auto mb-3"><x-icon name="bell" :size="24" /></div>
+                            <p class="text-xs text-[#9a9384]">Belum ada notifikasi baru.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -450,6 +500,81 @@
                     else if (d < -6) this.hideMenu = false; // Scroll naik -> Munculkan
                 }
                 this.last = y;
+            },
+        };
+    }
+
+    // Lonceng notifikasi pelanggan: badge = jumlah yang belum dibuka, notifikasi bisa dihapus.
+    function notifLonceng(cfg) {
+        return {
+            notifOpen: false,
+            items: cfg.items,
+            unread: cfg.unread,
+            total: cfg.total,
+            busy: false,
+            galat: '',
+            konfirmasi: false,
+            _timer: null,
+
+            async kirim(url, method) {
+                this.busy = true;
+                this.galat = '';
+                try {
+                    const r = await fetch(url, {
+                        method: method,
+                        headers: {
+                            'X-CSRF-TOKEN': cfg.csrf,
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin',
+                    });
+                    if (!r.ok) throw new Error('gagal');
+                    return await r.json();
+                } catch (e) {
+                    this.galat = 'Gagal memproses. Coba lagi.';
+                    return null;
+                } finally {
+                    this.busy = false;
+                }
+            },
+
+            terapkan(d) {
+                this.unread = d.unread;
+                this.total = d.total;
+            },
+
+            async hapus(n) {
+                const d = await this.kirim(n.urlHapus, 'DELETE');
+                if (!d) return;
+                this.items = this.items.filter(x => x.id !== n.id);
+                this.terapkan(d);
+                // Masih ada notifikasi lain di server yang belum tampil -> muat ulang daftar
+                if (this.items.length === 0 && d.total > 0) location.reload();
+            },
+
+            async bacaSemua() {
+                if (this.unread === 0) return;
+                const d = await this.kirim(cfg.urlBacaSemua, 'POST');
+                if (!d) return;
+                this.items = this.items.map(x => ({ ...x, dibaca: true }));
+                this.terapkan(d);
+            },
+
+            // Dua langkah supaya tidak terhapus tanpa sengaja
+            async hapusSemua() {
+                if (!this.konfirmasi) {
+                    this.konfirmasi = true;
+                    clearTimeout(this._timer);
+                    this._timer = setTimeout(() => this.konfirmasi = false, 3000);
+                    return;
+                }
+                clearTimeout(this._timer);
+                this.konfirmasi = false;
+                const d = await this.kirim(cfg.urlHapusSemua, 'DELETE');
+                if (!d) return;
+                this.items = [];
+                this.terapkan(d);
             },
         };
     }

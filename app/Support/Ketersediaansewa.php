@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\DetailTransaksi;
 use App\Models\Produk;
+use App\Models\Sewa;
 use Carbon\Carbon;
 
 /**
@@ -41,54 +42,129 @@ class KetersediaanSewa
             return [];
         }
 
-        // Tiap baris detail membawa rentang tanggalnya sendiri (detail_transaksi.tanggal_pinjam /
-        // tanggal_kembali_rencana), jadi produk, ukuran, dan warna selalu terhubung ke tanggal yang benar.
-        // Data lama yang kolomnya kosong memakai rentang di baris Sewa transaksinya (satu transaksi = satu Sewa).
-        $detail = DetailTransaksi::whereIn('produk_id', $produkIds)
-            // Online DAN kasir dihitung bersama, jadi kalender kedua sisi selalu sama.
+        $produkIds = array_map('intval', $produkIds);
+
+        // Transaksi (online + kasir) yang masih punya minimal satu sewa aktif untuk produk-produk ini.
+        $transaksiIds = DetailTransaksi::whereIn('produk_id', $produkIds)
             ->whereHas('transaksi', fn ($q) => $q
                 ->whereIn('status_pembayaran', self::STATUS_BAYAR)
                 ->whereHas('sewa', fn ($s) => $s->whereIn('status', self::STATUS_SEWA)))
-            ->with('transaksi.sewa')
-            ->get();
+            ->pluck('transaksi_id')
+            ->unique()
+            ->values();
+
+        if ($transaksiIds->isEmpty()) {
+            return [];
+        }
+
+        // Transaksi online multi-item punya SATU baris Sewa PER ITEM (status & tanggal kembali aktualnya
+        // sendiri-sendiri). Karena itu semua baris sewa diambil, lalu dipasangkan ke tiap baris detail,
+        // bukan memakai satu relasi hasOne untuk semua item.
+        $detailPerTransaksi = DetailTransaksi::whereIn('transaksi_id', $transaksiIds)->orderBy('id')->get()->groupBy('transaksi_id');
+        $sewaPerTransaksi = Sewa::whereIn('transaksi_id', $transaksiIds)->orderBy('id')->get()->groupBy('transaksi_id');
 
         $hariIni = Carbon::today();
         $hasil = [];
 
-        foreach ($detail as $d) {
-            $sewa = $d->transaksi?->sewa;
-            if (! $sewa) {
-                continue;
+        foreach ($detailPerTransaksi as $transaksiId => $daftarDetail) {
+            $sewaMilik = self::pasangkanSewa($daftarDetail, $sewaPerTransaksi->get($transaksiId, collect()));
+
+            foreach ($daftarDetail as $d) {
+                if (! in_array((int) $d->produk_id, $produkIds, true)) {
+                    continue;
+                }
+
+                $sewa = $sewaMilik[$d->id] ?? null;
+                if (! $sewa) {
+                    continue;
+                }
+
+                // Item ini sudah dikembalikan (atau sewanya dibatalkan): tanggalnya bebas di kalender.
+                if (! in_array($sewa->status, self::STATUS_SEWA, true) || ! empty($sewa->tanggal_kembali_aktual)) {
+                    continue;
+                }
+
+                $mulai = Carbon::parse($d->tanggal_pinjam ?? $sewa->tanggal_pinjam)->startOfDay();
+                $selesai = Carbon::parse($d->tanggal_kembali_rencana ?? $sewa->tanggal_kembali_rencana)->startOfDay();
+
+                // Belum dikembalikan padahal lewat jadwal: unit masih keluar sampai hari ini
+                $rencana = $selesai->toDateString();
+                $terlambat = false;
+                if ($sewa->status === 'aktif' && $selesai->lt($hariIni)) {
+                    $selesai = $hariIni->copy();
+                    $terlambat = true;
+                }
+
+                $ukuran = trim((string) $d->ukuran) ?: null;
+                if ($ukuran !== null && strcasecmp($ukuran, 'All Size') === 0) {
+                    $ukuran = null;   // tanpa varian: dihitung untuk semua kombinasi
+                }
+
+                $hasil[(int) $d->produk_id][] = [
+                    'ukuran'    => $ukuran,
+                    'warna'     => trim((string) $d->warna) ?: null,
+                    'mulai'     => $mulai->toDateString(),
+                    'selesai'   => $selesai->toDateString(),
+                    'jumlah'    => max(1, (int) $d->jumlah),
+                    'rencana'   => $rencana,
+                    'terlambat' => $terlambat,
+                ];
             }
-
-            $mulai = Carbon::parse($d->tanggal_pinjam ?? $sewa->tanggal_pinjam)->startOfDay();
-            $selesai = Carbon::parse($d->tanggal_kembali_rencana ?? $sewa->tanggal_kembali_rencana)->startOfDay();
-
-            // Belum dikembalikan padahal lewat jadwal: unit masih keluar sampai hari ini
-            $rencana = $selesai->toDateString();
-            $terlambat = false;
-            if ($sewa->status === 'aktif' && empty($sewa->tanggal_kembali_aktual) && $selesai->lt($hariIni)) {
-                $selesai = $hariIni->copy();
-                $terlambat = true;
-            }
-
-            $ukuran = trim((string) $d->ukuran) ?: null;
-            if ($ukuran !== null && strcasecmp($ukuran, 'All Size') === 0) {
-                $ukuran = null;   // tanpa varian: dihitung untuk semua kombinasi
-            }
-
-            $hasil[(int) $d->produk_id][] = [
-                'ukuran'  => $ukuran,
-                'warna'   => trim((string) $d->warna) ?: null,
-                'mulai'   => $mulai->toDateString(),
-                'selesai' => $selesai->toDateString(),
-                'jumlah'  => max(1, (int) $d->jumlah),
-                'rencana' => $rencana,
-                'terlambat' => $terlambat,
-            ];
         }
 
         return $hasil;
+    }
+
+    /**
+     * Pasangkan tiap baris detail ke baris Sewa miliknya dalam satu transaksi.
+     * - Satu Sewa (kasir / data lama): dipakai semua item.
+     * - Beberapa Sewa (online multi-item): dicocokkan lewat rentang tanggal yang sama, berurutan menurut id.
+     *   Sisanya (tanggal kosong / tidak ada pasangan) dipasangkan ke sewa yang belum terpakai.
+     *
+     * @return array<int, Sewa> detail_id => Sewa
+     */
+    private static function pasangkanSewa($daftarDetail, $daftarSewa): array
+    {
+        $hasil = [];
+
+        if ($daftarSewa->isEmpty()) {
+            return $hasil;
+        }
+
+        if ($daftarSewa->count() === 1) {
+            $satu = $daftarSewa->first();
+            foreach ($daftarDetail as $d) {
+                $hasil[$d->id] = $satu;
+            }
+
+            return $hasil;
+        }
+
+        $kunci = fn ($pinjam, $kembali) => ($pinjam ? Carbon::parse($pinjam)->toDateString() : '')
+            . '|' . ($kembali ? Carbon::parse($kembali)->toDateString() : '');
+
+        $antrean = [];
+        foreach ($daftarSewa as $s) {
+            $antrean[$kunci($s->tanggal_pinjam, $s->tanggal_kembali_rencana)][] = $s;
+        }
+
+        $tanpaPasangan = [];
+        foreach ($daftarDetail as $d) {
+            $k = $kunci($d->tanggal_pinjam, $d->tanggal_kembali_rencana);
+            if (! empty($antrean[$k])) {
+                $hasil[$d->id] = array_shift($antrean[$k]);
+            } else {
+                $tanpaPasangan[] = $d;
+            }
+        }
+
+        $sisaSewa = collect($antrean)->flatten()->sortBy('id')->values()->all();
+        foreach ($tanpaPasangan as $d) {
+            $hasil[$d->id] = array_shift($sisaSewa)
+                ?? $daftarSewa->first(fn ($s) => in_array($s->status, self::STATUS_SEWA, true));
+        }
+
+        return array_filter($hasil);
     }
 
     /**
