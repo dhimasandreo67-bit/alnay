@@ -18,7 +18,7 @@
         [
             'heading' => 'Transaksi',
             'items' => [
-                ['label' => 'Semua Transaksi', 'route' => 'admin.transaksi.index', 'icon' => 'wallet', 'badge' => fn () => \App\Support\AdminBadge::transaksiBaru(), 'seen' => 'transaksi', 'tone' => 'sky'],
+                ['label' => 'Semua Transaksi', 'route' => 'admin.transaksi.index', 'icon' => 'wallet', 'badge' => fn () => \App\Support\AdminBadge::transaksiBelumLunas(), 'title' => 'Transaksi belum lunas'],
                 ['label' => 'Buat Transaksi Baru', 'route' => 'admin.transaksi.create', 'icon' => 'plus-circle'],
                 ['label' => 'Laporan Pendapatan', 'route' => 'admin.laporan.*', 'icon' => 'file-text'],
             ],
@@ -205,7 +205,7 @@
                                 @if ($count)
                                     <span class="relative flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full
                                                  bg-gradient-to-r {{ $tones[0] }} px-1.5 text-[10px] font-bold text-white shadow-sm"
-                                          title="{{ isset($item['seen']) ? 'Baru sejak terakhir dibuka' : 'Perlu tindakan' }}">
+                                          title="{{ $item['title'] ?? (isset($item['seen']) ? 'Baru sejak terakhir dibuka' : 'Perlu tindakan') }}">
                                         {{ $count > 99 ? '99+' : $count }}
                                         <span class="absolute inset-0 rounded-full {{ $tones[1] }} animate-ping opacity-20"></span>
                                     </span>
