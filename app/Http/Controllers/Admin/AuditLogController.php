@@ -52,10 +52,19 @@ class AuditLogController extends Controller
             ->select(self::KOLOM_TAMPIL)
             ->orderByDesc('id')
             ->cursorPaginate(25)
-            ->withQueryString();
+            // 'cursor' dan 'hal' sengaja tidak ikut: nomor halaman ditambah/dikurangi di view.
+            ->appends($request->except(['cursor', 'hal']));
+
+        // Total hanya untuk indikator "Halaman N dari M". Di-cache 60 detik per kombinasi filter,
+        // jadi COUNT(*) tidak dijalankan di setiap buka/pindah halaman.
+        $versi = Cache::get('audit:versi', 0);
+        $kunciFilter = md5(json_encode($request->only(self::FILTER)));
+        $totalLog = (int) Cache::remember("audit:total:{$versi}:{$kunciFilter}", 60, fn () => $this->query($request)->count());
 
         return view('admin.audit.index', [
             'logs' => $logs,
+            'totalLog' => $totalLog,
+            'totalHalaman' => max(1, (int) ceil($totalLog / 25)),
             'modulList' => Cache::remember('audit:modul', 600, fn () => AuditLog::query()
                 ->whereNotNull('modul')->distinct()->orderBy('modul')->pluck('modul')),
             'ringkasan' => $this->ringkasan(),
@@ -247,6 +256,7 @@ class AuditLogController extends Controller
     protected function lupakanCache(): void
     {
         Cache::forget('audit:hitung');
+        Cache::forever('audit:versi', microtime(true)); // membuang cache total halaman semua filter sekaligus
         Cache::forget('audit:modul');
     }
 
