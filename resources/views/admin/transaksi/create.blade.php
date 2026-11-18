@@ -312,31 +312,30 @@
                             </div>
                         </div>
 
-                        <p id="kal-hint" class="text-[11px] text-gray-500">Pilih produk dulu (langkah 1) agar tanggal yang sudah dibooking (online &amp; kasir) ditandai merah dan tombol &ldquo;tanggal kosong terdekat&rdquo; bisa dipakai.</p>
                         <p id="info-durasi" class="text-xs font-semibold text-amber-700"></p>
                         <div id="info-bentrok" class="hidden rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800" role="alert"></div>
-
-                        {{-- Jadwal sewa: rentang ambil - dipakai - kembali (diisi oleh renderKalender) --}}
-                        <div id="kal-jadwal" class="space-y-1.5 border-t border-gray-100 pt-3 text-[11px] text-gray-600"></div>
-
-                        <details class="rounded-xl border border-gray-100 px-3 py-2">
-                            <summary class="cursor-pointer text-[11px] font-semibold text-gray-700">Keterangan warna kalender</summary>
-                            <div class="mt-2">
-                                <div class="grid grid-cols-1 gap-x-4 gap-y-1.5 text-[11px] text-gray-500 sm:grid-cols-2">
-                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-white ring-1 ring-gray-200"></span> Tersedia, bisa dipilih</span>
-                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-white ring-1 ring-amber-400"></span> Hari ini</span>
-                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-amber-600"></span> Tanggal ambil / kembali yang dipilih</span>
-                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-amber-100"></span> Rentang sewa yang dipilih</span>
-                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-sky-50 ring-1 ring-sky-300"></span> Sebagian unit disewa, masih bisa dipilih</span>
-                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-rose-200"></span> Merah: semua unit disewa, tidak bisa dipilih</span>
-                                <span class="flex items-center gap-2"><span class="h-4 w-4 rounded-md bg-rose-100 ring-1 ring-rose-200"></span> Merah muda + tulisan TELAT: tanggal sudah lewat tapi barang belum dikembalikan</span>
-                                <span class="flex items-center gap-2"><span class="flex h-4 w-4 items-center justify-center rounded-md bg-gray-50 text-[9px] text-gray-300">12</span> Abu-abu: sudah lewat</span>
-                                <span class="flex items-center gap-2 sm:col-span-2"><span class="w-4 text-center text-[8px] font-semibold uppercase text-gray-500">aa</span> Tulisan kecil di tanggal: AMBIL (barang diambil), DIPAKAI, KEMBALI (barang dikembalikan)</span>
-                            </div>
-                            </div>
-                        </details>
                     </div>
                 </div>
+
+                {{-- Petunjuk & jadwal sewa: lebar penuh, kartu jadwal tersusun 2-3 kolom --}}
+                <p id="kal-hint" class="mt-4 text-[11px] text-gray-500">Pilih produk dulu (langkah 1) agar tanggal yang sudah dibooking (online &amp; kasir) ditandai merah dan tombol &ldquo;tanggal kosong terdekat&rdquo; bisa dipakai.</p>
+                <div id="kal-jadwal" class="mt-3 grid grid-cols-1 gap-2 border-t border-gray-100 pt-3 text-[11px] text-gray-600 md:grid-cols-2 xl:grid-cols-3"></div>
+
+                {{-- Keterangan warna kalender: lebar penuh, 4 kolom, ringkas --}}
+                <details class="mt-4 rounded-xl border border-gray-100 px-3 py-2">
+                    <summary class="cursor-pointer text-[11px] font-semibold text-gray-700">Keterangan warna kalender</summary>
+                    <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] text-gray-500 md:grid-cols-4">
+                        <span class="flex items-center gap-2"><span class="h-4 w-4 shrink-0 rounded-md bg-white ring-1 ring-gray-200"></span> Tersedia</span>
+                        <span class="flex items-center gap-2"><span class="h-4 w-4 shrink-0 rounded-md bg-white ring-1 ring-amber-400"></span> Hari ini</span>
+                        <span class="flex items-center gap-2"><span class="h-4 w-4 shrink-0 rounded-md bg-amber-600"></span> Ambil / kembali dipilih</span>
+                        <span class="flex items-center gap-2"><span class="h-4 w-4 shrink-0 rounded-md bg-amber-100"></span> Rentang dipilih</span>
+                        <span class="flex items-center gap-2"><span class="h-4 w-4 shrink-0 rounded-md bg-sky-50 ring-1 ring-sky-300"></span> Sebagian unit disewa</span>
+                        <span class="flex items-center gap-2"><span class="h-4 w-4 shrink-0 rounded-md bg-rose-200"></span> Semua unit disewa</span>
+                        <span class="flex items-center gap-2"><span class="h-4 w-4 shrink-0 rounded-md bg-rose-100 ring-1 ring-rose-200"></span> Telat, belum kembali</span>
+                        <span class="flex items-center gap-2"><span class="flex h-4 w-4 shrink-0 items-center justify-center rounded-md bg-gray-50 text-[9px] text-gray-300">12</span> Sudah lewat</span>
+                        <span class="flex items-center gap-2 col-span-2 md:col-span-4"><span class="w-4 shrink-0 text-center text-[8px] font-semibold uppercase text-gray-500">aa</span> <span><b>AMBIL</b> diambil · <b>DIPAKAI</b> sedang disewa · <b>KEMBALI</b> dikembalikan · <b>TEMPO</b> seharusnya dikembalikan · <b>TELAT</b> lewat tempo</span></span>
+                    </div>
+                </details>
             </section>
 
             {{-- 4. Data pelanggan --}}
@@ -1108,7 +1107,15 @@
 
     // Contoh: "Diambil 1 Nov · dipakai 2 Nov · dikembalikan 3 Nov"
     function rincianRentang(mulai, selesai, terlambat, rencana) {
-        if (terlambat) return 'Diambil ' + pendek(mulai) + ' · belum dikembalikan (jadwal kembali ' + pendek(rencana) + ')';
+        if (terlambat) {
+            // Sama dengan halaman Kelola Data Sewa: tanggal_pinjam (diambil) -> tanggal_kembali_rencana (seharusnya kembali)
+            const r = rencana || selesai;
+            const a1 = tambahHari(mulai, 1), b1 = tambahHari(r, -1);
+            const pakai1 = a1 > b1 ? '' : (a1 === b1 ? ' · dipakai ' + pendek(a1) : ' · dipakai ' + pendek(a1) + '–' + pendek(b1));
+            const hariTelat = Math.max(0, Math.round((new Date(hariIniIso() + 'T00:00:00Z') - new Date(r + 'T00:00:00Z')) / 86400000));
+            return 'Diambil ' + pendek(mulai) + pakai1 + ' · seharusnya dikembalikan ' + pendek(r)
+                + ' · belum dikembalikan' + (hariTelat > 0 ? ' (telat ' + hariTelat + ' hari)' : '');
+        }
         if (mulai === selesai) return 'Diambil & dikembalikan ' + pendek(mulai);
         const a = tambahHari(mulai, 1), b = tambahHari(selesai, -1);
         const pakai = a > b ? '' : (a === b ? ' · dipakai ' + pendek(a) : ' · dipakai ' + pendek(a) + '–' + pendek(b));
@@ -1134,19 +1141,19 @@
     function renderJadwal(daftar, a, b) {
         const box = el('kal-jadwal');
         if (!box) return;
-        let h = '<p class="text-[11px] font-semibold text-gray-700">Jadwal sewa</p>';
+        let h = '<p class="col-span-full text-[11px] font-semibold text-gray-700">Jadwal sewa</p>';
         if (a && b && b >= a) {
-            h += '<p class="rounded-lg bg-amber-50 px-2.5 py-1.5 text-gray-700"><b>Pilihan:</b> ' + esc(rincianRentang(a, b, false, null)) + '</p>';
+            h += '<p class="col-span-full rounded-lg bg-amber-50 px-2.5 py-1.5 text-gray-700"><b>Pilihan:</b> ' + esc(rincianRentang(a, b, false, null)) + '</p>';
         }
         if (!state.cart.length) {
-            h += '<p>Tambahkan produk ke keranjang untuk melihat jadwal sewanya.</p>';
+            h += '<p class="col-span-full">Tambahkan produk ke keranjang untuk melihat jadwal sewanya.</p>';
         } else if (!daftar.length) {
-            h += '<p>Belum ada jadwal sewa lain untuk produk di keranjang.</p>';
+            h += '<p class="col-span-full">Belum ada jadwal sewa lain untuk produk di keranjang.</p>';
         } else {
             daftar.forEach((x) => {
                 h += '<p class="rounded-lg bg-rose-50 px-2.5 py-1.5 text-rose-700"><b>' + esc(x.nama) + '</b>' + (x.varian ? ' (' + esc(x.varian) + ')' : '')
                     + '<br><b>' + esc(tglPanjang(x.mulai) + ' – ' + tglPanjang(x.selesai)) + '</b> · ' + x.jumlah + ' unit disewa'
-                    + '<br>' + esc(rincianRentang(x.mulai, x.selesai, x.terlambat, x.rencana)) + '</p>';
+                    + '<br>' + esc(rincianRentang(x.mulai, x.selesai, x.terlambat, x.rencana)).split(' · ').join('<br>') + '</p>';
             });
         }
         box.innerHTML = h;
@@ -1195,7 +1202,10 @@
             else kelas += 'text-gray-700 hover:scale-110 hover:bg-amber-50 active:scale-95' + (c.t === hariIni ? ' ring-1 ring-amber-400' : '');
             // Tulisan kecil: ambil / dipakai / kembali (pilihan sekarang lebih dulu, lalu booking yang sudah ada)
             const peran = c.luar ? [] : (lalu
-                ? telatLalu.map((x) => ({ peran: c.t === x.mulai ? 'ambil' : 'belum kembali', x }))
+                ? telatLalu.map((x) => {
+                    const r = x.rencana || x.selesai;
+                    return { peran: c.t === x.mulai ? 'ambil' : (c.t === r ? 'seharusnya kembali' : (c.t < r ? 'dipakai' : 'belum kembali')), x };
+                })
                 : perananBooking(c.t, daftarRentang));
             let label = '';
             if (!c.luar && (!lalu || telatLalu.length)) {
@@ -1204,11 +1214,13 @@
                 else if (c.t === b) label = 'kembali';
                 else if (dalam) label = 'dipakai';
                 else if (peran.length > 1) label = peran.length + ' jadwal';
-                else if (peran.length === 1) label = ({ 'ambil': 'ambil', 'kembali': 'kembali', 'dipakai': 'dipakai', 'belum kembali': 'telat', 'ambil & kembali': '1 hari' })[peran[0].peran];
+                else if (peran.length === 1) label = ({ 'ambil': 'ambil', 'kembali': 'kembali', 'dipakai': 'dipakai', 'belum kembali': 'telat', 'seharusnya kembali': 'tempo', 'ambil & kembali': '1 hari' })[peran[0].peran];
             }
             const baris = [];
             if (judul) baris.push(judul);
-            peran.forEach((q) => baris.push(q.x.jumlah + ' unit: ' + q.peran + ' (' + pendek(q.x.mulai) + ' – ' + pendek(q.x.selesai) + ')'));
+            peran.forEach((q) => baris.push(q.x.jumlah + ' unit: ' + (q.x.terlambat
+                ? q.peran + ' · ' + rincianRentang(q.x.mulai, q.x.selesai, true, q.x.rencana)
+                : q.peran + ' (' + pendek(q.x.mulai) + ' – ' + pendek(q.x.selesai) + ')')));
             const judulLengkap = baris.map(esc).join('&#10;');
             return '<button type="button" data-t="' + c.t + '" class="' + kelas + '"' + (judulLengkap ? ' title="' + judulLengkap + '"' : '') + ((mati && !dipilih) || c.luar ? ' disabled' : '') + '>'
                 + '<span>' + c.hari + '</span>' + (label ? '<span class="mt-0.5 text-[8px] font-semibold uppercase tracking-tight opacity-80">' + label + '</span>' : '') + '</button>';
