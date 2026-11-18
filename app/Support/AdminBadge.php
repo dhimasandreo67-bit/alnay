@@ -57,10 +57,16 @@ class AdminBadge
         return self::ingat('fitting', fn () => ReservasiFitting::where('status', 'pending')->count());
     }
 
-    /** Pengiriman yang belum dikirim: status "menunggu" atau "dikemas" (lihat Pengiriman::STATUS). */
+    /**
+     * Pengiriman yang belum selesai: semua status KECUALI "diterima" (menunggu, dikemas, dikirim, dst).
+     * Badge hilang hanya setelah pengiriman ditandai diterima. Tidak di-cache supaya langsung turun
+     * begitu admin menekan "Tandai Diterima".
+     */
     public static function pengiriman(): int
     {
-        return self::ingat('pengiriman', fn () => Pengiriman::whereIn('status_kirim', ['menunggu', 'dikemas'])->count());
+        return self::langsung(fn () => Pengiriman::where(function ($q) {
+            $q->whereNull('status_kirim')->orWhere('status_kirim', '!=', self::STATUS_PENGIRIMAN_SELESAI);
+        })->count());
     }
 
     /* ---------- Data masuk sejak terakhir dibuka ---------- */
@@ -90,11 +96,14 @@ class AdminBadge
     }
 
     public const STATUS_TRANSAKSI_BELUM_LUNAS = ['pending', 'dp', 'dp_dibayar'];
+
+    /** Status pengiriman yang dianggap selesai: setelah ini badge Pengiriman tidak lagi menghitungnya. */
+    public const STATUS_PENGIRIMAN_SELESAI = 'diterima';
  
     /** Jumlah transaksi yang statusnya belum lunas. Tetap tampil sampai transaksi lunas. */
     public static function transaksiBelumLunas(): int
     {
-        return \App\Models\Transaksi::whereIn('status_pembayaran', self::STATUS_TRANSAKSI_BELUM_LUNAS)->count();
+        return self::langsung(fn () => Transaksi::whereIn('status_pembayaran', self::STATUS_TRANSAKSI_BELUM_LUNAS)->count());
     }
 
     /* ---------- Internal ---------- */
@@ -109,6 +118,18 @@ class AdminBadge
 
             return $model::where('created_at', '>', $sejak)->count();
         });
+    }
+
+    /** Hitung langsung tanpa cache (badge yang harus langsung akurat); error tidak merusak halaman. */
+    private static function langsung(\Closure $hitung): int
+    {
+        try {
+            return (int) $hitung();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return 0;
+        }
     }
 
     private static function ingat(string $kunci, \Closure $hitung): int
