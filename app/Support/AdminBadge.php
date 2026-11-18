@@ -89,6 +89,14 @@ class AdminBadge
         Cache::forget("admin_badge:{$uid}:{$kunci}");
     }
 
+    public const STATUS_TRANSAKSI_BELUM_LUNAS = ['pending', 'dp', 'dp_dibayar'];
+ 
+    /** Jumlah transaksi yang statusnya belum lunas. Tetap tampil sampai transaksi lunas. */
+    public static function transaksiBelumLunas(): int
+    {
+        return \App\Models\Transaksi::whereIn('status_pembayaran', self::STATUS_TRANSAKSI_BELUM_LUNAS)->count();
+    }
+
     /* ---------- Internal ---------- */
 
     private static function baru(string $kunci, string $model): int
