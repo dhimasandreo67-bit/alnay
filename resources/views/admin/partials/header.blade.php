@@ -151,19 +151,26 @@
 
 {{-- PROMO BAR --}}
 <div class="bg-[#fbf6e9] text-[#15233d] text-xs border-b border-[#c99a32]/25">
-    <div class="max-w-7xl mx-auto px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-1">
-        <p class="text-center sm:text-left flex items-center gap-2 text-[#8a6410]">
-            <span class="w-2 h-2 rounded-full bg-gold inline-block shadow-[0_0_8px_rgba(201,154,50,.9)]"></span>
-            {{ config('alnay.promo_bar.teks') }}
+    <div class="max-w-7xl mx-auto px-2 sm:px-4 py-2 flex flex-col md:flex-row items-center justify-center md:justify-between gap-1.5 md:gap-2 text-center md:text-left">
+        
+        {{-- Teks Selamat Datang --}}
+        <p class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-[#8a6410] text-[10px] sm:text-xs w-full md:w-auto">
+            <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gold shrink-0 shadow-[0_0_8px_rgba(201,154,50,.9)]"></span>
+            <span class="leading-tight">{{ config('alnay.promo_bar.teks') }}</span>
         </p>
-        <div class="flex items-center gap-4 text-[#6b7280]">
-            <span class="hidden sm:inline-flex items-center gap-1.5">
-                <span class="text-[#a97c1a]">Toko:</span> {{ config('toko.alnay.jam_buka') }}
+
+        {{-- Info Toko & WA --}}
+        <div class="flex flex-wrap items-center justify-center gap-x-2 sm:gap-x-3 gap-y-1 text-[#6b7280] text-[10px] sm:text-xs w-full md:w-auto">
+            <span class="inline-flex items-center gap-1">
+                <span class="text-[#a97c1a] font-medium">Toko:</span> 
+                {{-- Jika config jam_buka kosong, tampilkan teks cadangan --}}
+                <span>{{ config('toko.alnay.jam_buka') ?: 'Buka Setiap Hari' }}</span>
             </span>
-            <span class="inline-flex items-center gap-1.5">
-                <span class="text-[#a97c1a]"><x-icon name="whatsapp" :size="14" /></span>
-                WA CS: {{ config('alnay.kontak.wa_cs_display') }}
-            </span>
+            <span class="hidden sm:block text-gray-300">|</span>
+            <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" class="inline-flex items-center gap-1 hover:text-[#8a6410] transition-colors">
+                <span class="text-[#a97c1a]"><x-icon name="whatsapp" :size="12" /></span>
+                <span>WA CS: {{ config('alnay.kontak.wa_cs_display') }}</span>
+            </a>
         </div>
     </div>
 </div>
@@ -178,8 +185,8 @@
 
         {{-- Logo --}}
         <a href="{{ route('beranda') }}" class="flex items-center gap-2.5 shrink-0 min-h-[44px]">
-            <img src="{{ asset('images/home/alnaylogo.png') }}" alt="ALNAY.ID"
-                class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl border border-[#c99a32] bg-[#fbf6e9] object-contain p-1 shadow-[0_6px_20px_-6px_rgba(201,154,50,.65)]">
+                 <img src="{{ asset('images/home/alnaylogo.png') }}" alt="ALNAY.ID"
+                class="block w-10 h-10 sm:w-11 sm:h-11 rounded-xl border border-[#c99a32] bg-white object-contain p-1.5 shadow-[0_6px_20px_-6px_rgba(201,154,50,.65)]">
             <span class="hidden sm:block leading-tight">
                 <span class="block font-display font-bold text-[#15233d] text-lg tracking-tight">ALNAY.ID</span>
                 <span class="block text-[9px] uppercase tracking-[0.24em] text-[#a97c1a]">Jas & Gown Berbudaya</span>
