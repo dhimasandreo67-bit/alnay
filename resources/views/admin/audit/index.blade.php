@@ -9,6 +9,18 @@
     // Dipakai untuk menandai pemisah tanggal saat tabel dirender pertama kali.
     $tanggalBerjalan = null;
 
+    // Cursor pagination tidak punya nomor halaman, jadi dihitung lewat parameter ?hal= (halaman pertama = tanpa cursor).
+    $hal = request()->filled('cursor') ? max(2, (int) request('hal', 2)) : 1;
+    $queryFilter = request()->except(['cursor', 'hal']);
+    $urlSebelumnya = null;
+    if ($hal > 1) {
+        $urlSebelumnya = $hal === 2
+            ? route('admin.audit.index', $queryFilter)
+            : ($logs->previousPageUrl() ? $logs->previousPageUrl() . '&hal=' . ($hal - 1) : null);
+    }
+    $halTampil = min($hal, $totalHalaman); // jaga-jaga kalau data berkurang setelah dihapus
+    $urlBerikutnya = $logs->nextPageUrl() ? $logs->nextPageUrl() . '&hal=' . ($hal + 1) : null;
+
     // Label ramah-baca untuk chip filter aktif.
     $aksiLabelMap = ['created' => 'Dibuat', 'updated' => 'Diubah', 'deleted' => 'Dihapus', 'login' => 'Masuk', 'logout' => 'Keluar', 'login_gagal' => 'Gagal masuk', 'lainnya' => 'Aksi lain'];
     $peranLabelMap = ['owner' => 'Owner', 'admin' => 'Admin', 'pelanggan' => 'Pelanggan', 'tamu' => 'Tamu'];
@@ -189,6 +201,13 @@
 
                 <select name="modul" onchange="this.form.submit()" aria-label="Modul" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer">
                     <option value="">Semua Modul</option>
+                    @php
+                        // Daftar modul bisa berisi array/objek (mis. cache lama atau hasil ->get()); ambil nama modulnya saja.
+                        $modulList = collect($modulList ?? [])
+                            ->map(fn ($m) => is_array($m) ? ($m['modul'] ?? reset($m)) : (is_object($m) ? ($m->modul ?? null) : $m))
+                            ->filter(fn ($m) => is_string($m) && $m !== '')
+                            ->unique()->sort()->values();
+                    @endphp
                     @foreach ($modulList as $m)
                         <option value="{{ $m }}" {{ request('modul') === $m ? 'selected' : '' }}>{{ $m }}</option>
                     @endforeach
@@ -225,8 +244,8 @@
     {{-- Ringkasan hasil & chip filter aktif --}}
     <div class="flex flex-wrap items-center justify-between gap-2 px-1">
         <p class="text-[11px] font-semibold text-gray-400">
-            @if ($logs->total())
-                Menampilkan <span class="text-gray-600">{{ $logs->firstItem() }}–{{ $logs->lastItem() }}</span> dari <span class="text-gray-600">{{ number_format($logs->total(), 0, ',', '.') }}</span> aktivitas
+            @if ($logs->count())
+                <span class="text-gray-600">Halaman {{ $halTampil }} dari {{ number_format($totalHalaman, 0, ',', '.') }}</span> &middot; menampilkan <span class="text-gray-600">{{ $logs->count() }}</span> dari <span class="text-gray-600">{{ number_format($totalLog, 0, ',', '.') }}</span> aktivitas
             @else
                 Tidak ada aktivitas untuk ditampilkan
             @endif
@@ -235,37 +254,37 @@
         @if ($adaFilter)
             <div class="flex flex-wrap items-center gap-1.5">
                 @if (request('search'))
-                    <a href="{{ route('admin.audit.index', request()->except('search')) }}"
+                    <a href="{{ route('admin.audit.index', request()->except(['cursor', 'hal', 'search'])) }}"
                        class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
                         Cari: "{{ \Illuminate\Support\Str::limit(request('search'), 20) }}" <span aria-hidden="true">&times;</span>
                     </a>
                 @endif
                 @if (request('aksi'))
-                    <a href="{{ route('admin.audit.index', request()->except('aksi')) }}"
+                    <a href="{{ route('admin.audit.index', request()->except(['cursor', 'hal', 'aksi'])) }}"
                        class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
                         Aksi: {{ $aksiLabelMap[request('aksi')] ?? request('aksi') }} <span aria-hidden="true">&times;</span>
                     </a>
                 @endif
                 @if (request('modul'))
-                    <a href="{{ route('admin.audit.index', request()->except('modul')) }}"
+                    <a href="{{ route('admin.audit.index', request()->except(['cursor', 'hal', 'modul'])) }}"
                        class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
                         Modul: {{ request('modul') }} <span aria-hidden="true">&times;</span>
                     </a>
                 @endif
                 @if (request('peran'))
-                    <a href="{{ route('admin.audit.index', request()->except('peran')) }}"
+                    <a href="{{ route('admin.audit.index', request()->except(['cursor', 'hal', 'peran'])) }}"
                        class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
                         Pelaku: {{ $peranLabelMap[request('peran')] ?? request('peran') }} <span aria-hidden="true">&times;</span>
                     </a>
                 @endif
                 @if (request('dari'))
-                    <a href="{{ route('admin.audit.index', request()->except('dari')) }}"
+                    <a href="{{ route('admin.audit.index', request()->except(['cursor', 'hal', 'dari'])) }}"
                        class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
                         Dari: {{ request('dari') }} <span aria-hidden="true">&times;</span>
                     </a>
                 @endif
                 @if (request('sampai'))
-                    <a href="{{ route('admin.audit.index', request()->except('sampai')) }}"
+                    <a href="{{ route('admin.audit.index', request()->except(['cursor', 'hal', 'sampai'])) }}"
                        class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700 hover:bg-amber-100 transition-colors">
                         Sampai: {{ request('sampai') }} <span aria-hidden="true">&times;</span>
                     </a>
@@ -338,7 +357,21 @@
             </table>
         </div>
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
-            {{ $logs->links() }}
+            <nav class="flex items-center justify-between gap-3" aria-label="Paginasi">
+                @if ($urlSebelumnya)
+                    <a href="{{ $urlSebelumnya }}" class="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm transition-all hover:border-amber-200 hover:text-amber-700 active:scale-95">&larr; Sebelumnya</a>
+                @else
+                    <span class="inline-flex items-center gap-1 rounded-xl border border-gray-100 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-300">&larr; Sebelumnya</span>
+                @endif
+
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold text-amber-700">Halaman {{ $halTampil }} dari {{ number_format($totalHalaman, 0, ',', '.') }}</span>
+
+                @if ($urlBerikutnya)
+                    <a href="{{ $urlBerikutnya }}" class="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 shadow-sm transition-all hover:border-amber-200 hover:text-amber-700 active:scale-95">Berikutnya &rarr;</a>
+                @else
+                    <span class="inline-flex items-center gap-1 rounded-xl border border-gray-100 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-300">Berikutnya &rarr;</span>
+                @endif
+            </nav>
         </div>
     </div>
 </div>
@@ -371,7 +404,7 @@
                     <p class="mt-0.5 text-[11px] text-gray-500">Disarankan untuk perawatan rutin. Log terbaru tetap aman.</p>
                     <select name="hari" id="bersihkan-hari" class="mt-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20">
                         @foreach ($batasHari as $h => $namaHari)
-                            <option value="{{ $h }}" data-jumlah="{{ $hitungUmur[$h] ?? 0 }}" {{ $h === 90 ? 'selected' : '' }}>Lebih lama dari {{ $namaHari }}</option>
+                            <option value="{{ $h }}" data-jumlah="0" {{ $h === 90 ? 'selected' : '' }}>Lebih lama dari {{ $namaHari }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -382,7 +415,7 @@
                 <input type="radio" name="mode" value="filter" {{ $adaFilter ? '' : 'disabled' }} class="mt-0.5 h-4 w-4 accent-amber-600">
                 <div>
                     <p class="text-xs font-bold text-gray-800">Semua yang cocok dengan filter saat ini
-                        @if ($adaFilter)<span class="font-semibold text-gray-400">({{ number_format($logs->total(), 0, ',', '.') }} log)</span>@endif
+                        @if ($adaFilter)<span id="jml-filter" class="font-semibold text-gray-400">(menghitung…)</span>@endif
                     </p>
                     <p class="mt-0.5 text-[11px] text-gray-500">{{ $adaFilter ? 'Misalnya hapus semua log "Gagal masuk" atau satu modul saja.' : 'Terapkan filter di atas dulu untuk memakai opsi ini.' }}</p>
                 </div>
@@ -392,7 +425,7 @@
             <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-gray-200 p-4 transition-colors hover:border-rose-300 has-[:checked]:border-rose-400 has-[:checked]:bg-rose-50/50">
                 <input type="radio" name="mode" value="semua" class="mt-0.5 h-4 w-4 accent-rose-600">
                 <div class="flex-1">
-                    <p class="text-xs font-bold text-gray-800">Seluruh log <span class="font-semibold text-gray-400">({{ number_format($totalSemua, 0, ',', '.') }} log)</span></p>
+                    <p class="text-xs font-bold text-gray-800">Seluruh log <span id="jml-semua" class="font-semibold text-gray-400">(menghitung…)</span></p>
                     <p class="mt-0.5 text-[11px] text-gray-500">Mengosongkan seluruh riwayat aktivitas.</p>
                     <div id="bersihkan-konfirmasi" class="mt-2 hidden">
                         <label class="text-[11px] font-bold text-rose-600">Ketik <span class="rounded bg-rose-100 px-1">HAPUS</span> untuk melanjutkan</label>
@@ -420,7 +453,9 @@
     (function () {
         var FEED = @json(route('admin.audit.feed'));
         var FILTER = @json($filterJs);
-        var HALAMAN = {{ (int) $logs->currentPage() }};
+        var HITUNG = @json(\Illuminate\Support\Facades\Route::has('admin.audit.hitung') ? route('admin.audit.hitung') : null);
+        // Cursor pagination tidak punya nomor halaman: tanpa ?cursor berarti halaman pertama.
+        var HALAMAN = {{ $hal }};
         var INTERVAL = 4000;
         var MAKS_BARIS = 100;
 
@@ -434,8 +469,9 @@
         var btnDensitas = $('btn-densitas');
         var labelDensitas = $('densitas-label');
 
-        var JUMLAH_FILTER = {{ (int) $logs->total() }};
-        var JUMLAH_SEMUA = {{ (int) $totalSemua }};
+        // Angka berat dihitung saat modal dibuka (lihat muatHitungan), bukan saat halaman dimuat.
+        var JUMLAH_FILTER = 0;
+        var JUMLAH_SEMUA = 0;
 
         var scrollEl = $('scroll-audit');
         var cekSemua = $('cek-semua');
@@ -556,7 +592,39 @@
             btnYa.disabled = !(jumlah > 0 && konfirmasiOk);
         }
 
+        function muatHitungan() {
+            if (!HITUNG) return;
+
+            var p = new URLSearchParams();
+            Object.keys(FILTER).forEach(function (k) { if (FILTER[k]) p.set(k, FILTER[k]); });
+
+            fetch(HITUNG + '?' + p.toString(), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            }).then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            }).then(function (d) {
+                var fmt = function (n) { return '(' + Number(n || 0).toLocaleString('id-ID') + ' log)'; };
+                JUMLAH_SEMUA = d.semua || 0;
+                JUMLAH_FILTER = d.filter || 0;
+
+                var elSemua = $('jml-semua');
+                var elFilter = $('jml-filter');
+                if (elSemua) elSemua.textContent = fmt(JUMLAH_SEMUA);
+                if (elFilter) elFilter.textContent = fmt(JUMLAH_FILTER);
+
+                Array.prototype.slice.call(selectHari.options).forEach(function (o) {
+                    o.setAttribute('data-jumlah', (d.umur && d.umur[o.value]) || 0);
+                });
+                segarkanModal();
+            }).catch(function () {
+                ringkas.textContent = 'Gagal menghitung jumlah log. Tutup lalu buka lagi modal ini.';
+            });
+        }
+
         function bukaModal() {
+            muatHitungan();
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             document.body.style.overflow = 'hidden';
