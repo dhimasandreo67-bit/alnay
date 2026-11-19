@@ -175,6 +175,11 @@ class ReservasiFittingController extends Controller
     // Fungsi untuk hapus massal
     public function bulkDestroy(Request $request)
     {
+        $request->validate([
+            'ids'   => ['required', 'array', 'max:200'],
+            'ids.*' => ['integer'],
+        ]);
+
         $ids = $request->input('ids', []);
         
         if (empty($ids)) {
