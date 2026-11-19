@@ -214,6 +214,9 @@ class SewaController extends Controller
     public function hapusQC($id)
     {
         $qc = \App\Models\PengecekanBarang::findOrFail($id);
+        if ($qc->foto_bukti) {
+            \Storage::disk('public')->delete($qc->foto_bukti);
+        }
         $qc->delete();
 
         return back()->with('success', 'Catatan QC berhasil dihapus!')->with('active_tab', 'qc')->withFragment('tab-qc');
@@ -223,10 +226,17 @@ class SewaController extends Controller
     public function tambahDenda(Request $request, $id)
     {
         $sewa = Sewa::findOrFail($id);
-        $request->validate(['jenis' => 'required|string', 'jumlah' => 'required|string']);
+        $request->validate([
+            'jenis'  => 'required|string|max:250',
+            'jumlah' => ['required', 'string', 'regex:/^[0-9.]+$/'],
+        ], ['jumlah.regex' => 'Nominal denda hanya boleh berisi angka.']);
 
         // Menghapus titik dari input nominal sebelum disimpan ke database
         $jumlahBersih = (float) str_replace('.', '', $request->jumlah);
+
+        if ($jumlahBersih <= 0 || $jumlahBersih > 1000000000) {
+            return back()->with('error', 'Nominal denda tidak valid.')->with('active_tab', 'denda')->withFragment('tab-denda');
+        }
 
         $sewa->denda()->create([
             'jenis' => $request->jenis,
@@ -264,6 +274,7 @@ class SewaController extends Controller
     public function ubahStatus(Request $request, $id)
     {
         $sewa = Sewa::findOrFail($id);
+        $request->validate(['status' => ['required', 'string', 'max:30']]);
         $data = ['status' => $request->status];
 
         if ($request->status === 'selesai' && !$sewa->tanggal_kembali_aktual) {
