@@ -120,7 +120,7 @@ class PenggunaController extends Controller
             'name' => 'nama',
             'email' => 'email',
             'no_hp' => 'nomor HP',
-            'password' => 'kata sandi',
+            'password' => __('kata sandi'),   // ← dari: 'kata sandi'
         ]);
 
         $data = [
@@ -200,7 +200,7 @@ class PenggunaController extends Controller
             'name' => 'nama',
             'email' => 'email',
             'no_hp' => 'nomor HP',
-            'password' => 'kata sandi',
+            'password' => __('kata sandi'),
         ]);
 
         $emailBaru = strtolower(trim($validated['email']));
