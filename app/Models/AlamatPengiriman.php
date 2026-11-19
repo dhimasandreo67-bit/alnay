@@ -9,7 +9,6 @@ class AlamatPengiriman extends Model
     protected $table = 'alamat_pengiriman';
 
     protected $fillable = [
-        'user_id',
         'label',
         'nama_penerima',
         'no_hp',
@@ -20,7 +19,6 @@ class AlamatPengiriman extends Model
         'alamat',
         'ongkir_tujuan_id',
         'ongkir_tujuan_label',
-        'is_utama',
     ];
 
     protected $casts = [
