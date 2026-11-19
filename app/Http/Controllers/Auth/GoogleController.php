@@ -29,14 +29,15 @@ class GoogleController extends Controller
 
         if (! $user) {
             // Buat akun baru otomatis
-            $user = User::create([
+            $user = new User();
+            $user->forceFill([
                 'name'         => $googleUser->getName() ?? 'Pengguna Google',
                 'email'        => $googleUser->getEmail(),
                 'password'     => bcrypt(Str::random(16)),
                 'role'         => 'pelanggan',
                 'status_aktif' => true,
                 'foto_profil'  => $googleUser->getAvatar(),
-            ]);
+            ])->save();
         }
 
         Auth::login($user, true);
