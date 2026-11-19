@@ -299,8 +299,9 @@ class SewaController extends Controller
 
     public function charge($id)
     {
+        $transaksi = Transaksi::where('user_id', Auth::id())->findOrFail($id);
+
         try {
-            $transaksi = Transaksi::findOrFail($id);
             $qrData = app(\App\Services\MidtransQris::class)->qr($transaksi);
 
             if (isset($qrData['paid']) && $qrData['paid']) {
@@ -312,19 +313,24 @@ class SewaController extends Controller
                 'expires_in' => $qrData['expires_in'] ?? 0,
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            report($e);
+
+            return response()->json(['error' => 'Gagal memproses pembayaran. Silakan coba lagi.'], 500);
         }
     }
 
     public function cekStatus($id)
     {
+        $transaksi = Transaksi::where('user_id', Auth::id())->findOrFail($id);
+
         try {
-            $transaksi = Transaksi::findOrFail($id);
             $midtrans = app(\App\Services\MidtransQris::class);
             $status = $midtrans->sync($transaksi);
             return response()->json(['status' => $status]);
         } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            report($e);
+
+            return response()->json(['status' => 'error', 'message' => 'Gagal memeriksa status pembayaran.'], 500);
         }
     }
 
@@ -397,8 +403,8 @@ class SewaController extends Controller
 
     public function show($id)
     {
-        $sewa = Sewa::with(['transaksi.user', 'transaksi.detail.produk', 'jaminan'])->findOrFail($id);
-        return view('admin.sewa.show', compact('sewa'));
+        // Dulu mengembalikan view admin tanpa pemeriksaan akses. Detail sewa untuk admin ada di Admin\SewaController@show.
+        abort(404);
     }
 
     public function hapusKeranjang($id)
@@ -413,7 +419,7 @@ class SewaController extends Controller
 
     public function hapusPilihanKeranjang(Request $request)
     {
-        $ids = $request->input('ids', []);
+        $ids = array_filter((array) $request->input('ids', []), 'is_scalar');
         $keranjangSewa = session()->get('keranjang_sewa', []);
 
         foreach ($ids as $id) {
