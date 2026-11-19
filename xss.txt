@@ -1,0 +1,23 @@
+resources/views/admin/audit/index.blade.php:172:                        {!! $k['ikon'] !!}
+resources/views/components/admin/icon.blade.php:26:    {!! $path !!}
+resources/views/components/icon.blade.php:48:    {!! $path !!}
+resources/views/customer/akun/_fitting-terdekat.blade.php:74:                {!! $tema['icon'] !!}
+resources/views/customer/cara-sewa.blade.php:479:                    <span class="tick">{!! $ic('check', 'w-4 h-4', 3) !!}</span>
+resources/views/customer/cara-sewa.blade.php:482:                        <span class="ico">{!! $ic($c['ikon'], 'w-7 h-7') !!}</span>
+resources/views/customer/cara-sewa.blade.php:493:                            <li>{!! $ic('check', 'w-4 h-4', 2.5) !!}<span>{!! $poin !!}</span></li>
+resources/views/customer/cara-sewa.blade.php:498:                    <span class="go">{{ $c['cta'] }} {!! $ic('down', 'w-4 h-4') !!}</span>
+resources/views/customer/cara-sewa.blade.php:518:            <span class="badge reveal">{!! $ic($key === 'sewa' ? 'calendar' : 'cart', 'w-4 h-4') !!} {{ $p['badge'] }}</span>
+resources/views/customer/cara-sewa.blade.php:547:                        <span class="ico">{!! $ic($m['ikon'], 'w-7 h-7') !!}</span>
+resources/views/customer/cara-sewa.blade.php:558:                                {!! $ic('check', 'w-5 h-5') !!}
+resources/views/customer/cara-sewa.blade.php:565:                        <p class="t">{!! $ic($m['catatan']['ikon'], 'w-4 h-4') !!} {{ $m['catatan']['judul'] }}:</p>
+resources/views/customer/cara-sewa.blade.php:568:                            <p class="hl">{!! $ic($m['catatan']['sorot'][0], 'w-4 h-4') !!} {{ $m['catatan']['sorot'][1] }}</p>
+resources/views/customer/cara-sewa.blade.php:573:                        {!! $ic($m['cta'][2], 'w-4 h-4') !!} {{ $m['cta'][1] }}
+resources/views/customer/cara-sewa.blade.php:588:                    <span class="ico">{!! $ic($k[0], 'w-6 h-6') !!}</span>
+resources/views/customer/cara-sewa.blade.php:598:                {{ $p['silang'][1] }} {!! $ic('arrow', 'w-4 h-4') !!}
+resources/views/customer/cara-sewa.blade.php:663:                <span class="arrow">{!! $ic('arrow', 'w-4 h-4', 3) !!}</span>
+resources/views/customer/fitting-detail.blade.php:209:                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">{!! $iconSvg !!}</svg>
+resources/views/customer/fitting-detail.blade.php:257:                                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">{!! $ikon[$m['ikon']] !!}</svg>
+resources/views/customer/koleksi.blade.php:596:                                    {!! $panah !!}
+resources/views/customer/koleksi.blade.php:621:                                    {!! $panah !!}
+resources/views/customer/koleksi.blade.php:650:                                    {!! $panah !!}
+resources/views/customer/koleksi.blade.php:694:                                    {!! $panah !!}
