@@ -18,13 +18,12 @@ class User extends Authenticatable
      * daftar yang sama (mis. PenggunaController, TransaksiController).
      */
     public const ROLE_STAF = ['owner', 'admin', 'superadmin', 'super_admin'];
-
-        protected $fillable = [
+    // `role`, `admin_permissions`, dan `status_aktif` sengaja TIDAK di sini: isi lewat forceFill()
+    // di kode yang tepercaya (AdminController, PenggunaController, BuatOwnerCommand, dll).
+    protected $fillable = [
         'name',
         'email',
         'password',
-        'role',
-        'admin_permissions',
         'no_hp',
         'jenis_kelamin',
         'tanggal_lahir',
@@ -34,14 +33,11 @@ class User extends Authenticatable
         'kode_pos',
         'alamat',
         'foto_profil',
-        'status_aktif',
 
-        // ==== TAMBAHKAN 4 BARIS INI ====
         'provinsi_id',
         'provinsi_nama',
         'kota_id',
         'kota_nama',
-        // ==============================
     ];
 
     protected $hidden = [
