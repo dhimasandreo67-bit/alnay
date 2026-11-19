@@ -11,15 +11,18 @@
         "laravel/framework": "^13.17",
         "laravel/socialite": "^5.31",
         "laravel/tinker": "^3.0",
+        "mahdisphp/laravel-hack-auditor": "^2.3",
         "midtrans/midtrans-php": "^2.6",
         "nicxonsolutions/rajaongkir": "^1.2"
     },
     "require-dev": {
+        "andreapollastri/checkpoint": "^1.2",
         "fakerphp/faker": "^1.23",
         "laravel/boost": "^2.10",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",
         "laravel/pint": "^1.27",
+        "marlla3x/laravel-shield": "^1.0",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
         "phpunit/phpunit": "^12.5.12"
