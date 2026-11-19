@@ -50,7 +50,8 @@ class CheckoutController extends Controller
             AlamatPengiriman::where('user_id', $userId)->update(['is_utama' => false]);
         }
 
-        return AlamatPengiriman::create([
+        $alamat = new AlamatPengiriman();
+        $alamat->forceFill([
             'user_id'             => $userId,
             'label'               => $request->input('label') ?: 'Rumah',
             'nama_penerima'       => $request->nama_penerima,
@@ -63,7 +64,9 @@ class CheckoutController extends Controller
             'ongkir_tujuan_id'    => (int) $request->tujuan_id,
             'ongkir_tujuan_label' => $request->tujuan_label ?: (string) $request->tujuan_id,
             'is_utama'            => $jadiUtama,
-        ]);
+        ])->save();
+
+        return $alamat;
     }
 
     /**
