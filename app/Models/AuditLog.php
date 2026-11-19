@@ -22,7 +22,9 @@ class AuditLog extends Model
 
     public $timestamps = false;
 
-    protected $guarded = [];
+    // Log hanya ditulis lewat App\Support\Audit (query builder), tidak pernah lewat mass assignment.
+    // Dikosongkan supaya tidak ada kolom log yang bisa ditimpa lewat create()/fill().
+    protected $fillable = [];
 
     protected function casts(): array
     {
