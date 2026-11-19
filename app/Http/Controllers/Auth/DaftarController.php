@@ -35,14 +35,15 @@ class DaftarController extends Controller
             'terms.accepted' => 'Anda harus menyetujui Syarat & Ketentuan.',
         ]);
 
-        $user = User::create([
+        $user = new User();
+        $user->forceFill([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'no_hp' => $validated['no_hp'],
             'password' => Hash::make($validated['password']),
             'role' => 'pelanggan',
             'status_aktif' => true,
-        ]);
+        ])->save();
 
         // Jika user-nya admin/owner, login ke guard admin
         if (in_array($user->role, ['admin', 'owner'])) {
