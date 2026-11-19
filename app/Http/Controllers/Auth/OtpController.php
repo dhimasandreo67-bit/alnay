@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 class OtpController extends Controller
@@ -41,6 +42,9 @@ class OtpController extends Controller
             'code' => ['required', 'digits:6'],
         ]);
 
+        $kunci = 'otp-verify-login:' . mb_strtolower($request->email);
+        $this->batasi($kunci, 5, 'code', 'Terlalu banyak percobaan kode OTP.');
+
         $otp = OtpCode::where('email', $request->email)
             ->where('code', $request->code)
             ->where('purpose', 'login')
@@ -48,11 +52,13 @@ class OtpController extends Controller
             ->first();
 
         if (! $otp || ! $otp->isValid()) {
+            RateLimiter::hit($kunci, 300);
             throw ValidationException::withMessages([
                 'code' => 'Kode OTP salah atau sudah kedaluwarsa.',
             ]);
         }
 
+        RateLimiter::clear($kunci);
         $otp->update(['used_at' => now()]);
 
         $user = User::where('email', $request->email)->firstOrFail();
@@ -101,6 +107,9 @@ class OtpController extends Controller
                 ->withErrors(['code' => 'Sesi habis. Silakan daftar ulang.']);
         }
 
+        $kunci = 'otp-verify-daftar:' . mb_strtolower($email);
+        $this->batasi($kunci, 5, 'code', 'Terlalu banyak percobaan kode OTP.');
+
         $otp = OtpCode::where('email', $email)
             ->where('code', $request->code)
             ->where('purpose', 'daftar')
@@ -108,21 +117,24 @@ class OtpController extends Controller
             ->first();
 
         if (! $otp || ! $otp->isValid()) {
+            RateLimiter::hit($kunci, 300);
             throw ValidationException::withMessages([
                 'code' => 'Kode OTP salah atau sudah kedaluwarsa.',
             ]);
         }
 
+        RateLimiter::clear($kunci);
         $otp->update(['used_at' => now()]);
 
         // Buat user
-        $user = User::create([
+        $user = new User();
+        $user->forceFill([
             'name' => $name,
             'email' => $email,
             'password' => Hash::make(str()->random(16)), // password sementara, user login via OTP
             'role' => 'pelanggan',
             'status_aktif' => true,
-        ]);
+        ])->save();
 
         $request->session()->forget(['daftar_name', 'daftar_email']);
 
@@ -138,6 +150,10 @@ class OtpController extends Controller
      */
     private function kirimOtp(string $email, string $purpose): void
     {
+        $kunciKirim = 'otp-send:' . $purpose . '|' . mb_strtolower($email);
+        $this->batasi($kunciKirim, 5, 'email', 'Terlalu banyak permintaan kode OTP.');
+        RateLimiter::hit($kunciKirim, 600);
+
         // Hapus OTP lama untuk email ini & purpose ini
         OtpCode::where('email', $email)
             ->where('purpose', $purpose)
@@ -154,6 +170,21 @@ class OtpController extends Controller
         ]);
 
         Mail::to($email)->send(new OtpMail($code, $purpose));
+    }
+
+    /**
+     * Batasi percobaan per kunci. Kode OTP hanya 6 digit, jadi tanpa batas ini
+     * bisa ditebak lewat brute force selama masa berlakunya.
+     */
+    private function batasi(string $kunci, int $maks, string $field, string $pesan): void
+    {
+        if (RateLimiter::tooManyAttempts($kunci, $maks)) {
+            $detik = RateLimiter::availableIn($kunci);
+
+            throw ValidationException::withMessages([
+                $field => $pesan . ' Coba lagi dalam ' . $detik . ' detik.',
+            ]);
+        }
     }
 
     private function redirectByRole($user)
