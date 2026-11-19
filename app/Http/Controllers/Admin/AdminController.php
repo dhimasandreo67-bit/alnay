@@ -48,7 +48,8 @@ class AdminController extends Controller
             'status_aktif'          => 'nullable|boolean',
         ]);
 
-        User::create([
+        $akun = new User();
+        $akun->forceFill([
             'name'              => $validated['name'],
             'email'             => $validated['email'],
             'password'          => Hash::make($validated['password']),
@@ -56,7 +57,7 @@ class AdminController extends Controller
             // Owner tidak butuh daftar permission, karena selalu full access.
             'admin_permissions' => $validated['role'] === 'owner' ? [] : ($validated['admin_permissions'] ?? []),
             'status_aktif'      => $request->boolean('status_aktif', true),
-        ]);
+        ])->save();
 
         return redirect()
             ->route('admin.kelola-admin.index')
@@ -70,6 +71,7 @@ class AdminController extends Controller
     public function update(Request $request, $id)
     {
         $admin = User::whereIn('role', ['admin', 'owner'])->findOrFail($id);
+        $this->pastikanBolehMenyentuh($admin);
 
         $validated = $request->validate([
             'name'                  => 'required|string|max:255',
@@ -121,6 +123,7 @@ class AdminController extends Controller
     public function destroy($id)
     {
         $admin = User::whereIn('role', ['admin', 'owner'])->findOrFail($id);
+        $this->pastikanBolehMenyentuh($admin);
 
         if ($admin->id === Auth::id()) {
             return redirect()
@@ -149,5 +152,19 @@ class AdminController extends Controller
     protected function allowedRoleOptions(): array
     {
         return (Auth::user()?->isOwner() ?? false) ? ['admin', 'owner'] : ['admin'];
+    }
+
+    /**
+     * Hanya owner yang boleh mengubah atau menghapus akun owner. Tanpa ini, admin biasa
+     * yang punya hak menu "Kelola Admin" bisa mengganti email/password owner (ambil alih akun)
+     * atau menurunkan perannya.
+     */
+    protected function pastikanBolehMenyentuh(User $target): void
+    {
+        $pelakuOwner = Auth::user()?->isOwner() ?? false;
+
+        if ($target->role === 'owner' && ! $pelakuOwner) {
+            abort(403, 'Hanya owner yang boleh mengubah atau menghapus akun owner.');
+        }
     }
 }
