@@ -160,7 +160,7 @@ class FittingController extends Controller
             'nama' => ['required', 'string', 'max:100'],
             'no_wa' => ['required', 'string', 'max:20'],
             'produk' => ['nullable', 'string', 'max:200'],
-            'catatan' => ['nullable', 'string'],
+            'catatan' => ['nullable', 'string', 'max:1000'],
             'transaksi_id' => ['nullable', 'exists:transaksi,id'],
         ]);
 
@@ -273,6 +273,11 @@ class FittingController extends Controller
     public function cancel($id)
     {
         $reservasi = ReservasiFitting::where('user_id', auth()->id())->findOrFail($id);
+
+        // Booking yang sudah hadir / sudah batal tidak boleh diubah lagi lewat pembatalan.
+        if (! in_array($reservasi->status, self::STATUS_ISI_SLOT, true)) {
+            return back()->with('error', 'Booking ini sudah tidak bisa dibatalkan.');
+        }
         $reservasi->forceFill([
             'status' => 'batal',
             'alasan_batal' => null,
@@ -320,6 +325,11 @@ class FittingController extends Controller
     public function update(Request $request, $id)
     {
         $reservasi = ReservasiFitting::where('user_id', auth()->id())->findOrFail($id);
+
+        // Reservasi yang sudah hadir adalah catatan kunjungan; jangan dijadwal ulang jadi 'pending'.
+        if ($reservasi->status === 'hadir') {
+            return back()->with('error', 'Reservasi yang sudah hadir tidak bisa diubah jadwalnya.');
+        }
 
         $validated = $request->validate([
             'tanggal' => ['required', 'date', 'after_or_equal:today'],
