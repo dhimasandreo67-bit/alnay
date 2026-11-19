@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\LaporanController;
 use App\Http\Controllers\Admin\PengirimanController;
 use App\Http\Controllers\Admin\NotifikasiController;
 use App\Http\Controllers\OngkirController;
+use App\Http\Middleware\EnsureAdminPermission;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SewaController;
 
@@ -26,10 +27,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     
     // --- ROUTE LOGIN (Harus di luar middleware auth) ---
     Route::get('/login', [AdminLoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AdminLoginController::class, 'login'])->name('login.store');
+    Route::post('/login', [AdminLoginController::class, 'login'])->name('login.store')->middleware('throttle:5,1');
 
     // --- ROUTE YANG BUTUH LOGIN ---
-    Route::middleware('auth:admin')->group(function () {
+    Route::middleware(['auth:admin', EnsureAdminPermission::class])->group(function () {
         
         Route::post('/logout', [AdminLoginController::class, 'logout'])
             ->name('logout')
@@ -61,7 +62,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/produk/{id}', [ProdukController::class, 'update'])->name('produk.update');
         Route::delete('/produk/bulk-destroy', [ProdukController::class, 'bulkDestroy'])->name('produk.bulk-destroy');
         Route::delete('/produk/{id}', [ProdukController::class, 'destroy'])->name('produk.destroy');
-        Route::get('/pengguna', fn () => view('placeholder'))->name('pengguna.index');
 
         // --- Kelola Admin (akun & hak akses panel admin) ---
         Route::get('/kelola-admin', [AdminController::class, 'index'])->name('kelola-admin.index');
@@ -154,7 +154,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // --- Aksi Sewa (Verifikasi Jaminan, Deposit, QC, Denda) ---
         Route::post('/sewa/{id}/verifikasi-jaminan', [App\Http\Controllers\Admin\SewaController::class, 'verifikasiJaminan'])->name('sewa.verifikasi-jaminan');
         Route::post('/sewa/{id}/kembalikan-deposit', [App\Http\Controllers\Admin\SewaController::class, 'kembalikanDeposit'])->name('sewa.kembalikan-deposit');
-        Route::match(['get', 'post'], '/sewa/{id}/simpan-qc', [App\Http\Controllers\Admin\SewaController::class, 'simpanQC'])->name('sewa.simpan-qc');
+        Route::post('/sewa/{id}/simpan-qc', [App\Http\Controllers\Admin\SewaController::class, 'simpanQC'])->name('sewa.simpan-qc');
+        // GET hanya mengalihkan (mis. setelah sesi habis), TIDAK menyimpan apa pun: aksi yang mengubah data tidak boleh lewat GET.
+        Route::get('/sewa/{id}/simpan-qc', fn ($id) => redirect()->route('admin.sewa.show', $id)->with('active_tab', 'qc'))->whereNumber('id');
         Route::post('/sewa/{id}/tambah-denda', [App\Http\Controllers\Admin\SewaController::class, 'tambahDenda'])->name('sewa.tambah-denda');
         Route::patch('/denda/{id}/lunasi', [App\Http\Controllers\Admin\SewaController::class, 'lunasiDenda'])->name('sewa.lunasi-denda');
         Route::patch('/sewa/{id}/ubah-status', [App\Http\Controllers\Admin\SewaController::class, 'ubahStatus'])->name('sewa.ubah-status');
