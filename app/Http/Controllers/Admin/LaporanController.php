@@ -476,13 +476,13 @@ class LaporanController extends Controller
     /** Omzet per produk/kategori = harga satuan x jumlah (nilai transaksi, bukan uang diterima). */
     private function ambilProduk(array $f): array
     {
-        $tProduk = (new Produk())->getTable();
-        $tKategori = (new Kategori())->getTable();
-        $tDetail = (new DetailTransaksi())->getTable();
+        $tProduk   = $this->namaTabel((new Produk())->getTable());
+        $tKategori = $this->namaTabel((new Kategori())->getTable());
+        $tDetail   = $this->namaTabel((new DetailTransaksi())->getTable());
 
-        $baris = DB::table("$tDetail as d")
-            ->join("$tProduk as p", 'p.id', '=', 'd.produk_id')
-            ->leftJoin("$tKategori as k", 'k.id', '=', 'p.kategori_id')
+        $baris = DB::table($tDetail . ' as d')                                    // ← dari: "$tDetail as d"
+            ->join($tProduk . ' as p', 'p.id', '=', 'd.produk_id')                // ← dari: "$tProduk as p"
+            ->leftJoin($tKategori . ' as k', 'k.id', '=', 'p.kategori_id')        // ← dari: "$tKategori as k"
             ->whereIn('d.transaksi_id', $this->queryDasar($f)->select('transaksi.id'))
             ->when($f['kategori_id'], fn ($q, $id) => $q->where('p.kategori_id', $id))
             ->selectRaw('p.id as produk_id, p.nama, p.sku, k.nama_kategori, SUM(d.jumlah) as qty, SUM(d.jumlah * d.harga_satuan) as omzet')
@@ -509,5 +509,19 @@ class LaporanController extends Controller
         $nilai = (string) $nilai;
 
         return $nilai !== '' && in_array($nilai[0], ['=', '+', '-', '@'], true) ? "'" . $nilai : $nilai;
+    }
+
+    /**
+     * Nama tabel berasal dari metadata model Eloquent (developer-controlled),
+     * tetapi tetap divalidasi sebagai identifier SQL — defense-in-depth sekaligus
+     * memenuhi analisis keamanan statis.
+     */
+    private function namaTabel(string $tabel): string
+    {
+        if (! preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $tabel)) {
+            throw new \RuntimeException("Nama tabel tidak valid: {$tabel}");
+        }
+
+        return $tabel;
     }
 }
