@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\DetailTransaksi;
 use App\Models\Rating;
+use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,7 +13,7 @@ class RatingController extends Controller
 {
     public function create($detail_id)
     {
-        $detail = DetailTransaksi::with('produk')->findOrFail($detail_id);
+        $detail = $this->detailMilikSaya($detail_id);
         return view('customer.rating-create', compact('detail'));
     }
 
@@ -23,7 +24,7 @@ class RatingController extends Controller
             'ulasan' => 'nullable|string|max:500',
         ]);
 
-        $detail = DetailTransaksi::findOrFail($detail_id);
+        $detail = $this->detailMilikSaya($detail_id);
 
         // Satu ulasan per item pesanan per pelanggan. Tanpa ini, klik ganda pada tombol kirim,
         // refresh/back-forward browser, atau request yang terkirim dua kali akan membuat
@@ -47,5 +48,16 @@ class RatingController extends Controller
 
         return redirect()->route('akun.pesanan.detail', $detail->transaksi_id)
                  ->with('success', $pesan);
+    }
+
+    /**
+     * Hanya item dari pesanan milik pelanggan yang sedang login (404 kalau bukan miliknya).
+     * Tanpa ini, siapa pun yang login bisa mengisi ulasan untuk pesanan orang lain.
+     */
+    private function detailMilikSaya($detail_id): DetailTransaksi
+    {
+        return DetailTransaksi::with('produk')
+            ->whereIn('transaksi_id', Transaksi::where('user_id', Auth::id())->select('id'))
+            ->findOrFail($detail_id);
     }
 }
