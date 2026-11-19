@@ -91,6 +91,11 @@ class MidtransQris
     {
         $this->pastikanSiap();
 
+        // Transaksi yang sudah dibatalkan tidak boleh dibayar lagi (stoknya sudah dilepas).
+        if ($t->status_pembayaran === 'batal') {
+            throw new \RuntimeException('Transaksi ini sudah dibatalkan. Silakan buat pesanan baru.');
+        }
+
         // Jangan pernah membuat QR baru kalau ternyata sudah dibayar.
         if ($this->sync($t) === 'paid') {
             return ['paid' => true];
