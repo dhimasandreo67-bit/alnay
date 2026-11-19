@@ -47,26 +47,27 @@ class BuatOwnerCommand extends Command
                 return self::SUCCESS;
             }
 
-            $existing->update([
+            $existing->forceFill([
                 'name'              => $name,
                 'password'          => Hash::make($password),
                 'role'              => 'owner',
                 'admin_permissions' => [],
                 'status_aktif'      => true,
-            ]);
+            ])->save();
 
             $this->info("Akun {$email} berhasil dijadikan owner.");
             return self::SUCCESS;
         }
 
-        User::create([
+        $owner = new User();
+        $owner->forceFill([
             'name'              => $name,
             'email'             => $email,
             'password'          => Hash::make($password),
             'role'              => 'owner',
             'admin_permissions' => [],
             'status_aktif'      => true,
-        ]);
+        ])->save();
 
         $this->info("Owner baru berhasil dibuat: {$email}");
         $this->line('Sekarang kamu bisa login di /admin/login dengan akun ini.');
