@@ -108,15 +108,19 @@ class AuditLogController extends Controller
         $umum = Cache::remember('audit:hitung', 60, function () {
             $q = AuditLog::query()->selectRaw('COUNT(*) as semua');
 
-            foreach (array_keys(self::BATAS_HARI) as $h) {
-                $q->selectRaw("COALESCE(SUM(created_at < ?), 0) as h{$h}", [now()->subDays($h)->toDateTimeString()]);
-            }
+            // Alias & jumlah hari berasal dari const BATAS_HARI (developer-controlled),
+            // bukan input user. Ditulis literal agar tidak ada interpolasi variabel ke SQL.
+            $q->selectRaw('COALESCE(SUM(created_at < ?), 0) as h7',   [now()->subDays(7)->toDateTimeString()]);
+            $q->selectRaw('COALESCE(SUM(created_at < ?), 0) as h30',  [now()->subDays(30)->toDateTimeString()]);
+            $q->selectRaw('COALESCE(SUM(created_at < ?), 0) as h90',  [now()->subDays(90)->toDateTimeString()]);
+            $q->selectRaw('COALESCE(SUM(created_at < ?), 0) as h180', [now()->subDays(180)->toDateTimeString()]);
+            $q->selectRaw('COALESCE(SUM(created_at < ?), 0) as h365', [now()->subDays(365)->toDateTimeString()]);
 
             $r = $q->first();
             $umur = [];
 
             foreach (array_keys(self::BATAS_HARI) as $h) {
-                $umur[$h] = (int) ($r->{"h{$h}"} ?? 0);
+                $umur[$h] = (int) ($r->{'h' . $h} ?? 0);
             }
 
             return ['semua' => (int) ($r->semua ?? 0), 'umur' => $umur];
