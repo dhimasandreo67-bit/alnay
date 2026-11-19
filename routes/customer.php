@@ -71,14 +71,13 @@ Route::middleware('auth:web')->group(function () {
     // TAMBAHKAN DUA BARIS INI:
     Route::get('/fitting/{id}/edit', [FittingController::class, 'edit'])->name('fitting.edit');
     Route::put('/fitting/{id}', [FittingController::class, 'update'])->name('fitting.update');
-    Route::patch('/fitting/{id}/cancel', [FittingController::class, 'cancel'])->name('fitting.cancel');
 
     // --- MIDTRANS CHARGE (Untuk Pembayaran) ---
-    Route::post('/sewa/{id}/charge', [SewaController::class, 'charge'])->name('sewa.charge');
+    Route::post('/sewa/{id}/charge', [SewaController::class, 'charge'])->name('sewa.charge')->middleware('throttle:10,1');
         // --- MIDTRANS CHARGE (QRIS untuk Beli) ---
-    Route::post('/qris/{id}/charge', [SewaController::class, 'charge'])->name('qris.charge');
+    Route::post('/qris/{id}/charge', [SewaController::class, 'charge'])->name('qris.charge')->middleware('throttle:10,1');
         // Route untuk cek status pembayaran QRIS
-    Route::get('/qris/{id}/status', [SewaController::class, 'cekStatus'])->name('qris.status');
+    Route::get('/qris/{id}/status', [SewaController::class, 'cekStatus'])->name('qris.status')->middleware('throttle:60,1');
 
         // --- KERANJANG SEWA ---
     Route::get('/sewa/keranjang', [SewaController::class, 'keranjangIndex'])->name('sewa.keranjang.index');
