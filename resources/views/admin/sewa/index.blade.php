@@ -133,7 +133,8 @@
     </div>
 
     {{-- Tab dan Filter --}}
-    <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-2 overflow-x-auto" role="tablist" aria-label="Filter status sewa">
+    <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 -mx-1 px-1" role="tablist" aria-label="Filter status sewa">
 
         {{-- Tab Semua Sewa --}}
         <a href="{{ route('admin.sewa.index', ['status' => 'semua']) }}"
@@ -180,6 +181,24 @@
         </a>
     </div>
 
+        {{-- Pencarian langsung (tanpa tombol Cari) --}}
+        <form onsubmit="event.preventDefault()" class="flex items-center gap-3 w-full lg:w-auto">
+            <div class="relative w-full lg:w-80">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </span>
+                <input type="search" id="cariSewa" name="search" autocomplete="off" oninput="terapkanCariSewa()"
+                       placeholder="Cari kode, busana, SKU, pelanggan, no. HP..."
+                       class="w-full pl-10 pr-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
+            </div>
+            <span class="hidden xl:inline shrink-0 text-xs text-gray-400 font-medium whitespace-nowrap">
+                <strong id="infoJumlahSewa" class="text-gray-700">0</strong> / <strong id="totalBarisSewa" class="text-gray-700">0</strong> sewa
+            </span>
+            <button type="button" id="btnResetSewa" onclick="resetCariSewa()"
+                    class="hidden shrink-0 text-xs font-bold text-gray-500 hover:text-amber-600 transition-colors cursor-pointer">⟲ Reset</button>
+        </form>
+    </div>
+
     {{-- Tabel Daftar Sewa --}}
     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
@@ -208,8 +227,20 @@
                                 $decoded = json_decode($foto, true);
                                 $foto = is_array($decoded) ? ($decoded[0] ?? null) : $foto;
                             }
+
+                            // Teks pencarian: kode, busana, SKU, pelanggan, kontak, status sewa & jaminan
+                            $terlambatCari = $sewa->status === 'aktif' && \Carbon\Carbon::parse($sewa->tanggal_kembali_rencana)->isPast();
+                            $statusSewaCari = $terlambatCari ? 'terlambat' : ($sewa->status === 'aktif' ? 'dipinjam' : 'dikembalikan');
+                            $jaminanCari = $sewa->jaminan ? ($sewa->jaminan->status_verifikasi === 'verified' ? 'terverifikasi' : 'pending') : '';
+                            $teksCari = \Illuminate\Support\Str::lower(implode(' ', [
+                                '#sewa-' . $sewa->id, $sewa->id,
+                                $produk->nama ?? '', $produk->sku ?? '',
+                                $namaPelanggan, $sewa->no_hp_pelanggan,
+                                $sewa->is_tamu ? 'tamu' : '',
+                                $statusSewaCari, $jaminanCari,
+                            ]));
                         @endphp
-                        <tr class="hover:bg-amber-50/30 transition-colors">
+                        <tr data-cari="{{ $teksCari }}" class="hover:bg-amber-50/30 transition-colors">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     {{-- TAMPILKAN FOTO PRODUK DI SINI --}}
@@ -296,9 +327,43 @@
                             <td colspan="6" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">Belum ada data sewa.</td>
                         </tr>
                     @endforelse
+
+                    {{-- Muncul saat pencarian tidak menemukan apa pun --}}
+                    <tr id="barisKosongCariSewa" class="hidden">
+                        <td colspan="6" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">Tidak ada sewa yang cocok dengan pencarian.</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<script>
+    // Pencarian langsung tanpa reload: mencari di semua baris pada tab yang sedang dibuka.
+    // Beberapa kata dipisah spasi harus cocok semuanya (mis. "budi dipinjam").
+    function terapkanCariSewa() {
+        const kata = (document.getElementById('cariSewa').value || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+        const baris = document.querySelectorAll('tr[data-cari]');
+        let n = 0;
+
+        baris.forEach(tr => {
+            const cocok = kata.every(k => tr.dataset.cari.includes(k));
+            tr.classList.toggle('hidden', !cocok);
+            if (cocok) n++;
+        });
+
+        document.getElementById('infoJumlahSewa').textContent = n;
+        document.getElementById('totalBarisSewa').textContent = baris.length;
+        document.getElementById('barisKosongCariSewa').classList.toggle('hidden', !(baris.length > 0 && n === 0));
+        document.getElementById('btnResetSewa').classList.toggle('hidden', kata.length === 0);
+    }
+
+    function resetCariSewa() {
+        document.getElementById('cariSewa').value = '';
+        terapkanCariSewa();
+        document.getElementById('cariSewa').focus();
+    }
+
+    document.addEventListener('DOMContentLoaded', terapkanCariSewa);
+</script>
 @endsection
