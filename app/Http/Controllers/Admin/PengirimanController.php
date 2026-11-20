@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Pengiriman;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class PengirimanController extends Controller
 {
@@ -22,12 +23,32 @@ class PengirimanController extends Controller
             $query->where('status_kirim', 'diterima');
         }
 
-        // Filter Pencarian (Kode Transaksi atau Nama User)
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('transaksi', function($q) use ($search) {
-                $q->where('kode_transaksi', 'like', "%{$search}%")
-                  ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$search}%"));
+        // Filter Pencarian: kode transaksi, nama penerima, nama akun, no. WA/HP,
+        // kota/provinsi tujuan, atau no. resi. Tidak peduli huruf besar/kecil.
+        $search = trim((string) $request->input('search', ''));
+        if ($search !== '') {
+            $kata = '%' . mb_strtolower($search) . '%';
+            $grammar = $query->getQuery()->getGrammar();
+            $tabel = $query->getModel()->getTable();
+
+            // Hanya kolom yang benar-benar ada di tabel pengiriman (aman bila skema berbeda)
+            $kolomPengiriman = array_filter(
+                ['nama_penerima', 'no_wa_penerima', 'kota_tujuan', 'provinsi_tujuan', 'no_resi'],
+                fn ($k) => Schema::hasColumn($tabel, $k)
+            );
+
+            $query->where(function ($q) use ($kata, $kolomPengiriman, $grammar) {
+                foreach ($kolomPengiriman as $k) {
+                    $q->orWhereRaw('LOWER(' . $grammar->wrap($k) . ') LIKE ?', [$kata]);
+                }
+
+                $q->orWhereHas('transaksi', function ($t) use ($kata) {
+                    $t->whereRaw('LOWER(kode_transaksi) LIKE ?', [$kata])
+                      ->orWhereHas('user', function ($u) use ($kata) {
+                          $u->whereRaw('LOWER(name) LIKE ?', [$kata])
+                            ->orWhereRaw('LOWER(no_hp) LIKE ?', [$kata]);
+                      });
+                });
             });
         }
 
