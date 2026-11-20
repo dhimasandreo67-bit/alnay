@@ -135,7 +135,7 @@
     </div>
 
     {{-- Filter --}}
-    <form method="GET" action="{{ route('admin.pengguna.index') }}" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4">
+    <form id="form-filter-pengguna" method="GET" action="{{ route('admin.pengguna.index') }}" autocomplete="off" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4">
         {{-- Filter setahun dipaksa lewat hidden input agar setiap submit tetap membawa nilainya --}}
         <input type="hidden" name="inaktif" value="{{ $batasLama }}">
 
@@ -143,7 +143,7 @@
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </span>
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama, email, atau no. HP..."
+            <input type="search" id="cari-pengguna" name="search" autocomplete="off" value="{{ request('search') }}" placeholder="Cari nama, email, atau no. HP..."
                    class="w-full pl-10 pr-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 transition-all">
         </div>
 
@@ -152,15 +152,12 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Tidak aktif ≥ {{ $batasLama }} hari
             </span>
-            <select name="status" onchange="this.form.submit()" aria-label="Status akun" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer">
+            <select name="status" id="filter-status-pengguna" aria-label="Status akun" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer">
                 <option value="">Semua Status</option>
                 <option value="aktif" {{ $status === 'aktif' ? 'selected' : '' }}>Aktif</option>
                 <option value="nonaktif" {{ $status === 'nonaktif' ? 'selected' : '' }}>Dinonaktifkan</option>
             </select>
-            <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-gray-800 transition-all">Cari</button>
-            @if ($adaFilter)
-                <a href="{{ route('admin.pengguna.index', ['inaktif' => $batasLama]) }}" class="text-xs font-bold text-gray-500 hover:text-amber-600">Reset</a>
-            @endif
+            <button type="button" id="btn-reset-pengguna" class="{{ $adaFilter ? '' : 'hidden' }} text-xs font-bold text-gray-500 hover:text-amber-600 transition-colors cursor-pointer">⟲ Reset</button>
         </div>
     </form>
 
@@ -192,7 +189,7 @@
                         <th class="px-6 py-4 text-right text-[11px] font-bold text-gray-400 uppercase">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100/80">
+                <tbody id="tbody-pengguna" class="divide-y divide-gray-100/80 transition-opacity duration-150">
                     @forelse ($users as $u)
                         @php
                             $aktif = (bool) $u->is_active;
@@ -296,8 +293,10 @@
                 </tbody>
             </table>
         </div>
-        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
-            {{ $users->appends(['inaktif' => $batasLama])->links() }}
+        <div id="paginasi-pengguna" class="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+            {{ $users->appends(['inaktif' => $batasLama] + request()->only('search', 'status'))->links() }}
+            {{-- Data modal Detail untuk baris yang sedang tampil; ikut diperbarui saat hasil pencarian berganti --}}
+            <script type="application/json" id="data-pengguna">@json($detail)</script>
         </div>
     </div>
 </div>
@@ -461,7 +460,10 @@
 
 <script>
     (function () {
-        var PENGGUNA = @json($detail);
+        // Data detail dibaca ulang dari #data-pengguna karena isi tabel bisa berganti tanpa reload
+        function dataPengguna() {
+            try { return JSON.parse($('data-pengguna').textContent); } catch (e) { return {}; }
+        }
         var URL_MASSAL = @json(route('admin.pengguna.massal'));
         var URL_TRANSAKSI = @json(route('admin.transaksi.index'));
         var $ = function (id) { return document.getElementById(id); };
@@ -469,7 +471,7 @@
         // ---------- Detail ----------
         $('modal-detail-pengguna').addEventListener('modal:open', function (e) {
             var b = e.detail.trigger;
-            var u = b && PENGGUNA[b.dataset.id];
+            var u = b && dataPengguna()[b.dataset.id];
             if (!u) return;
 
             $('dt-inisial').textContent = (u.name || '?').trim().charAt(0).toUpperCase();
@@ -817,7 +819,9 @@
             semuaCek().forEach(function (c) { c.checked = cekSemua.checked; });
             perbaruiBar();
         });
-        semuaCek().forEach(function (c) { c.addEventListener('change', perbaruiBar); });
+        document.addEventListener('change', function (e) {
+            if (e.target.classList && e.target.classList.contains('cek-pengguna')) perbaruiBar();
+        });
 
         // ---------- Buka lagi modal tambah kalau validasi gagal ----------
         @if ($errors->any() && old('_form') === 'tambah')
@@ -834,6 +838,78 @@
             tambahDimuat = true;
             alamatTambah.isi(OLD_TAMBAH || {});
         });
+
+        // ---------- Cari & filter langsung (tanpa tombol Cari) ----------
+        var formFilter = $('form-filter-pengguna');
+        var inCari = $('cari-pengguna');
+        var selStatus = $('filter-status-pengguna');
+        var btnReset = $('btn-reset-pengguna');
+        var tbodyPengguna = $('tbody-pengguna');
+        var paginasi = $('paginasi-pengguna');
+        var timerCari = null, ajaxCari = null;
+
+        function bangunUrl() {
+            var params = new URLSearchParams(new FormData(formFilter));
+            ['search', 'status'].forEach(function (k) { if (!params.get(k)) params.delete(k); });
+            return formFilter.action + '?' + params.toString();
+        }
+
+        function tandaiReset() {
+            btnReset.classList.toggle('hidden', !(inCari.value.trim() || selStatus.value));
+        }
+
+        async function muat(url) {
+            if (ajaxCari) ajaxCari.abort(); // buang permintaan lama agar hasil tidak tertukar
+            ajaxCari = new AbortController();
+            tbodyPengguna.style.opacity = '.5';
+            try {
+                var res = await fetch(url, {
+                    signal: ajaxCari.signal,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' }
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+
+                var doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+                var tbBaru = doc.getElementById('tbody-pengguna');
+                var pgBaru = doc.getElementById('paginasi-pengguna');
+                if (!tbBaru || !pgBaru) throw new Error('Respons tidak lengkap');
+
+                tbodyPengguna.innerHTML = tbBaru.innerHTML;
+                paginasi.innerHTML = pgBaru.innerHTML;
+                history.replaceState(null, '', url); // reload halaman tetap membawa filter
+                perbaruiBar();                        // pilihan lama hilang bersama barisnya
+                tbodyPengguna.style.opacity = '';
+            } catch (e) {
+                if (e.name === 'AbortError') return;
+                console.error(e);
+                window.location.href = url; // cadangan: muat halaman biasa
+            }
+        }
+
+        function terapkanFilter(tunda) {
+            tandaiReset();
+            clearTimeout(timerCari);
+            timerCari = setTimeout(function () { muat(bangunUrl()); }, tunda);
+        }
+
+        inCari.addEventListener('input', function () { terapkanFilter(300); });
+        selStatus.addEventListener('change', function () { terapkanFilter(0); });
+        formFilter.addEventListener('submit', function (e) { e.preventDefault(); terapkanFilter(0); });
+        btnReset.addEventListener('click', function () {
+            inCari.value = '';
+            selStatus.value = '';
+            terapkanFilter(0);
+        });
+
+        // Pagination ikut tanpa reload dan tetap membawa keyword/filter
+        paginasi.addEventListener('click', function (e) {
+            var a = e.target.closest('a[href]');
+            if (!a) return;
+            e.preventDefault();
+            muat(a.href);
+        });
+
+        tandaiReset();
     })();
 </script>
 @endsection
