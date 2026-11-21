@@ -69,6 +69,12 @@
                         <p class="text-xs text-muted">Kelola pesananmu di {{ config('alnay.brand.nama') }}.</p>
                     </div>
 
+                    @if (session('error'))
+                        <div class="mb-4 p-2.5 rounded-md bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
                     @if ($errors->any())
                         <div class="mb-4 p-2.5 rounded-md bg-red-50 border border-red-200 text-[11px] text-red-700">
                             @foreach ($errors->all() as $error)
