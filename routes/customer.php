@@ -2,15 +2,17 @@
 
 use App\Http\Controllers\Customer\AkunController;
 use App\Http\Controllers\Customer\AlamatController;
-use App\Http\Controllers\Customer\ProfilController;
-use App\Http\Controllers\Customer\RefundController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\NotifikasiController;
+use App\Http\Controllers\Customer\ProfilController;
+use App\Http\Controllers\Customer\RatingController;
+use App\Http\Controllers\Customer\RefundController;
 use App\Http\Controllers\FittingController;
+use App\Http\Controllers\OngkirController;
+use App\Http\Controllers\QrisController;
 use App\Http\Controllers\SewaController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\OngkirController;
 
 // Grup Khusus Halaman Akun (Prefix: /akun)
 Route::middleware('auth:web')->prefix('akun')->name('akun.')->group(function () {
@@ -72,32 +74,31 @@ Route::middleware('auth:web')->group(function () {
     Route::get('/fitting/{id}/edit', [FittingController::class, 'edit'])->name('fitting.edit');
     Route::put('/fitting/{id}', [FittingController::class, 'update'])->name('fitting.update');
 
-    // --- MIDTRANS CHARGE (Untuk Pembayaran) ---
-    Route::post('/sewa/{id}/charge', [SewaController::class, 'charge'])->name('sewa.charge')->middleware('throttle:10,1');
-        // --- MIDTRANS CHARGE (QRIS untuk Beli) ---
-    Route::post('/qris/{id}/charge', [SewaController::class, 'charge'])->name('qris.charge')->middleware('throttle:10,1');
-        // Route untuk cek status pembayaran QRIS
-    Route::get('/qris/{id}/status', [SewaController::class, 'cekStatus'])->name('qris.status')->middleware('throttle:60,1');
+    // --- MIDTRANS CHARGE (Untuk Pembayaran Sewa) ---
+    Route::post('/sewa/{id}/charge', [QrisController::class, 'charge'])->name('sewa.charge')->middleware('throttle:10,1');
+    // --- MIDTRANS CHARGE (QRIS untuk Beli) ---
+    Route::post('/qris/{id}/charge', [QrisController::class, 'charge'])->name('qris.charge')->middleware('throttle:10,1');
+    // Route untuk cek status pembayaran QRIS
+    Route::get('/qris/{id}/status', [QrisController::class, 'status'])->name('qris.status')->middleware('throttle:60,1');
 
-        // --- KERANJANG SEWA ---
+    // --- KERANJANG SEWA ---
     Route::get('/sewa/keranjang', [SewaController::class, 'keranjangIndex'])->name('sewa.keranjang.index');
     Route::post('/sewa/keranjang/tambah', [SewaController::class, 'tambahKeKeranjang'])->name('sewa.keranjang.tambah');
     Route::delete('/sewa/keranjang/hapus/{id}', [SewaController::class, 'hapusKeranjang'])->name('sewa.keranjang.hapus');
     Route::post('/sewa/keranjang/hapus-pilihan', [SewaController::class, 'hapusPilihanKeranjang'])->name('sewa.keranjang.hapusPilihan');
 
-        // --- RATING ---
-    Route::get('/rating/{detail_id}/create', [App\Http\Controllers\Customer\RatingController::class, 'create'])->name('rating.create');
-    Route::post('/rating/{detail_id}', [App\Http\Controllers\Customer\RatingController::class, 'store'])->name('rating.store');
+    // --- RATING ---
+    Route::get('/rating/{detail_id}/create', [RatingController::class, 'create'])->name('rating.create');
+    Route::post('/rating/{detail_id}', [RatingController::class, 'store'])->name('rating.store');
 
-        // --- KONFIRMASI PENERIMAAN PENGIRIMAN ---
-    Route::patch('/akun/pengiriman/{id}/terima', [App\Http\Controllers\Customer\AkunController::class, 'terimaPengiriman'])->name('akun.pengiriman.terima');
+    // --- KONFIRMASI PENERIMAAN PENGIRIMAN ---
+    Route::patch('/akun/pengiriman/{id}/terima', [AkunController::class, 'terimaPengiriman'])->name('akun.pengiriman.terima');
 
     Route::get('/ongkir/tujuan', [OngkirController::class, 'tujuan'])->name('ongkir.tujuan');
     Route::post('/ongkir/hitung', [OngkirController::class, 'hitung'])->name('ongkir.hitung');
     Route::get('/ongkir/provinsi', [OngkirController::class, 'provinsi'])->name('ongkir.provinsi');
     Route::get('/ongkir/kota/{provinsiId}', [OngkirController::class, 'kota'])->name('ongkir.kota');
     Route::get('/ongkir/kecamatan/{kotaId}', [OngkirController::class, 'kecamatan'])->name('ongkir.kecamatan');
-
 
 });
 
