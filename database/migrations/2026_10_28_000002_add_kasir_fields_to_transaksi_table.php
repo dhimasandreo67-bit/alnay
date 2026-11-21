@@ -33,9 +33,13 @@ return new class extends Migration
             });
         }
 
-        // Pakai raw SQL (bukan ->change()) supaya tidak butuh paket doctrine/dbal.
-        // Kalau user_id sudah nullable sebelumnya, statement ini tetap aman dijalankan ulang.
-        DB::statement('ALTER TABLE `transaksi` MODIFY `user_id` BIGINT UNSIGNED NULL');
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE `transaksi` MODIFY `user_id` BIGINT UNSIGNED NULL');
+        } else {
+            Schema::table('transaksi', function (Blueprint $table) {
+                $table->unsignedBigInteger('user_id')->nullable()->change();
+            });
+        }
     }
 
     public function down(): void
