@@ -334,6 +334,17 @@
                         </div>
                     @endif
 
+                    @if (session('error'))
+                        <div class="anim-shake mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-800">
+                            <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="9" />
+                                <path d="M12 8v4" />
+                                <path d="M12 16h.01" />
+                            </svg>
+                            <span>{{ session('error') }}</span>
+                        </div>
+                    @endif
+
                     <form id="loginForm" method="POST" action="{{ route('admin.login.store') }}" class="mt-7 space-y-5">
                         @csrf
 
