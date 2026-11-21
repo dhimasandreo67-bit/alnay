@@ -38,6 +38,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Session Inactivity Timeout (dalam menit)
+    |--------------------------------------------------------------------------
+    |
+    | Menentukan batas waktu idle / tanpa aktivitas sebelum pengguna otomatis
+    | logout dengan keterangan sesi habis.
+    |
+    */
+    'inactivity_timeout' => [
+        'admin' => (int) env('SESSION_INACTIVITY_ADMIN', 30),
+        'user' => (int) env('SESSION_INACTIVITY_USER', 60),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Session Encryption
     |--------------------------------------------------------------------------
     |
