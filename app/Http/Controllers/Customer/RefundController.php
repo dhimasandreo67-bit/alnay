@@ -1,198 +1,192 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
-use App\Models\Produk;
 use App\Models\Refund;
+use App\Models\RiwayatStatus;
+use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class RefundController extends Controller
 {
-    /** Kelompok status untuk tab filter di halaman daftar. */
-    private const KELOMPOK = [
-        'diajukan' => ['diajukan'],
-        'diproses' => ['disetujui', 'barang_dikirim', 'barang_diterima'],
-        'selesai'  => ['selesai'],
-        'ditutup'  => ['ditolak', 'dibatalkan'],
-    ];
-
-    public function index(Request $request)
+    /** Halaman "Refund Saya": pengajuan berjalan + pesanan yang masih bisa direfund. */
+    public function index()
     {
-        $query = Refund::with(['transaksi.user', 'transaksi.detail.produk']);
+        $refundList = Refund::with('transaksi.detail.produk')
+            ->where('diajukan_oleh', auth()->id())
+            ->latest()
+            ->get();
 
-        $filter = $request->get('status', 'semua');
-        if (isset(self::KELOMPOK[$filter])) {
-            $query->whereIn('status', self::KELOMPOK[$filter]);
-        } else {
-            $filter = 'semua';
+        $bisaDirefund = Transaksi::with(['detail.produk', 'pengiriman', 'refund'])
+            ->where('user_id', auth()->id())
+            ->where('jenis', 'beli')
+            ->latest()
+            ->get()
+            ->filter(fn (Transaksi $t) => $t->cekBisaRefund()[0])
+            ->values();
+
+        return view('customer.akun.refund', compact('refundList', 'bisaDirefund'));
+    }
+
+    public function create($id)
+    {
+        $transaksi = $this->transaksiSaya($id)->load(['detail.produk', 'pengiriman', 'refund']);
+
+        [$boleh, $alasan] = $transaksi->cekBisaRefund();
+        if (! $boleh) {
+            return redirect()->route('akun.pesanan.detail', $transaksi->id)->with('error', $alasan);
         }
 
-        if ($request->filled('search')) {
-            $cari = $request->search;
-            $query->whereHas('transaksi', function ($q) use ($cari) {
-                $q->where('kode_transaksi', 'like', "%{$cari}%")
-                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$cari}%"));
+        return view('customer.akun.refund-form', compact('transaksi'));
+    }
+
+    public function store(Request $request, $id)
+    {
+        $transaksi = $this->transaksiSaya($id);
+
+        $data = $request->validate([
+            'alasan'        => ['required', 'string', 'min:10', 'max:500'],
+            'bukti_foto'    => ['required', 'array', 'min:1', 'max:3'],
+            'bukti_foto.*'  => ['image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'bank_tujuan'   => ['required', 'string', 'max:50'],
+            'no_rekening'   => ['required', 'string', 'regex:/^[0-9\- ]{5,30}$/'],
+            'atas_nama'     => ['required', 'string', 'max:100'],
+        ], [
+            'alasan.min'            => 'Jelaskan alasan refund minimal 10 karakter.',
+            'bukti_foto.required'   => 'Unggah minimal 1 foto bukti (mis. kondisi barang).',
+            'bukti_foto.max'        => 'Maksimal 3 foto.',
+            'bukti_foto.*.image'    => 'Bukti harus berupa gambar.',
+            'bukti_foto.*.max'      => 'Ukuran tiap foto maksimal 3 MB.',
+            'no_rekening.regex'     => 'Nomor rekening/e-wallet hanya boleh berisi angka.',
+        ]);
+
+        $path = [];
+
+        try {
+            $refund = DB::transaction(function () use ($request, $data, $transaksi, &$path) {
+                // Kunci transaksi: klik ganda tidak boleh membuat dua pengajuan.
+                $transaksi = Transaksi::with(['detail', 'pengiriman', 'refund'])->lockForUpdate()->findOrFail($transaksi->id);
+
+                [$boleh, $alasan] = $transaksi->cekBisaRefund();
+                if (! $boleh) {
+                    abort(422, $alasan);
+                }
+
+                foreach ($request->file('bukti_foto') as $foto) {
+                    $path[] = $foto->store('refund/bukti', 'public');
+                }
+
+                $refund = (new Refund())->forceFill([
+                    'transaksi_id'  => $transaksi->id,
+                    'diajukan_oleh' => auth()->id(),
+                    'alasan'        => $data['alasan'],
+                    'bukti_foto'    => $path,
+                    'bank_tujuan'   => $data['bank_tujuan'],
+                    'no_rekening'   => preg_replace('/[\s-]+/', '', $data['no_rekening']),
+                    'atas_nama'     => $data['atas_nama'],
+                    'jumlah'        => $transaksi->nilaiBarang(), // usulan awal; admin bisa menyesuaikan saat menyetujui
+                    'status'        => 'diajukan',
+                ]);
+                $refund->save();
+
+                RiwayatStatus::create([
+                    'tabel_terkait' => 'refund',
+                    'record_id'     => $refund->id,
+                    'status_lama'   => null,
+                    'status_baru'   => 'diajukan',
+                    'diubah_oleh'   => auth()->id(),
+                    'waktu_ubah'    => now(),
+                ]);
+
+                return $refund;
             });
+        } catch (\Throwable $e) {
+            Storage::disk('public')->delete($path); // jangan tinggalkan foto yatim
+
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+                return redirect()->route('akun.pesanan.detail', $transaksi->id)->with('error', $e->getMessage());
+            }
+
+            throw $e;
         }
 
-        $refundList = $query->latest()->paginate(10)->withQueryString();
-
-        $hitung = ['semua' => Refund::count()];
-        foreach (self::KELOMPOK as $kunci => $daftar) {
-            $hitung[$kunci] = Refund::whereIn('status', $daftar)->count();
-        }
-
-        return view('admin.refund.index', compact('refundList', 'filter', 'hitung'));
+        return redirect()->route('akun.refund.show', $refund->id)
+            ->with('success', 'Pengajuan refund terkirim. Tim kami akan meninjau maksimal 1x24 jam.');
     }
 
     public function show($id)
     {
-        $refund = Refund::with([
-            'transaksi.user', 'transaksi.detail.produk', 'transaksi.pengiriman', 'transaksi.pembayaran',
-            'pengaju', 'pemroses',
-        ])->findOrFail($id);
+        $refund = Refund::with(['transaksi.detail.produk', 'transaksi.pengiriman'])
+            ->where('diajukan_oleh', auth()->id())
+            ->findOrFail($id);
 
-        $riwayat = $refund->riwayat()->with('pengubah')->orderBy('waktu_ubah', 'asc')->get();
+        $riwayat = $refund->riwayat()->orderBy('waktu_ubah', 'asc')->get();
 
-        return view('admin.refund.show', compact('refund', 'riwayat'));
+        return view('customer.akun.refund-detail', compact('refund', 'riwayat'));
     }
 
-    /** diajukan -> disetujui. Admin menentukan nominal dan cara barang kembali. */
-    public function setujui(Request $request, $id)
+    public function kirim(Request $request, $id)
     {
-        $refund = Refund::with('transaksi.detail')->findOrFail($id);
-        $maks = $refund->transaksi->total;
+        $refund = $this->refundSaya($id);
 
-        $data = $request->validate([
-            'jumlah'              => ['required', 'numeric', 'min:1', 'max:' . $maks],
-            'metode_pengembalian' => ['required', 'in:dijemput,kirim_sendiri'],
-            'kurir_penjemput'     => ['required_if:metode_pengembalian,dijemput', 'nullable', 'string', 'max:50'],
-            'no_resi_penjemputan' => ['required_if:metode_pengembalian,dijemput', 'nullable', 'string', 'max:100'],
-            'biaya_jemput'        => ['nullable', 'numeric', 'min:0', 'max:99999999'],
-            'catatan_negosiasi'   => ['nullable', 'string', 'max:1000'],
-        ], [
-            'metode_pengembalian.required'  => 'Pilih cara barang kembali ke toko.',
-            'kurir_penjemput.required_if' => 'Isi nama kurir yang menjemput (mis. J&T, JNE).',
-            'no_resi_penjemputan.required_if' => 'No. resi penjemputan wajib diisi. Pesan kurir jemput dulu, lalu isi resinya.',
-            'jumlah.max' => 'Nominal refund tidak boleh melebihi total transaksi (Rp ' . number_format($maks, 0, ',', '.') . ').',
-        ]);
+        $perluResi = $refund->metode_pengembalian === 'kirim_sendiri';
+        $atribut = ['tanggal_dikirim' => now()];
+        $path = null;
 
-        $dijemput = $data['metode_pengembalian'] === 'dijemput';
+        if ($perluResi) {
+            $data = $request->validate([
+                'kurir_retur'      => ['required', 'string', 'max:50'],
+                'no_resi_retur'    => ['required', 'string', 'max:100'],
+                'biaya_ongkir_retur' => ['required', 'numeric', 'min:0', 'max:99999999'],
+                'bukti_pengiriman' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            ], [
+                'biaya_ongkir_retur.required' => 'Isi biaya ongkir yang Anda bayar (sesuai struk).',
+                'bukti_pengiriman.required'   => 'Unggah foto struk/resi agar toko bisa mengganti ongkir.',
+                'kurir_retur.required'   => 'Isi nama kurir (mis. JNE, J&T, SiCepat).',
+                'no_resi_retur.required' => 'Isi nomor resi pengiriman.',
+            ]);
 
-        $ok = $refund->pindahKe('disetujui', [
-            'jumlah'              => $data['jumlah'],
-            'metode_pengembalian' => $data['metode_pengembalian'],
-            'no_resi_penjemputan' => $dijemput ? ($data['no_resi_penjemputan'] ?? null) : null,
-            'kurir_retur'         => $dijemput ? ($data['kurir_penjemput'] ?? null) : null,
-            'biaya_jemput'        => $dijemput ? ($data['biaya_jemput'] ?? null) : null,
-            'batas_kirim'         => now()->addDays(Refund::BATAS_KIRIM_HARI),
-            'catatan_negosiasi'   => $data['catatan_negosiasi'] ?? null,
-            'diproses_oleh'       => auth('admin')->id(),
-        ], auth('admin')->id());
+            $atribut['kurir_retur'] = $data['kurir_retur'];
+            $atribut['no_resi_retur'] = trim($data['no_resi_retur']);
+            $atribut['biaya_ongkir_retur'] = $data['biaya_ongkir_retur'];
 
-        return $ok
-            ? back()->with('success', 'Refund disetujui. Pelanggan diminta mengirim barang kembali.')
-            : back()->with('error', 'Pengajuan ini sudah diproses sebelumnya.');
-    }
+            $path = $request->file('bukti_pengiriman')->store('refund/pengiriman', 'public');
+            $atribut['bukti_pengiriman'] = $path;
+        }
 
-    /** diajukan -> ditolak (alasan wajib, ditampilkan ke pelanggan). */
-    public function tolak(Request $request, $id)
-    {
-        $data = $request->validate([
-            'alasan_penolakan' => ['required', 'string', 'min:5', 'max:500'],
-        ], ['alasan_penolakan.required' => 'Isi alasan penolakan agar pelanggan tahu penyebabnya.']);
-
-        $refund = Refund::findOrFail($id);
-
-        $ok = $refund->pindahKe('ditolak', [
-            'alasan_penolakan' => $data['alasan_penolakan'],
-            'diproses_oleh'    => auth('admin')->id(),
-        ], auth('admin')->id());
-
-        return $ok
-            ? back()->with('success', 'Pengajuan refund ditolak.')
-            : back()->with('error', 'Pengajuan ini sudah diproses sebelumnya.');
-    }
-
-    /** disetujui / barang_dikirim -> barang_diterima. Opsional kembalikan stok. */
-    public function terimaBarang(Request $request, $id)
-    {
-        $request->validate([
-            'restock_detail'   => ['nullable', 'array'],
-            'restock_detail.*' => ['integer'],
-            'ganti_ongkir'     => ['nullable', 'numeric', 'min:0', 'max:99999999'],
-        ]);
-
-        $refund = Refund::with('transaksi.detail')->findOrFail($id);
-
-        // Stok hanya dikembalikan untuk produk yang dicentang admin (penting bila pesanan berisi banyak produk).
-        $idRestock = collect($request->input('restock_detail', []))->map(fn ($v) => (int) $v)->all();
-        $restock = ! empty($idRestock);
-        $stokKembali = false;
-
-        $ok = DB::transaction(function () use ($request, $refund, $restock, $idRestock, &$stokKembali) {
-            $berhasil = $refund->pindahKe('barang_diterima', [
-                'tanggal_barang_diterima' => now(),
-                'ganti_ongkir'            => $refund->metode_pengembalian === 'kirim_sendiri'
-                    ? (float) $request->input('ganti_ongkir', 0) : null,
-                'diproses_oleh'           => auth('admin')->id(),
-            ], auth('admin')->id());
-
-            if (! $berhasil) {
-                return false;
+        if (! $refund->pindahKe('barang_dikirim', $atribut, auth()->id())) {
+            if ($path) {
+                Storage::disk('public')->delete($path);
             }
 
-            // Stok hanya dikembalikan sekali, dan hanya jika transaksi ini memang sudah memotong stok.
-            if ($restock && ! $refund->stok_dikembalikan && $refund->transaksi->stokSudahDipotong()) {
-                foreach ($refund->transaksi->detail->whereIn('id', $idRestock) as $d) {
-                    $produk = Produk::lockForUpdate()->find($d->produk_id);
-                    $produk?->tambahStok('jual', $d->ukuran, $d->warna, (int) $d->jumlah);
-                }
-
-                $refund->forceFill(['stok_dikembalikan' => true])->save();
-                $stokKembali = true;
-            }
-
-            return true;
-        });
-
-        if (! $ok) {
-            return back()->with('error', 'Status refund tidak bisa diubah ke "barang diterima" saat ini.');
+            return back()->with('error', 'Status refund tidak bisa diubah ke "barang dikirim" saat ini.');
         }
 
-        return back()->with('success', 'Barang tercatat diterima.' . ($stokKembali ? ' Stok produk sudah dikembalikan.' : ''));
+        return back()->with('success', 'Terima kasih. Kami akan memberi tahu setelah barang diterima dan dicek.');
     }
 
-    /** barang_diterima -> selesai. Wajib unggah bukti transfer. */
-    public function selesai(Request $request, $id)
+    /** Pelanggan membatalkan pengajuan selama belum ditinjau. */
+    public function batal($id)
     {
-        $request->validate([
-            'bukti_transfer' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:3072'],
-        ], ['bukti_transfer.required' => 'Unggah bukti transfer sebelum menyelesaikan refund.']);
+        $refund = $this->refundSaya($id);
 
-        $refund = Refund::findOrFail($id);
-
-        if (! $refund->bolehKe('selesai')) {
-            return back()->with('error', 'Refund baru bisa diselesaikan setelah barang diterima.');
+        if (! $refund->pindahKe('dibatalkan', [], auth()->id())) {
+            return back()->with('error', 'Pengajuan ini sudah tidak bisa dibatalkan (barang sudah dikirim atau pengajuan sudah selesai).');
         }
 
-        $path = $request->file('bukti_transfer')->store('refund/transfer', 'public');
+        return back()->with('success', 'Pengajuan refund dibatalkan.');
+    }
 
-        $ok = $refund->pindahKe('selesai', [
-            'bukti_transfer'  => $path,
-            'tanggal_selesai' => now(),
-            'diproses_oleh'   => auth('admin')->id(),
-        ], auth('admin')->id());
+    private function transaksiSaya($id): Transaksi
+    {
+        return Transaksi::where('user_id', auth()->id())->findOrFail($id);
+    }
 
-        if (! $ok) {
-            Storage::disk('public')->delete($path);
-
-            return back()->with('error', 'Refund ini sudah diselesaikan sebelumnya.');
-        }
-
-        return back()->with('success', 'Refund selesai. Bukti transfer tersimpan dan terlihat oleh pelanggan.');
+    private function refundSaya($id): Refund
+    {
+        return Refund::where('diajukan_oleh', auth()->id())->findOrFail($id);
     }
 }
