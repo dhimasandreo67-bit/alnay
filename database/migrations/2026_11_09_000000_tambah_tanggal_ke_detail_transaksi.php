@@ -16,12 +16,14 @@ class TambahTanggalKeDetailTransaksi extends Migration
 
         // Data lama: satu transaksi = satu rentang tanggal (sewa.transaksi_id unik),
         // jadi semua itemnya ikut rentang itu.
-        DB::statement(
-            'UPDATE detail_transaksi d
-             JOIN sewa s ON s.transaksi_id = d.transaksi_id
-             SET d.tanggal_pinjam = s.tanggal_pinjam,
-                 d.tanggal_kembali_rencana = s.tanggal_kembali_rencana'
-        );
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement(
+                'UPDATE detail_transaksi d
+                 JOIN sewa s ON s.transaksi_id = d.transaksi_id
+                 SET d.tanggal_pinjam = s.tanggal_pinjam,
+                     d.tanggal_kembali_rencana = s.tanggal_kembali_rencana'
+            );
+        }
     }
 
     public function down(): void
