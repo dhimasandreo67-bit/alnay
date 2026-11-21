@@ -9,6 +9,7 @@ use App\Models\Refund;
 use App\Models\ReservasiFitting;
 use App\Models\Sewa;
 use App\Models\Transaksi;
+use App\Support\ProdukStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
@@ -26,18 +27,18 @@ class DashboardController extends Controller
         $today = Carbon::today();
 
         $stats = [
-            'transaksi_hari_ini'   => Transaksi::whereDate('created_at', $today)->count(),
-            'transaksi_trend'      => $this->trendLabel($today),
-            'sewa_aktif'           => Sewa::where('status', 'aktif')->count(),
-            'sewa_jatuh_tempo'     => Sewa::where('status', 'aktif')
+            'transaksi_hari_ini' => Transaksi::whereDate('created_at', $today)->count(),
+            'transaksi_trend' => $this->trendLabel($today),
+            'sewa_aktif' => Sewa::where('status', 'aktif')->count(),
+            'sewa_jatuh_tempo' => Sewa::where('status', 'aktif')
                 ->whereDate('tanggal_kembali_rencana', $today->copy()->addDay())
                 ->count(),
             // Aktif tapi lewat jadwal kembali: sama dengan tab "Terlambat" di halaman Sewa
-            'sewa_terlambat'       => Sewa::where('status', 'aktif')
+            'sewa_terlambat' => Sewa::where('status', 'aktif')
                 ->whereDate('tanggal_kembali_rencana', '<', $today)
                 ->count(),
-            'refund_pending'       => Refund::where('status', 'pending')->count(),
-            'refund_saldo'         => Refund::where('status', 'pending')->sum('jumlah'),
+            'refund_pending' => Refund::where('status', 'diajukan')->count(),
+            'refund_saldo' => Refund::where('status', 'diajukan')->sum('jumlah'),
             // Hanya transaksi yang sudah dibayar (lunas / DP dibayar); pending tidak dihitung
             'pendapatan_bulan_ini' => Transaksi::whereIn('status_pembayaran', self::STATUS_PENDAPATAN)
                 ->whereMonth('created_at', $today->month)
@@ -68,37 +69,37 @@ class DashboardController extends Controller
             ->get();
 
         // ======================= PERLU TINDAKAN =======================
-        $jaminanPending  = JaminanSewa::where('status_verifikasi', 'pending')->count();
-        $refundPending   = Refund::where('status', 'pending')->count();
+        $jaminanPending = JaminanSewa::where('status_verifikasi', 'pending')->count();
+        $refundPending = Refund::where('status', 'pending')->count();
         $returPengecekan = Sewa::where('status', 'selesai')->doesntHave('pengecekan')->count();
-        $fittingPending  = ReservasiFitting::where('status', 'pending')->count();
+        $fittingPending = ReservasiFitting::where('status', 'pending')->count();
 
         $actionQueue = [
             [
-                'key'   => 'jaminan',
+                'key' => 'jaminan',
                 'title' => 'Verifikasi jaminan sewa',
-                'desc'  => $jaminanPending . ' jaminan KTP / deposit pending',
+                'desc' => $jaminanPending.' jaminan KTP / deposit pending',
                 'count' => $jaminanPending,
                 'route' => Route::has('admin.jaminan.index') ? route('admin.jaminan.index') : '#',
             ],
             [
-                'key'   => 'refund',
+                'key' => 'refund',
                 'title' => 'Refund diproses',
-                'desc'  => $refundPending . ' pengajuan pembatalan',
+                'desc' => $refundPending.' pengajuan pembatalan',
                 'count' => $refundPending,
                 'route' => Route::has('admin.refund.index') ? route('admin.refund.index') : '#',
             ],
             [
-                'key'   => 'retur',
+                'key' => 'retur',
                 'title' => 'Return pengecekan',
-                'desc'  => $returPengecekan . ' gaun baru tiba di toko, perlu dicek',
+                'desc' => $returPengecekan.' gaun baru tiba di toko, perlu dicek',
                 'count' => $returPengecekan,
                 'route' => Route::has('admin.sewa.index') ? route('admin.sewa.index', ['status' => 'dikembalikan']) : '#',
             ],
             [
-                'key'   => 'fitting',
+                'key' => 'fitting',
                 'title' => 'Reservasi fitting baru',
-                'desc'  => $fittingPending . ' jadwal butuh konfirmasi',
+                'desc' => $fittingPending.' jadwal butuh konfirmasi',
                 'count' => $fittingPending,
                 'route' => Route::has('admin.fitting.index') ? route('admin.fitting.index') : '#',
             ],
@@ -117,10 +118,10 @@ class DashboardController extends Controller
             if (in_array($p->status, ['rusak', 'dicuci'], true)) {
                 return [
                     'prioritas' => $p->status === 'rusak' ? 0 : 1,
-                    'nama'      => $p->nama,
-                    'sku'       => $p->sku,
-                    'status'    => $p->status,
-                    'label'     => \App\Support\ProdukStatus::label($p->status, (bool) $p->dapat_dijual),
+                    'nama' => $p->nama,
+                    'sku' => $p->sku,
+                    'status' => $p->status,
+                    'label' => ProdukStatus::label($p->status, (bool) $p->dapat_dijual),
                 ];
             }
 
@@ -130,14 +131,14 @@ class DashboardController extends Controller
                 return ['prioritas' => 2, 'nama' => $p->nama, 'sku' => $p->sku, 'status' => 'habis', 'label' => 'Stok Habis'];
             }
             if ($sisa <= self::BATAS_STOK_MENIPIS) {
-                return ['prioritas' => 3, 'nama' => $p->nama, 'sku' => $p->sku, 'status' => 'menipis', 'label' => 'Hampir Habis (' . $sisa . ' unit)'];
+                return ['prioritas' => 3, 'nama' => $p->nama, 'sku' => $p->sku, 'status' => 'menipis', 'label' => 'Hampir Habis ('.$sisa.' unit)'];
             }
 
             return null;
         })->filter()->sortBy('prioritas')->values();
 
         $stockAlertTotal = $semuaAlert->count();
-        $stockAlerts     = $semuaAlert->take(5);
+        $stockAlerts = $semuaAlert->take(5);
 
         $notifCount = $jaminanPending + $refundPending;
 
@@ -158,6 +159,6 @@ class DashboardController extends Controller
 
         $diff = round((($todayCount - $yesterdayCount) / $yesterdayCount) * 100);
 
-        return ($diff >= 0 ? '+' : '') . $diff . '%';
+        return ($diff >= 0 ? '+' : '').$diff.'%';
     }
 }
