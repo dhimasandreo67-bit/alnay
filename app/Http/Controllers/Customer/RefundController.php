@@ -9,6 +9,7 @@ use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RefundController extends Controller
 {
@@ -48,19 +49,19 @@ class RefundController extends Controller
         $transaksi = $this->transaksiSaya($id);
 
         $data = $request->validate([
-            'alasan'        => ['required', 'string', 'min:10', 'max:500'],
-            'bukti_foto'    => ['required', 'array', 'min:1', 'max:3'],
-            'bukti_foto.*'  => ['image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
-            'bank_tujuan'   => ['required', 'string', 'max:50'],
-            'no_rekening'   => ['required', 'string', 'regex:/^[0-9\- ]{5,30}$/'],
-            'atas_nama'     => ['required', 'string', 'max:100'],
+            'alasan' => ['required', 'string', 'min:10', 'max:500'],
+            'bukti_foto' => ['required', 'array', 'min:1', 'max:3'],
+            'bukti_foto.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
+            'bank_tujuan' => ['required', 'string', 'max:50'],
+            'no_rekening' => ['required', 'string', 'regex:/^[0-9\- ]{5,30}$/'],
+            'atas_nama' => ['required', 'string', 'max:100'],
         ], [
-            'alasan.min'            => 'Jelaskan alasan refund minimal 10 karakter.',
-            'bukti_foto.required'   => 'Unggah minimal 1 foto bukti (mis. kondisi barang).',
-            'bukti_foto.max'        => 'Maksimal 3 foto.',
-            'bukti_foto.*.image'    => 'Bukti harus berupa gambar.',
-            'bukti_foto.*.max'      => 'Ukuran tiap foto maksimal 3 MB.',
-            'no_rekening.regex'     => 'Nomor rekening/e-wallet hanya boleh berisi angka.',
+            'alasan.min' => 'Jelaskan alasan refund minimal 10 karakter.',
+            'bukti_foto.required' => 'Unggah minimal 1 foto bukti (mis. kondisi barang).',
+            'bukti_foto.max' => 'Maksimal 3 foto.',
+            'bukti_foto.*.image' => 'Bukti harus berupa gambar.',
+            'bukti_foto.*.max' => 'Ukuran tiap foto maksimal 3 MB.',
+            'no_rekening.regex' => 'Nomor rekening/e-wallet hanya boleh berisi angka.',
         ]);
 
         $path = [];
@@ -79,26 +80,26 @@ class RefundController extends Controller
                     $path[] = $foto->store('refund/bukti', 'public');
                 }
 
-                $refund = (new Refund())->forceFill([
-                    'transaksi_id'  => $transaksi->id,
+                $refund = (new Refund)->forceFill([
+                    'transaksi_id' => $transaksi->id,
                     'diajukan_oleh' => auth()->id(),
-                    'alasan'        => $data['alasan'],
-                    'bukti_foto'    => $path,
-                    'bank_tujuan'   => $data['bank_tujuan'],
-                    'no_rekening'   => preg_replace('/[\s-]+/', '', $data['no_rekening']),
-                    'atas_nama'     => $data['atas_nama'],
-                    'jumlah'        => $transaksi->nilaiBarang(), // usulan awal; admin bisa menyesuaikan saat menyetujui
-                    'status'        => 'diajukan',
+                    'alasan' => $data['alasan'],
+                    'bukti_foto' => $path,
+                    'bank_tujuan' => $data['bank_tujuan'],
+                    'no_rekening' => preg_replace('/[\s-]+/', '', $data['no_rekening']),
+                    'atas_nama' => $data['atas_nama'],
+                    'jumlah' => $transaksi->nilaiBarang(), // usulan awal; admin bisa menyesuaikan saat menyetujui
+                    'status' => 'diajukan',
                 ]);
                 $refund->save();
 
                 RiwayatStatus::create([
                     'tabel_terkait' => 'refund',
-                    'record_id'     => $refund->id,
-                    'status_lama'   => null,
-                    'status_baru'   => 'diajukan',
-                    'diubah_oleh'   => auth()->id(),
-                    'waktu_ubah'    => now(),
+                    'record_id' => $refund->id,
+                    'status_lama' => null,
+                    'status_baru' => 'diajukan',
+                    'diubah_oleh' => auth()->id(),
+                    'waktu_ubah' => now(),
                 ]);
 
                 return $refund;
@@ -106,7 +107,7 @@ class RefundController extends Controller
         } catch (\Throwable $e) {
             Storage::disk('public')->delete($path); // jangan tinggalkan foto yatim
 
-            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+            if ($e instanceof HttpException) {
                 return redirect()->route('akun.pesanan.detail', $transaksi->id)->with('error', $e->getMessage());
             }
 
@@ -138,14 +139,14 @@ class RefundController extends Controller
 
         if ($perluResi) {
             $data = $request->validate([
-                'kurir_retur'      => ['required', 'string', 'max:50'],
-                'no_resi_retur'    => ['required', 'string', 'max:100'],
+                'kurir_retur' => ['required', 'string', 'max:50'],
+                'no_resi_retur' => ['required', 'string', 'max:100'],
                 'biaya_ongkir_retur' => ['required', 'numeric', 'min:0', 'max:99999999'],
                 'bukti_pengiriman' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:3072'],
             ], [
                 'biaya_ongkir_retur.required' => 'Isi biaya ongkir yang Anda bayar (sesuai struk).',
-                'bukti_pengiriman.required'   => 'Unggah foto struk/resi agar toko bisa mengganti ongkir.',
-                'kurir_retur.required'   => 'Isi nama kurir (mis. JNE, J&T, SiCepat).',
+                'bukti_pengiriman.required' => 'Unggah foto struk/resi agar toko bisa mengganti ongkir.',
+                'kurir_retur.required' => 'Isi nama kurir (mis. JNE, J&T, SiCepat).',
                 'no_resi_retur.required' => 'Isi nomor resi pengiriman.',
             ]);
 
