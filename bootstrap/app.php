@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CheckSessionInactivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void { // <-- Rata kiri-kanan
+        $middleware->appendToGroup('web', CheckSessionInactivity::class);
+
+        $middleware->appendToGroup('web', \App\Http\Middleware\CheckSessionInactivity::class);
+
         $middleware->validateCsrfTokens(except: [
             'midtrans/webhook',
         ]);
@@ -21,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('admin/*')) {
                 return route('admin.login');
             }
+
             return route('masuk');
         });
     })
