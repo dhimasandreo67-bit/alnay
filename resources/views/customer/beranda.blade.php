@@ -1106,9 +1106,9 @@
     {{-- === JAVASCRIPT (logika tetap) === --}}
     <script>
         const photos = [
-            { src: "{{ asset('images/home/hero-pasangan.jpg') }}", title: 'Busana Adat Berpasangan', subtitle: 'Pesona budaya dalam balutan busana istimewa' },
-            { src: "{{ asset('images/home/hero-gown.jpg') }}", title: 'Gown Pengantin', subtitle: 'Elegan dan anggun untuk momen spesial' },
-            { src: "{{ asset('images/home/hero-jas.jpg') }}", title: 'Jas Beskap Modern', subtitle: 'Sentuhan modern pada busana adat' }
+            { src: "{{ asset('images/home/hero-pasangan.webp') }}", title: 'Busana Adat Berpasangan', subtitle: 'Pesona budaya dalam balutan busana istimewa' },
+            { src: "{{ asset('images/home/hero-gown.webp') }}", title: 'Gown Pengantin', subtitle: 'Elegan dan anggun untuk momen spesial' },
+            { src: "{{ asset('images/home/hero-jas.webp') }}", title: 'Jas Beskap Modern', subtitle: 'Sentuhan modern pada busana adat' }
         ];
 
         let currentIndex = 0;
