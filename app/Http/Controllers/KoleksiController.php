@@ -5,59 +5,47 @@ namespace App\Http\Controllers;
 use App\Models\Kategori;
 use App\Models\Produk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class KoleksiController extends Controller
 {
+    private const SORT_VALID = ['terbaru', 'populer', 'termurah', 'termahal'];
+
     public function index(Request $request)
     {
         // Produk habis TIDAK dicampur dengan produk tersedia: selalu dimuat terpisah dan
         // ditampilkan di bawah daftar lewat tombol "Lihat produk habis (jumlah)".
 
-        // 1. Kategori untuk sidebar (jumlah = produk yang tersedia)
-        $kategoriList = Kategori::withCount([
-            'produks' => fn ($q) => $q->whereNotIn('produk.id', Produk::idHabis()),
-        ])->orderBy('nama_kategori')->get();
-
-        // 2. Daftar warna dinamis (semua produk, termasuk yang habis)
+        $kategoriList = $this->daftarKategori();
         $warnaList = $this->daftarWarna();
 
-        // 3. Query dasar + semua filter (dipakai bersama oleh daftar tersedia & daftar habis)
+        // Query dasar + semua filter (dipakai bersama oleh daftar tersedia & daftar habis)
         $dasar = Produk::query()->with('kategori');
         $this->terapkanFilter($dasar, $request);
 
-        // 4. Produk tersedia
         $produkList = (clone $dasar)
             ->sembunyikanHabis()
             ->paginate(12)
             ->withQueryString();
 
-        // 5. Produk habis (bagian terpisah, paginasi sendiri lewat ?hal_habis=)
         $produkHabis = $this->ambilProdukHabis($dasar);
 
         return view('customer.koleksi', compact('produkList', 'produkHabis', 'kategoriList', 'warnaList'));
     }
 
+    /**
+     * /koleksi/kategori/{kode} -> dialihkan ke halaman koleksi dengan filter kategori aktif,
+     * supaya semua filter (warna, harga, jenis, dll.) tetap bekerja dan kategori tidak hilang
+     * saat filter diubah.
+     */
     public function showKategori(Request $request, $kode)
     {
         $kategori = Kategori::where('kode_kategori', $kode)->firstOrFail();
 
-        $kategoriList = Kategori::withCount([
-            'produks' => fn ($q) => $q->whereNotIn('produk.id', Produk::idHabis()),
-        ])->orderBy('nama_kategori')->get();
-        $warnaList = $this->daftarWarna();
-
-        $dasar = Produk::with('kategori')
-            ->where('kategori_id', $kategori->id)
-            ->latest();
-
-        $produkList = (clone $dasar)
-            ->sembunyikanHabis()
-            ->paginate(12)
-            ->withQueryString();
-
-        $produkHabis = $this->ambilProdukHabis($dasar);
-
-        return view('customer.koleksi', compact('produkList', 'produkHabis', 'kategoriList', 'kategori', 'warnaList'));
+        return redirect()->route('koleksi.index', array_merge(
+            $request->query(),
+            ['kategori' => [$kategori->slug]]
+        ));
     }
 
     /**
@@ -65,12 +53,12 @@ class KoleksiController extends Controller
      */
     private function terapkanFilter($query, Request $request): void
     {
-        // 4. PENCARIAN & RELEVANSI
+        // PENCARIAN & RELEVANSI
         if ($request->filled('search')) {
-            $rawSearch = trim($request->string('search')->toString());
-            $terms = preg_split('/\s+/', $rawSearch, -1, PREG_SPLIT_NO_EMPTY);
+            $rawSearch = mb_substr(trim($request->string('search')->toString()), 0, 100);
+            $terms = preg_split('/\s+/', $rawSearch, -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
-            // Filter: Setiap kata harus cocok (AND)
+            // Setiap kata harus cocok (AND)
             foreach (array_slice($terms, 0, 6) as $term) {
                 $like = '%' . addcslashes($term, '%_\\') . '%';
 
@@ -78,8 +66,7 @@ class KoleksiController extends Controller
                     $q->where('nama', 'like', $like)
                       ->orWhere('sku', 'like', $like);
 
-                    // Cerdas: Jika kata BUKAN angka murni, cari juga di kolom lain.
-                    // Jika kata adalah angka (misal: "2"), HANYA cari di Nama dan SKU.
+                    // Kata angka murni (mis. "2") hanya dicari di Nama & SKU.
                     if (!is_numeric($term)) {
                         $q->orWhere('deskripsi', 'like', $like)
                           ->orWhere('motif', 'like', $like)
@@ -91,28 +78,27 @@ class KoleksiController extends Controller
                 });
             }
 
-            // PRIORITAS (Relevance Sorting)
-            // Langsung suntikkan variabel yang sudah di-escape agar Laravel tidak salah menaruh binding
-            $safeRaw = addcslashes($rawSearch, '%_\\');
-            $safeTerm1 = addcslashes($terms[0], '%_\\');
+            // PRIORITAS (relevansi) — memakai parameter binding, bukan string interpolation
+            if ($terms !== []) {
+                $likeRaw = '%' . addcslashes($rawSearch, '%_\\') . '%';
+                $likeTerm1 = '%' . addcslashes($terms[0], '%_\\') . '%';
 
-            $query->orderByRaw("
-                CASE 
-                    WHEN nama LIKE '%{$safeRaw}%' THEN 0
-                    WHEN sku LIKE '%{$safeRaw}%' THEN 1
-                    WHEN nama LIKE '%{$safeTerm1}%' THEN 2
-                    ELSE 3
-                END ASC
-            ");
+                $query->orderByRaw(
+                    'CASE WHEN nama LIKE ? THEN 0 WHEN sku LIKE ? THEN 1 WHEN nama LIKE ? THEN 2 ELSE 3 END ASC',
+                    [$likeRaw, $likeRaw, $likeTerm1]
+                );
+            }
         }
 
-        // 5. Kategori (multi-select)
+        // Kategori (multi-select)
         if ($request->filled('kategori')) {
-            $kategoris = (array) $request->kategori;
-            $query->whereHas('kategori', fn ($q) => $q->whereIn('slug', $kategoris));
+            $kategoris = array_values(array_filter((array) $request->input('kategori'), 'is_string'));
+            if ($kategoris) {
+                $query->whereHas('kategori', fn ($q) => $q->whereIn('slug', $kategoris));
+            }
         }
 
-        // 6. Warna — kolom `warna` / `warna_sewa` berisi JSON array
+        // Warna — kolom `warna` / `warna_sewa` berisi JSON array
         if ($request->filled('warna')) {
             $warna = $request->string('warna')->toString();
             $query->where(function ($q) use ($warna) {
@@ -125,16 +111,16 @@ class KoleksiController extends Controller
             });
         }
 
-        // 7. Jenis transaksi
+        // Jenis transaksi
         if ($request->filled('jenis')) {
-            if ($request->jenis === 'sewa') {
+            if ($request->input('jenis') === 'sewa') {
                 $query->where('harga_sewa', '>', 0);
-            } elseif ($request->jenis === 'beli') {
+            } elseif ($request->input('jenis') === 'beli') {
                 $query->where('dapat_dijual', true);
             }
         }
 
-        // 8. Rentang harga bebas
+        // Rentang harga bebas
         $min = $this->angka($request->input('harga_min'));
         $max = $this->angka($request->input('harga_max'));
 
@@ -164,14 +150,29 @@ class KoleksiController extends Controller
             });
         }
 
-        // 9. Sorting (Hanya dipakai sebagai tie-breaker jika ada produk dengan prioritas sama)
-        $sort = $request->get('sort', 'terbaru');
+        // Sorting (whitelist)
+        $sort = $request->input('sort', 'terbaru');
+        if (!is_string($sort) || !in_array($sort, self::SORT_VALID, true)) {
+            $sort = 'terbaru';
+        }
+
+        // Kolom harga yang diurutkan: harga 0/NULL dianggap "tidak ada" dan diletakkan paling bawah.
+        // Nilainya dari match() dengan string tetap, jadi aman dari injeksi.
+        $kolomUrut = match ($request->input('jenis')) {
+            'sewa'  => 'NULLIF(harga_sewa, 0)',
+            'beli'  => 'NULLIF(harga_jual, 0)',
+            default => 'COALESCE(NULLIF(harga_jual, 0), NULLIF(harga_sewa, 0))',
+        };
+
         match ($sort) {
-            'termurah' => $query->orderBy('harga_jual', 'asc')->orderBy('harga_sewa', 'asc'),
-            'termahal' => $query->orderBy('harga_jual', 'desc')->orderBy('harga_sewa', 'desc'),
+            'termurah' => $query->orderByRaw("$kolomUrut IS NULL, $kolomUrut ASC"),
+            'termahal' => $query->orderByRaw("$kolomUrut IS NULL, $kolomUrut DESC"),
             'populer'  => $query->orderByDesc('jumlah_rating'),
             default    => $query->latest(),
         };
+
+        // Tie-breaker supaya urutan & paginasi stabil
+        $query->orderByDesc('produk.id');
     }
 
     /**
@@ -185,20 +186,58 @@ class KoleksiController extends Controller
             ->withQueryString();
     }
 
-    private function daftarWarna(array $kecuali = [])
+    /**
+     * Kategori + jumlah produk tersedia. Di-cache singkat agar tidak query ulang tiap request.
+     *
+     * PENTING (Laravel 13): cache hanya boleh berisi data primitif (array/string/angka).
+     * Objek seperti Collection/Model akan kembali sebagai __PHP_Incomplete_Class
+     * karena opsi `serializable_classes` di config/cache.php.
+     *
+     * (Hapus cache saat produk/stok berubah: Cache::forget('koleksi.kategori.v2');)
+     */
+    private function daftarKategori()
     {
-        return Produk::query()
-            ->whereNotIn('id', $kecuali)
-            ->get(['id', 'warna', 'warna_sewa'])
-            ->flatMap(fn ($p) => array_merge(
-                $this->pecahWarna($p->getRawOriginal('warna')),
-                $this->pecahWarna($p->getRawOriginal('warna_sewa'))
-            ))
-            ->map(fn ($w) => trim($w))
-            ->filter()
-            ->unique()
-            ->sort()
-            ->values();
+        $data = Cache::remember('koleksi.kategori.v2', 60, function () {
+            $idHabis = Produk::idHabis();
+
+            return Kategori::withCount([
+                'produks' => fn ($q) => $q->whereNotIn('produk.id', $idHabis),
+            ])->orderBy('nama_kategori')->get()
+                ->map(fn ($k) => [
+                    'id' => $k->id,
+                    'slug' => $k->slug,
+                    'nama_kategori' => $k->nama_kategori,
+                    'produks_count' => $k->produks_count,
+                ])
+                ->all();
+        });
+
+        // Dibangun ulang jadi objek sederhana supaya view tetap bisa memakai $k->slug dst.
+        return collect(is_array($data) ? $data : [])->map(fn ($row) => (object) $row);
+    }
+
+    /**
+     * Daftar warna unik dari semua produk. Di-cache karena harus membaca seluruh tabel produk.
+     * (Hapus cache saat produk berubah: Cache::forget('koleksi.warna.v2');)
+     */
+    private function daftarWarna()
+    {
+        $data = Cache::remember('koleksi.warna.v2', 600, function () {
+            return Produk::query()
+                ->get(['id', 'warna', 'warna_sewa'])
+                ->flatMap(fn ($p) => array_merge(
+                    $this->pecahWarna($p->getRawOriginal('warna')),
+                    $this->pecahWarna($p->getRawOriginal('warna_sewa'))
+                ))
+                ->map(fn ($w) => trim($w))
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values()
+                ->all(); // array string biasa, aman untuk cache
+        });
+
+        return collect(is_array($data) ? array_values(array_filter($data, 'is_string')) : []);
     }
 
     private function pecahWarna($mentah): array
