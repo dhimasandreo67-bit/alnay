@@ -2,6 +2,7 @@
     'produk',
     'delay' => 0,
     'peringkat' => null,
+    'prioritas' => false, // true untuk gambar di atas lipatan (kandidat LCP)
 ])
 
 @php
@@ -90,15 +91,16 @@
     $tblMati = $tbl . ' cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400';
 @endphp
 
+{{-- font-sans diwarisi dari body; jangan set font-family inline agar ikut font hasil self-host --}}
 <article
-    class="group relative flex h-full flex-col overflow-hidden rounded-2xl border text-[#15233d] transition-all duration-500 hover:-translate-y-1 hover:shadow-lg {{ $habisSemua ? 'border-gray-200 bg-gray-50' : 'border-[#f0ece4] bg-white' }}"
-    style="font-family: 'Inter', sans-serif;">
+    class="group relative flex h-full flex-col overflow-hidden rounded-2xl border text-[#15233d] transition-all duration-500 hover:-translate-y-1 hover:shadow-lg {{ $habisSemua ? 'border-gray-200 bg-gray-50' : 'border-[#f0ece4] bg-white' }}">
 
     {{-- FOTO + LABEL --}}
     <div class="relative aspect-[4/5] overflow-hidden bg-[#efe9dc] sm:aspect-[3/4]">
         <a href="{{ $urlDetail }}" class="block h-full w-full" aria-label="Lihat detail {{ $nama }}">
             @if ($foto)
-                <img src="{{ $foto }}" alt="{{ $nama }}" width="600" height="800" loading="lazy" decoding="async"
+                <img src="{{ $foto }}" alt="{{ $nama }}" width="600" height="800" decoding="async"
+                    @if ($prioritas) fetchpriority="high" @else loading="lazy" @endif
                     class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 {{ $habisSemua ? 'grayscale opacity-70' : '' }}">
             @endif
         </a>
@@ -186,13 +188,13 @@
                 <span class="{{ $tblMati }}">Stok Habis</span>
             @elseif ($bisaSewa && $bisaBeli)
                 @if ($habisSewa)
-                    <span class="{{ $tblMati }}">Sewa habis</span>
+                    <span class="{{ $tblMati }}">Habis</span>
                 @else
                     <a href="{{ $urlDetail }}?mode=sewa" class="{{ $tblGaris }}">Sewa</a>
                 @endif
 
                 @if ($habisBeli)
-                    <span class="{{ $tblMati }}">Beli habis</span>
+                    <span class="{{ $tblMati }}">Habis</span>
                 @else
                     <a href="{{ $urlDetail }}?mode=beli" class="{{ $tblEmas }}">Beli</a>
                 @endif
