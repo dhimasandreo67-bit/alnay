@@ -1,0 +1,38 @@
+{
+    "timestamp": "2026-11-24 08:53:17",
+    "metadata": {
+        "generator": "VoltTest Laravel Package"
+    },
+    "summary": {
+        "duration": "30.021456965s",
+        "total_requests": 822,
+        "success_rate": 70.68,
+        "requests_per_second": 27.38,
+        "success_requests": 581,
+        "failed_requests": 241
+    },
+    "response_times": {
+        "min": "62.561948ms",
+        "max": "1.735687793s",
+        "avg": "344.317074ms",
+        "median": "301.311ms",
+        "p95": "627.199ms",
+        "p99": "1.117183s"
+    },
+    "metrics": {
+        "duration": "30.021456965s",
+        "totalRequests": 822,
+        "successRate": 70.68,
+        "requestsPerSecond": 27.38,
+        "successRequests": 581,
+        "failedRequests": 241,
+        "responseTime": {
+            "min": "62.561948ms",
+            "max": "1.735687793s",
+            "avg": "344.317074ms",
+            "median": "301.311ms",
+            "p95": "627.199ms",
+            "p99": "1.117183s"
+        }
+    }
+}
