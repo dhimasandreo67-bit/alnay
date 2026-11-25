@@ -1,13 +1,14 @@
 @extends('admin.layouts.admin')
-@section('title', 'Pengguna Tidak Aktif (≥360 Hari)')
+@section('title', 'Kelola Pengguna')
 
 @section('content')
 @php
     $tgl = fn ($v) => $v ? \Illuminate\Support\Carbon::parse($v)->locale('id') : null;
-    // Paksa filter setahun (360 hari) — view hanya menampilkan akun yang tidak aktif ≥ 360 hari.
-    // Controller diharapkan membaca ?inaktif=360 dan memfilter $users sesuai nilai tersebut.
+    // 360 hari hanya dipakai sebagai penanda (badge) akun yang lama tidak aktif.
+    // Semua akun tetap tampil; ?inaktif=360 hanya aktif kalau kartu "Tidak Aktif" diklik.
     $batasLama = 360;
-    $adaFilter = request()->filled('search') || $status !== '';
+    $filterInaktif = request()->filled('inaktif');
+    $adaFilter = request()->filled('search') || $status !== '' || $filterInaktif;
 @endphp
 
 <div class="p-6 space-y-6 transition-all duration-500 animate-fade-in">
@@ -48,8 +49,8 @@
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Pengguna Tidak Aktif (≥360 Hari)</h1>
-            <p class="text-xs text-gray-500 mt-1">Hanya menampilkan akun pelanggan yang tidak aktif ≥ 360 hari (setahun). Tinjau, nonaktifkan, atau hapus bila perlu.</p>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Kelola Pengguna</h1>
+            <p class="text-xs text-gray-500 mt-1">Semua akun pelanggan terdaftar. Akun yang tidak aktif ≥ 360 hari (setahun) diberi penanda agar mudah ditinjau.</p>
         </div>
         <button type="button" data-modal-open="modal-tambah-pengguna"
                 class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold py-2.5 px-5 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all duration-200 text-sm cursor-pointer">
@@ -136,8 +137,10 @@
 
     {{-- Filter --}}
     <form id="form-filter-pengguna" method="GET" action="{{ route('admin.pengguna.index') }}" autocomplete="off" class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4">
-        {{-- Filter setahun dipaksa lewat hidden input agar setiap submit tetap membawa nilainya --}}
-        <input type="hidden" name="inaktif" value="{{ $batasLama }}">
+        {{-- Hanya ada kalau filter "tidak aktif" sedang dipakai (dari klik kartu), supaya ikut terbawa saat cari/ganti status --}}
+        @if ($filterInaktif)
+            <input type="hidden" name="inaktif" id="filter-inaktif" value="{{ $batasLama }}">
+        @endif
 
         <div class="relative w-full lg:w-80">
             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
@@ -148,10 +151,12 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-700">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Tidak aktif ≥ {{ $batasLama }} hari
-            </span>
+            @if ($filterInaktif)
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-700">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Tidak aktif ≥ {{ $batasLama }} hari
+                </span>
+            @endif
             <select name="status" id="filter-status-pengguna" aria-label="Status akun" class="px-4 py-2 bg-gray-50/50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 cursor-pointer">
                 <option value="">Semua Status</option>
                 <option value="aktif" {{ $status === 'aktif' ? 'selected' : '' }}>Aktif</option>
@@ -219,7 +224,7 @@
                             <td class="px-4 py-4">
                                 <p class="text-xs font-semibold text-gray-700">{{ $terakhir ? $terakhir->diffForHumans() : '-' }}</p>
                                 @if ($lama)
-                                    <span class="mt-1 inline-flex rounded-full bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700 ring-1 ring-amber-200">Lama tidak aktif</span>
+                                    <span class="mt-1 inline-flex rounded-full bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700 ring-1 ring-amber-200">Tidak aktif ≥ {{ $batasLama }} hari</span>
                                 @elseif (! $u->last_active_at)
                                     <p class="text-[10px] text-gray-400">Aktivitas belum tercatat</p>
                                 @endif
@@ -244,14 +249,22 @@
                                         Detail
                                     </button>
 
-                                    {{-- Edit --}}
-                                    <button type="button" data-modal-open="modal-edit-pengguna"
-                                            data-id="{{ $u->id }}"
-                                            data-user="{{ json_encode($dataEdit[$u->id] ?? []) }}"
-                                            title="Edit akun" aria-label="Edit akun {{ $u->name }}"
-                                            class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 shadow-sm transition-all hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                    </button>
+                                    {{-- Edit: hanya untuk akun yang dibuat manual oleh admin --}}
+                                    @if ($u->dibuat_admin)
+                                        <button type="button" data-modal-open="modal-edit-pengguna"
+                                                data-id="{{ $u->id }}"
+                                                data-user="{{ json_encode($dataEdit[$u->id] ?? []) }}"
+                                                title="Edit akun" aria-label="Edit akun {{ $u->name }}"
+                                                class="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 shadow-sm transition-all hover:border-amber-200 hover:bg-amber-50 hover:text-amber-600 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        </button>
+                                    @else
+                                        <span title="Akun dibuat sendiri oleh pengguna, tidak bisa diedit admin"
+                                              aria-label="Tidak bisa diedit"
+                                              class="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-xl border border-gray-100 bg-gray-50 text-gray-300">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4"/></svg>
+                                        </span>
+                                    @endif
 
                                     {{-- Toggle status --}}
                                     <button type="button" data-modal-open="modal-konfirmasi-pengguna"
@@ -286,7 +299,7 @@
                             <td colspan="7" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
                                 {{ $adaFilter
                                     ? 'Tidak ada pengguna yang cocok dengan filter ini.'
-                                    : 'Tidak ada akun yang tidak aktif ≥ '.$batasLama.' hari.' }}
+                                    : 'Belum ada akun pelanggan terdaftar.' }}
                             </td>
                         </tr>
                     @endforelse
@@ -294,7 +307,7 @@
             </table>
         </div>
         <div id="paginasi-pengguna" class="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
-            {{ $users->appends(['inaktif' => $batasLama] + request()->only('search', 'status'))->links() }}
+            {{ $users->appends(request()->only('inaktif', 'search', 'status'))->links() }}
             {{-- Data modal Detail untuk baris yang sedang tampil; ikut diperbarui saat hasil pencarian berganti --}}
             <script type="application/json" id="data-pengguna">@json($detail)</script>
         </div>
@@ -855,7 +868,7 @@
         }
 
         function tandaiReset() {
-            btnReset.classList.toggle('hidden', !(inCari.value.trim() || selStatus.value));
+            btnReset.classList.toggle('hidden', !(inCari.value.trim() || selStatus.value || $('filter-inaktif')));
         }
 
         async function muat(url) {
@@ -898,6 +911,8 @@
         btnReset.addEventListener('click', function () {
             inCari.value = '';
             selStatus.value = '';
+            var hInaktif = $('filter-inaktif');
+            if (hInaktif) hInaktif.remove(); // reset = kembali menampilkan semua akun
             terapkanFilter(0);
         });
 
