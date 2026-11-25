@@ -1266,10 +1266,17 @@
     function aturPembayaranSewa(sewa) {
         const status = el('status_pembayaran');
         const dp = el('jumlah_dp');
-        status.querySelector('option[value="lunas"]').disabled = sewa;
-        if (sewa) status.value = 'dp';
+        const optLunas = status.querySelector('option[value="lunas"]');
+        const optDp = status.querySelector('option[value="dp"]');
+    
+        optLunas.disabled = sewa;
+        optDp.disabled = !sewa;
+        optDp.hidden = !sewa;
+        status.value = sewa ? 'dp' : 'lunas';
+    
         dp.readOnly = sewa;
         dp.classList.toggle('bg-gray-100', sewa);
+        if (!sewa) dp.value = ''; // pembelian tidak mengirim jumlah DP
         el('ket-dp-otomatis').classList.toggle('hidden', !sewa);
         el('info-dp-sewa').classList.toggle('hidden', !sewa);
         toggleDp();
