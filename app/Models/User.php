@@ -18,7 +18,7 @@ class User extends Authenticatable
      * daftar yang sama (mis. PenggunaController, TransaksiController).
      */
     public const ROLE_STAF = ['owner', 'admin', 'superadmin', 'super_admin'];
-    // `role`, `admin_permissions`, dan `status_aktif` sengaja TIDAK di sini: isi lewat forceFill()
+    // `role`, `admin_permissions`, `status_aktif`, dan `dibuat_admin` sengaja TIDAK di sini: isi lewat forceFill()
     // di kode yang tepercaya (AdminController, PenggunaController, BuatOwnerCommand, dll).
     protected $fillable = [
         'name',
@@ -52,6 +52,7 @@ class User extends Authenticatable
             'tanggal_lahir' => 'date',
             'password' => 'hashed',
             'status_aktif' => 'boolean',
+            'dibuat_admin' => 'boolean',
             'admin_permissions' => 'array',
         ];
     }
