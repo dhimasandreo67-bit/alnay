@@ -21,18 +21,28 @@ use Illuminate\Validation\Rule;
  * Akun staf (owner/admin) TIDAK ikut dikelola di sini, itu tugas halaman Kelola Admin.
  * Staf dikenali dari kolom `role` (nilai di ROLE_STAF) atau kolom boolean is_admin / is_owner
  * kalau ada. Sesuaikan ROLE_STAF kalau nama role di proyekmu berbeda.
+ *
+ * Aturan edit: hanya akun yang dibuat manual oleh admin (kolom `dibuat_admin` = true)
+ * yang boleh diedit. Akun hasil daftar/OTP/Google tidak bisa diedit admin.
  */
 class PenggunaController extends Controller
 {
     protected const ROLE_STAF = ['owner', 'admin', 'superadmin', 'super_admin'];
 
-    /** Hari tanpa aktivitas yang dianggap "lama tidak aktif". */
-    protected const BATAS_LAMA_TIDAK_AKTIF = 90;
+    /** Hari tanpa aktivitas yang dianggap "lama tidak aktif" (sesuai view: setahun). */
+    protected const BATAS_LAMA_TIDAK_AKTIF = 360;
+
+    /** Pilihan filter ?inaktif= yang diterima. */
+    protected const PILIHAN_INAKTIF = [30, 60, 90, 180, 360];
 
     public function index(Request $request)
     {
         $status = in_array($request->input('status'), ['aktif', 'nonaktif'], true) ? $request->input('status') : '';
-        $inaktif = in_array((int) $request->input('inaktif'), [30, 60, 90, 180], true) ? (int) $request->input('inaktif') : 0;
+
+        // Tanpa ?inaktif, semua pelanggan ditampilkan. Parameter ini hanya dipakai kalau
+        // admin menekan kartu "Tidak Aktif ≥ 360 Hari" untuk menyaring akun yang lama tidak aktif.
+        $inaktif = (int) $request->input('inaktif');
+        $inaktif = in_array($inaktif, self::PILIHAN_INAKTIF, true) ? $inaktif : 0;
 
         $query = $this->pelanggan();
 
@@ -70,6 +80,11 @@ class PenggunaController extends Controller
 
         $detail = $users->getCollection()->mapWithKeys(fn ($u) => [$u->id => $this->bangunDetail($u, $stat->get($u->id))]);
 
+        // Data form Edit: hanya untuk akun yang dibuat admin (akun lain tidak punya tombol Edit)
+        $dataEdit = $users->getCollection()
+            ->filter(fn ($u) => (bool) $u->dibuat_admin)
+            ->mapWithKeys(fn ($u) => [$u->id => $this->bangunDataEdit($u)]);
+
         // Kartu statistik (tidak terpengaruh filter)
         $total = $this->pelanggan()->count();
         $aktif = $this->pelanggan()->where('is_active', true)->count();
@@ -81,6 +96,7 @@ class PenggunaController extends Controller
             'users' => $users,
             'stat' => $stat,
             'detail' => $detail,
+            'dataEdit' => $dataEdit,
             'status' => $status,
             'inaktif' => $inaktif,
             'ringkasan' => [
@@ -133,6 +149,8 @@ class PenggunaController extends Controller
             'kota_kabupaten' => $validated['kota_kabupaten'] ?? null,
             'kecamatan' => $validated['kecamatan'] ?? null,
             'kode_pos' => $validated['kode_pos'] ?? null,
+            // Penanda: akun ini dibuat manual oleh admin, jadi boleh diedit admin.
+            'dibuat_admin' => true,
         ];
 
         // Pelanggan masuk lewat OTP/Google, jadi kata sandi boleh kosong (diisi acak).
@@ -178,10 +196,16 @@ class PenggunaController extends Controller
     /**
      * Ubah data akun pelanggan dari modal Edit. Status aktif/nonaktif TIDAK diubah di sini
      * (tetap lewat status()), dan kata sandi hanya berubah kalau kolomnya diisi.
+     *
+     * Hanya akun buatan admin (dibuat_admin = true) yang boleh diedit.
      */
     public function update(Request $request, $id)
     {
         $user = $this->pelanggan()->findOrFail($id);
+
+        if (! $user->dibuat_admin) {
+            return back()->with('error', "Akun {$user->name} dibuat sendiri oleh pengguna (daftar/login), sehingga tidak bisa diedit oleh admin.");
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -409,6 +433,30 @@ class PenggunaController extends Controller
     }
 
     /**
+     * Data awal untuk modal Edit (dibaca JS lewat atribut data-user di tombol Edit).
+     * Kuncinya mengikuti yang dipakai isiFormEdit()/pasangAlamat() di view.
+     * Alamat diambil dari kolom alamat di tabel users (sama dengan yang disimpan update()).
+     */
+    protected function bangunDataEdit($u): array
+    {
+        return [
+            'name' => $u->name,
+            'email' => $u->email,
+            'no_hp' => $u->no_hp,
+            'alamat' => $u->alamat,
+            'kode_pos' => $u->kode_pos,
+            'provinsi' => $u->provinsi,
+            'kota_kabupaten' => $u->kota_kabupaten,
+            'kecamatan' => $u->kecamatan,
+            'tujuan_id' => null,
+            'tujuan_label' => null,
+            'label' => 'Rumah',
+            'jumlah_alamat' => filled($u->alamat) ? 1 : 0,
+            'ubah_alamat' => 0,
+        ];
+    }
+
+    /**
      * Susun data untuk modal detail: ringkasan + seluruh kolom akun (kecuali yang sensitif).
      */
     protected function bangunDetail($u, $stat): array
@@ -420,7 +468,7 @@ class PenggunaController extends Controller
             'id' => 'ID', 'name' => 'Nama', 'email' => 'Email', 'no_hp' => 'No. HP', 'role' => 'Peran',
             'email_verified_at' => 'Email terverifikasi', 'created_at' => 'Bergabung', 'updated_at' => 'Diperbarui',
             'last_active_at' => 'Terakhir aktif', 'is_active' => 'Status akun', 'dinonaktifkan_pada' => 'Dinonaktifkan pada',
-            'google_id' => 'Akun Google',
+            'google_id' => 'Akun Google', 'dibuat_admin' => 'Dibuat oleh admin',
         ];
 
         $semua = [];
