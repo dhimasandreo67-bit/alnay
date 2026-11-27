@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ReservasiFitting;
 use App\Models\SlotFitting;
+use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -17,7 +18,7 @@ class ReservasiFittingController extends Controller
     public function index(Request $request)
     {
         $status = $request->input('status', 'semua');
-        if (! in_array($status, ['semua', 'terjadwal', 'hari_ini', 'hadir', 'batal'], true)) {
+        if (! in_array($status, ['semua', 'belum_jadwal', 'terjadwal', 'hari_ini', 'hadir', 'batal'], true)) {
             $status = 'semua';
         }
 
@@ -53,9 +54,11 @@ class ReservasiFittingController extends Controller
         }
 
         match ($status) {
-            'terjadwal' => $query->whereNotIn('status', self::STATUS_SELESAI),
+            // Terjadwal = sudah punya slot. Reservasi tanpa slot belum dijadwalkan pelanggan.
+            'terjadwal' => $query->whereNotIn('status', self::STATUS_SELESAI)->whereNotNull('slot_id'),
             'hari_ini' => $query->whereNotIn('status', self::STATUS_SELESAI)
                 ->whereHas('slot', fn ($q) => $q->whereDate('tanggal', today())),
+            'belum_jadwal' => $query->whereRaw('0 = 1'),
             'hadir', 'batal' => $query->where('status', $status),
             default => null,
         };
@@ -75,7 +78,7 @@ class ReservasiFittingController extends Controller
         $hitung = [
             'semua' => ReservasiFitting::count(),
             'hari_ini' => $aktif()->whereHas('slot', fn ($q) => $q->whereDate('tanggal', today()))->count(),
-            'terjadwal' => $aktif()->count(),
+            'terjadwal' => $aktif()->whereNotNull('slot_id')->count(),
             'hadir' => ReservasiFitting::where('status', 'hadir')->count(),
             'batal' => ReservasiFitting::where('status', 'batal')->count(),
         ];
@@ -88,8 +91,55 @@ class ReservasiFittingController extends Controller
             ->groupBy(fn ($s) => $s->tanggal->format('Y-m-d'));
 
         $jamSlot = SlotFitting::JAM;
+        // Pesanan yang pelanggannya belum memilih jadwal ikut tampil di tabel (halaman 1) dengan status "Belum Isi Jadwal".
+        $semuaMenunggu = $this->pesananMenungguJadwal();
+        $hitung['belum_jadwal'] = $semuaMenunggu->count();
+        $hitung['semua'] += $semuaMenunggu->count();
 
-        return view('admin.fitting.index', compact('reservasis', 'status', 'hitung', 'slotTutup', 'jamSlot'));
+        $menungguJadwal = collect();
+        if (in_array($status, ['semua', 'belum_jadwal'], true)
+            && ! $request->filled('tanggal')
+            && (int) $request->input('page', 1) <= 1) {
+            $menungguJadwal = $this->saringMenunggu($semuaMenunggu, trim((string) $request->input('search', '')));
+        }
+
+        return view('admin.fitting.index', compact('reservasis', 'status', 'hitung', 'slotTutup', 'jamSlot', 'menungguJadwal'));
+    }
+
+    /**
+     * Pesanan sewa (ambil di toko, DP sudah dibayar) yang pelanggannya BELUM mengisi jadwal fitting.
+     * Mereka belum punya reservasi, jadi tidak punya tanggal/jam. Tampil terpisah supaya admin
+     * tidak mengira sudah ada jadwal. Begitu pelanggan menyimpan jadwal, pesanan pindah ke tabel utama.
+     */
+    private function pesananMenungguJadwal()
+    {
+        return Transaksi::with(['user', 'detail.produk', 'sewa'])
+            ->where('jenis', 'sewa')
+            ->whereNotNull('user_id')
+            ->whereIn('status_pembayaran', ['dp_dibayar', 'lunas'])
+            ->whereDoesntHave('pengiriman')
+            ->whereDoesntHave('reservasiFitting', fn ($q) => $q->whereIn('status', ['pending', 'disetujui', 'hadir']))
+            ->whereHas('sewa', fn ($q) => $q->where('status', 'aktif')->whereDate('tanggal_pinjam', '>=', today()))
+            ->get()
+            ->sortBy(fn ($t) => $t->sewa?->tanggal_pinjam) // batas fitting terdekat paling atas
+            ->values();
+    }
+
+    /** Terapkan kata kunci pencarian (kode pesanan, nama, nomor HP) ke daftar pesanan yang menunggu jadwal. */
+    private function saringMenunggu($daftar, string $kata)
+    {
+        if ($kata === '') {
+            return $daftar;
+        }
+
+        $inti = preg_replace('/^(62|0)+/', '', preg_replace('/\D+/', '', $kata));
+
+        return $daftar->filter(function ($t) use ($kata, $inti) {
+            return stripos((string) $t->kode_transaksi, $kata) !== false
+                || stripos((string) ($t->user->name ?? ''), $kata) !== false
+                || stripos((string) ($t->user->no_hp ?? ''), $kata) !== false
+                || (strlen($inti) >= 4 && str_contains((string) ($t->user->no_hp ?? ''), $inti));
+        })->values();
     }
 
     /** Ubah status: Terjadwal / Hadir / Batal (Batal wajib beralasan). */
