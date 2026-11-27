@@ -89,10 +89,15 @@ class AdminBadge
     /** Dipanggil saat admin membuka halaman menu terkait: badge "baru" mulai dari nol lagi. */
     public static function tandaiDilihat(string $kunci): void
     {
-        $uid = self::uid();
+        try {
+            $uid = self::uid();
 
-        Cache::forever("admin_seen:{$uid}:{$kunci}", now()->toIso8601String());
-        Cache::forget("admin_badge:{$uid}:{$kunci}");
+            Cache::forever("admin_seen:{$uid}:{$kunci}", now()->toIso8601String());
+            Cache::forget("admin_badge:{$uid}:{$kunci}");
+        } catch (\Throwable $e) {
+            // cache bermasalah: jangan sampai halaman admin ikut error
+            report($e);
+        }
     }
 
     public const STATUS_TRANSAKSI_BELUM_LUNAS = ['pending', 'dp', 'dp_dibayar'];
@@ -150,7 +155,9 @@ class AdminBadge
         } catch (\Throwable $e) {
             report($e);
 
-            return 0;
+            // Cache bermasalah (mis. tabel cache belum ada / folder tidak bisa ditulis di server):
+            // hitung langsung dari database, jangan diam di angka 0.
+            return self::langsung($hitung);
         }
     }
 
