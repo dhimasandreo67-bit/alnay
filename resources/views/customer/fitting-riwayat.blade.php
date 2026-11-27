@@ -30,8 +30,13 @@
                         <div class="flex justify-between items-start mb-2">
                             <div>
                                 <p class="text-[10px] font-bold text-ink/40 uppercase tracking-wider mb-1">Kode: {{ $r->kode_booking }}</p>
-                                <p class="text-sm font-bold text-ink/85">{{ \Carbon\Carbon::parse($r->slot->tanggal)->translatedFormat('l, d F Y') }}</p>
-                                <p class="text-xs text-ink/60 mt-0.5">Jam {{ $r->slot->jam_mulai }} WIB</p>
+                                @if ($r->slot)
+                                    <p class="text-sm font-bold text-ink/85">{{ \Carbon\Carbon::parse($r->slot->tanggal)->translatedFormat('l, d F Y') }}</p>
+                                    <p class="text-xs text-ink/60 mt-0.5">Jam {{ \Carbon\Carbon::parse($r->slot->jam_mulai)->format('H:i') }} WIB</p>
+                                @else
+                                    <p class="text-sm font-bold text-amber-700">Belum memilih jadwal</p>
+                                    <p class="text-xs text-ink/60 mt-0.5">Pilih tanggal & jam agar jadwal terdaftar.</p>
+                                @endif
                             </div>
                             @php
                                 $badge = match(strtolower($r->status)) {
