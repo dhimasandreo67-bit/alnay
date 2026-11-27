@@ -41,7 +41,10 @@ class NotifikasiController extends Controller
     /** JSON untuk lonceng (dipanggil berkala oleh topbar). */
     public function feed(Request $request)
     {
-        return response()->json(NotifikasiAdmin::ringkasan($request->user()));
+        return response()
+            ->json(NotifikasiAdmin::ringkasan($request->user()))
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+            ->header('Pragma', 'no-cache');
     }
 
     /** Klik notifikasi: tandai dibaca lalu buka halaman tujuannya. */
