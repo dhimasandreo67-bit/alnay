@@ -44,7 +44,7 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-gray-900">Reservasi Fitting</h1>
-            <p class="text-xs text-gray-500 mt-1">Jadwal kedatangan pelanggan untuk fitting di toko ALNAY. Booking langsung terjadwal, tugas admin hanya menandai Hadir atau Batal.</p>
+            <p class="text-xs text-gray-500 mt-1">Jadwal kedatangan pelanggan untuk fitting di toko ALNAY. Pesanan yang pelanggannya belum memilih jadwal tampil dengan status Belum Isi Jadwal. Statusnya berubah jadi Terjadwal setelah pelanggan mengirim tanggal & jam. Tugas admin hanya menandai Hadir atau Batal.</p>
         </div>
         
         <button id="btnBulkDelete" class="hidden bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-rose-500/20 active:scale-95 transition-all flex items-center gap-2">
@@ -172,8 +172,10 @@
 
     {{-- Area yang diperbarui otomatis saat mengetik / ganti tanggal --}}
     <div id="area-tabel" class="transition-opacity duration-200">
+
+        @php $menungguJadwal = $menungguJadwal ?? collect(); @endphp
         <div class="flex flex-wrap gap-2 mb-4">
-            @foreach ([['semua', 'Semua'], ['hari_ini', 'Hari ini'], ['terjadwal', 'Terjadwal'], ['hadir', 'Hadir'], ['batal', 'Batal']] as [$kunci, $label])
+            @foreach ([['semua', 'Semua'], ['belum_jadwal', 'Belum isi jadwal'], ['hari_ini', 'Hari ini'], ['terjadwal', 'Terjadwal'], ['hadir', 'Hadir'], ['batal', 'Batal']] as [$kunci, $label])
                 <button type="button" data-status="{{ $kunci }}"
                         class="px-3.5 py-1.5 rounded-full border text-[11px] font-bold transition-all cursor-pointer {{ $status === $kunci ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300' }}">
                     {{ $label }} <span class="ml-1 opacity-60">{{ $hitung[$kunci] ?? 0 }}</span>
@@ -215,6 +217,80 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100/80 bg-white">
+                        {{-- Pesanan yang pelanggannya belum memilih tanggal & jam fitting: belum ada jadwal --}}
+                        @foreach ($menungguJadwal as $t)
+                            @php
+                                $nm = $t->user->name ?? 'User Terhapus';
+                                $dg = preg_replace('/\D+/', '', (string) ($t->user->no_hp ?? ''));
+                                $wa = $dg === '' ? '' : (str_starts_with($dg, '0') ? '62' . substr($dg, 1) : (str_starts_with($dg, '8') ? '62' . $dg : $dg));
+                                $sw = $t->sewa;
+                                $batas = $sw ? \Carbon\Carbon::parse($sw->tanggal_pinjam) : null;
+                                $pesanIsi = "Halo {$nm}, DP pesanan {$t->kode_transaksi} sudah kami terima. Mohon pilih jadwal fitting Anda"
+                                    . ($batas ? ' sebelum ' . $batas->copy()->locale('id')->translatedFormat('d F Y') : '')
+                                    . ' di ' . route('fitting.create', ['transaksi_id' => $t->id]) . '. Terima kasih.';
+                            @endphp
+                            <tr class="bg-amber-50/40 align-middle">
+                                <td class="pl-5 pr-0 py-3"><input type="checkbox" disabled class="w-4 h-4 bg-gray-100 border-gray-200 rounded cursor-not-allowed" aria-hidden="true"></td>
+                                <td class="px-3 py-3">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-black border bg-amber-50 text-amber-700 border-amber-100">{{ strtoupper(mb_substr(trim($nm) ?: '?', 0, 1)) }}</span>
+                                        <div class="min-w-0">
+                                            <p class="text-[13px] font-bold text-gray-900 truncate max-w-[150px]" title="{{ $nm }}">{{ $nm }}</p>
+                                            <p class="text-[11px] text-gray-500 whitespace-nowrap">{{ $t->user->no_hp ?? '-' }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3 whitespace-nowrap">
+                                    <div class="text-[12px] font-semibold text-amber-700">Belum mengisi jadwal</div>
+                                    <div class="text-[10px] text-gray-400">Tanggal & jam belum dipilih</div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1.5">
+                                        @foreach ($t->detail->take(3) as $d)
+                                            <div class="flex items-center gap-2.5">
+                                                <div class="relative h-10 w-10 shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                                                    @if ($d->produk && ($u = $urlFoto($d->produk)))
+                                                        <img src="{{ $u }}" alt="{{ $d->produk->nama }}" loading="lazy" class="relative z-10 h-full w-full object-cover bg-white" onerror="this.remove()">
+                                                    @endif
+                                                </div>
+                                                <div class="min-w-0 flex-1">
+                                                    <div class="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                                                        <span class="text-[13px] font-bold text-gray-800 truncate max-w-[200px]">{{ $d->produk->nama ?? 'Busana' }}</span>
+                                                        @if ($d->ukuran)<span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-semibold text-gray-600 whitespace-nowrap">Ukuran {{ $d->ukuran }}</span>@endif
+                                                        @if ($d->warna)<span class="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-semibold text-gray-600 whitespace-nowrap">{{ $d->warna }}</span>@endif
+                                                    </div>
+                                                    @if ($loop->first)
+                                                        <div class="mt-0.5 text-[10px] text-gray-500">
+                                                            @if ($sw) Ambil <b class="text-gray-700">{{ $batas->format('d M Y') }}</b> <span class="text-gray-300">→</span> Kembali <b class="text-gray-700">{{ \Carbon\Carbon::parse($sw->tanggal_kembali_rencana)->format('d M Y') }}</b> @endif
+                                                            <span class="font-mono text-gray-400">{{ $t->kode_transaksi }}</span>
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                        @if ($t->detail->count() > 3)
+                                            <p class="text-[10px] text-gray-400 pl-[50px]">+{{ $t->detail->count() - 3 }} busana lainnya</p>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3 whitespace-nowrap"><span class="text-[11px] text-gray-400 italic">Belum ada</span></td>
+                                <td class="px-3 py-3">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider whitespace-nowrap bg-amber-100 text-amber-800 border-amber-300">Belum Isi Jadwal</span>
+                                    @if ($batas)
+                                        <p class="mt-1 text-[10px] text-gray-500 max-w-[170px] leading-snug">Batas fitting: sebelum {{ $batas->format('d M Y') }}</p>
+                                    @endif
+                                </td>
+                                <td class="px-3 pr-5 py-3">
+                                    <div class="flex items-center justify-end">
+                                        @if ($wa)
+                                            <a href="https://wa.me/{{ $wa }}?text={{ rawurlencode($pesanIsi) }}" target="_blank" rel="noopener" title="Ingatkan pelanggan memilih jadwal"
+                                               class="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700 text-[11px] font-bold hover:bg-emerald-100 transition-colors whitespace-nowrap">Ingatkan via WA</a>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+
                         @forelse ($reservasis as $r)
                             @php
                                 $namaPelanggan = $r->user->name ?? 'User Terhapus';
@@ -235,8 +311,10 @@
                                 $nilaiSelect = $terjadwal ? 'pending' : $st;
                                 $hariIni = $tgl && $tgl->isToday();
                                 $terlewat = $terjadwal && $tgl && $tgl->copy()->endOfDay()->isPast();
+                                $belumIsi = ! $r->slot && $st !== 'batal'; // pelanggan belum memilih tanggal & jam
 
                                 $badge = match (true) {
+                                    $belumIsi => ['bg-amber-100 text-amber-800 border-amber-300', 'Belum Isi Jadwal'],
                                     $st === 'hadir' => ['bg-emerald-100 text-emerald-700 border-emerald-200', 'Hadir'],
                                     $st === 'batal' => ['bg-rose-100 text-rose-700 border-rose-200', 'Batal'],
                                     default => ['bg-sky-100 text-sky-700 border-sky-200', 'Terjadwal'],
@@ -272,11 +350,13 @@
                                 $digits = preg_replace('/\D+/', '', (string) ($r->user->no_hp ?? ''));
                                 $noWa = $digits === '' ? '' : (str_starts_with($digits, '0') ? '62' . substr($digits, 1) : (str_starts_with($digits, '8') ? '62' . $digits : $digits));
                                 $tglTeks = $tgl ? $tgl->copy()->locale('id')->translatedFormat('l, d F Y') : '';
-                                $pesanWa = $st === 'batal'
+                                $pesanWa = $belumIsi
+                                    ? "Halo {$namaPelanggan}, mohon pilih jadwal fitting Anda di " . url('/fitting') . '. Terima kasih.'
+                                    : ($st === 'batal'
                                     ? "Halo {$namaPelanggan}, mohon maaf jadwal fitting Anda ({$r->kode_booking}, {$tglTeks} pukul {$jam} WIB) kami batalkan"
                                         . ($r->alasan_batal ? " karena {$r->alasan_batal}" : '')
                                         . '. Silakan pilih jadwal fitting baru di ' . url('/fitting') . '. Terima kasih.'
-                                    : "Halo {$namaPelanggan}, pengingat jadwal fitting Anda di Toko ALNAY: {$tglTeks} pukul {$jam} WIB (kode {$r->kode_booking}). Sampai jumpa!";
+                                    : "Halo {$namaPelanggan}, pengingat jadwal fitting Anda di Toko ALNAY: {$tglTeks} pukul {$jam} WIB (kode {$r->kode_booking}). Sampai jumpa!");
                             @endphp
                             <tr id="baris-{{ $r->id }}" class="hover:bg-amber-50/30 transition-colors align-middle row-data" data-id="{{ $r->id }}">
 
@@ -306,13 +386,18 @@
 
                                 {{-- Jadwal --}}
                                 <td class="px-3 py-3 whitespace-nowrap">
-                                    <div class="text-[13px] font-bold text-gray-800">{{ $tgl ? $tgl->format('d M Y') : '-' }}</div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-[11px] text-amber-600 font-bold">{{ $jam }} WIB</span>
-                                        @if ($hariIni && $terjadwal)
-                                            <span class="px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-black uppercase tracking-wider">Hari ini</span>
-                                        @endif
-                                    </div>
+                                    @if ($belumIsi)
+                                        <div class="text-[12px] font-semibold text-amber-700">Belum mengisi jadwal</div>
+                                        <div class="text-[10px] text-gray-400">Tanggal & jam belum dipilih</div>
+                                    @else
+                                        <div class="text-[13px] font-bold text-gray-800">{{ $tgl ? $tgl->format('d M Y') : '-' }}</div>
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-[11px] text-amber-600 font-bold">{{ $jam }} WIB</span>
+                                            @if ($hariIni && $terjadwal)
+                                                <span class="px-1.5 py-0.5 rounded bg-amber-500 text-white text-[9px] font-black uppercase tracking-wider">Hari ini</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </td>
 
                                 {{-- Busana: ringkas, foto di kiri, info sejajar --}}
@@ -391,6 +476,7 @@
                                 {{-- Aksi: satu baris (status · WA · hapus) --}}
                                 <td class="px-3 pr-5 py-3">
                                     <div class="flex items-center justify-end gap-1.5">
+                                        @unless ($belumIsi)
                                         <form id="form-status-{{ $r->id }}" action="{{ route('admin.fitting.update-status', $r->id) }}" method="POST" class="inline-block form-status">
                                             @csrf
                                             @method('PATCH')
@@ -401,6 +487,7 @@
                                                 <option value="batal" {{ $nilaiSelect === 'batal' ? 'selected' : '' }}>Batal</option>
                                             </select>
                                         </form>
+                                        @endunless
 
                                         @if ($noWa)
                                             <a href="https://wa.me/{{ $noWa }}?text={{ rawurlencode($pesanWa) }}" target="_blank" rel="noopener"
@@ -424,6 +511,7 @@
                                 </td>
                             </tr>
                         @empty
+                            @if ($menungguJadwal->isEmpty())
                             <tr>
                                 <td colspan="7" class="px-6 py-16 text-center text-gray-400 text-sm font-medium">
                                     @if ($adaFilter)
@@ -433,6 +521,7 @@
                                     @endif
                                 </td>
                             </tr>
+                            @endif
                         @endforelse
                     </tbody>
                 </table>
