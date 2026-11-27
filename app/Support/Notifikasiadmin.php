@@ -16,6 +16,7 @@ use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
@@ -593,6 +594,10 @@ class NotifikasiAdmin
             $penerima = self::penerima($menu);
 
             if ($penerima->isEmpty()) {
+                // Dulu diam saja. Sekarang tercatat di storage/logs/laravel.log supaya mudah dilacak.
+                Log::warning("Notifikasi admin '{$menu}' tidak terkirim: tidak ada penerima. "
+                    . 'Periksa kolom role (owner/admin), status_aktif, is_active, dan admin_permissions.');
+
                 return;
             }
 
