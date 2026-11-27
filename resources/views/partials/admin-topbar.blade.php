@@ -85,14 +85,17 @@
 
                 async muat() {
                     try {
-                        const r = await fetch(feedUrl, {
+                        // no-store + parameter waktu: cegah browser / CDN / cache server menyajikan jawaban lama
+                        const r = await fetch(feedUrl + (feedUrl.includes('?') ? '&' : '?') + '_=' + Date.now(), {
                             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                             credentials: 'same-origin',
+                            cache: 'no-store',
                         });
                         if (r.status === 401 || r.status === 419) { this.berhenti = true; return; } // sesi habis
-                        if (!r.ok) return;
+                        if (!r.ok) { console.warn('Feed notifikasi gagal, status HTTP', r.status); return; }
 
                         const d = await r.json();
+                        const unreadLama = this.unread;
                         const baru = d.items.filter(i => !i.dibaca && !this.known.has(i.id));
                         d.items.forEach(i => this.known.add(i.id));
                         this.items = d.items;
@@ -100,7 +103,12 @@
                         this.perbaruiJudul();
 
                         if (baru.length) this.beritahu(baru);
-                    } catch (e) { /* jaringan putus: coba lagi di putaran berikutnya */ }
+
+                        // Ada kejadian baru: segarkan juga angka badge di sidebar (tanpa reload halaman)
+                        if ((baru.length || d.unread !== unreadLama) && typeof window.refreshSidebarBadges === 'function') {
+                            window.refreshSidebarBadges();
+                        }
+                    } catch (e) { console.warn('Feed notifikasi error:', e); /* coba lagi di putaran berikutnya */ }
                 },
 
                 beritahu(baru) {
