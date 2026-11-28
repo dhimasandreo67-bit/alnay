@@ -21,9 +21,9 @@ return [
     ],
 
     'kontak' => [
-        'wa_cs'         => env('ALNAY_WA_CS', '6288242480648'),
-        'wa_cs_display' => env('ALNAY_WA_CS_DISPLAY', '+62 8824-2480-648'),
-        'email'         => env('ALNAY_EMAIL', 'placeholder@alnay.id'),
+        'wa_cs'         => env('ALNAY_WA_CS', '0882-4248-0648'),
+        'wa_cs_display' => env('ALNAY_WA_CS_DISPLAY', '0882-4248-0648'),
+        'email'         => env('ALNAY_EMAIL', 'storealnay.id@gmail.com'),
     ],
 
     'toko' => [
@@ -36,7 +36,7 @@ return [
         'url' => env('ALNAY_EVENT_URL', 'https://event.alnay.id'),
     ],
 
-    'dp_sewa' => env('ALNAY_DP_SEWA', 1000000),
+    'dp_sewa' => env('ALNAY_DP_SEWA', 100000),
     'deposit_ktp' => env('ALNAY_DEPOSIT_KTP', 200000),
 
 ];
