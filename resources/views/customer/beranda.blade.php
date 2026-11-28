@@ -2,7 +2,23 @@
 
 @section('title', 'ALNAY.ID — Jas & Gown Berbudaya')
 
+{{-- ============================================================
+ HEAD: preload gambar LCP (font ditangani plugin Vite di vite.config.js)
+ Pastikan layouts/public.blade.php punya @stack('head') di dalam <head>
+ ============================================================ --}}
+@push('head')
+    <link rel="preload" as="image" href="{{ asset('images/home/hero-pasangan.webp') }}" fetchpriority="high">
+@endpush
+
 @section('content')
+
+    @php
+        $heroPhotos = [
+            ['src' => asset('images/home/hero-pasangan.webp'), 'title' => 'Busana Adat Berpasangan', 'subtitle' => 'Pesona budaya dalam balutan busana istimewa'],
+            ['src' => asset('images/home/hero-gown.webp'),     'title' => 'Gown Pengantin',          'subtitle' => 'Elegan dan anggun untuk momen spesial'],
+            ['src' => asset('images/home/hero-jas.webp'),      'title' => 'Jas Beskap Modern',       'subtitle' => 'Sentuhan modern pada busana adat'],
+        ];
+    @endphp
 
     {{-- Sprite ikon --}}
     <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -29,16 +45,9 @@
         </defs>
     </svg>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-
     {{-- ============================================================
      CUSTOM STYLES
+     (Saran lanjutan: pindahkan ke resources/css/home.css lalu @vite agar bisa di-cache)
      ============================================================ --}}
     <style>
         :root {
@@ -71,8 +80,8 @@
 
         html { scroll-behavior: smooth; }
         html, body { max-width: 100%; overflow-x: clip; }
-        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
-        .font-display { font-family: 'Playfair Display', serif; }
+        body { -webkit-font-smoothing: antialiased; }
+        .font-display { font-family: 'Playfair Display', Georgia, serif; }
 
         /* ---------- Ikon ---------- */
         .ico { width: 1em; height: 1em; flex-shrink: 0; display: inline-block; vertical-align: -0.125em; }
@@ -109,7 +118,7 @@
         }
 
         .sec-title {
-            font-family: 'Playfair Display', serif;
+            font-family: 'Playfair Display', Georgia, serif;
             font-weight: 700;
             color: var(--ink);
             font-size: 1.5rem;
@@ -170,20 +179,16 @@
         }
         .btn-smooth:active { transform: translateY(0) scale(.98); }
 
-        /* ---------- Animasi masuk hero ---------- */
+        /* ---------- Animasi masuk hero ----------
+           PERBAIKAN: tanpa fade dari opacity 0 agar LCP (h1 / foto) langsung terhitung.
+           Hanya bergeser sedikit. */
         @keyframes fade-up {
-            from { opacity: 0; transform: translateY(22px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from { transform: translateY(14px); }
+            to   { transform: translateY(0); }
         }
         .hero-in {
-            opacity: 0;
-            animation: fade-up .9s var(--ease-out) forwards;
+            animation: fade-up .6s var(--ease-out) both;
             animation-delay: calc(var(--d, 0) * 1s);
-        }
-
-        @keyframes float-soft {
-            0%, 100% { transform: translateY(0); }
-            50%      { transform: translateY(-6px); }
         }
 
         /* ---------- Hero background: tekstur tapis + pita tumpal ---------- */
@@ -233,8 +238,7 @@
             transform: translateX(calc(-50% + var(--x))) scale(var(--s));
             opacity: 0;
             pointer-events: none;
-            transition: transform .75s var(--ease-out), opacity .75s var(--ease-out), filter .75s var(--ease-out);
-            will-change: transform, opacity;
+            transition: transform .75s var(--ease-out), opacity .75s var(--ease-out);
         }
         @media (min-width: 640px) { .slide { width: 46%; } }
 
@@ -247,12 +251,15 @@
             border: 3px solid var(--gold);
             box-shadow: 0 28px 56px -12px rgba(0, 0, 0, .60), 0 0 0 1px rgba(201, 154, 50, .2);
         }
-        .slide.is-prev, .slide.is-next { opacity: 0; z-index: 1; --s: .82; filter: blur(2px); }
+        .slide.is-prev, .slide.is-next { opacity: 0; z-index: 1; --s: .82; }
         .slide.is-prev { --x: -58%; }
         .slide.is-next { --x: 58%; }
         @media (min-width: 640px) {
-            .slide.is-prev, .slide.is-next { opacity: .5; --x: 74%; }
+            /* PERBAIKAN: blur & will-change hanya di desktop (hemat GPU di HP) */
+            .slide { will-change: transform, opacity; transition: transform .75s var(--ease-out), opacity .75s var(--ease-out), filter .75s var(--ease-out); }
+            .slide.is-prev, .slide.is-next { opacity: .5; --x: 74%; filter: blur(2px); }
             .slide.is-prev { --x: -74%; }
+            .slide.is-active { filter: none; }
         }
 
         .slide-caption {
@@ -261,12 +268,14 @@
             padding: 10px 14px;
             border-radius: 12px;
             color: #fff;
-            background: rgba(10, 8, 5, .58);
-            backdrop-filter: blur(10px);
+            background: rgba(10, 8, 5, .72);
             border: 1px solid rgba(201, 154, 50, .18);
             opacity: 0;
             transform: translateY(10px);
             transition: opacity .6s var(--ease-out) .25s, transform .6s var(--ease-out) .25s;
+        }
+        @media (min-width: 640px) {
+            .slide-caption { background: rgba(10, 8, 5, .58); backdrop-filter: blur(10px); }
         }
         .slide.is-active .slide-caption { opacity: 1; transform: translateY(0); }
         .slide-caption p:first-child {
@@ -277,9 +286,9 @@
 
         .carousel-btn {
             transition: transform .3s var(--ease), background-color .3s ease, box-shadow .3s ease;
-            backdrop-filter: blur(6px);
             box-shadow: var(--shadow-sm);
         }
+        @media (min-width: 640px) { .carousel-btn { backdrop-filter: blur(6px); } }
         .carousel-btn:hover {
             transform: translateY(-50%) scale(1.1);
             background-color: rgba(255, 255, 255, .38) !important;
@@ -321,55 +330,10 @@
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 
-        /* ---------- Kartu produk (Inter, bentuk & warna seragam) ---------- */
-        .pk-card {
-            display: flex; flex-direction: column; height: 100%;
-            background: #fff; border: 1px solid var(--line); border-radius: 20px; overflow: hidden;
-            font-family: 'Inter', sans-serif; color: var(--ink);
-            transition: transform .45s var(--ease-out), box-shadow .45s var(--ease-out), border-color .3s ease;
-        }
-        .pk-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: #ece4d2; }
-        .pk-foto { position: relative; aspect-ratio: 3 / 4; background: #efe9dc; overflow: hidden; }
-        .pk-foto img { width: 100%; height: 100%; object-fit: cover; transition: transform .7s var(--ease-out); }
-        .pk-card:hover .pk-foto img { transform: scale(1.05); }
-        .pk-chip, .pk-rank {
-            position: absolute; top: 10px; padding: 4px 10px; border-radius: 999px;
-            font-size: 11px; font-weight: 600; line-height: 1.2;
-        }
-        .pk-chip { left: 10px; background: rgba(255, 255, 255, .92); color: var(--ink); backdrop-filter: blur(6px); }
-        .pk-chip-off { background: #fee2e2; color: #b91c1c; }
-        .pk-rank { right: 10px; background: var(--ink); color: #fff; }
-        .pk-body { display: flex; flex-direction: column; flex: 1; padding: 12px 14px 14px; }
-        @media (min-width: 640px) { .pk-body { padding: 14px 16px 16px; } }
-        .pk-nama {
-            font-size: 14px; font-weight: 600; line-height: 1.35; color: var(--ink);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .pk-rating { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; color: var(--muted); }
-        .pk-rating .ico { width: 13px; height: 13px; color: var(--gold); }
-        .pk-rating b { font-weight: 600; color: var(--ink); }
-        .pk-harga { margin: 10px 0 12px; min-height: 42px; }
-        .pk-utama { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.3; }
-        .pk-utama small { font-size: 11px; font-weight: 500; color: var(--muted); }
-        .pk-kedua { margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--muted); }
-        .pk-aksi { margin-top: auto; display: grid; grid-template-columns: 1fr; gap: 8px; }
-        .pk-aksi.dua { grid-template-columns: 1fr 1fr; }
-        .pk-btn {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-height: 40px; padding: 0 14px; border-radius: 999px;
-            font-size: 13px; font-weight: 600; letter-spacing: 0;
-            transition: background-color .25s ease, color .25s ease, border-color .25s ease, transform .25s var(--ease);
-        }
-        .pk-btn:active { transform: scale(.97); }
-        .pk-btn-emas { background: var(--gold); color: var(--ink); border: 1px solid var(--gold); }
-        .pk-btn-emas:hover { background: #b8860b; border-color: #b8860b; color: #fff; }
-        .pk-btn-garis { background: #fff; color: var(--ink); border: 1px solid var(--gold); }
-        .pk-btn-garis:hover { background: var(--gold-bg); }
-
         /* ---------- Kartu umum ---------- */
         .card-soft {
             border-radius: 20px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             border: 1px solid var(--line);
             background: #fff;
             box-shadow: var(--shadow-xs);
@@ -380,13 +344,6 @@
             transform: translateY(-6px);
             box-shadow: var(--shadow-lg);
             border-color: #ece4d2;
-        }
-
-        .quote-mark {
-            position: absolute; top: 8px; right: 20px;
-            font-family: 'Playfair Display', serif;
-            font-size: 72px; line-height: 1; color: var(--gold);
-            opacity: .12; pointer-events: none;
         }
 
         /* ---------- Event banner: pita tumpal di tepi bawah ---------- */
@@ -435,10 +392,6 @@
             isolation: isolate !important;
             background: #efe9dc;
         }
-        #peta-alnay .leaflet-pane,
-        #peta-alnay .leaflet-top,
-        #peta-alnay .leaflet-bottom,
-        #peta-alnay .leaflet-control { z-index: 1 !important; }
 
         /* ---------- Scroll reveal ---------- */
         .reveal {
@@ -510,14 +463,14 @@
 
             {{-- KIRI: Teks --}}
             <div class="min-w-0 text-white lg:w-1/2 mb-10 lg:mb-0">
-                <span class="hero-in inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-[10px] font-semibold backdrop-blur-sm border border-white/10"
+                <span class="hero-in inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-[10px] font-semibold border border-white/10"
                     style="--d:.05; color: var(--gold-soft);">
                     <svg class="ico-dot" aria-hidden="true"><use href="#i-dot" /></svg>
                     Jas &amp; Gown Berbudaya & Elegan dalam Setiap Momen
                 </span>
 
-                <h1 class="hero-in font-display mt-4 text-[28px] leading-tight font-bold min-[375px]:text-[32px] sm:text-[40px] lg:text-[44px]"
-                    style="--d:.18;">
+                {{-- h1 adalah kandidat LCP: TANPA class hero-in --}}
+                <h1 class="font-display mt-4 text-[28px] leading-tight font-bold min-[375px]:text-[32px] sm:text-[40px] lg:text-[44px]">
                     Jas &amp; Gown Berbudaya, Dicipta untuk
                     <span class="relative inline-block">
                         Momen Abadi
@@ -526,12 +479,12 @@
                     </span> Anda.
                 </h1>
 
-                <p class="hero-in mt-4 max-w-[460px] text-sm leading-relaxed" style="--d:.32; color: #cfcac0;">
+                <p class="hero-in mt-4 max-w-[460px] text-sm leading-relaxed" style="--d:.1; color: #cfcac0;">
                     Temukan koleksi Fashion Etnik pada ALNAY.ID dengan sentuhan elegan dan modern. Tersedia untuk
                     pembelian maupun penyewaan untuk melengkapi berbagai momen istimewa Anda.
                 </p>
 
-                <div class="hero-in mt-7 flex flex-col sm:flex-row gap-3" style="--d:.46;">
+                <div class="hero-in mt-7 flex flex-col sm:flex-row gap-3" style="--d:.15;">
                     <a href="{{ route('koleksi.index') }}"
                         class="btn-smooth inline-flex items-center justify-center px-6 py-3.5 text-xs font-bold text-white tracking-wide"
                         style="background: linear-gradient(135deg, var(--gold) 0%, #b8860b 100%);">
@@ -545,8 +498,8 @@
                 </div>
             </div>
 
-            {{-- KANAN: Carousel 3 Foto --}}
-            <div class="hero-in relative w-full min-w-0 lg:w-1/2" style="--d:.3;">
+            {{-- KANAN: Carousel 3 Foto (di-render server-side, tanpa class hero-in) --}}
+            <div class="relative w-full min-w-0 lg:w-1/2">
                 <button type="button" onclick="prevPhoto()" aria-label="Foto sebelumnya"
                     class="carousel-btn absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white/20 text-white rounded-full p-2 border border-white/20">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24"
@@ -555,7 +508,19 @@
                     </svg>
                 </button>
 
-                <div class="stage" id="carousel-container"></div>
+                <div class="stage" id="carousel-container">
+                    @foreach ($heroPhotos as $i => $p)
+                        <div class="slide {{ $i === 0 ? 'is-active' : ($i === count($heroPhotos) - 1 ? 'is-prev' : 'is-next') }}" data-i="{{ $i }}">
+                            <img src="{{ $p['src'] }}" alt="{{ $p['title'] }}"
+                                width="600" height="750" decoding="async" draggable="false"
+                                @if ($i === 0) fetchpriority="high" loading="eager" @else loading="lazy" @endif>
+                            <div class="slide-caption">
+                                <p>{{ $p['title'] }}</p>
+                                <p>{{ $p['subtitle'] }}</p>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
 
                 <button type="button" onclick="nextPhoto()" aria-label="Foto berikutnya"
                     class="carousel-btn absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white/20 text-white rounded-full p-2 border border-white/20">
@@ -570,10 +535,20 @@
         </div>
     </section>
 
-        {{-- ============================================================
+    {{-- ============================================================
      2. KATEGORI
      ============================================================ --}}
     <section class="reveal max-w-7xl mx-auto px-4 mt-14 md:mt-20">
+        <div class="flex flex-wrap items-end justify-between gap-4 mb-4">
+            <div>
+                <p class="sec-eyebrow mb-3">Jelajahi Busana</p>
+                <h2 class="sec-title">Kategori Busana</h2>
+                <p class="sec-sub">Pilih busana adat sesuai kebutuhan acara Anda</p>
+            </div>
+            <a href="{{ route('koleksi.index') }}" class="link-more">
+                Lihat Semua <svg class="ico" aria-hidden="true"><use href="#i-arrow" /></svg>
+            </a>
+        </div>
         <div class="overflow-x-auto sm:overflow-visible hide-scrollbar py-4 -mx-4 px-4 sm:mx-0 sm:px-0">
             <div
                 class="flex w-max min-w-full gap-4 sm:w-full sm:gap-12 sm:flex-wrap sm:justify-center snap-x snap-mandatory">
@@ -585,7 +560,8 @@
                         <div
                             class="cat-circle relative h-24 w-24 shrink-0 md:h-32 md:w-32 overflow-hidden rounded-full bg-white shadow-sm">
                             @if (!empty($k['foto']))
-                                <img src="{{ asset($k['foto']) }}" alt="{{ $k['nama_kategori'] }}" loading="lazy"
+                                <img src="{{ asset($k['foto']) }}" alt="{{ $k['nama_kategori'] }}"
+                                    width="128" height="128" loading="lazy" decoding="async"
                                     class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110">
                             @else
                                 <div class="flex h-full w-full items-center justify-center font-display text-3xl md:text-4xl"
@@ -627,19 +603,14 @@
         </div>
 
         @if (count($produkTerbaru) > 0)
-            {{-- Jarak antar card lebih lega (gap-4) --}}
             <div class="stagger flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-4 pb-4 px-4 -mx-4 sm:mx-0 sm:px-0 sm:gap-6 xl:grid xl:grid-cols-5 xl:overflow-visible xl:snap-none items-stretch">
-                
-                {{-- PERBAIKAN: Gunakan $produkTerbaru (bukan $produkTerpopuler) --}}
                 @foreach ($produkTerbaru as $p)
-                    {{-- Lebar card di HP 48% agar sejajar rapi --}}
                     <div class="reveal h-full shrink-0 w-[48%] sm:w-[31%] md:w-[24%] xl:w-auto snap-center">
-                        {{-- PERBAIKAN: Jangan kirim peringkat (karena ini produk baru, bukan populer) --}}
                         <x-product-card :produk="$p" />
                     </div>
                 @endforeach
             </div>
-            
+
             <div class="mt-2 flex items-center justify-center gap-2 text-[11px] font-medium text-[#9a9384] xl:hidden">
                 <span>Geser untuk melihat lebih banyak</span>
                 <svg class="h-3.5 w-3.5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -669,7 +640,6 @@
                 <div class="stagger flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-4 pb-4 px-4 -mx-4 sm:mx-0 sm:px-0 sm:gap-6 xl:grid xl:grid-cols-5 xl:overflow-visible xl:snap-none items-stretch">
                     @foreach ($produkTerpopuler as $index => $p)
                         <div class="reveal h-full shrink-0 w-[48%] sm:w-[31%] md:w-[24%] xl:w-auto snap-center">
-                            {{-- Disini baru pakai peringkat --}}
                             <x-product-card :produk="$p" :peringkat="$index + 1" />
                         </div>
                     @endforeach
@@ -824,156 +794,152 @@
     </section>
 
     {{-- ============================================================
-     7. OFFLINE ATELIER  (ganti seluruh section 7 lama dengan blok ini)
-     Tetap memakai id #peta-alnay dan #open-status, jadi script initMap()
-     dan initOpenStatus() di bawah halaman tidak perlu diubah.
+     7. OFFLINE ATELIER
+     Tetap memakai id #peta-alnay, script initMap() di bawah tidak berubah.
      ============================================================ --}}
-<style>
-    /* ---------- Kartu: info di kiri, peta penuh di kanan ---------- */
-    .atelier {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        overflow: hidden;
-        background: #fff;
-        border: 1px solid var(--line);
-        border-radius: 24px;
-        box-shadow: var(--shadow-sm);
-    }
-    @media (min-width: 1024px) { .atelier { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
+    <style>
+        /* ---------- Kartu: info di kiri, peta penuh di kanan ---------- */
+        .atelier {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        @media (min-width: 1024px) { .atelier { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); } }
 
-    .atelier-info { display: flex; flex-direction: column; padding: 20px 18px 22px; }
-    @media (min-width: 768px)  { .atelier-info { padding: 28px; } }
-    @media (min-width: 1024px) { .atelier-info { padding: 32px 34px; justify-content: center; } }
-    .atelier .sec-title { font-size: 1.375rem; }
-    @media (min-width: 768px) { .atelier .sec-title { font-size: 1.625rem; } }
-    .atelier .sec-title::after { margin-top: 10px; }
+        .atelier-info { display: flex; flex-direction: column; padding: 20px 18px 22px; }
+        @media (min-width: 768px)  { .atelier-info { padding: 28px; } }
+        @media (min-width: 1024px) { .atelier-info { padding: 32px 34px; justify-content: center; } }
+        .atelier .sec-title { font-size: 1.375rem; }
+        @media (min-width: 768px) { .atelier .sec-title { font-size: 1.625rem; } }
+        .atelier .sec-title::after { margin-top: 10px; }
 
-    .atelier-desc { margin-top: 10px; max-width: 32rem; font-size: .875rem; line-height: 1.6; color: #4b5563; }
+        .atelier-desc { margin-top: 10px; max-width: 32rem; font-size: .875rem; line-height: 1.6; color: #4b5563; }
 
-    /* ---------- Alamat & jam ---------- */
-    .atelier-list { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-    .atelier-row {
-        display: flex; gap: 14px; align-items: flex-start;
-        padding: 10px 12px;
-        border: 1px solid var(--line-soft);
-        border-radius: 14px;
-        background: #fdfbf7;
-    }
-    .atelier-ico {
-        width: 34px; height: 34px; flex-shrink: 0;
-        display: grid; place-items: center;
-        border-radius: 10px; background: var(--gold-bg); color: var(--gold);
-    }
-    .atelier-ico svg { width: 16px; height: 16px; }
-    .atelier-label { font-size: 12px; font-weight: 500; line-height: 1.3; color: var(--muted); }
-    .atelier-value { margin-top: 2px; font-size: 14px; font-weight: 600; line-height: 1.45; color: var(--ink); }
-    .atelier-jam { margin: 6px 0 0; }
-    .atelier-jam > div { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; font-size: 13px; }
-    .atelier-jam dt { color: var(--muted); }
-    .atelier-jam dd { margin: 0; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+        /* ---------- Alamat & jam ---------- */
+        .atelier-list { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+        .atelier-row {
+            display: flex; gap: 14px; align-items: flex-start;
+            padding: 10px 12px;
+            border: 1px solid var(--line-soft);
+            border-radius: 14px;
+            background: #fdfbf7;
+        }
+        .atelier-ico {
+            width: 34px; height: 34px; flex-shrink: 0;
+            display: grid; place-items: center;
+            border-radius: 10px; background: var(--gold-bg); color: var(--gold);
+        }
+        .atelier-ico svg { width: 16px; height: 16px; }
+        .atelier-label { font-size: 12px; font-weight: 500; line-height: 1.3; color: var(--muted); }
+        .atelier-value { margin-top: 2px; font-size: 14px; font-weight: 600; line-height: 1.45; color: var(--ink); }
+        .atelier-jam { margin: 6px 0 0; }
+        .atelier-jam > div { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; font-size: 13px; }
+        .atelier-jam dt { color: var(--muted); }
+        .atelier-jam dd { margin: 0; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
 
-    /* Lencana Buka/Tutup (diisi script lama lewat #open-status) dibuat seragam */
-    .atelier #open-status > span {
-        padding: 3px 10px; border-radius: 999px; font-size: 12px;
-        border-color: transparent; box-shadow: none; background: #f6f3ea;
-    }
+        .atelier #open-status > span {
+            padding: 3px 10px; border-radius: 999px; font-size: 12px;
+            border-color: transparent; box-shadow: none; background: #f6f3ea;
+        }
 
-    /* ---------- Tombol ---------- */
-    .atelier-cta { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
-    @media (min-width: 640px) { .atelier-cta { flex-direction: row; } }
-    .atelier-btn {
-        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-        min-height: 42px; padding: 0 20px;
-        font-size: 13px; font-weight: 600; text-align: center;
-    }
-    .atelier-btn svg { width: 16px; height: 16px; }
-    .atelier-btn-emas { color: #fff; background: linear-gradient(135deg, var(--gold) 0%, #b8860b 100%); }
-    .atelier-btn-garis { color: var(--ink); background: #fff; border: 1px solid #e5dfd0; }
-    .atelier-btn-garis:hover { background: var(--gold-bg); border-color: var(--gold); }
+        /* ---------- Tombol ---------- */
+        .atelier-cta { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+        @media (min-width: 640px) { .atelier-cta { flex-direction: row; } }
+        .atelier-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            min-height: 42px; padding: 0 20px;
+            font-size: 13px; font-weight: 600; text-align: center;
+        }
+        .atelier-btn svg { width: 16px; height: 16px; }
+        .atelier-btn-emas { color: #fff; background: linear-gradient(135deg, var(--gold) 0%, #b8860b 100%); }
+        .atelier-btn-garis { color: var(--ink); background: #fff; border: 1px solid #e5dfd0; }
+        .atelier-btn-garis:hover { background: var(--gold-bg); border-color: var(--gold); }
 
-    /* ---------- Peta (kartu info bawaan Google tampil di kiri atas) ---------- */
-    .atelier-peta {
-        position: relative; isolation: isolate;
-        min-height: 400px;   /* cukup tinggi agar pin tidak tertutup kartu info Google di HP */
-        background: linear-gradient(110deg, #efe9dc 30%, #f6f1e7 50%, #efe9dc 70%) 0 0 / 200% 100%;
-        animation: atelier-muat 1.6s linear infinite;
-    }
-    @media (min-width: 1024px) { .atelier-peta { min-height: 380px; } }
-    @keyframes atelier-muat { to { background-position: -200% 0; } }
+        /* ---------- Peta ---------- */
+        .atelier-peta {
+            position: relative; isolation: isolate;
+            min-height: 400px;
+            background: linear-gradient(110deg, #efe9dc 30%, #f6f1e7 50%, #efe9dc 70%) 0 0 / 200% 100%;
+            animation: atelier-muat 1.6s linear infinite;
+        }
+        @media (min-width: 1024px) { .atelier-peta { min-height: 380px; } }
+        @keyframes atelier-muat { to { background-position: -200% 0; } }
 
-    .atelier-peta > #peta-alnay {
-        position: absolute !important; inset: 0; overflow: hidden;
-        height: auto; background: transparent;
-    }
-    .atelier-peta > #peta-alnay iframe {
-        position: absolute !important; inset: 0;
-        width: 100% !important; height: 100% !important;
-        filter: saturate(.92);
-    }
-    @media (max-width: 1023px) { .atelier-peta > #peta-alnay { pointer-events: none !important; } }
+        .atelier-peta > #peta-alnay {
+            position: absolute !important; inset: 0; overflow: hidden;
+            height: auto; background: transparent;
+        }
+        .atelier-peta > #peta-alnay iframe {
+            position: absolute !important; inset: 0;
+            width: 100% !important; height: 100% !important;
+            filter: saturate(.92);
+        }
+        @media (max-width: 1023px) { .atelier-peta > #peta-alnay { pointer-events: none !important; } }
 
-    /* HP: seluruh peta bisa diketuk untuk membuka Google Maps, jadi scroll halaman tidak tersangkut */
-    .atelier-tap { position: absolute; inset: 0; z-index: 4; }
-    @media (min-width: 1024px) { .atelier-tap { display: none; } }
+        .atelier-tap { position: absolute; inset: 0; z-index: 4; }
+        @media (min-width: 1024px) { .atelier-tap { display: none; } }
 
-    @media (prefers-reduced-motion: reduce) { .atelier-peta { animation: none; } }
-</style>
+        @media (prefers-reduced-motion: reduce) { .atelier-peta { animation: none; } }
+    </style>
 
-<section class="reveal max-w-6xl mx-auto px-4 py-8 md:py-12" aria-labelledby="atelier-judul">
-    <div class="atelier">
+    <section class="reveal max-w-6xl mx-auto px-4 py-8 md:py-12" aria-labelledby="atelier-judul">
+        <div class="atelier">
 
-        {{-- ============ KIRI: INFO ============ --}}
-        <div class="atelier-info">
-            <p class="sec-eyebrow">Galeri &amp; Ruang Fitting</p>
-            <h2 id="atelier-judul" class="sec-title mt-3">Offline Atelier &amp; Toko ALNAY.ID</h2>
-            <p class="atelier-desc">
-                Datang langsung untuk konsultasi, fitting presisi, dan melihat koleksi secara nyata.
-                Tersedia ruang fitting privat ber-AC dan penjahit profesional.
-            </p>
+            {{-- ============ KIRI: INFO ============ --}}
+            <div class="atelier-info">
+                <p class="sec-eyebrow">Galeri &amp; Ruang Fitting</p>
+                <h2 id="atelier-judul" class="sec-title mt-3">Offline Atelier &amp; Toko ALNAY.ID</h2>
+                <p class="atelier-desc">
+                    Datang langsung untuk konsultasi, fitting presisi, dan melihat koleksi secara nyata.
+                    Tersedia ruang fitting privat ber-AC dan penjahit profesional.
+                </p>
 
-            <ul class="atelier-list">
-                                <li class="atelier-row">
-                    <span class="atelier-ico" aria-hidden="true">
-                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </span>
-                    <div class="min-w-0 flex-1">
-                                                <div class="mb-1">
-                            <p class="atelier-label">Ketersediaan Toko</p>
+                <ul class="atelier-list">
+                    <li class="atelier-row">
+                        <span class="atelier-ico" aria-hidden="true">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <div class="mb-1">
+                                <p class="atelier-label">Ketersediaan Toko</p>
+                            </div>
+                            <p class="text-[11px] text-gray-500 leading-relaxed mb-3">Jadwal operasional bersifat fleksibel. Silakan hubungi WhatsApp CS untuk memastikan staf dan ruang fitting tersedia sebelum Anda berkunjung.</p>
+                            <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text=Halo%20Admin%20ALNAY,%20apakah%20toko%20sedang%20buka%20hari%20ini?" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-[#25D366] text-white text-[11px] font-bold hover:bg-[#128C7E] transition-colors shadow-sm">
+                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                Cek Ketersediaan Toko
+                            </a>
                         </div>
-                        <p class="text-[11px] text-gray-500 leading-relaxed mb-3">Jadwal operasional bersifat fleksibel. Silakan hubungi WhatsApp CS untuk memastikan staf dan ruang fitting tersedia sebelum Anda berkunjung.</p>
-                        <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}?text=Halo%20Admin%20ALNAY,%20apakah%20toko%20sedang%20buka%20hari%20ini?" target="_blank" class="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-[#25D366] text-white text-[11px] font-bold hover:bg-[#128C7E] transition-colors shadow-sm">
-                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                            Cek Ketersediaan Toko
-                        </a>
-                    </div>
-                </li>
-            </ul>
+                    </li>
+                </ul>
 
-            <div class="atelier-cta">
-                <a href="https://www.google.com/maps/dir/?api=1&destination=Alnay.id+Kedaung+Kemiling+Bandar+Lampung"
-                    target="_blank" rel="noopener" class="btn-smooth atelier-btn atelier-btn-emas">
-                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                    Petunjuk arah
-                </a>
-                <a href="{{ url('cara-sewa') }}" class="btn-smooth atelier-btn atelier-btn-garis">Panduan sewa online</a>
+                <div class="atelier-cta">
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=Alnay.id+Kedaung+Kemiling+Bandar+Lampung"
+                        target="_blank" rel="noopener" class="btn-smooth atelier-btn atelier-btn-emas">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                        Petunjuk arah
+                    </a>
+                    <a href="{{ url('cara-sewa') }}" class="btn-smooth atelier-btn atelier-btn-garis">Panduan sewa online</a>
+                </div>
             </div>
+
+            {{-- ============ KANAN: PETA (Google Maps, dimuat saat mendekati viewport) ============ --}}
+            <div class="atelier-peta">
+                <div id="peta-alnay" role="region" aria-label="Peta lokasi ALNAY.ID"></div>
+
+                <a href="https://www.google.com/maps/search/?api=1&query=Alnay.id+Kedaung+Kemiling+Bandar+Lampung"
+                    target="_blank" rel="noopener" class="atelier-tap" aria-label="Buka peta di Google Maps"></a>
+            </div>
+
         </div>
-
-        {{-- ============ KANAN: PETA (Google Maps) ============ --}}
-        <div class="atelier-peta">
-            <div id="peta-alnay" role="region" aria-label="Peta lokasi ALNAY.ID"></div>
-
-            {{-- HP: ketuk di mana saja pada peta untuk membuka Google Maps --}}
-            <a href="https://www.google.com/maps/search/?api=1&query=Alnay.id+Kedaung+Kemiling+Bandar+Lampung"
-                target="_blank" rel="noopener" class="atelier-tap" aria-label="Buka peta di Google Maps"></a>
-        </div>
-
-    </div>
-</section>
+    </section>
 
     {{-- ============================================================
      8. TESTIMONI
@@ -1000,7 +966,7 @@
                 </div>
             </div>
 
-                        @if (count($testimoni) > 0)
+            @if (count($testimoni) > 0)
                 {{-- Slider Testimoni dengan Alpine.js --}}
                 <div class="relative" x-data="{
                     active: 0,
@@ -1026,22 +992,22 @@
                         });
                     }
                 }">
-                    
+
                     {{-- Container Track --}}
                     <div class="overflow-hidden -mx-3 md:-mx-4">
-                        <div class="flex transition-transform duration-500 ease-in-out" 
+                        <div class="flex transition-transform duration-500 ease-in-out"
                              :style="`transform: translateX(-${active * (100 / perPage)}%)`">
-                            
+
                             @foreach ($testimoni as $t)
                                 @php $inisial = strtoupper(mb_substr($t['nama'], 0, 2)); @endphp
                                 <div class="w-full md:w-1/2 lg:w-1/3 shrink-0 px-3 md:px-4 pb-4">
-                                    
-                                    {{-- KARTU TESTIMONI (Sama seperti aslinya) --}}
+
+                                    {{-- KARTU TESTIMONI --}}
                                     <div class="reveal card-soft relative overflow-hidden group flex flex-col justify-between p-5 sm:p-6 md:p-7 min-h-[200px] h-full shadow-sm hover:shadow-md transition-shadow">
                                         @if (!empty($t['foto']))
                                             <div class="absolute top-0 right-0 bottom-0 w-[55%] z-0">
                                                 <div class="absolute inset-0 overflow-hidden" style="-webkit-mask-image: linear-gradient(to left, black 40%, transparent 95%); mask-image: linear-gradient(to left, black 40%, transparent 95%);">
-                                                    <img src="{{ $t['foto'] }}" alt="Produk" class="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105">
+                                                    <img src="{{ $t['foto'] }}" alt="Produk" loading="lazy" decoding="async" width="300" height="300" class="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105">
                                                 </div>
                                             </div>
                                         @endif
@@ -1060,7 +1026,7 @@
                                                     {{ $inisial }}
                                                     @if (!empty($t['foto_user']))
                                                         @php $fotoUser = \Illuminate\Support\Str::startsWith($t['foto_user'], ['http://', 'https://']) ? $t['foto_user'] : asset('storage/' . $t['foto_user']); @endphp
-                                                        <img src="{{ $fotoUser }}" alt="{{ $t['nama'] }}" class="absolute inset-0 w-full h-full object-cover">
+                                                        <img src="{{ $fotoUser }}" alt="{{ $t['nama'] }}" loading="lazy" decoding="async" width="36" height="36" class="absolute inset-0 w-full h-full object-cover">
                                                     @endif
                                                 </div>
                                                 <div class="min-w-0">
@@ -1073,63 +1039,50 @@
 
                                 </div>
                             @endforeach
-                            
+
                         </div>
                     </div>
 
                     {{-- Tombol Navigasi (Kiri & Kanan) --}}
-                    @if(count($testimoni) > 1)
+                    @if (count($testimoni) > 1)
                         <div class="flex items-center justify-center gap-2 mt-6">
-                            <button type="button" @click="prev()" class="w-10 h-10 rounded-full bg-white border border-[#f0ece4] flex items-center justify-center text-[#15233d]/60 hover:text-[#c99a32] hover:border-[#c99a32] transition-colors shadow-sm">
+                            <button type="button" @click="prev()" aria-label="Testimoni sebelumnya" class="w-10 h-10 rounded-full bg-white border border-[#f0ece4] flex items-center justify-center text-[#15233d]/60 hover:text-[#c99a32] hover:border-[#c99a32] transition-colors shadow-sm">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                             </button>
-                            
+
                             {{-- Indikator Titik --}}
                             <div class="flex items-center gap-1.5 mx-2">
                                 <template x-for="i in (maxIndex + 1)" :key="i">
-                                    <button type="button" @click="active = i - 1" class="h-2 rounded-full transition-all duration-300" 
+                                    <button type="button" @click="active = i - 1" aria-label="Slide testimoni" class="h-2 rounded-full transition-all duration-300"
                                             :class="active === (i - 1) ? 'w-6 bg-[#c99a32]' : 'w-2 bg-gray-300 hover:bg-gray-400'"></button>
                                 </template>
                             </div>
 
-                            <button type="button" @click="next()" class="w-10 h-10 rounded-full bg-white border border-[#f0ece4] flex items-center justify-center text-[#15233d]/60 hover:text-[#c99a32] hover:border-[#c99a32] transition-colors shadow-sm">
+                            <button type="button" @click="next()" aria-label="Testimoni berikutnya" class="w-10 h-10 rounded-full bg-white border border-[#f0ece4] flex items-center justify-center text-[#15233d]/60 hover:text-[#c99a32] hover:border-[#c99a32] transition-colors shadow-sm">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                             </button>
                         </div>
                     @endif
-                    
+
                 </div>
             @endif
         </div>
     </section>
 
-    {{-- === JAVASCRIPT (logika tetap) === --}}
+    {{-- === JAVASCRIPT === --}}
     <script>
-        const photos = [
-            { src: "{{ asset('images/home/hero-pasangan.webp') }}", title: 'Busana Adat Berpasangan', subtitle: 'Pesona budaya dalam balutan busana istimewa' },
-            { src: "{{ asset('images/home/hero-gown.webp') }}", title: 'Gown Pengantin', subtitle: 'Elegan dan anggun untuk momen spesial' },
-            { src: "{{ asset('images/home/hero-jas.webp') }}", title: 'Jas Beskap Modern', subtitle: 'Sentuhan modern pada busana adat' }
-        ];
+        // Slide sudah dirender server-side (Blade); JS hanya mengatur kelas aktif, dot, swipe, dan auto-play.
+        const totalSlides = {{ count($heroPhotos) }};
 
         let currentIndex = 0;
         let autoTimer = null;
         const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         function buildCarousel() {
-            const stage = document.getElementById('carousel-container');
             const dots = document.getElementById('carousel-dots');
-            if (!stage) return;
+            if (!dots) return;
 
-            stage.innerHTML = photos.map((p, i) => `
-                <div class="slide" data-i="${i}">
-                    <img src="${p.src}" alt="${p.title}" ${i === 0 ? '' : 'loading="lazy"'} draggable="false">
-                    <div class="slide-caption">
-                        <p>${p.title}</p>
-                        <p>${p.subtitle}</p>
-                    </div>
-                </div>`).join('');
-
-            dots.innerHTML = photos.map((_, i) =>
+            dots.innerHTML = Array.from({ length: totalSlides }, (_, i) =>
                 `<button type="button" class="dot" data-dot="${i}" aria-label="Foto ${i + 1}"></button>`).join('');
 
             dots.querySelectorAll('[data-dot]').forEach(d =>
@@ -1139,7 +1092,7 @@
         }
 
         function updateCarousel() {
-            const n = photos.length;
+            const n = totalSlides;
             document.querySelectorAll('#carousel-container .slide').forEach((el, i) => {
                 el.classList.remove('is-active', 'is-prev', 'is-next');
                 if (i === currentIndex) el.classList.add('is-active');
@@ -1151,7 +1104,7 @@
         }
 
         function goTo(i, userAction = false) {
-            currentIndex = (i + photos.length) % photos.length;
+            currentIndex = (i + totalSlides) % totalSlides;
             updateCarousel();
             if (userAction) restartAuto();
         }
@@ -1183,8 +1136,6 @@
             stage.addEventListener('mouseleave', startAuto);
         }
 
-       
-
         function initMap() {
             const el = document.getElementById('peta-alnay');
             if (!el || el.dataset.ready) return;
@@ -1193,10 +1144,12 @@
             const searchQuery = encodeURIComponent('Alnay.id Lampung, Kedaung, Kemiling, Bandar Lampung');
             el.innerHTML = `
                 <iframe
+                    title="Peta lokasi ALNAY.ID"
                     width="100%"
                     height="100%"
                     style="border:0; width:100%; height:100%;"
                     loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
                     allowfullscreen
                     src="https://maps.google.com/maps?q=${searchQuery}&hl=id&z=17&output=embed">
                 </iframe>
