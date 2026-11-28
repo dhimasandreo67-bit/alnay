@@ -154,6 +154,15 @@
 
 @php
     use Illuminate\Support\Facades\Route;
+    // Nama pengguna yang sedang login (untuk sapaan di promo bar); null jika belum login
+    $penggunaLogin = auth()->user();
+    $namaUser = null;
+    if ($penggunaLogin) {
+        $atribut = $penggunaLogin->getAttributes();
+        $namaMentah = trim((string) ($atribut['nama'] ?? $atribut['name'] ?? $atribut['username'] ?? ''));
+        $namaUser = $namaMentah !== '' ? \Illuminate\Support\Str::limit($namaMentah, 24) : null;
+    }
+
     $navItems = [
         ['label' => 'Beranda', 'route' => 'beranda', 'ikon' => 'home', 'active' => request()->routeIs('beranda')],
         ['label' => 'Koleksi', 'route' => 'koleksi.index', 'ikon' => 'dress', 'active' => request()->routeIs('koleksi.*')],
@@ -174,7 +183,7 @@
             <div class="flex items-center gap-4 px-2">
                 <span class="text-[#8a6410] flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-[#c99a32] inline-block"></span>
-                    {{ config('alnay.promo_bar.teks') }}
+                    @if ($namaUser)Selamat datang <strong class="font-semibold">{{ $namaUser }}</strong> di {{ config('alnay.brand.nama') }}@else{{ config('alnay.promo_bar.teks') }}@endif
                 </span>
                 <span class="text-[#a97c1a] flex items-center gap-1">
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -188,7 +197,7 @@
             <div class="flex items-center gap-4 px-2">
                 <span class="text-[#8a6410] flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-[#c99a32] inline-block"></span>
-                    {{ config('alnay.promo_bar.teks') }}
+                    @if ($namaUser)Selamat datang <strong class="font-semibold">{{ $namaUser }}</strong> di {{ config('alnay.brand.nama') }}@else{{ config('alnay.promo_bar.teks') }}@endif
                 </span>
                 <span class="text-[#a97c1a] flex items-center gap-1">
                     <x-icon name="whatsapp" :size="12" /> WA CS: {{ config('alnay.kontak.wa_cs_display') }}
@@ -203,7 +212,7 @@
     <div class="hidden md:flex max-w-7xl mx-auto px-4 py-2 items-center justify-between">
         <p class="flex items-center gap-2 text-[#8a6410]">
             <span class="w-2 h-2 rounded-full bg-[#c99a32] inline-block shadow-[0_0_8px_rgba(201,154,50,.9)]"></span>
-            {{ config('alnay.promo_bar.teks') }}
+            @if ($namaUser)Selamat datang <strong class="font-semibold">{{ $namaUser }}</strong> di {{ config('alnay.brand.nama') }}@else{{ config('alnay.promo_bar.teks') }}@endif
         </p>
         <div class="flex items-center gap-4 text-[#6b7280]">
             <span class="inline-flex items-center gap-1.5"><span class="text-[#a97c1a]">Toko:</span> {{ config('alnay.toko.jam_buka') }}</span>
