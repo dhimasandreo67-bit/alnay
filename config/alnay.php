@@ -13,8 +13,8 @@ return [
 
     'brand' => [
         'nama'    => 'ALNAY.ID',
-        'tagline' => 'Fashion Adat Nusantara',
-    ],
+        'tagline' => 'Muda Gaya Berbudaya',
+    ],  
 
     'promo_bar' => [
         'teks' => env('ALNAY_PROMO_TEKS', 'Selamat datang di ALNAY.ID'),
