@@ -73,6 +73,15 @@
             pointer-events: none;
         }
 
+        /* ---------- Login terkunci (timer percobaan) ---------- */
+        .is-locked {
+            cursor: not-allowed !important;
+            opacity: .6;
+        }
+
+        #submitBtn.is-locked .btn-sheen { display: none; }
+        #submitBtn.is-locked { transform: none !important; box-shadow: none !important; }
+
         /* ---------- Accessibility ---------- */
         @media (prefers-reduced-motion: reduce) {
             .anim-rise, .anim-fade, .anim-float, .anim-float-slow,
@@ -320,10 +329,14 @@
                 {{-- Card --}}
                 <div class="anim-rise d-1 rounded-3xl border border-black/[0.06] bg-white/80 p-7 shadow-[0_24px_70px_-24px_rgba(0,0,0,0.28)] backdrop-blur-xl sm:p-9">
 
+                    {{-- Sisa detik blokir login (dikirim dari AdminLoginController@create) --}}
+                    @php $sisaDetik = (int) ($sisaDetik ?? 0); @endphp
+
                     <h2 class="font-display text-3xl font-semibold tracking-tight text-ink">Masuk</h2>
                     <p class="mt-2 text-sm text-ink-muted">Kelola operasional ALNAY.ID.</p>
 
-                    @if ($errors->any())
+                    {{-- Saat diblokir, pesan error diganti timer di bawah --}}
+                    @if ($errors->any() && $sisaDetik <= 0)
                         <div class="anim-shake mt-6 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50/90 px-4 py-3 text-sm text-rose-700">
                             <svg class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <circle cx="12" cy="12" r="9" />
@@ -342,6 +355,21 @@
                                 <path d="M12 16h.01" />
                             </svg>
                             <span>{{ session('error') }}</span>
+                        </div>
+                    @endif
+
+                    {{-- Timer blokir login --}}
+                    @if ($sisaDetik > 0)
+                        <div id="lockBox" role="alert" class="anim-shake mt-6 rounded-2xl border border-rose-200 bg-rose-50/90 px-4 py-4 text-center text-rose-700">
+                            <div class="flex items-center justify-center gap-2 text-sm font-medium">
+                                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="4" y="10" width="16" height="10" rx="3" />
+                                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                                </svg>
+                                <span>Terlalu banyak percobaan gagal.</span>
+                            </div>
+                            <p class="mt-1.5 text-xs text-rose-600/80">Coba lagi dalam</p>
+                            <p id="lockTimer" aria-live="off" class="mt-1 font-display text-3xl font-semibold tabular-nums">--:--</p>
                         </div>
                     @endif
 
@@ -439,21 +467,71 @@
                 });
             }
 
-            // Loading state saat submit
+            // Loading state saat submit + timer blokir login
             var form = document.getElementById('loginForm');
             var btn = document.getElementById('submitBtn');
             var label = document.getElementById('btnLabel');
             var spinner = document.getElementById('btnSpinner');
             var arrow = document.getElementById('btnArrow');
+            var lockBox = document.getElementById('lockBox');
+            var lockTimer = document.getElementById('lockTimer');
+
+            // Pakai tenggat waktu (bukan hitung mundur per tick) agar tetap akurat saat tab di-throttle browser
+            var lockUntil = Date.now() + {{ $sisaDetik }} * 1000;
+            function remaining() {
+                return Math.max(0, Math.ceil((lockUntil - Date.now()) / 1000));
+            }
 
             if (form && btn) {
-                form.addEventListener('submit', function() {
+                form.addEventListener('submit', function(e) {
+                    // Selama diblokir, form tidak boleh terkirim (mis. lewat tombol Enter)
+                    if (remaining() > 0) {
+                        e.preventDefault();
+                        return;
+                    }
                     if (!form.checkValidity()) return;
                     btn.disabled = true;
                     if (label) label.textContent = 'Memproses…';
                     if (spinner) spinner.classList.remove('hidden');
                     if (arrow) arrow.classList.add('hidden');
                 });
+            }
+
+            if (form && lockBox && lockTimer && remaining() > 0) {
+                // Semua input & tombol dinonaktifkan selama masa blokir
+                var controls = form.querySelectorAll('input:not([type="hidden"]), button');
+
+                var setLocked = function(state) {
+                    controls.forEach(function(el) {
+                        el.disabled = state;
+                        el.classList.toggle('is-locked', state);
+                    });
+                    if (label) label.textContent = state ? 'Terkunci' : 'Masuk';
+                    if (arrow) arrow.classList.toggle('hidden', state);
+                };
+
+                var format = function(detik) {
+                    var j = Math.floor(detik / 3600);
+                    var m = String(Math.floor((detik % 3600) / 60)).padStart(2, '0');
+                    var s = String(detik % 60).padStart(2, '0');
+                    return j > 0 ? j + ':' + m + ':' + s : m + ':' + s;
+                };
+
+                setLocked(true);
+                lockTimer.textContent = format(remaining());
+
+                var tick = setInterval(function() {
+                    var sisa = remaining();
+                    if (sisa <= 0) {
+                        clearInterval(tick);
+                        setLocked(false);
+                        lockBox.classList.add('hidden');
+                        var emailInput = document.getElementById('email');
+                        if (emailInput) emailInput.focus();
+                        return;
+                    }
+                    lockTimer.textContent = format(sisa);
+                }, 1000);
             }
         })();
 
