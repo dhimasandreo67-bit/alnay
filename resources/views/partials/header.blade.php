@@ -121,6 +121,13 @@
     .al-tapis > div { position: relative; z-index: 1; transition: opacity .4s ease; }
     .al-tapis.is-hidden > div { opacity: 0; transition: opacity .25s ease; }
 
+    /* --- IKON (komponen x-icon) --- */
+    .al-ikon { flex: none; transition: transform .25s ease; }
+    .al-icon-btn:hover .al-ikon { transform: scale(1.08); }
+    .al-icon-btn:hover .al-ikon-bell { animation: wiggle .6s ease-in-out; transform-origin: 50% 10%; }
+    .al-nav .al-ikon { color: #a97c1a; transition: transform .3s cubic-bezier(.22, .8, .3, 1), color .25s ease; }
+    .al-nav:hover .al-ikon { transform: translateY(-1px) scale(1.12); }
+
     /* --- NAVIGASI DESKTOP --- */
     .al-nav {
         position: relative; color: #0a0a0a; font-weight: 800; border-radius: 999px;
@@ -141,17 +148,18 @@
     @media (prefers-reduced-motion: reduce) {
         .al-header, .al-main, .al-nav, .al-icon-btn, .al-tapis, .al-tapis.is-hidden, .al-tapis > div { transition: none !important; }
         .al-tapis-track, .animate-marquee-mobile { animation: none; }
+        .al-ikon { transition: none !important; animation: none !important; }
     }
 </style>
 
 @php
     use Illuminate\Support\Facades\Route;
     $navItems = [
-        ['label' => 'Beranda', 'route' => 'beranda', 'active' => request()->routeIs('beranda')],
-        ['label' => 'Koleksi', 'route' => 'koleksi.index', 'active' => request()->routeIs('koleksi.*')],
-        ['label' => 'Cara Sewa', 'route' => 'cara-sewa', 'active' => request()->routeIs('cara-sewa')],
-        ['label' => 'Tentang Kami', 'route' => 'tentang', 'active' => request()->routeIs('tentang')],
-        ['label' => 'Testimoni', 'route' => 'testimoni', 'active' => request()->routeIs('testimoni')],
+        ['label' => 'Beranda', 'route' => 'beranda', 'ikon' => 'home', 'active' => request()->routeIs('beranda')],
+        ['label' => 'Koleksi', 'route' => 'koleksi.index', 'ikon' => 'dress', 'active' => request()->routeIs('koleksi.*')],
+        ['label' => 'Cara Sewa', 'route' => 'cara-sewa', 'ikon' => 'calendar-check', 'active' => request()->routeIs('cara-sewa')],
+        ['label' => 'Tentang Kami', 'route' => 'tentang', 'ikon' => 'info', 'active' => request()->routeIs('tentang')],
+        ['label' => 'Testimoni', 'route' => 'testimoni', 'ikon' => 'testimoni', 'active' => request()->routeIs('testimoni')],
     ];
 @endphp
 
@@ -217,10 +225,10 @@
 
         {{-- Logo --}}
         <a href="{{ route('beranda') }}" class="flex items-center gap-2 shrink-0 min-h-[40px] sm:min-h-[44px]">
-            <img src="{{ asset('images/home/alnaylogo.png') }}" alt="ALNAY.ID" class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl border border-[#c99a32] bg-[#fbf6e9] object-contain p-1 shadow-[0_6px_20px_-6px_rgba(201,154,50,.65)]">
+            <img src="{{ asset('images/home/alnaylogo.png') }}" alt="{{ config('alnay.brand.nama') }}" class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl border border-[#c99a32] bg-[#fbf6e9] object-contain p-1 shadow-[0_6px_20px_-6px_rgba(201,154,50,.65)]">
             <span class="hidden sm:block leading-tight">
-                <span class="block font-display font-bold text-[#15233d] text-lg tracking-tight">ALNAY.ID</span>
-                <span class="block text-[9px] uppercase tracking-[0.24em] text-[#a97c1a]">Muda Gaya Berbudaya</span>
+                <span class="block font-display font-bold text-[#15233d] text-lg tracking-tight">{{ config('alnay.brand.nama') }}</span>
+                <span class="block text-[9px] uppercase tracking-[0.24em] text-[#a97c1a]">{{ config('alnay.brand.tagline') }}</span>
             </span>
         </a>
 
@@ -236,7 +244,7 @@
             
             {{-- Keranjang (Hanya Ikon di HP) --}}
             <a href="{{ route('keranjang.index') }}" class="al-icon-btn relative inline-flex items-center justify-center w-8 h-8 sm:w-auto sm:h-11 sm:px-4 sm:gap-2 rounded-full" aria-label="Keranjang">
-                <x-icon name="cart" :size="16" class="sm:w-5 sm:h-5" />
+                <x-icon name="bag" :size="18" class="sm:w-[22px] sm:h-[22px]" />
                 <span class="hidden sm:inline text-sm font-medium">Keranjang</span>
                 @php
                     $totalKeranjang = 0;
@@ -271,7 +279,7 @@
             @endphp
             <div class="relative" x-data="notifLonceng(@js($notifData))">
                 <button type="button" @click="notifOpen = !notifOpen" class="al-icon-btn group relative w-8 h-8 sm:w-11 sm:h-11 rounded-full flex items-center justify-center active:scale-95" aria-label="Notifikasi" :aria-expanded="notifOpen">
-                    <div class="group-active:animate-[wiggle_0.3s_ease-in-out]"><x-icon name="bell" :size="16" class="sm:w-5 sm:h-5" /></div>
+                    <div class="group-active:animate-[wiggle_0.3s_ease-in-out]"><x-icon name="bell" :size="18" class="sm:w-[22px] sm:h-[22px]" /></div>
                     {{-- Badge: hanya jumlah notifikasi yang BELUM dibuka --}}
                     <span x-show="unread > 0" x-cloak x-text="unread > 99 ? '99+' : unread" class="al-badge"></span>
                 </button>
@@ -284,7 +292,7 @@
                             <span x-show="unread > 0" x-cloak x-text="unread + ' baru'" class="px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 text-[10px] font-bold"></span>
                         </div>
                         <button type="button" @click="notifOpen = false" class="text-[#6b7280] hover:text-[#8a6410] p-1 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors" aria-label="Tutup">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            <x-icon name="close" :size="16" />
                         </button>
                     </div>
 
@@ -308,8 +316,8 @@
                                 <a :href="n.urlBuka" class="flex flex-1 min-w-0 items-center gap-3.5 pl-5 pr-2 py-3.5 hover:bg-[#c99a32]/10 transition-colors">
                                     <div class="relative w-8 h-8 rounded-full flex items-center justify-center shrink-0" :class="n.jenis === 'sewa' ? 'bg-amber-50 text-amber-500' : 'bg-sky-50 text-sky-500'">
                                         <span x-show="!n.dibaca" class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white"></span>
-                                        <svg x-show="n.jenis === 'sewa'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                                        <svg x-show="n.jenis !== 'sewa'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                                        <x-icon x-show="n.jenis === 'sewa'" name="calendar-check" :size="16" />
+                                        <x-icon x-show="n.jenis !== 'sewa'" name="bag" :size="16" />
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center justify-between gap-2">
@@ -324,7 +332,7 @@
                                 <button type="button" @click.stop="hapus(n)" :disabled="busy"
                                         class="mr-3 w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-[#9a9384] hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-40"
                                         aria-label="Hapus notifikasi" title="Hapus notifikasi">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    <x-icon name="close" :size="14" />
                                 </button>
                             </div>
                         </template>
@@ -353,7 +361,7 @@
 
                 {{-- Profil (Desktop) --}}
                 <a href="{{ $profileRoute }}" class="hidden md:inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-11 sm:px-4 rounded-full border border-[#c99a32]/40 text-sm font-semibold text-[#8a6410] hover:bg-[#c99a32]/15 transition-colors">
-                    <x-icon name="user" :size="18" />
+                    <x-icon name="user" :size="20" />
                     <span class="hidden sm:inline ml-1.5">{{ $profileText }}</span>
                 </a>
 
@@ -361,16 +369,16 @@
                 <form method="POST" action="{{ route('keluar') }}" class="hidden md:inline-block">
                     @csrf
                     <button type="submit" class="al-icon-btn inline-flex items-center justify-center w-9 h-9 sm:w-auto sm:h-11 sm:px-4 rounded-full text-sm font-medium">
-                        <span class="hidden sm:inline">Keluar</span>
-                        <svg class="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <x-icon name="logout" :size="18" />
+                        <span class="hidden sm:inline ml-1.5">Keluar</span>
                     </button>
                 </form>
             @endauth
 
             {{-- Hamburger Menu Mobile --}}
             <button type="button" @click="mobileOpen = !mobileOpen" class="al-icon-btn md:hidden w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center" aria-label="Menu">
-                <template x-if="!mobileOpen"><x-icon name="menu" :size="18" class="sm:w-[20px] sm:h-[20px]" /></template>
-                <template x-if="mobileOpen"><x-icon name="close" :size="18" class="sm:w-[20px] sm:h-[20px]" /></template>
+                <template x-if="!mobileOpen"><x-icon name="menu" :size="20" class="sm:w-[20px] sm:h-[20px]" /></template>
+                <template x-if="mobileOpen"><x-icon name="close" :size="20" class="sm:w-[20px] sm:h-[20px]" /></template>
             </button>
         </div>
     </div>
@@ -388,7 +396,7 @@
                 @if ($item['label'] === 'Koleksi')
                     <div class="relative" @mouseenter="koleksiOpen = true" @mouseleave="koleksiOpen = false">
                         <a href="{{ route($item['route']) }}" class="al-nav px-4 py-2.5 text-xs font-semibold uppercase tracking-wide inline-flex items-center gap-1.5 {{ $item['active'] ? 'is-active' : '' }}">
-                            <x-icon name="dress" :size="14" />
+                            <x-icon name="dress" :size="16" />
                             {{ $item['label'] }}
                             <x-icon name="chevron-down" :size="14" />
                         </a>
@@ -404,15 +412,7 @@
                     </div>
                 @else
                     <a href="{{ route($item['route']) }}" class="al-nav px-4 py-2.5 text-xs font-semibold uppercase tracking-wide inline-flex items-center gap-1.5 {{ $item['active'] ? 'is-active' : '' }}">
-                        @if ($item['label'] === 'Beranda')
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
-                        @elseif($item['label'] === 'Cara Sewa')
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v4m0 0l-6 10a1 1 0 00.87 1.5h10.26a1 1 0 00.87-1.5L12 8zM8 4h8" /></svg>
-                        @elseif($item['label'] === 'Tentang Kami')
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        @elseif($item['label'] === 'Testimoni')
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                        @endif
+                        <x-icon :name="$item['ikon']" :size="16" />
                         {{ $item['label'] }}
                     </a>
                 @endif
@@ -427,17 +427,7 @@
         <nav class="max-w-7xl mx-auto px-4 py-3 flex flex-col">
             @foreach ($navItems as $item)
                 <a href="{{ route($item['route']) }}" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors {{ $item['active'] ? 'text-[#8a6410] bg-[#c99a32]/14 ring-1 ring-[#c99a32]/30' : 'text-[#3b4358] hover:bg-[#c99a32]/10 hover:text-[#8a6410]' }}">
-                    @if ($item['label'] === 'Beranda')
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" /></svg>
-                    @elseif($item['label'] === 'Koleksi')
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3l-3 4 2 14h8l2-14-3-4M9 3h6M9 3v4M15 3v4M12 7v14" /></svg>
-                    @elseif($item['label'] === 'Cara Sewa')
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v4m0 0l-6 10a1 1 0 00.87 1.5h10.26a1 1 0 00.87-1.5L12 8zM8 4h8" /></svg>
-                    @elseif($item['label'] === 'Tentang Kami')
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    @elseif($item['label'] === 'Testimoni')
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                    @endif
+                    <x-icon :name="$item['ikon']" :size="18" />
                     <span>{{ $item['label'] }}</span>
                 </a>
             @endforeach
@@ -445,13 +435,13 @@
             @auth
             <div class="mt-4 border-t border-[#c99a32]/15 pt-4 flex flex-col gap-1">
                 <a href="{{ $profileRoute }}" class="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-[#3b4358] hover:bg-[#c99a32]/10 hover:text-[#8a6410] transition-colors">
-                    <x-icon name="user" :size="18" class="text-[#a97c1a]" />
+                    <x-icon name="user" :size="20" class="text-[#a97c1a]" />
                     <span>Akun Saya ({{ $profileText }})</span>
                 </a>
                 <form method="POST" action="{{ route('keluar') }}">
                     @csrf
                     <button type="submit" class="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-colors">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        <x-icon name="logout" :size="20" />
                         Keluar Akun
                     </button>
                 </form>
