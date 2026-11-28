@@ -1,24 +1,28 @@
 @php
     $tahun = date('Y');
 
+    // Sementara satu link; akan dibuat per kategori setelah kode kategori diketahui
     $koleksiAdat = [
-        ['label' => 'Jas Beskap Pria',       'href' => '#'],
-        ['label' => 'Gown Kebaya Pengantin', 'href' => '#'],
-        ['label' => 'Set Baju Pasangan',     'href' => '#'],
-        ['label' => 'Mahkota & Suntiang',    'href' => '#'],
-        ['label' => 'Tenun Songket Asli',    'href' => '#'],
+        ['label' => 'Semua Koleksi', 'href' => route('koleksi.index')],
     ];
 
     $butuhBantuan = [
-                ['label' => 'Ketersediaan toko bisa berubah. Konfirmasi via WA.', 'href' => '#', 'isText' => true],
+        ['label' => 'Ketersediaan toko bisa berubah. Konfirmasi via WA.', 'href' => '#', 'isText' => true],
     ];
 
     $layananInfo = [
-        ['label' => 'Cara & Syarat Sewa Busana',    'href' => '#'],
-        ['label' => 'Aturan Deposit & Asuransi',    'href' => '#'],
-        ['label' => 'Jadwal Fitting Toko',          'href' => '#'],
-        ['label' => 'Panduan Ukuran Badan Online',  'href' => '#'],
-        ['label' => 'Pemesanan Custom Bespoke',     'href' => '#'],
+        ['label' => 'Cara & Syarat Sewa',     'href' => route('cara-sewa') . '#section-sewa'],
+        ['label' => 'Cara Beli & Refund',     'href' => route('cara-sewa') . '#section-beli'],
+        ['label' => 'Booking Jadwal Fitting', 'href' => route('public.fitting.create')],
+        ['label' => 'Testimoni Pelanggan',    'href' => route('testimoni')],
+        ['label' => 'Tentang ALNAY.ID',       'href' => route('tentang')],
+        ['label' => 'Event & Voting',         'href' => route('event'), 'blank' => true],
+    ];
+
+    $legal = [
+        ['label' => 'Kebijakan Privasi',       'href' => '#'],
+        ['label' => 'Syarat & Ketentuan Sewa', 'href' => route('cara-sewa') . '#section-sewa'],
+        ['label' => 'Keanggunan Adat',         'href' => route('tentang')],
     ];
 @endphp
 
@@ -98,7 +102,7 @@
      @if($footerBg) data-manual="1" style="background-color: {{ $footerBg }}" @endif></div>
 
 <footer class="relative bg-[#0a0a0a] text-white/80">
-    
+
     {{-- Salinan Debu Emas untuk Footer --}}
     <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div class="dust-particle w-1 h-1" style="left: 15%; bottom: 40%; animation-duration: 8s; animation-delay: 1s;"></div>
@@ -146,7 +150,7 @@
         </div>
 
         {{-- SIGER --}}
-        <svg viewBox="0 0 2654 1422" class="siger-glow relative z-10 block shrink-0 w-[200px] md:w-[280px] h-auto" xmlns="http://www.w3.org/2000/svg" role="img">
+        {<svg viewBox="0 0 2654 1422" class="siger-glow relative z-10 block shrink-0 w-[200px] md:w-[280px] h-auto" xmlns="http://www.w3.org/2000/svg" role="img">
             {{-- Gradasi emas (puncak) -> hitam (dasar), dasar harus #0a0a0a agar menyatu dengan footer --}}
             <defs>
                 <linearGradient id="gradSiger" x1="0.42" y1="0" x2="0.58" y2="1">
@@ -201,7 +205,7 @@
                         <span class="block text-[9px] uppercase tracking-[0.25em] text-[#c99a32] mt-0.5">Jas & Gown Berbudaya</span>
                     </span>
                 </a>
-                
+
                 <p class="text-xs md:text-sm text-white/60 leading-relaxed mb-8 max-w-sm">
                     Platform penyewaan dan bespoke atelier busana adat Nusantara nomor satu di Indonesia. Menghadirkan mahakarya budaya dengan standar kualitas tailoring adibusana internasional.
                 </p>
@@ -260,7 +264,9 @@
                 <ul class="space-y-2.5 sm:space-y-3 text-[10.5px] sm:text-[11px] md:text-sm leading-snug">
                     @foreach ($koleksiAdat as $item)
                         <li>
-                            <a href="{{ $item['href'] }}" class="group relative inline-block text-white/60 hover:text-white transition-colors duration-300">
+                            <a href="{{ $item['href'] }}"
+                               @if(!empty($item['blank'])) target="_blank" rel="noopener" @endif
+                               class="group relative inline-block text-white/60 hover:text-white transition-colors duration-300">
                                 <span>{{ $item['label'] }}</span>
                                 <span class="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#c99a32] transition-all duration-300 group-hover:w-full"></span>
                             </a>
@@ -277,7 +283,9 @@
                 <ul class="space-y-2.5 sm:space-y-3 text-[10.5px] sm:text-[11px] md:text-sm leading-snug">
                     @foreach ($layananInfo as $item)
                         <li>
-                            <a href="{{ $item['href'] }}" class="group relative inline-block text-white/60 hover:text-white transition-colors duration-300">
+                            <a href="{{ $item['href'] }}"
+                               @if(!empty($item['blank'])) target="_blank" rel="noopener" @endif
+                               class="group relative inline-block text-white/60 hover:text-white transition-colors duration-300">
                                 <span>{{ $item['label'] }}</span>
                                 <span class="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#c99a32] transition-all duration-300 group-hover:w-full"></span>
                             </a>
@@ -291,7 +299,7 @@
                 <h3 class="font-display text-white text-[10px] sm:text-xs uppercase tracking-wide sm:tracking-wider mb-4 sm:mb-5 flex items-center gap-1.5 sm:gap-2">
                     <span class="w-3 sm:w-4 h-[1px] shrink-0 bg-[#c99a32]"></span> Butuh Bantuan?
                 </h3>
-                
+
                 <ul class="space-y-1.5 text-[11px] md:text-sm mb-6">
                     @foreach ($butuhBantuan as $item)
                         <li class="text-white/60 flex items-start gap-2">
@@ -301,7 +309,7 @@
                     @endforeach
                 </ul>
 
-                <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" 
+                <a href="https://wa.me/{{ config('alnay.kontak.wa_cs') }}" target="_blank" rel="noopener noreferrer"
                    class="group relative inline-flex items-center justify-center w-full gap-2 px-4 py-3 rounded-xl border border-[#c99a32]/50 bg-[#c99a32]/5 text-xs font-bold text-[#c99a32] transition-all duration-300 hover:bg-[#c99a32] hover:text-black hover:shadow-[0_0_20px_rgba(201,154,50,0.4)] overflow-hidden">
                     <span class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 group-hover:translate-x-full"></span>
                     <svg class="w-4 h-4 relative z-10" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
@@ -310,14 +318,12 @@
 
                 <p class="text-[11px] text-white/40 mt-5 leading-relaxed flex items-start gap-2">
                     <svg class="w-3.5 h-3.5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <a 
-                                href="https://maps.app.goo.gl/N76eb72BYKsGL9Mu6" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                class="hover:text-[#c9962e] hover:underline transition-colors"
-                            >
-                                Bandar Lampung, Lampung, Indonesia
-                            </a>
+                    <a href="https://maps.app.goo.gl/N76eb72BYKsGL9Mu6"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="hover:text-[#c9962e] hover:underline transition-colors">
+                        Bandar Lampung, Lampung, Indonesia
+                    </a>
                 </p>
             </div>
         </div>
@@ -329,9 +335,9 @@
         <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] md:text-xs text-white/40 text-center md:text-left">
             <p>&copy; {{ $tahun }} AL-NAY.ID. All Rights Reserved.</p>
             <div class="flex flex-wrap justify-center gap-x-5 gap-y-2">
-                <a href="#" class="hover:text-[#c99a32] transition-colors">Kebijakan Privasi</a>
-                <a href="#" class="hover:text-[#c99a32] transition-colors">Syarat & Ketentuan Sewa</a>
-                <a href="#" class="hover:text-[#c99a32] transition-colors">Keanggunan Adat</a>
+                @foreach ($legal as $item)
+                    <a href="{{ $item['href'] }}" class="hover:text-[#c99a32] transition-colors">{{ $item['label'] }}</a>
+                @endforeach
             </div>
         </div>
 
