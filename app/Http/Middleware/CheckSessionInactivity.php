@@ -10,57 +10,91 @@ use Symfony\Component\HttpFoundation\Response;
 class CheckSessionInactivity
 {
     /**
-     * Handle an incoming request.
-     *
-     * Memeriksa durasi inaktivitas (idle) pengguna baik dari sisi admin maupun pelanggan.
-     * Jika melebihi batas waktu tanpa aktivitas, pengguna otomatis di-logout dengan pesan keterangan.
+     * Route yang sifatnya polling otomatis (bukan aksi user), jadi tidak
+     * boleh memperpanjang waktu aktivitas. Tambahkan nama route lain bila perlu.
      */
+    private const ROUTE_ABAIKAN = [
+        'qris.status',
+    ];
+
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Cek inaktivitas untuk Sisi Admin & Owner (Guard: admin)
-        if (Auth::guard('admin')->check()) {
-            $timeoutAdmin = (int) config('session.inactivity_timeout.admin', 30) * 60; // konversi ke detik
-            $lastActivityAdmin = session('last_activity_admin');
+        // 1. Sisi Admin & Owner (guard: admin)
+        $hasil = $this->periksa(
+            $request,
+            'admin',
+            'last_activity_admin',
+            (int) config('session.inactivity_timeout.admin', 30),
+            'admin.login',
+            'Sesi admin Anda telah berakhir karena tidak ada aktivitas. Silakan masuk kembali.'
+        );
 
-            if ($lastActivityAdmin && (now()->timestamp - $lastActivityAdmin > $timeoutAdmin)) {
-                Auth::guard('admin')->logout();
-                session()->forget('last_activity_admin');
-                $request->session()->regenerateToken();
-
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'message' => 'Sesi admin Anda telah berakhir karena tidak ada aktivitas. Silakan masuk kembali.',
-                    ], 401);
-                }
-
-                return redirect()->route('admin.login')->with('error', 'Sesi Anda telah berakhir karena tidak ada aktivitas. Silakan masuk kembali.');
-            }
-
-            session(['last_activity_admin' => now()->timestamp]);
+        if ($hasil) {
+            return $hasil;
         }
 
-        // 2. Cek inaktivitas untuk Sisi Pelanggan / User Biasa (Guard: web)
-        if (Auth::guard('web')->check()) {
-            $timeoutUser = (int) config('session.inactivity_timeout.user', 60) * 60; // konversi ke detik
-            $lastActivityUser = session('last_activity_web');
+        // 2. Sisi Pelanggan (guard: web)
+        $hasil = $this->periksa(
+            $request,
+            'web',
+            'last_activity_web',
+            (int) config('session.inactivity_timeout.user', 60),
+            'masuk',
+            'Sesi Anda telah berakhir karena tidak ada aktivitas. Silakan masuk kembali.'
+        );
 
-            if ($lastActivityUser && (now()->timestamp - $lastActivityUser > $timeoutUser)) {
-                Auth::guard('web')->logout();
-                session()->forget('last_activity_web');
-                $request->session()->regenerateToken();
-
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'message' => 'Sesi Anda telah berakhir karena tidak ada aktivitas. Silakan masuk kembali.',
-                    ], 401);
-                }
-
-                return redirect()->route('masuk')->with('error', 'Sesi Anda telah berakhir karena tidak ada aktivitas. Silakan masuk kembali.');
-            }
-
-            session(['last_activity_web' => now()->timestamp]);
+        if ($hasil) {
+            return $hasil;
         }
 
         return $next($request);
+    }
+
+    private function periksa(
+        Request $request,
+        string $guard,
+        string $kunci,
+        int $menit,
+        string $routeLogin,
+        string $pesan
+    ): ?Response {
+        $auth = Auth::guard($guard);
+
+        if (! $auth->check()) {
+            return null;
+        }
+
+        $sekarang = now()->timestamp;
+        $batas = $menit * 60;
+        $terakhir = $request->session()->get($kunci);
+
+        if ($terakhir) {
+            $kedaluwarsa = ($sekarang - (int) $terakhir) > $batas;
+        } else {
+            // Tidak ada catatan aktivitas di session, tapi user terautentikasi.
+            // Kalau ini terjadi karena dipulihkan dari cookie "ingat saya",
+            // berarti session lamanya sudah hilang/habis -> anggap kedaluwarsa.
+            $kedaluwarsa = method_exists($auth, 'viaRemember') && $auth->viaRemember();
+        }
+
+        if ($kedaluwarsa) {
+            $auth->logout(); // juga menghapus cookie remember
+            $request->session()->forget($kunci);
+            $request->session()->regenerateToken();
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $pesan], 401);
+            }
+
+            return redirect()->route($routeLogin)->with('error', $pesan);
+        }
+
+        // Perbarui waktu aktivitas, kecuali request polling otomatis
+        // (tetap dicatat bila belum ada nilai sama sekali).
+        if (! $terakhir || ! $request->routeIs(...self::ROUTE_ABAIKAN)) {
+            $request->session()->put($kunci, $sekarang);
+        }
+
+        return null;
     }
 }
