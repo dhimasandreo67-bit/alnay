@@ -13,15 +13,15 @@ return [
 
     'brand' => [
         'nama'    => 'ALNAY.ID',
-        'tagline' => 'Muda Gaya Berbudaya',
-    ],  
+        'tagline' => 'Fashion Adat Nusantara',
+    ],
 
     'promo_bar' => [
         'teks' => env('ALNAY_PROMO_TEKS', 'Selamat datang di ALNAY.ID'),
     ],
 
     'kontak' => [
-        'wa_cs'         => env('ALNAY_WA_CS', '0882-4248-0648'),
+        'wa_cs'         => env('ALNAY_WA_CS', '6288242480648'),
         'wa_cs_display' => env('ALNAY_WA_CS_DISPLAY', '0882-4248-0648'),
         'email'         => env('ALNAY_EMAIL', 'storealnay.id@gmail.com'),
     ],
