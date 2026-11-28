@@ -894,8 +894,7 @@
                 <p class="sec-eyebrow">Galeri &amp; Ruang Fitting</p>
                 <h2 id="atelier-judul" class="sec-title mt-3">Offline Atelier &amp; Toko ALNAY.ID</h2>
                 <p class="atelier-desc">
-                    Datang langsung untuk konsultasi, fitting presisi, dan melihat koleksi secara nyata.
-                    Tersedia ruang fitting privat ber-AC dan penjahit profesional.
+                    Datang langsung untuk konsultasi, fitting presisi, dan melihat koleksi secara langsung.
                 </p>
 
                 <ul class="atelier-list">
