@@ -13,10 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void { // <-- Rata kiri-kanan
+    ->withMiddleware(function (Middleware $middleware): void {
+        // Cukup didaftarkan sekali (admin & pelanggan sama-sama dicek di dalamnya)
         $middleware->appendToGroup('web', CheckSessionInactivity::class);
-
-        $middleware->appendToGroup('web', \App\Http\Middleware\CheckSessionInactivity::class);
 
         $middleware->validateCsrfTokens(except: [
             'midtrans/webhook',
